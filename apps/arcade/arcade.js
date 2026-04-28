@@ -213,6 +213,9 @@ function closeGame() {
   }
   currentGame = null;
   if (snakeInterval) clearInterval(snakeInterval);
+  if (snake2Interval) clearInterval(snake2Interval);
+  snakeMultiplayerMode = null;
+  snake2 = [];
   
   if (dualModeController) {
     dualModeController.endGame();
@@ -408,23 +411,100 @@ let snake = [];
 let snakeFood = { x: 0, y: 0 };
 let snakeDirection = 'right';
 let snakeScore = 0;
-const snakeSize = 15;
+let snakeSize = 18;
+let snakeMultiplayerMode = null;
+let snake2 = [];
+let snake2Direction = 'left';
+let snake2Score = 0;
+let snake2Interval = null;
 
 function renderSnakeGame() {
   const area = document.getElementById('game-area');
+  const hasCharacter = window.arcadeGame?.character && Character.hasCharacter();
+  
+  let modeSelectorHTML = '';
+  if (hasCharacter && !snakeMultiplayerMode) {
+    modeSelectorHTML = `
+      <div class="snake-mode-prompt" id="snake-mode-prompt">
+        <div class="snake-mode-title">🎮 偵測到已邀請角色</div>
+        <div class="snake-mode-subtitle">選擇遊戲模式</div>
+        <div class="snake-mode-buttons">
+          <button class="snake-mode-btn" onclick="startSnakeMode('single')">
+            <i class="fas fa-user"></i>
+            <span>單人模式</span>
+          </button>
+          <button class="snake-mode-btn" onclick="startSnakeMode('coop')">
+            <i class="fas fa-handshake"></i>
+            <span>合作模式</span>
+          </button>
+          <button class="snake-mode-btn" onclick="startSnakeMode('versus')">
+            <i class="fas fa-swords"></i>
+            <span>對戰模式</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
   area.innerHTML = `
-    <div class="game-score">分數: <span id="snake-score">0</span></div>
-    <div class="snake-grid" id="snake-grid" style="grid-template-columns: repeat(${snakeSize}, 1fr);"></div>
-    <div class="game-controls">
-      <button class="game-btn secondary" onclick="changeSnakeDirection('up')"><i class="fas fa-arrow-up"></i></button>
+    <div class="snake-game-container">
+      ${modeSelectorHTML}
+      <div class="game-score" id="snake-score-container">
+        <span>玩家: <span id="snake-score">0</span></span>
+        <span id="snake-score-2-container" class="hidden"> | 角色: <span id="snake-score-2">0</span></span>
+      </div>
+      <div class="snake-grid" id="snake-grid" style="grid-template-columns: repeat(${snakeSize}, 1fr);"></div>
+      <div class="game-controls">
+        <button class="game-btn secondary" onclick="changeSnakeDirection('up')"><i class="fas fa-arrow-up"></i></button>
+      </div>
+      <div class="game-controls">
+        <button class="game-btn secondary" onclick="changeSnakeDirection('left')"><i class="fas fa-arrow-left"></i></button>
+        <button class="game-btn secondary" onclick="changeSnakeDirection('down')"><i class="fas fa-arrow-down"></i></button>
+        <button class="game-btn secondary" onclick="changeSnakeDirection('right')"><i class="fas fa-arrow-right"></i></button>
+      </div>
+      <div class="game-message">使用按鈕或鍵盤方向鍵控制</div>
     </div>
-    <div class="game-controls">
-      <button class="game-btn secondary" onclick="changeSnakeDirection('left')"><i class="fas fa-arrow-left"></i></button>
-      <button class="game-btn secondary" onclick="changeSnakeDirection('down')"><i class="fas fa-arrow-down"></i></button>
-      <button class="game-btn secondary" onclick="changeSnakeDirection('right')"><i class="fas fa-arrow-right"></i></button>
-    </div>
-    <div class="game-message">使用按鈕或鍵盤方向鍵控制</div>
   `;
+  
+  if (!hasCharacter) {
+    initSnake();
+  }
+}
+
+function startSnakeMode(mode) {
+  snakeMultiplayerMode = mode;
+  const prompt = document.getElementById('snake-mode-prompt');
+  if (prompt) prompt.classList.add('hidden');
+  
+  if (mode === 'coop' || mode === 'versus') {
+    document.getElementById('snake-score-2-container').classList.remove('hidden');
+    snake2 = [{ x: snakeSize - 8, y: snakeSize - 8 }];
+    snake2Direction = 'left';
+    snake2Score = 0;
+    document.getElementById('snake-score-2').textContent = '0';
+    
+    // 角色自動控制
+    if (window.arcadeGame?.character) {
+      snake2Interval = setInterval(() => {
+        if (!snake2.length) return;
+        const head = snake2[0];
+        const dx = snakeFood.x - head.x;
+        const dy = snakeFood.y - head.y;
+        let bestDir = snake2Direction;
+        
+        if (Math.abs(dx) > Math.abs(dy)) {
+          bestDir = dx > 0 ? 'right' : 'left';
+        } else {
+          bestDir = dy > 0 ? 'down' : 'up';
+        }
+        
+        const opposites = { up: 'down', down: 'up', left: 'right', right: 'left' };
+        if (opposites[bestDir] !== snake2Direction) {
+          snake2Direction = bestDir;
+        }
+      }, 400);
+    }
+  }
   
   initSnake();
 }
@@ -438,7 +518,7 @@ function initSnake() {
   renderSnakeGrid();
   
   if (snakeInterval) clearInterval(snakeInterval);
-  snakeInterval = setInterval(moveSnake, 150);
+  snakeInterval = setInterval(moveSnake, 350);
 }
 
 function spawnSnakeFood() {
@@ -447,7 +527,8 @@ function spawnSnakeFood() {
       x: Math.floor(Math.random() * snakeSize),
       y: Math.floor(Math.random() * snakeSize)
     };
-  } while (snake.some(s => s.x === snakeFood.x && s.y === snakeFood.y));
+  } while (snake.some(s => s.x === snakeFood.x && s.y === snakeFood.y) || 
+           snake2.some(s => s.x === snakeFood.x && s.y === snakeFood.y));
 }
 
 function renderSnakeGrid() {
@@ -457,9 +538,10 @@ function renderSnakeGrid() {
   let html = '';
   for (let y = 0; y < snakeSize; y++) {
     for (let x = 0; x < snakeSize; x++) {
-      const isSnake = snake.some(s => s.x === x && s.y === y);
+      const isSnake1 = snake.some(s => s.x === x && s.y === y);
+      const isSnake2 = snake2.some(s => s.x === x && s.y === y);
       const isFood = snakeFood.x === x && snakeFood.y === y;
-      html += `<div class="snake-cell ${isSnake ? 'snake' : ''} ${isFood ? 'food' : ''}"></div>`;
+      html += `<div class="snake-cell ${isSnake1 ? 'snake' : ''} ${isSnake2 ? 'snake2' : ''} ${isFood ? 'food' : ''}"></div>`;
     }
   }
   grid.innerHTML = html;
@@ -475,11 +557,90 @@ function moveSnake() {
     case 'right': head.x++; break;
   }
   
+  // 對戰模式：撞到對方蛇身
+  if (snakeMultiplayerMode === 'versus' && snake2.some(s => s.x === head.x && s.y === head.y)) {
+    clearInterval(snakeInterval);
+    if (snake2Interval) clearInterval(snake2Interval);
+    updateHighScore('snake', snakeScore);
+    alert(`遊戲結束！玩家得分: ${snakeScore}，角色得分: ${snake2Score}`);
+    return;
+  }
+  
   if (head.x < 0 || head.x >= snakeSize || head.y < 0 || head.y >= snakeSize ||
       snake.some(s => s.x === head.x && s.y === head.y)) {
     clearInterval(snakeInterval);
+    if (snake2Interval) clearInterval(snake2Interval);
     updateHighScore('snake', snakeScore);
-    alert(`遊戲結束！得分: ${snakeScore}`);
+    
+    if (snakeMultiplayerMode === 'versus') {
+      alert(`遊戲結束！玩家得分: ${snakeScore}，角色得分: ${snake2Score}`);
+    } else {
+      alert(`遊戲結束！得分: ${snakeScore}`);
+    }
+    return;
+  }
+  
+  snake.unshift(head);
+  
+  if (head.x === snakeFood.x && head.y === snakeFood.y) {
+    snakeScore += 10;
+    document.getElementById('snake-score').textContent = snakeScore;
+    spawnSnakeFood();
+  } else {
+    snake.pop();
+  }
+  
+  // 移動第二條蛇（合作/對戰模式）
+  if ((snakeMultiplayerMode === 'coop' || snakeMultiplayerMode === 'versus') && snake2.length > 0) {
+    moveSnake2();
+  }
+  
+  renderSnakeGrid();
+}
+
+function moveSnake2() {
+  const head = { ...snake2[0] };
+  
+  switch (snake2Direction) {
+    case 'up': head.y--; break;
+    case 'down': head.y++; break;
+    case 'left': head.x--; break;
+    case 'right': head.x++; break;
+  }
+  
+  // 對戰模式：撞到玩家蛇身
+  if (snakeMultiplayerMode === 'versus' && snake.some(s => s.x === head.x && s.y === head.y)) {
+    clearInterval(snakeInterval);
+    if (snake2Interval) clearInterval(snake2Interval);
+    updateHighScore('snake', snake2Score);
+    alert(`角色撞到玩家！玩家得分: ${snakeScore}，角色得分: ${snake2Score}`);
+    return;
+  }
+  
+  if (head.x < 0 || head.x >= snakeSize || head.y < 0 || head.y >= snakeSize ||
+      snake2.some(s => s.x === head.x && s.y === head.y)) {
+    clearInterval(snake2Interval);
+    snake2 = [];
+    if (snakeMultiplayerMode === 'coop') {
+      // 合作模式：角色蛇死亡，玩家繼續
+      return;
+    } else {
+      clearInterval(snakeInterval);
+      alert(`角色撞牆！玩家得分: ${snakeScore}，角色得分: ${snake2Score}`);
+    }
+    return;
+  }
+  
+  snake2.unshift(head);
+  
+  if (head.x === snakeFood.x && head.y === snakeFood.y) {
+    snake2Score += 10;
+    document.getElementById('snake-score-2').textContent = snake2Score;
+    spawnSnakeFood();
+  } else {
+    snake2.pop();
+  }
+}
     return;
   }
   
@@ -2058,6 +2219,21 @@ const SLOT_PAYOUTS = {
   'apricot': { three: 3, two: 0 }
 };
 
+const SLOT_WEIGHTS = {
+  'lucky_seven': 1,
+  'big_win': 2,
+  'cherry': 4,
+  'grapes': 6,
+  'watermelon': 8,
+  'strawberry': 10,
+  'banana': 12,
+  'orange': 14,
+  'apple': 16,
+  'pear': 18,
+  'lemon': 20,
+  'apricot': 22
+};
+
 let slotState = {
   cols: null,
   spinning: false,
@@ -2153,18 +2329,42 @@ function renderSlotGame() {
           <div class="paytable-item top">
             <div class="pay-icon">7</div>
             <div class="pay-multi">x100</div>
+            <div class="pay-chance">0.3%</div>
           </div>
           <div class="paytable-item">
             <div class="pay-icon">★</div>
             <div class="pay-multi">x50</div>
+            <div class="pay-chance">0.6%</div>
           </div>
           <div class="paytable-item">
             <div class="pay-icon">🍒</div>
             <div class="pay-multi">x30</div>
+            <div class="pay-chance">1.2%</div>
           </div>
           <div class="paytable-item">
             <div class="pay-icon">🍇</div>
             <div class="pay-multi">x20</div>
+            <div class="pay-chance">1.8%</div>
+          </div>
+          <div class="paytable-item">
+            <div class="pay-icon">🍉</div>
+            <div class="pay-multi">x15</div>
+            <div class="pay-chance">2.4%</div>
+          </div>
+          <div class="paytable-item">
+            <div class="pay-icon">🍓</div>
+            <div class="pay-multi">x12</div>
+            <div class="pay-chance">3.0%</div>
+          </div>
+          <div class="paytable-item">
+            <div class="pay-icon">🍌</div>
+            <div class="pay-multi">x10</div>
+            <div class="pay-chance">3.6%</div>
+          </div>
+          <div class="paytable-item">
+            <div class="pay-icon">🍊</div>
+            <div class="pay-multi">x8</div>
+            <div class="pay-chance">4.2%</div>
           </div>
         </div>
       </div>
@@ -2195,7 +2395,17 @@ function initSlotReels() {
 }
 
 function getRandomSlotIcon() {
-  return SLOT_ICONS[Math.floor(Math.random() * SLOT_ICONS.length)];
+  const totalWeight = Object.values(SLOT_WEIGHTS).reduce((a, b) => a + b, 0);
+  let random = Math.random() * totalWeight;
+  
+  for (const [icon, weight] of Object.entries(SLOT_WEIGHTS)) {
+    random -= weight;
+    if (random <= 0) {
+      return icon;
+    }
+  }
+  
+  return SLOT_ICONS[SLOT_ICONS.length - 1];
 }
 
 function changeSlotBet(delta) {
@@ -2226,16 +2436,19 @@ function spinSlot() {
   spinBtn.disabled = true;
   machine.classList.add('spinning');
   
-  const BASE_DURATION = 2.7;
-  const COLUMN_DURATION = 0.3;
-  let duration = BASE_DURATION + (Math.floor(Math.random() * 10) / 100);
+  const BASE_DURATION = 2.0;
+  const COLUMN_DELAY = 0.4;
   
-  for (let col of slotState.cols) {
-    duration += COLUMN_DURATION + (Math.floor(Math.random() * 10) / 100);
-    col.style.animationDuration = duration + 's';
+  const durations = [];
+  for (let i = 0; i < slotState.cols.length; i++) {
+    const duration = BASE_DURATION + (i * COLUMN_DELAY) + (Math.random() * 0.3);
+    durations.push(duration);
+    slotState.cols[i].style.animationDuration = duration + 's';
   }
   
-  setTimeout(setSlotResult, BASE_DURATION * 1000 / 2);
+  const maxDuration = Math.max(...durations);
+  
+  setTimeout(setSlotResult, 1000);
   
   setTimeout(() => {
     machine.classList.remove('spinning');
@@ -2263,7 +2476,7 @@ function spinSlot() {
       winDisplay.classList.add('winning');
       setTimeout(() => winDisplay.classList.remove('winning'), 1000);
     }
-  }, duration * 1000);
+  }, maxDuration * 1000 + 200);
 }
 
 function setSlotResult() {
@@ -2274,10 +2487,19 @@ function setSlotResult() {
       getRandomSlotIcon()
     ];
     
-    let icons = col.querySelectorAll('.slot-icon img');
+    let icons = col.querySelectorAll('.slot-icon');
     for (let x = 0; x < 3; x++) {
-      icons[x].setAttribute('src', `slot-items/${results[x]}.png`);
-      icons[(icons.length - 3) + x].setAttribute('src', `slot-items/${results[x]}.png`);
+      const img = icons[x].querySelector('img');
+      if (img) {
+        img.setAttribute('src', `slot-items/${results[x]}.png`);
+      }
+      icons[x].dataset.item = results[x];
+      
+      const lastImg = icons[icons.length - 3 + x].querySelector('img');
+      if (lastImg) {
+        lastImg.setAttribute('src', `slot-items/${results[x]}.png`);
+      }
+      icons[icons.length - 3 + x].dataset.item = results[x];
     }
   }
 }
@@ -3382,6 +3604,39 @@ function openSettingsPanel() {
       <div class="settings-panel-content">
         <div class="settings-section">
           <div class="section-title">
+            <i class="fas fa-user-friends"></i> 邀請角色
+          </div>
+          <button class="invite-btn" onclick="closeSettingsPanel(); showCharacterSelectModal();">
+            <i class="fas fa-user-plus"></i> 邀請角色一起玩
+          </button>
+        </div>
+        <div class="settings-section">
+          <div class="section-title">
+            <i class="fas fa-coins"></i> 金幣餘額
+          </div>
+          <div class="coins-balance">
+            <span class="balance-value">${coins}</span>
+            <span class="balance-label">金幣</span>
+          </div>
+          <div class="topup-options">
+            <button class="topup-btn" onclick="topupCoins(100)">+100</button>
+            <button class="topup-btn" onclick="topupCoins(500)">+500</button>
+            <button class="topup-btn" onclick="topupCoins(1000)">+1000</button>
+          </div>
+          <div class="kakaopay-section">
+            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(100)">
+              <i class="fas fa-wallet"></i> 儲值 100金幣 (NT$10)
+            </button>
+            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(500)">
+              <i class="fas fa-wallet"></i> 儲值 500金幣 (NT$50)
+            </button>
+            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(1000)">
+              <i class="fas fa-wallet"></i> 儲值 1000金幣 (NT$100)
+            </button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="section-title">
             <i class="fas fa-music"></i> 音樂播放器
           </div>
           <div class="music-player-section">
@@ -3424,31 +3679,6 @@ function openSettingsPanel() {
                 <i class="fas fa-stop"></i> 停止試聽
               </button>
             </div>
-          </div>
-        </div>
-        <div class="settings-section">
-          <div class="section-title">
-            <i class="fas fa-coins"></i> 金幣餘額
-          </div>
-          <div class="coins-balance">
-            <span class="balance-value">${coins}</span>
-            <span class="balance-label">金幣</span>
-          </div>
-          <div class="topup-options">
-            <button class="topup-btn" onclick="topupCoins(100)">+100</button>
-            <button class="topup-btn" onclick="topupCoins(500)">+500</button>
-            <button class="topup-btn" onclick="topupCoins(1000)">+1000</button>
-          </div>
-          <div class="kakaopay-section">
-            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(100)">
-              <i class="fas fa-wallet"></i> 儲值 100金幣 (NT$10)
-            </button>
-            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(500)">
-              <i class="fas fa-wallet"></i> 儲值 500金幣 (NT$50)
-            </button>
-            <button class="kakaopay-btn" onclick="topupFromKakaopayAmount(1000)">
-              <i class="fas fa-wallet"></i> 儲值 1000金幣 (NT$100)
-            </button>
           </div>
         </div>
         <div class="settings-section">

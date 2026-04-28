@@ -456,6 +456,12 @@ window.addEventListener('message', (event) => {
         handleArcadeInvite(data.payload);
     }
     
+    // 處理用戶發起的街機廳邀請（角色決定是否接受）
+    if (data.type === 'ARCADE_INVITE_FROM_USER' && data.payload) {
+        console.log('[Chat] 收到用戶發起的街機廳邀請:', data.payload);
+        handleArcadeInviteFromUser(data.payload);
+    }
+    
     // 處理街機廳大頭貼對話
     if (data.type === 'ARCADE_AVATAR_CLICK' && data.payload) {
         console.log('[Chat] 收到街機廳大頭貼對話:', data.payload);
@@ -9081,6 +9087,157 @@ async function handleArcadeRequestDialogue(payload) {
             response: ''
         }, '*');
     }
+}
+
+async function handleArcadeInviteFromUser(payload) {
+    const charName = payload.charName || 'AI 助理';
+    const charAvatar = payload.charAvatar || '';
+    const charPersonality = payload.charPersonality || '友善的助手';
+    const charBackground = payload.charBackground || '';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+    
+    const inviteId = 'arcade-user-invite-' + Date.now();
+    
+    let thinkingText = '正在考慮...';
+    
+    const cardHtml = `
+        <div class="arcade-invite-card" id="${inviteId}">
+            <div class="arcade-invite-card-header">
+                <i class="fas fa-gamepad"></i> 街機廳邀請
+            </div>
+            <div class="arcade-invite-card-char">
+                ${charAvatar ? `<img src="${charAvatar}" alt="${charName}">` : `<i class="fas fa-user"></i>`}
+                <span>${charName}</span>
+            </div>
+            <div class="arcade-invite-card-text">
+                <i class="fas fa-spinner fa-spin"></i> ${thinkingText}
+            </div>
+        </div>
+    `;
+    
+    if (typeof addMessage === 'function') {
+        addMessage(cardHtml, 'other', false, true);
+    } else if (typeof appendMsg === 'function') {
+        appendMsg('other', cardHtml);
+    }
+    
+    let acceptChance = 0.7;
+    let responseText = '';
+    let isAccepted = false;
+    
+    if (apis[0] && apis[0].url) {
+        const session = getActiveSession();
+        const history = session ? session.history : [];
+        const recentHistory = history.slice(-10).map(m => {
+            const sender = m.role === 'user' ? userName : charName;
+            return sender + ': ' + (m.content || m.text || '');
+        }).join('\n');
+        
+        const worldbookData = typeof getWorldbookData === 'function' ? getWorldbookData() : {};
+        const worldInfoStr = Object.entries(worldbookData)
+            .filter(function(entry) { return Array.isArray(entry[1]) && entry[1].length > 0 && entry[0] !== 'sx_detected_forbidden'; })
+            .map(function(entry) { return entry[1].map(function(e) { return e.content || ''; }).join('\n'); })
+            .join('\n');
+        
+        const systemPrompt = [
+            '# ROLE_SETTING',
+            '- Name: ' + charName,
+            '- Persona: ' + charPersonality,
+            '- Background: ' + charBackground,
+            '',
+            '# USER_INFO',
+            '- Name: ' + userName,
+            '',
+            '# WORLD_INFO',
+            worldInfoStr || '無',
+            '',
+            '# RECENT_CHAT',
+            recentHistory || '無最近對話',
+            '',
+            '# TASK',
+            '- ' + userName + ' 邀請你去街機廳玩遊戲',
+            '- 請根據你的性格決定是否接受，並生成回應',
+            '- 回應格式: [ACCEPT] 或 [REJECT] 開頭，然後是回應內容',
+            '- 例如: [ACCEPT] 好啊，一起去玩吧！',
+            '- 例如: [REJECT] 抱歉，我現在有點累...',
+            '- 使用 ' + lang + ' 溝通',
+            '- 保持角色性格，不要提及你是 AI',
+            '- 回應要簡短 (1-2 句話)'
+        ].join('\n');
+        
+        try {
+            let response = await callAIAPI([
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: '(系統：' + userName + ' 邀請你去街機廳玩遊戲，請決定是否接受並回應)' }
+            ]);
+            
+            response = response.replace(/<tool_call>[\s\S]*?<\/think>/gi, '');
+            response = response.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+            response = response.replace(/```[\s\S]*?```/gi, '');
+            response = response.trim();
+            
+            if (response.includes('[ACCEPT]')) {
+                isAccepted = true;
+                responseText = response.replace(/\[ACCEPT\]\s*/i, '');
+            } else if (response.includes('[REJECT]')) {
+                isAccepted = false;
+                responseText = response.replace(/\[REJECT]\s*/i, '');
+            } else {
+                isAccepted = Math.random() < acceptChance;
+                responseText = response;
+            }
+            
+            if (!responseText) {
+                responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
+            }
+        } catch (e) {
+            console.warn('[Chat] 生成邀請回應失敗:', e);
+            isAccepted = Math.random() < acceptChance;
+            responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
+        }
+    } else {
+        isAccepted = Math.random() < acceptChance;
+        responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
+    }
+    
+    const card = document.getElementById(inviteId);
+    if (card) {
+        const textEl = card.querySelector('.arcade-invite-card-text');
+        if (textEl) {
+            textEl.innerHTML = responseText;
+        }
+        
+        if (isAccepted) {
+            card.classList.add('accepted');
+            
+            setTimeout(() => {
+                window.parent.postMessage({
+                    type: 'ARCADE_INVITE_ACCEPTED',
+                    payload: {
+                        charName: charName,
+                        charAvatar: charAvatar,
+                        charPersonality: charPersonality,
+                        charBackground: charBackground
+                    }
+                }, '*');
+                
+                setTimeout(() => {
+                    window.parent.postMessage({
+                        type: 'openApp',
+                        appId: 'arcade'
+                    }, '*');
+                }, 1000);
+            }, 1500);
+        } else {
+            card.classList.add('rejected');
+            setTimeout(() => card.remove(), 3000);
+        }
+    }
+    
+    console.log('[Chat] 角色回應邀請:', charName, isAccepted ? '接受' : '婉拒');
 }
 
 window.acceptArcadeInvite = acceptArcadeInvite;

@@ -23,15 +23,40 @@ class Character {
     this.pathQueue = [];
     this.lastPlayerPos = null;
     
-    this.colors = {
-      body: '#a855f7',
-      outline: '#7c3aed',
-      skin: '#fcd34d',
-      hair: '#ec4899'
-    };
+    this.colors = this.loadSpriteColors(options.spriteColors);
     
     this.visible = true;
     this.dialogueBubble = null;
+  }
+  
+  loadSpriteColors(customColors) {
+    if (customColors) {
+      return { body: customColors.body, outline: customColors.outline, skin: '#fcd34d', hair: '#ec4899' };
+    }
+    
+    const spriteId = localStorage.getItem('sx_arcade_char_sprite') || 'default';
+    
+    const spriteColors = {
+      default: { body: '#a855f7', outline: '#7c3aed', skin: '#fcd34d', hair: '#ec4899' },
+      blue: { body: '#3b82f6', outline: '#1d4ed8', skin: '#fcd34d', hair: '#ec4899' },
+      purple: { body: '#a855f7', outline: '#7c3aed', skin: '#fcd34d', hair: '#ec4899' },
+      red: { body: '#ef4444', outline: '#dc2626', skin: '#fcd34d', hair: '#ec4899' },
+      yellow: { body: '#f59e0b', outline: '#d97706', skin: '#fcd34d', hair: '#ec4899' },
+      pink: { body: '#ec4899', outline: '#db2777', skin: '#fcd34d', hair: '#ec4899' },
+      cyan: { body: '#06b6d4', outline: '#0891b2', skin: '#fcd34d', hair: '#ec4899' }
+    };
+    
+    if (spriteId === 'custom') {
+      const savedColors = localStorage.getItem('sx_arcade_char_colors');
+      if (savedColors) {
+        try {
+          const colors = JSON.parse(savedColors);
+          return { body: colors.body, outline: colors.outline, skin: '#fcd34d', hair: '#ec4899' };
+        } catch (e) {}
+      }
+    }
+    
+    return spriteColors[spriteId] || spriteColors.default;
   }
   
   static getCharacterData() {

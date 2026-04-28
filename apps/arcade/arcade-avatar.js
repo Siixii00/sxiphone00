@@ -25,16 +25,19 @@ class ArcadeAvatar {
     this.element.style.left = `${this.position.x}px`;
     this.element.style.top = `${this.position.y}px`;
     
+    const avatarUrl = this.charData.charAvatar || this.charData.avatar || '';
+    const charName = this.charData.charName || this.charData.name || '角色';
+    
     this.element.innerHTML = `
       <div class="arcade-avatar-dialogue" id="arcade-avatar-dialogue"></div>
       <div class="arcade-avatar-container">
         <div class="arcade-avatar-image">
-          ${this.charData.charAvatar ? 
-            `<img src="${this.charData.charAvatar}" alt="${this.charData.charName}">` : 
+          ${avatarUrl ? 
+            `<img src="${avatarUrl}" alt="${charName}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fas fa-user" style="display:none"></i>` : 
             `<i class="fas fa-user"></i>`
           }
         </div>
-        <div class="arcade-avatar-name">${this.charData.charName}</div>
+        <div class="arcade-avatar-name">${charName}</div>
       </div>
       <button class="arcade-avatar-leave" onclick="window.arcadeAvatar.leave()" title="讓角色離開">
         <i class="fas fa-times"></i>
@@ -49,7 +52,11 @@ class ArcadeAvatar {
     this.setupClick();
     this.startIdleTimer();
     
-    console.log('[ArcadeAvatar] 已渲染:', this.charData.charName);
+    setTimeout(() => {
+      this.showDialogue('我來了！一起玩吧！', 3000);
+    }, 500);
+    
+    console.log('[ArcadeAvatar] 已渲染:', charName, '頭貼:', avatarUrl ? '有' : '無');
   }
   
   setupDrag() {

@@ -17,12 +17,33 @@ class Player {
     this.avatar = options.avatar || 'default';
     this.status = 'idle';
     
-    this.colors = {
-      body: '#4ade80',
-      outline: '#166534',
-      skin: '#fcd34d',
-      hair: '#1e1e1e'
+    this.colors = this.loadSpriteColors();
+  }
+  
+  loadSpriteColors() {
+    const spriteId = localStorage.getItem('sx_arcade_player_sprite') || 'default';
+    
+    const spriteColors = {
+      default: { body: '#4ade80', outline: '#166534', skin: '#fcd34d', hair: '#1e1e1e' },
+      blue: { body: '#3b82f6', outline: '#1d4ed8', skin: '#fcd34d', hair: '#1e1e1e' },
+      purple: { body: '#a855f7', outline: '#7c3aed', skin: '#fcd34d', hair: '#ec4899' },
+      red: { body: '#ef4444', outline: '#dc2626', skin: '#fcd34d', hair: '#1e1e1e' },
+      yellow: { body: '#f59e0b', outline: '#d97706', skin: '#fcd34d', hair: '#1e1e1e' },
+      pink: { body: '#ec4899', outline: '#db2777', skin: '#fcd34d', hair: '#ec4899' },
+      cyan: { body: '#06b6d4', outline: '#0891b2', skin: '#fcd34d', hair: '#1e1e1e' }
     };
+    
+    if (spriteId === 'custom') {
+      const savedColors = localStorage.getItem('sx_arcade_player_colors');
+      if (savedColors) {
+        try {
+          const colors = JSON.parse(savedColors);
+          return { body: colors.body, outline: colors.outline, skin: '#fcd34d', hair: '#1e1e1e' };
+        } catch (e) {}
+      }
+    }
+    
+    return spriteColors[spriteId] || spriteColors.default;
   }
   
   setPosition(x, y, floor = null) {

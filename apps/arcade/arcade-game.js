@@ -92,7 +92,8 @@ class ArcadeGame {
       name: charData.name,
       avatar: charData.avatar,
       personality: charData.personality,
-      background: charData.background
+      background: charData.background,
+      spriteColors: charData.charSpriteColors || charData.spriteColors || null
     });
     
     this.character.setFollowTarget(this.player);

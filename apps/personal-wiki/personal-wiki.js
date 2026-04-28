@@ -491,7 +491,7 @@ let wikiEngine = null;
 let editingEntryId = null;
 
 const DB_NAME = 'sx_personal_wiki';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 class PersonalWikiDB {
     constructor() {
@@ -510,37 +510,62 @@ class PersonalWikiDB {
             
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const transaction = event.target.transaction;
                 
+                // user_entries
                 if (!db.objectStoreNames.contains('user_entries')) {
                     const userStore = db.createObjectStore('user_entries', { keyPath: 'id' });
                     userStore.createIndex('category', 'category', { unique: false });
                     userStore.createIndex('createdAt', 'createdAt', { unique: false });
                     userStore.createIndex('importance', 'importance', { unique: false });
+                } else if (event.oldVersion < 3) {
+                    const userStore = transaction.objectStore('user_entries');
+                    if (!userStore.indexNames.contains('category')) userStore.createIndex('category', 'category', { unique: false });
+                    if (!userStore.indexNames.contains('createdAt')) userStore.createIndex('createdAt', 'createdAt', { unique: false });
+                    if (!userStore.indexNames.contains('importance')) userStore.createIndex('importance', 'importance', { unique: false });
                 }
                 
+                // char_entries
                 if (!db.objectStoreNames.contains('char_entries')) {
                     const charStore = db.createObjectStore('char_entries', { keyPath: 'id' });
                     charStore.createIndex('charId', 'charId', { unique: false });
                     charStore.createIndex('category', 'category', { unique: false });
                     charStore.createIndex('createdAt', 'createdAt', { unique: false });
+                } else if (event.oldVersion < 3) {
+                    const charStore = transaction.objectStore('char_entries');
+                    if (!charStore.indexNames.contains('charId')) charStore.createIndex('charId', 'charId', { unique: false });
+                    if (!charStore.indexNames.contains('category')) charStore.createIndex('category', 'category', { unique: false });
+                    if (!charStore.indexNames.contains('createdAt')) charStore.createIndex('createdAt', 'createdAt', { unique: false });
                 }
                 
+                // shared_entries
                 if (!db.objectStoreNames.contains('shared_entries')) {
                     const sharedStore = db.createObjectStore('shared_entries', { keyPath: 'id' });
                     sharedStore.createIndex('charId', 'charId', { unique: false });
                     sharedStore.createIndex('category', 'category', { unique: false });
                     sharedStore.createIndex('createdAt', 'createdAt', { unique: false });
                     sharedStore.createIndex('storyType', 'storyType', { unique: false });
+                } else if (event.oldVersion < 3) {
+                    const sharedStore = transaction.objectStore('shared_entries');
+                    if (!sharedStore.indexNames.contains('charId')) sharedStore.createIndex('charId', 'charId', { unique: false });
+                    if (!sharedStore.indexNames.contains('category')) sharedStore.createIndex('category', 'category', { unique: false });
+                    if (!sharedStore.indexNames.contains('createdAt')) sharedStore.createIndex('createdAt', 'createdAt', { unique: false });
+                    if (!sharedStore.indexNames.contains('storyType')) sharedStore.createIndex('storyType', 'storyType', { unique: false });
                 }
                 
                 if (!db.objectStoreNames.contains('chars')) {
                     db.createObjectStore('chars', { keyPath: 'id' });
                 }
                 
+                // wiki_log
                 if (!db.objectStoreNames.contains('wiki_log')) {
                     const logStore = db.createObjectStore('wiki_log', { keyPath: 'id' });
                     logStore.createIndex('type', 'type', { unique: false });
                     logStore.createIndex('timestamp', 'timestamp', { unique: false });
+                } else if (event.oldVersion < 3) {
+                    const logStore = transaction.objectStore('wiki_log');
+                    if (!logStore.indexNames.contains('type')) logStore.createIndex('type', 'type', { unique: false });
+                    if (!logStore.indexNames.contains('timestamp')) logStore.createIndex('timestamp', 'timestamp', { unique: false });
                 }
                 
                 if (!db.objectStoreNames.contains('wiki_index')) {
@@ -917,17 +942,46 @@ async function selectChar(charId) {
     
     if (char) {
         document.getElementById('charName').textContent = char.name;
-        document.getElementById('charDesc').textContent = char.description || '';
+        document.getElementById('charDesc').textContent = char.description ? char.description.slice(0, 50) + (char.description.length > 50 ? '...' : '') : '點擊展開查看詳情';
         
         if (char.avatar) {
             document.getElementById('charAvatar').innerHTML = `<img src="${char.avatar}" alt="${char.name}">`;
         }
+        
+        // 建立詳細資訊內容
+        const detailEl = document.getElementById('charProfileDetail');
+        detailEl.innerHTML = `
+            ${char.description ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">描述</div>
+                <div class="char-profile-detail-value">${char.description}</div>
+            </div>` : ''}
+            ${char.personality ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">性格</div>
+                <div class="char-profile-detail-value">${char.personality}</div>
+            </div>` : ''}
+            ${char.background ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">背景</div>
+                <div class="char-profile-detail-value">${char.background}</div>
+            </div>` : ''}
+            ${char.worldbook ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">世界觀</div>
+                <div class="char-profile-detail-value">${char.worldbook}</div>
+            </div>` : ''}
+            ${!char.description && !char.personality && !char.background && !char.worldbook ? '<div class="char-profile-detail-section"><div class="char-profile-detail-value" style="color: var(--text-tertiary);">尚無詳細設定</div></div>' : ''}
+        `;
         
         document.getElementById('char-wiki-content').classList.remove('hidden');
         document.getElementById('char-empty-state').classList.add('hidden');
         
         await loadCharWiki(charId);
     }
+}
+
+function toggleCharProfileDetail() {
+    const detailEl = document.getElementById('charProfileDetail');
+    const toggleBtn = document.querySelector('.char-profile-toggle');
+    detailEl.classList.toggle('hidden');
+    toggleBtn.classList.toggle('expanded');
 }
 
 async function loadUserWiki() {

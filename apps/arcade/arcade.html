@@ -33,13 +33,6 @@
         <span>街機廳</span>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" id="invite-char-btn" aria-label="邀請角色" title="邀請角色一起玩">
-          <i class="fas fa-user-plus"></i>
-        </button>
-        <div class="coins-display">
-          <i class="fas fa-coins"></i>
-          <span id="coins-count">0</span>
-        </div>
         <button class="icon-btn" id="settings-btn" aria-label="設定">
           <i class="fas fa-cog"></i>
         </button>
@@ -94,13 +87,6 @@
       if (settingsBtn) {
           settingsBtn.addEventListener('click', function() {
               openSettingsPanel();
-          });
-      }
-      
-      var inviteBtn = document.getElementById('invite-char-btn');
-      if (inviteBtn) {
-          inviteBtn.addEventListener('click', function() {
-              showCharacterSelectModal();
           });
       }
       

@@ -193,7 +193,7 @@
                 </div>
 
                 <div class="char-wiki-content hidden" id="char-wiki-content">
-                    <div class="char-profile">
+                    <div class="char-profile-card">
                         <div class="char-avatar" id="charAvatar">
                             <i class="fas fa-user-circle"></i>
                         </div>
@@ -201,6 +201,11 @@
                             <h2 class="char-name" id="charName">角色名稱</h2>
                             <p class="char-desc" id="charDesc">角色的描述</p>
                         </div>
+                        <button class="char-profile-toggle" onclick="toggleCharProfileDetail()">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="char-profile-detail hidden" id="charProfileDetail">
                     </div>
 
                     <div class="quick-actions">
