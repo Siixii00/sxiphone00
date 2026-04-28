@@ -1607,66 +1607,16 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(morePanels).forEach(({ panel }) => panel?.classList.remove('active'));
     };
 
-    bottomTabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.stopPropagation();
-            console.log('Tab clicked:', tab.dataset.tab);
-            bottomTabs.forEach(btn => btn.classList.remove('active'));
-            tab.classList.add('active');
-            Object.values(tabPanels).forEach(panel => panel?.classList.remove('active'));
-            const target = tab.dataset.tab;
-            if (target && tabPanels[target]) {
-                tabPanels[target].classList.add('active');
-            }
-            closeAllMorePanels();
-            document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
-            if (newChatBtn) {
-                newChatBtn.style.display = target === 'friends' ? 'flex' : 'none';
-            }
-            if (target !== 'chats') {
-                chatApp?.classList.remove('detail-active');
-                chatDetailView?.classList.add('hidden');
-            } else {
-                showChatList();
-            }
-        });
-    });
-
-    moreGrid?.addEventListener('click', (event) => {
-        const item = event.target.closest('.more-item');
-        if (!item) return;
-        const panelKey = item.dataset.more;
-        if (panelKey && morePanels[panelKey]) {
-            closeAllMorePanels();
-            morePanels[panelKey].panel?.classList.add('active');
-            document.querySelector('.kakao-bottom-tabs')?.classList.add('hidden');
-        }
-    });
-
-    Object.values(morePanels).forEach(({ panel, back }) => {
-        back?.addEventListener('click', () => {
-            panel?.classList.remove('active');
-            const chatApp = document.querySelector('.chat-app');
-            if (chatApp?.classList.contains('detail-active')) {
-                return;
-            }
-            document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
-            const moreTab = document.querySelector('.kakao-bottom-tab[data-tab="more"]');
-            bottomTabs.forEach(btn => btn.classList.remove('active'));
-            moreTab?.classList.add('active');
-            Object.values(tabPanels).forEach(tabPanel => tabPanel?.classList.remove('active'));
-            tabPanels.more?.classList.add('active');
-        });
-    });
-
     const renderFriendsList = () => {
         const friendsPanel = document.getElementById('chat-tab-friends');
         if (!friendsPanel) return;
         
         const sessions = loadChatSessions();
+        console.log('[renderFriendsList] sessions:', sessions);
         const uniqueFriends = new Map();
         
         sessions.forEach(session => {
+            console.log('[renderFriendsList] session:', session.id, 'charName:', session.charName);
             if (session.charName && !uniqueFriends.has(session.charName)) {
                 uniqueFriends.set(session.charName, {
                     name: session.charName,
@@ -1676,6 +1626,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+        
+        console.log('[renderFriendsList] uniqueFriends size:', uniqueFriends.size);
         
         if (uniqueFriends.size === 0) {
             friendsPanel.innerHTML = '<div class="tab-placeholder">尚未新增好友</div>';
@@ -1757,7 +1709,62 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     };
-    
+
+    bottomTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('Tab clicked:', tab.dataset.tab);
+            bottomTabs.forEach(btn => btn.classList.remove('active'));
+            tab.classList.add('active');
+            Object.values(tabPanels).forEach(panel => panel?.classList.remove('active'));
+            const target = tab.dataset.tab;
+            if (target && tabPanels[target]) {
+                tabPanels[target].classList.add('active');
+            }
+            closeAllMorePanels();
+            document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
+            if (newChatBtn) {
+                newChatBtn.style.display = target === 'friends' ? 'flex' : 'none';
+            }
+            if (target === 'friends') {
+                renderFriendsList();
+            }
+            if (target !== 'chats') {
+                chatApp?.classList.remove('detail-active');
+                chatDetailView?.classList.add('hidden');
+            } else {
+                showChatList();
+            }
+        });
+    });
+
+    moreGrid?.addEventListener('click', (event) => {
+        const item = event.target.closest('.more-item');
+        if (!item) return;
+        const panelKey = item.dataset.more;
+        if (panelKey && morePanels[panelKey]) {
+            closeAllMorePanels();
+            morePanels[panelKey].panel?.classList.add('active');
+            document.querySelector('.kakao-bottom-tabs')?.classList.add('hidden');
+        }
+    });
+
+    Object.values(morePanels).forEach(({ panel, back }) => {
+        back?.addEventListener('click', () => {
+            panel?.classList.remove('active');
+            const chatApp = document.querySelector('.chat-app');
+            if (chatApp?.classList.contains('detail-active')) {
+                return;
+            }
+            document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
+            const moreTab = document.querySelector('.kakao-bottom-tab[data-tab="more"]');
+            bottomTabs.forEach(btn => btn.classList.remove('active'));
+            moreTab?.classList.add('active');
+            Object.values(tabPanels).forEach(tabPanel => tabPanel?.classList.remove('active'));
+            tabPanels.more?.classList.add('active');
+        });
+    });
+
     const renderChatListFromStorage = () => {
         if (!chatListView) return;
         chatListView.innerHTML = '';
@@ -6331,12 +6338,34 @@ function handleJustSend() {
         triggerPasskeyControlHandoff('nsfw_detected', { text: val });
     }
 
-    const activeId = getActiveChatId();
-    if (activeId) {
-        const sessions = loadChatSessions();
+    let activeId = getActiveChatId();
+    let sessions = loadChatSessions();
+    
+    if (!activeId || !sessions.find(s => s.id === activeId)) {
+        let charName = localStorage.getItem('sx_char_name');
+        if (!charName || charName === '預設用戶') {
+            charName = charConfig.name || 'AI 助理';
+        }
+        const newSession = {
+            id: `chat_${Date.now()}`,
+            title: charName,
+            charName: charName,
+            charAvatar: localStorage.getItem('sx_char_avatar') || '',
+            charPersonality: localStorage.getItem('sx_char_personality') || '',
+            charBackground: localStorage.getItem('sx_char_background') || '',
+            history: history
+        };
+        sessions.unshift(newSession);
+        saveChatSessions(sessions);
+        setActiveChatId(newSession.id);
+        activeId = newSession.id;
+    } else {
         const target = sessions.find(s => s.id === activeId);
         if (target) {
             target.history = history;
+            if (!target.charName) {
+                target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
+            }
             saveChatSessions(sessions);
         }
     }
@@ -6400,12 +6429,33 @@ async function handleTriggerAI() {
                 type: 'MEMORY_CHAT_EVENT',
                 payload: { role: 'assistant', content: aiReply, source: 'chat:ai' }
             }, '*');
-            const activeId = getActiveChatId();
-            if (activeId) {
-                const sessions = loadChatSessions();
+            
+            let activeId = getActiveChatId();
+            let sessions = loadChatSessions();
+            if (!activeId || !sessions.find(s => s.id === activeId)) {
+                let charName = localStorage.getItem('sx_char_name');
+                if (!charName || charName === '預設用戶') {
+                    charName = charConfig.name || 'AI 助理';
+                }
+                const newSession = {
+                    id: `chat_${Date.now()}`,
+                    title: charName,
+                    charName: charName,
+                    charAvatar: localStorage.getItem('sx_char_avatar') || '',
+                    charPersonality: localStorage.getItem('sx_char_personality') || '',
+                    charBackground: localStorage.getItem('sx_char_background') || '',
+                    history: freshHistory
+                };
+                sessions.unshift(newSession);
+                saveChatSessions(sessions);
+                setActiveChatId(newSession.id);
+            } else {
                 const target = sessions.find(s => s.id === activeId);
                 if (target) {
                     target.history = freshHistory;
+                    if (!target.charName) {
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
+                    }
                     saveChatSessions(sessions);
                 }
             }
@@ -6419,12 +6469,33 @@ async function handleTriggerAI() {
                 type: 'MEMORY_CHAT_EVENT',
                 payload: { role: 'assistant', content: aiReply, source: 'chat:ai' }
             }, '*');
-            const activeId = getActiveChatId();
-            if (activeId) {
-                const sessions = loadChatSessions();
+            
+            let activeId = getActiveChatId();
+            let sessions = loadChatSessions();
+            if (!activeId || !sessions.find(s => s.id === activeId)) {
+                let charName = localStorage.getItem('sx_char_name');
+                if (!charName || charName === '預設用戶') {
+                    charName = charConfig.name || 'AI 助理';
+                }
+                const newSession = {
+                    id: `chat_${Date.now()}`,
+                    title: charName,
+                    charName: charName,
+                    charAvatar: localStorage.getItem('sx_char_avatar') || '',
+                    charPersonality: localStorage.getItem('sx_char_personality') || '',
+                    charBackground: localStorage.getItem('sx_char_background') || '',
+                    history: freshHistory
+                };
+                sessions.unshift(newSession);
+                saveChatSessions(sessions);
+                setActiveChatId(newSession.id);
+            } else {
                 const target = sessions.find(s => s.id === activeId);
                 if (target) {
                     target.history = freshHistory;
+                    if (!target.charName) {
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
+                    }
                     saveChatSessions(sessions);
                 }
             }

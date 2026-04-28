@@ -411,6 +411,10 @@ class MemoryPool {
       return [];
     }
     
+    if (!query || typeof query !== 'string' || query.trim() === '') {
+      return [];
+    }
+    
     try {
       const queryEmbedding = await this.embeddingEngine.embed(query);
       const matches = [];

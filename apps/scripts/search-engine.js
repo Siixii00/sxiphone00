@@ -102,6 +102,10 @@ class SearchEngine {
       return [];
     }
 
+    if (!query || typeof query !== 'string' || query.trim() === '') {
+      return [];
+    }
+
     const queryEmbedding = await this.embeddingEngine.embed(query);
     if (!queryEmbedding) {
       return [];
