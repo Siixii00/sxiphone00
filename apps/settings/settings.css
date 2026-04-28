@@ -255,6 +255,11 @@ details[open] > .group-summary .arrow { transform: rotate(90deg); }
     box-sizing: border-box;
 }
 
+.cell-v .ios-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
 .cell-label {
     font-size: 14px;
     color: var(--ios-gray);

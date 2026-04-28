@@ -4621,8 +4621,9 @@ function initChatNotificationSettings() {
 
         localStorage.setItem('sx_chat_notification_config', JSON.stringify(config));
 
-        if (window.ChatNotificationEngine) {
-            window.ChatNotificationEngine.setConfig(config);
+        const engine = window.ChatNotificationEngine || window.parent?.ChatNotificationEngine;
+        if (engine) {
+            engine.setConfig(config);
         }
 
         if (window.parent && window.parent !== window) {
@@ -4685,8 +4686,9 @@ function initChatNotificationSettings() {
                 }
             }
 
-            if (window.ChatNotificationEngine) {
-                window.ChatNotificationEngine.testNotification();
+            const engine = window.ChatNotificationEngine || window.parent?.ChatNotificationEngine;
+            if (engine) {
+                engine.testNotification();
                 alert('測試通知已發送');
             } else {
                 alert('聊天通知引擎尚未載入，請重新整理頁面');
