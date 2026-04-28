@@ -569,7 +569,9 @@ function renderWorldbookOptions() {
 
     // 顯示分類
     categories.forEach(cat => {
-        if (!worldbookData[cat] || worldbookData[cat].length === 0) return;
+        const catKey = `sx_worldbook_${cat.key}`;
+        const catData = worldbookData[catKey];
+        if (!catData || catData.length === 0) return;
         container.insertAdjacentHTML('beforeend', `
             <div class="wb-mount-category">${cat.label}</div>
         `);
