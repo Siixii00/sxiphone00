@@ -180,7 +180,6 @@
       if (typeof SxAppAppearance !== 'undefined') {
           SxAppAppearance.initAppearanceForApp('chrome');
           
-          // 確保一般模式使用白色背景
           var app = document.querySelector('.chrome-mobile');
           if (app && app.dataset.mode === 'normal') {
               document.body.style.backgroundColor = '#f6f7fb';
@@ -195,6 +194,48 @@
                   });
               });
           }
+          
+          var applyChromeFontSize = function(settings) {
+              if (!settings || !settings.fontSize) return;
+              var fontSize = settings.fontSize;
+              var headingSize = settings.headingSize || 22;
+              
+              var styleEl = document.getElementById('chrome-font-override');
+              if (!styleEl) {
+                  styleEl = document.createElement('style');
+                  styleEl.id = 'chrome-font-override';
+                  document.head.appendChild(styleEl);
+              }
+              
+              styleEl.textContent = '\
+                  .chrome-mobile, .chrome-mobile * { font-size: ' + fontSize + 'px !important; }\
+                  .chrome-mobile .panel-title, .chrome-mobile .google-mark { font-size: ' + headingSize + 'px !important; }\
+                  .chrome-mobile .tile-title, .chrome-mobile .article-title { font-size: ' + (fontSize - 1) + 'px !important; }\
+                  .chrome-mobile .history-item .title { font-size: ' + fontSize + 'px !important; }\
+                  .chrome-mobile .history-item .meta { font-size: ' + (fontSize - 2) + 'px !important; }\
+                  .chrome-mobile input, .chrome-mobile textarea { font-size: ' + fontSize + 'px !important; }\
+              ';
+          };
+          
+          var savedAppearance = SxAppAppearance.getSavedGlobalAppearance();
+          if (savedAppearance) {
+              applyChromeFontSize(savedAppearance);
+          }
+          
+          window.addEventListener('message', function(event) {
+              var data = event.data;
+              if (!data || typeof data !== 'object') return;
+              
+              if (data.type === 'GLOBAL_APPEARANCE_SAVED' || data.type === 'CUSTOM_THEME_UPDATED') {
+                  if (data.settings) {
+                      applyChromeFontSize(data.settings);
+                  }
+              }
+              
+              if (data.type === 'THEME_MODE_CHANGED' && data.settings) {
+                  applyChromeFontSize(data.settings);
+              }
+          });
       }
   });
   </script>

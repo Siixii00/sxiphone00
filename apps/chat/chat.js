@@ -1607,6 +1607,105 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    const renderFriendsList = () => {
+        const friendsPanel = document.getElementById('chat-tab-friends');
+        if (!friendsPanel) return;
+        
+        const sessions = loadChatSessions();
+        const uniqueFriends = new Map();
+        
+        sessions.forEach(session => {
+            if (session.charName && !uniqueFriends.has(session.charName)) {
+                uniqueFriends.set(session.charName, {
+                    name: session.charName,
+                    avatar: session.charAvatar || '',
+                    personality: session.charPersonality || '',
+                    background: session.charBackground || ''
+                });
+            }
+        });
+        
+        if (uniqueFriends.size === 0) {
+            friendsPanel.innerHTML = '<div class="tab-placeholder">尚未新增好友</div>';
+            return;
+        }
+        
+        const friendsList = document.createElement('div');
+        friendsList.className = 'friends-list kakao-list';
+        
+        uniqueFriends.forEach((friend, name) => {
+            const avatarStyle = friend.avatar 
+                ? `background-image: url('${friend.avatar}'); background-size: cover; background-position: center;` 
+                : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
+            
+            const item = document.createElement('div');
+            item.className = 'friend-list-item';
+            item.dataset.friendName = name;
+            item.innerHTML = `
+                <div class="friend-avatar" style="${avatarStyle}"></div>
+                <div class="friend-info">
+                    <div class="friend-name">${name}</div>
+                    <div class="friend-preview">${friend.personality ? friend.personality.slice(0, 30) + '...' : '點擊開始聊天'}</div>
+                </div>
+            `;
+            friendsList.appendChild(item);
+        });
+        
+        friendsPanel.innerHTML = '';
+        friendsPanel.appendChild(friendsList);
+        
+        friendsList.querySelectorAll('.friend-list-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const friendName = item.dataset.friendName;
+                const sessions = loadChatSessions();
+                const existingSession = sessions.find(s => s.charName === friendName);
+                
+                if (existingSession) {
+                    setActiveChatId(existingSession.id);
+                    localStorage.setItem('sx_chat_history', JSON.stringify(existingSession.history || []));
+                    if (existingSession.charName) localStorage.setItem('sx_char_name', existingSession.charName);
+                    if (existingSession.charAvatar) localStorage.setItem('sx_char_avatar', existingSession.charAvatar);
+                    if (existingSession.charPersonality) localStorage.setItem('sx_char_personality', existingSession.charPersonality);
+                    if (existingSession.charBackground) localStorage.setItem('sx_char_background', existingSession.charBackground);
+                    charConfig = getActiveConfig();
+                    if (chatTitleEl) chatTitleEl.innerText = friendName;
+                    const nameEl = document.getElementById('display-name');
+                    if (nameEl) nameEl.innerText = friendName;
+                    const hintEl = document.getElementById('hint-name');
+                    if (hintEl) hintEl.innerText = friendName;
+                    showChatDetail();
+                    renderHistory();
+                } else {
+                    let charName = localStorage.getItem('sx_char_name');
+                    if (!charName || charName === '預設用戶') {
+                        charName = charConfig.name || 'AI 助理';
+                    }
+                    const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+                    const charPersonality = localStorage.getItem('sx_char_personality') || '';
+                    const charBackground = localStorage.getItem('sx_char_background') || '';
+                    
+                    const newSession = {
+                        id: `chat_${Date.now()}`,
+                        title: charName,
+                        charName: charName,
+                        charAvatar: charAvatar,
+                        charPersonality: charPersonality,
+                        charBackground: charBackground,
+                        history: []
+                    };
+                    sessions.unshift(newSession);
+                    saveChatSessions(sessions);
+                    setActiveChatId(newSession.id);
+                    renderChatListFromStorage();
+                    localStorage.setItem('sx_chat_history', JSON.stringify(newSession.history));
+                    if (chatTitleEl) chatTitleEl.innerText = charName;
+                    showChatDetail();
+                    renderHistory();
+                }
+            });
+        });
+    };
+    
     const renderChatListFromStorage = () => {
         if (!chatListView) return;
         chatListView.innerHTML = '';
@@ -1661,6 +1760,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     window.renderChatListFromStorage = renderChatListFromStorage;
+    window.renderFriendsList = renderFriendsList;
 
     const showChatActions = (item) => {
         selectedChatItem = item;
@@ -1756,6 +1856,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sessions = loadChatSessions().filter(s => s.id !== selectedChatItem.dataset.chatId);
         saveChatSessions(sessions);
         selectedChatItem.remove();
+        renderFriendsList();
         hideChatActions();
     });
 
@@ -1787,6 +1888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveChatSessions(sessions);
         setActiveChatId(newSession.id);
         renderChatListFromStorage();
+        renderFriendsList();
         localStorage.setItem('sx_chat_history', JSON.stringify(newSession.history));
         if (chatTitleEl) chatTitleEl.innerText = charName;
         showChatDetail();
@@ -1795,6 +1897,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     migrateLegacyHistory();
     renderChatListFromStorage();
+    renderFriendsList();
     const activeSession = getActiveSession();
     if (activeSession) {
         setActiveChatId(activeSession.id);
@@ -8210,79 +8313,97 @@ window.addEventListener('sxiphone-data-restored', (event) => {
 });
 
 // 主題應用函數
+let isApplyingTheme = false;
+let pendingTheme = null;
+
 function applyChatTheme(theme) {
     if (!theme || !theme.config) {
         console.warn('[Chat] 無效的主題資料');
         return;
     }
     
-    const config = theme.config;
-    const root = document.documentElement;
-    
-    // 設定 CSS 變數
-    root.style.setProperty('--chat-bg-color', config.bgColor || '#AFC3D1');
-    root.style.setProperty('--chat-my-bubble', config.myBubbleColor || '#f3d94b');
-    root.style.setProperty('--chat-other-bubble', config.otherBubbleColor || '#ffffff');
-    root.style.setProperty('--chat-my-text', config.myTextColor || '#333333');
-    root.style.setProperty('--chat-other-text', config.otherTextColor || '#333333');
-    root.style.setProperty('--chat-header-bg', config.headerBgColor || '#f3d94b');
-    root.style.setProperty('--chat-header-text', config.headerTextColor || '#343434');
-    
-    // 應用背景圖片或顏色
-    const chatDetail = document.querySelector('.chat-detail');
-    const messageFlow = document.getElementById('chat-flow');
-    
-    if (messageFlow) {
-        if (config.bgImage) {
-            messageFlow.style.backgroundImage = `url(${config.bgImage})`;
-            messageFlow.style.backgroundSize = 'cover';
-            messageFlow.style.backgroundPosition = 'center';
-        } else {
-            messageFlow.style.backgroundImage = 'none';
-            messageFlow.style.backgroundColor = config.bgColor || '#AFC3D1';
-        }
+    if (isApplyingTheme) {
+        pendingTheme = theme;
+        return;
     }
     
-    // 應用 header 樣式
-    const header = document.querySelector('.kakao-header');
-    if (header) {
-        header.style.background = config.headerBgColor || '#f3d94b';
-        header.style.color = config.headerTextColor || '#343434';
-    }
+    isApplyingTheme = true;
     
-    // 應用氣泡樣式
-    const styleId = 'chat-theme-override';
-    let styleEl = document.getElementById(styleId);
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
-    }
-    
-    styleEl.textContent = `
-        .chat-detail .message-flow {
-            background-color: ${config.bgColor || '#AFC3D1'} !important;
-            ${config.bgImage ? `background-image: url(${config.bgImage}) !important; background-size: cover !important; background-position: center !important;` : ''}
+    requestAnimationFrame(() => {
+        const config = theme.config;
+        const root = document.documentElement;
+        
+        root.style.setProperty('--chat-bg-color', config.bgColor || '#AFC3D1');
+        root.style.setProperty('--chat-my-bubble', config.myBubbleColor || '#f3d94b');
+        root.style.setProperty('--chat-other-bubble', config.otherBubbleColor || '#ffffff');
+        root.style.setProperty('--chat-my-text', config.myTextColor || '#333333');
+        root.style.setProperty('--chat-other-text', config.otherTextColor || '#333333');
+        root.style.setProperty('--chat-header-bg', config.headerBgColor || '#f3d94b');
+        root.style.setProperty('--chat-header-text', config.headerTextColor || '#343434');
+        
+        const styleId = 'chat-theme-override';
+        let styleEl = document.getElementById(styleId);
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = styleId;
+            document.head.appendChild(styleEl);
         }
-        .chat-detail .mine .bubble {
-            background: ${config.myBubbleColor || '#f3d94b'} !important;
-            color: ${config.myTextColor || '#333333'} !important;
+        
+        styleEl.textContent = `
+            .chat-detail .message-flow {
+                background-color: ${config.bgColor || '#AFC3D1'} !important;
+                ${config.bgImage ? `background-image: url(${config.bgImage}) !important; background-size: cover !important; background-position: center !important;` : 'background-image: none !important;'}
+            }
+            .chat-detail .mine .bubble {
+                background: ${config.myBubbleColor || '#f3d94b'} !important;
+                color: ${config.myTextColor || '#333333'} !important;
+            }
+            .chat-detail .other .bubble {
+                background: ${config.otherBubbleColor || '#ffffff'} !important;
+                color: ${config.otherTextColor || '#333333'} !important;
+            }
+            .kakao-header {
+                background: ${config.headerBgColor || '#f3d94b'} !important;
+                color: ${config.headerTextColor || '#343434'} !important;
+            }
+            .chat-detail-title {
+                background: ${config.headerBgColor || '#f3d94b'} !important;
+                color: ${config.headerTextColor || '#343434'} !important;
+            }
+        `;
+        
+        const chatDetail = document.querySelector('.chat-detail');
+        const messageFlow = document.getElementById('chat-flow');
+        
+        if (messageFlow) {
+            if (config.bgImage) {
+                messageFlow.style.backgroundImage = `url(${config.bgImage})`;
+                messageFlow.style.backgroundSize = 'cover';
+                messageFlow.style.backgroundPosition = 'center';
+            } else {
+                messageFlow.style.backgroundImage = 'none';
+                messageFlow.style.backgroundColor = config.bgColor || '#AFC3D1';
+            }
         }
-        .chat-detail .other .bubble {
-            background: ${config.otherBubbleColor || '#ffffff'} !important;
-            color: ${config.otherTextColor || '#333333'} !important;
+        
+        const header = document.querySelector('.kakao-header');
+        if (header) {
+            header.style.background = config.headerBgColor || '#f3d94b';
+            header.style.color = config.headerTextColor || '#343434';
         }
-        .kakao-header {
-            background: ${config.headerBgColor || '#f3d94b'} !important;
-            color: ${config.headerTextColor || '#343434'} !important;
+        
+        localStorage.setItem('sx_chat_applied_theme', JSON.stringify(theme));
+        
+        console.log('[Chat] 主題已應用:', theme.name);
+        
+        isApplyingTheme = false;
+        
+        if (pendingTheme) {
+            const nextTheme = pendingTheme;
+            pendingTheme = null;
+            applyChatTheme(nextTheme);
         }
-        .chat-detail-title {
-            background: ${config.headerBgColor || '#f3d94b'} !important;
-            color: ${config.headerTextColor || '#343434'} !important;
-        }
-    `;
-    
-    console.log('[Chat] 主題已應用:', theme.name);
+    });
 }
 
 // 應用外觀設定

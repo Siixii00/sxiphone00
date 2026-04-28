@@ -49,12 +49,14 @@ let chromeWorldbookMounts = [];
 let bookmarks = [];
 
 const CHROME_BOOKMARKS_KEY = 'sx_chrome_bookmarks';
+const CHROME_HISTORY_KEY = 'sx_chrome_history';
 
 const saveChromeData = () => {
   try {
     localStorage.setItem('sx_chrome_user_profile', JSON.stringify(chromeUserProfiles));
     localStorage.setItem('sx_chrome_worldbooks', JSON.stringify(chromeWorldbookMounts));
     localStorage.setItem(CHROME_BOOKMARKS_KEY, JSON.stringify(bookmarks));
+    localStorage.setItem(CHROME_HISTORY_KEY, JSON.stringify(historyEntries));
     console.log("Chrome數據已保存至 localStorage");
   } catch (e) {
     console.error("保存Chrome數據失敗:", e);
@@ -67,6 +69,15 @@ const loadBookmarks = () => {
     bookmarks = raw ? JSON.parse(raw) : [];
   } catch {
     bookmarks = [];
+  }
+};
+
+const loadHistoryEntries = () => {
+  try {
+    const raw = localStorage.getItem(CHROME_HISTORY_KEY);
+    historyEntries = raw ? JSON.parse(raw) : [];
+  } catch {
+    historyEntries = [];
   }
 };
 
@@ -563,6 +574,7 @@ ${chatContext}
         charName,
         perspective: `以${charName}的視角`
       }));
+      saveChromeData();
       renderHistoryList();
       pushHistoryToMemory(historyEntries, char);
     } else {
@@ -642,6 +654,7 @@ function generateFallbackHistory(char, charName, charPersonality, charBackground
     };
   });
   
+  saveChromeData();
   renderHistoryList();
   pushHistoryToMemory(historyEntries, char);
 }
@@ -764,8 +777,11 @@ loadCharProfiles();
 loadUserProfiles();
 loadWorldbookMounts();
 loadBookmarks();
+loadHistoryEntries();
 renderBookmarks();
-if (charProfiles.length > 0 && charSelect) {
+if (historyEntries.length > 0) {
+  renderHistoryList();
+} else if (charProfiles.length > 0 && charSelect) {
   charSelect.value = '0';
   generateHistoryForChar('0');
 }

@@ -227,4 +227,41 @@ function initProfile() {
   }
 }
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function saveProfileOnExit() {
+  const nameInput = document.getElementById('profile-name');
+  const handleInput = document.getElementById('profile-handle');
+  const bioInput = document.getElementById('profile-bio');
+  
+  if (nameInput || handleInput || bioInput) {
+    const profile = getProfile();
+    if (nameInput?.value?.trim()) profile.name = nameInput.value.trim();
+    if (handleInput?.value?.trim()) profile.handle = handleInput.value.trim();
+    if (bioInput?.value?.trim()) profile.bio = bioInput.value.trim();
+    saveProfile(profile);
+  }
+}
+
+if (isIOS) {
+  window.addEventListener('pagehide', saveProfileOnExit);
+  window.addEventListener('pageshow', loadProfileForm);
+}
+
+window.addEventListener('pagehide', saveProfileOnExit);
+window.addEventListener('beforeunload', saveProfileOnExit);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    saveProfileOnExit();
+  }
+});
+
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (data?.type === 'APP_WILL_CLOSE') {
+    saveProfileOnExit();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', initProfile);
