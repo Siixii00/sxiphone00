@@ -103,6 +103,18 @@ function playNeonIntro() {
     return;
   }
   
+  // 設定超時保護，確保動畫不會無限執行
+  const maxDuration = 3000;
+  let introTimeout = null;
+  
+  const cleanupIntro = () => {
+    if (introTimeout) clearTimeout(introTimeout);
+    if (intro) intro.classList.add('hidden');
+  };
+  
+  // 設定最大持續時間
+  introTimeout = setTimeout(cleanupIntro, maxDuration);
+  
   setTimeout(() => {
     if (neonText) {
       neonText.classList.add('flicker');
@@ -112,7 +124,7 @@ function playNeonIntro() {
   setTimeout(() => {
     intro.classList.add('fade-out');
     setTimeout(() => {
-      intro.classList.add('hidden');
+      cleanupIntro();
     }, 500);
   }, 2000);
 }
@@ -120,6 +132,8 @@ function playNeonIntro() {
 function skipIntro() {
   const intro = document.getElementById('neon-intro');
   if (intro) {
+    // 立即隱藏，不使用動畫
+    intro.style.display = 'none';
     intro.classList.add('hidden');
   }
 }

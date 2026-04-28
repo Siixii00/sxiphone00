@@ -1365,26 +1365,38 @@ function resizeRoomCanvas() {
 }
 
 function exitRoom() {
-  if (HomeApp.editMode) {
-    exitEditMode();
-    return;
+  try {
+    if (HomeApp.editMode) {
+      exitEditMode();
+      return;
+    }
+    
+    const panel = document.getElementById('furniture-panel');
+    if (panel && panel.classList.contains('open')) {
+      panel.classList.remove('open');
+      return;
+    }
+    
+    HomeApp.currentSubRoom = 'living_room';
+    
+    const roomView = document.getElementById('room-view');
+    const mapView = document.getElementById('map-view');
+    
+    if (roomView) roomView.classList.add('hidden');
+    if (mapView) mapView.classList.remove('hidden');
+    
+    renderMap();
+    updateBalance();
+    
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    console.error('exitRoom error:', e);
+    // 強制返回地圖視圖
+    const roomView = document.getElementById('room-view');
+    const mapView = document.getElementById('map-view');
+    if (roomView) roomView.classList.add('hidden');
+    if (mapView) mapView.classList.remove('hidden');
   }
-  
-  const panel = document.getElementById('furniture-panel');
-  if (panel && panel.classList.contains('open')) {
-    panel.classList.remove('open');
-    return;
-  }
-  
-  HomeApp.currentSubRoom = 'living_room';
-  
-  document.getElementById('room-view').classList.add('hidden');
-  document.getElementById('map-view').classList.remove('hidden');
-  
-  renderMap();
-  updateBalance();
-  
-  if (window.lucide) lucide.createIcons();
 }
 
 function renderRoom() {
@@ -2158,13 +2170,22 @@ function processPayment(amount, itemName) {
 }
 
 function handleBack() {
-  if (!document.getElementById('room-view').classList.contains('hidden')) {
-    exitRoom();
-    return;
-  }
-  
-  if (window.parent && window.parent !== window) {
-    window.parent.postMessage({ type: 'closeApp' }, '*');
+  try {
+    const roomView = document.getElementById('room-view');
+    if (roomView && !roomView.classList.contains('hidden')) {
+      exitRoom();
+      return;
+    }
+    
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'closeApp' }, '*');
+    }
+  } catch (e) {
+    console.error('handleBack error:', e);
+    // 嘗試直接關閉應用
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'closeApp' }, '*');
+    }
   }
 }
 

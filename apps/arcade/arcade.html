@@ -20,7 +20,7 @@
         <span>街</span><span>機</span><span>廳</span>
       </div>
     </div>
-    <button class="skip-btn" onclick="skipIntro()">跳過</button>
+    <button class="skip-btn" id="skip-btn">跳過</button>
   </div>
 
   <div class="arcade-app">
@@ -79,6 +79,21 @@
   <script src="arcade.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
+      // 設定跳過按鈕事件
+      var skipBtn = document.getElementById('skip-btn');
+      if (skipBtn) {
+          skipBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              skipIntro();
+          });
+          skipBtn.addEventListener('touchend', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              skipIntro();
+          });
+      }
+      
       if (typeof SxAppAppearance !== 'undefined') {
           SxAppAppearance.initAppearanceForApp('arcade');
       }

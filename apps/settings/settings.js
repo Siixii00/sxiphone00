@@ -4639,28 +4639,24 @@ function initChatNotificationSettings() {
     if (idleRange && idleOutput) {
         idleRange.addEventListener('input', () => {
             idleOutput.textContent = idleRange.value;
-            saveSettings();
         });
     }
 
     if (maxRange && maxOutput) {
         maxRange.addEventListener('input', () => {
             maxOutput.textContent = maxRange.value;
-            saveSettings();
         });
     }
 
     if (quietStartRange && quietStartOutput) {
         quietStartRange.addEventListener('input', () => {
             quietStartOutput.textContent = `${String(quietStartRange.value).padStart(2, '0')}:00`;
-            saveSettings();
         });
     }
 
     if (quietEndRange && quietEndOutput) {
         quietEndRange.addEventListener('input', () => {
             quietEndOutput.textContent = `${String(quietEndRange.value).padStart(2, '0')}:00`;
-            saveSettings();
         });
     }
 
@@ -4674,6 +4670,12 @@ function initChatNotificationSettings() {
 
     if (styleSelect) {
         styleSelect.addEventListener('change', saveSettings);
+    }
+
+    // 保存按鈕
+    const saveBtn = document.getElementById('chat-notification-save-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSettings);
     }
 
     if (testBtn) {

@@ -58,20 +58,25 @@ html, body {
 }
 
 .back-btn, .top-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   background: rgba(233, 69, 96, 0.2);
   border: 1px solid var(--home-accent);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--home-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.back-btn:hover, .top-btn:hover {
+.back-btn:hover, .top-btn:hover,
+.back-btn:active, .top-btn:active {
   background: rgba(233, 69, 96, 0.4);
   transform: scale(1.05);
 }

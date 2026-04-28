@@ -196,6 +196,10 @@ body {
         transform-origin: center center;
     }
     
+    .status-bar {
+        top: 10px;
+    }
+    
     /* 中度縮放：高度介於 701px ~ 850px */
     @media (max-height: 850px) and (min-height: 701px) {
         #phone-container {

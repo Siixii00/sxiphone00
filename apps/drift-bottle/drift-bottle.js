@@ -602,7 +602,7 @@ const thothMinorMeanings = {
     cards: {
       1: { upright: '智慧的源頭、清晰、真理、心智突破', reversed: '混亂、誤解、思維阻塞' },
       2: { upright: '和平、平衡、選擇、心靈和諧', reversed: '衝突、不和諧、優柔寡斷' },
-      3: { upright: '悲傷、痛苦、心碎、失去', reversed: '療療癒、釋放、走出痛苦' },
+      3: { upright: '悲傷、痛苦、心碎、失去', reversed: '療癒、釋放、走出痛苦' },
       4: { upright: '休戰、休息、和平、恢復', reversed: '不安、焦慮、無法放鬆' },
       5: { upright: '失敗、衝突、挫折、損失', reversed: '和解、恢復、接受失敗' },
       6: { upright: '科學、理性、成功、智慧運用', reversed: '缺乏邏輯、計劃失敗、短視' },
@@ -787,7 +787,7 @@ const marseilleMajorMeanings = {
   18: {
     name: '月亮',
     nameEn: 'La Lune',
-    upright: '幻'幻覺、潛意識、恐懼、直覺、夢境',
+    upright: '幻覺、潛意識、恐懼、直覺、夢境',
     reversed: '清晰、走出迷惘、面對恐懼、釋放',
     marseilleNote: '代表潛意識的深層探索與直覺的引導。'
   },
@@ -854,9 +854,9 @@ const marseilleMinorMeanings = {
     nameEn: 'Épées',
     element: '風',
     cards: {
-      1: { upright: '清晰、真理、心智突破、決斷', reversed: '混'混亂、誤解、思維阻塞' },
+      1: { upright: '清晰、真理、心智突破、決斷', reversed: '混亂、誤解、思維阻塞' },
       2: { upright: '和平、平衡、選擇、心靈和諧', reversed: '衝突、不和諧、優柔寡斷' },
-      3: { upright: '悲傷、痛苦、心碎、失去', reversed: '療療癒、釋放、走出痛苦' },
+      3: { upright: '悲傷、痛苦、心碎、失去', reversed: '療癒、釋放、走出痛苦' },
       4: { upright: '休息、和平、恢復、休戰', reversed: '不安、焦慮、無法放鬆' },
       5: { upright: '失敗、衝突、挫折、損失', reversed: '和解、恢復、接受失敗' },
       6: { upright: '理性、成功、智慧運用', reversed: '缺乏邏輯、計劃失敗、短視' },

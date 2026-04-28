@@ -198,7 +198,11 @@
           var applyChromeFontSize = function(settings) {
               if (!settings || !settings.fontSize) return;
               var fontSize = settings.fontSize;
-              var headingSize = settings.headingSize || 22;
+              var headingSize = settings.headingSize || 20;
+              
+              // 限制最大字體大小以確保在小螢幕上可讀
+              fontSize = Math.min(fontSize, 16);
+              headingSize = Math.min(headingSize, 20);
               
               var styleEl = document.getElementById('chrome-font-override');
               if (!styleEl) {
@@ -214,6 +218,7 @@
                   .chrome-mobile .history-item .title { font-size: ' + fontSize + 'px !important; }\
                   .chrome-mobile .history-item .meta { font-size: ' + (fontSize - 2) + 'px !important; }\
                   .chrome-mobile input, .chrome-mobile textarea { font-size: ' + fontSize + 'px !important; }\
+                  .chrome-mobile .view-toggle button { font-size: 14px !important; }\
               ';
           };
           
