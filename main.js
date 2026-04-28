@@ -2308,6 +2308,17 @@
             case 'openApp':
                 if (data.appId) {
                     window.launchApp(data.appId);
+                    if (data.subPanel) {
+                        setTimeout(() => {
+                            const appFrame = document.getElementById('app-frame');
+                            if (appFrame?.contentWindow) {
+                                appFrame.contentWindow.postMessage({
+                                    type: 'OPEN_SUB_PANEL',
+                                    panelId: data.subPanel
+                                }, '*');
+                            }
+                        }, 300);
+                    }
                 }
                 break;
             case 'KAKAOPAY_ARCADE_TOPUP':

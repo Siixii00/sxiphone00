@@ -58,7 +58,7 @@
 
       <section class="quick-actions" aria-label="快速功能">
         <button class="action-chip" type="button"><i class="fa-solid fa-paper-plane"></i> 轉帳</button>
-        <button class="action-chip" type="button"><i class="fa-solid fa-qrcode"></i> 掃碼</button>
+        <button class="action-chip" type="button" id="paymentCodeBtn"><i class="fa-solid fa-qrcode"></i> 支付條碼</button>
         <button class="action-chip" type="button"><i class="fa-solid fa-wallet"></i> 卡片</button>
       </section>
 
@@ -120,6 +120,50 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
+  
+  <div class="payment-code-overlay hidden" id="paymentCodeOverlay">
+    <div class="payment-code-panel">
+      <div class="payment-code-header">
+        <h3><i class="fa-solid fa-qrcode"></i> 支付條碼</h3>
+        <button class="close-btn" id="closePaymentCodeBtn">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="payment-code-content">
+        <div class="code-tabs">
+          <button class="code-tab active" data-tab="barcode">
+            <i class="fa-solid fa-barcode"></i>
+            <span>條碼</span>
+          </button>
+          <button class="code-tab" data-tab="qrcode">
+            <i class="fa-solid fa-qrcode"></i>
+            <span>QR碼</span>
+          </button>
+        </div>
+        <div class="code-display">
+          <div class="code-panel active" id="barcode-panel">
+            <div class="barcode-wrapper">
+              <svg id="barcodeSvg"></svg>
+            </div>
+            <p class="code-number" id="barcodeNumber"></p>
+          </div>
+          <div class="code-panel" id="qrcode-panel">
+            <div class="qrcode-wrapper">
+              <canvas id="qrcodeCanvas"></canvas>
+            </div>
+            <p class="code-number" id="qrcodeNumber"></p>
+          </div>
+        </div>
+        <div class="code-timer">
+          <div class="timer-bar">
+            <div class="timer-fill" id="timerFill"></div>
+          </div>
+          <span class="timer-text">條碼將在 <span id="timerCount">60</span> 秒後更新</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script src="../scripts/shared-settings.js"></script>
   <script src="../scripts/app-appearance-settings.js"></script>
   <script src="kakaopay.js"></script>

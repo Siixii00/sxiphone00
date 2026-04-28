@@ -609,3 +609,162 @@ select:focus,
   color: #000;
 }
 
+.payment-code-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.payment-code-overlay.hidden {
+  display: none;
+}
+
+.payment-code-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+}
+
+.payment-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.payment-code-header h3 {
+  font-size: 1.1rem;
+  color: var(--kk-yellow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.payment-code-header .close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.payment-code-content {
+  padding: 20px;
+}
+
+.code-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.code-tab {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.code-tab.active {
+  background: rgba(255, 223, 47, 0.15);
+  border-color: var(--kk-yellow);
+  color: var(--kk-yellow);
+}
+
+.code-display {
+  margin-bottom: 16px;
+}
+
+.code-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.code-panel.active {
+  display: flex;
+}
+
+.barcode-wrapper, .qrcode-wrapper {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#barcodeSvg {
+  max-width: 100%;
+  height: auto;
+}
+
+#qrcodeCanvas {
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+}
+
+.code-number {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: 'SF Mono', 'Monaco', monospace;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.code-timer {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.timer-bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.timer-fill {
+  height: 100%;
+  background: var(--kk-yellow);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.timer-text {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  display: block;
+}
+

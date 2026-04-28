@@ -69,6 +69,9 @@
     { id: 'ao3', label: 'AO3', icon: 'fa-book-bookmark', color: 'linear-gradient(135deg,#ff5f6d,#ffc371)', cat: 'media' },
     { id: 'phone', label: '電話', icon: 'fa-phone', color: '#1ec06b', cat: 'tools' },
     { id: 'passkey', label: 'Passkey', icon: 'fa-key', color: 'linear-gradient(135deg,#6a11cb,#2575fc)', cat: 'tools' },
+    { id: 'theater', label: '劇場', icon: 'fa-film', color: 'linear-gradient(135deg,#e50914,#b20710)', cat: 'media' },
+    { id: 'arcade', label: '街機廳', icon: 'fa-gamepad', color: 'linear-gradient(135deg,#ff6b6b,#feca57)', cat: 'life' },
+    { id: 'personal-wiki', label: '個人紀錄', icon: 'fa-folder-open', color: 'linear-gradient(135deg,#667eea,#764ba2)', cat: 'life' },
   ];
 
   const APPS = [
@@ -2354,7 +2357,10 @@
       { id: 'screenshots', label: '截圖' },
       { id: 'smart-painter', label: '照相館' },
       { id: 'theme-shop', label: '主題商店' },
-      { id: 'worldbook', label: '世界書' }
+      { id: 'worldbook', label: '世界書' },
+      { id: 'theater', label: '劇場' },
+      { id: 'arcade', label: '街機廳' },
+      { id: 'personal-wiki', label: '個人紀錄' }
     ];
     
     shortcutsGrid.innerHTML = apps.map(app => {

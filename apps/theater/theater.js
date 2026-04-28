@@ -464,8 +464,7 @@
     renderSelectedParticipants();
 
     if (modal) {
-      modal.hidden = false;
-      modal.style.display = 'flex';
+      modal.removeAttribute('hidden');
     }
     closeDetail();
   };
@@ -473,8 +472,7 @@
   const closePlaySettings = () => {
     const modal = document.getElementById('play-settings-modal');
     if (modal) {
-      modal.hidden = true;
-      modal.style.display = '';
+      modal.setAttribute('hidden', '');
     }
   };
 
@@ -1148,8 +1146,7 @@
   const openAddModal = () => {
     const modal = document.getElementById('add-modal');
     if (modal) {
-      modal.hidden = false;
-      modal.style.display = 'flex';
+      modal.removeAttribute('hidden');
     }
 
     const titleEl = document.getElementById('content-title');
@@ -1176,8 +1173,7 @@
   const closeAddModal = () => {
     const modal = document.getElementById('add-modal');
     if (modal) {
-      modal.hidden = true;
-      modal.style.display = '';
+      modal.setAttribute('hidden', '');
     }
   };
 
@@ -1226,8 +1222,7 @@
 
     const modal = document.getElementById('edit-modal');
     if (modal) {
-      modal.hidden = false;
-      modal.style.display = 'flex';
+      modal.removeAttribute('hidden');
     }
 
     const editIdEl = document.getElementById('edit-content-id');
@@ -1256,8 +1251,7 @@
   const closeEditModal = () => {
     const modal = document.getElementById('edit-modal');
     if (modal) {
-      modal.hidden = true;
-      modal.style.display = '';
+      modal.setAttribute('hidden', '');
     }
   };
 
@@ -1435,8 +1429,7 @@
           if (currentContentId) {
             const modal = document.getElementById('confirm-modal');
             if (modal) {
-              modal.hidden = false;
-              modal.style.display = 'flex';
+              modal.removeAttribute('hidden');
             }
           }
           break;
@@ -1453,7 +1446,7 @@
           updateContent();
           break;
         case 'close-confirm-modal':
-          document.getElementById('confirm-modal').hidden = true;
+          document.getElementById('confirm-modal')?.setAttribute('hidden', '');
           break;
         case 'close-settings-modal':
           closeSettingsModal();
@@ -1484,7 +1477,7 @@
       confirmDeleteBtn.addEventListener('click', () => {
         if (currentContentId) {
           deleteContent(currentContentId);
-          document.getElementById('confirm-modal').hidden = true;
+          document.getElementById('confirm-modal')?.setAttribute('hidden', '');
         }
       });
     }
@@ -1838,8 +1831,7 @@ ${input}
   const openSettingsModal = () => {
     const modal = document.getElementById('settings-modal');
     if (modal) {
-      modal.hidden = false;
-      modal.style.display = 'flex';
+      modal.removeAttribute('hidden');
     }
     loadWorldbookEntriesForSettings();
   };
@@ -1847,8 +1839,7 @@ ${input}
   const closeSettingsModal = () => {
     const modal = document.getElementById('settings-modal');
     if (modal) {
-      modal.hidden = true;
-      modal.style.display = '';
+      modal.setAttribute('hidden', '');
     }
   };
 

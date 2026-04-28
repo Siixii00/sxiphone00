@@ -290,6 +290,33 @@ window.addEventListener('message', (event) => {
         saveChatData();
     }
     
+    if (data.type === 'OPEN_SUB_PANEL' && data.panelId) {
+        const morePanels = {
+            'emoji-shop': {
+                panel: document.getElementById('emoji-shop-panel'),
+                back: document.getElementById('emoji-shop-back')
+            },
+            'theme-shop': {
+                panel: document.getElementById('theme-shop-panel'),
+                back: document.getElementById('theme-shop-back')
+            },
+            'gift-shop': {
+                panel: document.getElementById('gift-shop-panel'),
+                back: document.getElementById('gift-shop-back')
+            },
+            'payment-code': {
+                panel: document.getElementById('payment-code-panel'),
+                back: document.getElementById('payment-code-back')
+            }
+        };
+        
+        if (morePanels[data.panelId]) {
+            Object.values(morePanels).forEach(({ panel }) => panel?.classList.remove('active'));
+            morePanels[data.panelId].panel?.classList.add('active');
+            document.querySelector('.kakao-bottom-tabs')?.classList.add('hidden');
+        }
+    }
+    
     // 處理外送訂單
     if (data.type === 'DELIVERY_ORDER' && data.order) {
         console.log('[Chat] 收到外送訂單:', data.order);
