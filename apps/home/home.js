@@ -1727,7 +1727,6 @@ function deleteFurniture() {
   saveData();
   hideContextMenu();
 }
-}
 
 function handleMouseDown(e) {
   if (!HomeApp.editMode || HomeApp.selectedFurniture === null) return;
