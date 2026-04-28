@@ -624,12 +624,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone'))) {
-                try {
-                    data.localStorage[key] = localStorage.getItem(key);
-                } catch (e) {
-                    console.warn('無法讀取 localStorage:', key);
-                }
+            if (!key) continue;
+            if (!(key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone'))) continue;
+            try {
+                const value = localStorage.getItem(key);
+                if (value === null) continue;
+                // 過濾掉被污染的函式字串
+                if (typeof value === 'string' && /^\s*\(.*\)\s*=>\s*\{/.test(value)) continue;
+                if (typeof value === 'string' && /^function\s*\(/.test(value)) continue;
+                data.localStorage[key] = value;
+            } catch (e) {
+                console.warn('無法讀取 localStorage:', key);
             }
         }
 
@@ -813,7 +818,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (statusEl) statusEl.textContent = '正在解析備份...';
             const jsonStr = decodeFromBase64(fileData.content);
-            const payload = JSON.parse(jsonStr);
+
+            const sanitizeBackup = (str) => {
+                try {
+                    const obj = JSON.parse(str);
+                    if (obj?.data?.localStorage) {
+                        const ls = obj.data.localStorage;
+                        Object.keys(ls).forEach(key => {
+                            const val = ls[key];
+                            if (typeof val === 'string' && (
+                                /^\s*\(.*\)\s*=>\s*\{/.test(val) ||
+                                /^function\s*\(/.test(val)
+                            )) {
+                                delete ls[key];
+                                console.warn('[GitHub 還原] 已移除污染 key:', key);
+                            }
+                        });
+                    }
+                    return obj;
+                } catch (e) {
+                    const cleaned = str.replace(/"(setItem|removeItem|getItem|clear|key)":\s*"[^"\\]*(?:\\.[^"\\]*)*"/g, '"__removed__": null');
+                    return JSON.parse(cleaned);
+                }
+            };
+
+            const payload = sanitizeBackup(jsonStr);
 
             if (!payload.data) {
                 throw new Error('備份格式不正確或已損壞');

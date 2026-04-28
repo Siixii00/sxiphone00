@@ -224,10 +224,27 @@ window.addEventListener('pageshow', async (event) => {
         try {
             const persistedData = await localforage.getItem('sx_app_persisted_data');
             if (persistedData) {
+                // 還原用戶資料
                 if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
                 if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
                 if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
                 if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
+                
+                // 還原聊天 sessions (iOS localStorage 備援)
+                if (persistedData.sx_chat_sessions) {
+                    const existingSessions = localStorage.getItem('sx_chat_sessions');
+                    // 只有當 localStorage 沒有資料時才從 localforage 還原
+                    if (!existingSessions) {
+                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedData.sx_chat_sessions));
+                        console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
+                    }
+                }
+                if (persistedData.sx_chat_active) {
+                    const existingActive = localStorage.getItem('sx_chat_active');
+                    if (!existingActive) {
+                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
+                    }
+                }
             }
         } catch (e) {
             console.warn('[Chat] 從 localforage 恢復用戶資料失敗:', e);

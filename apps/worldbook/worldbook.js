@@ -12,6 +12,8 @@ const BUILTIN_WORLDBOOKS = [
     { id: 'tsukuyomi_chat', file: '月讀_chat_worldbook.json', name: '月讀 Chat預設', desc: '日常聊天對話場景', lang: 'zh' },
     { id: 'tsukuyomi_lofter', file: '月讀_lofter_worldbook.json', name: '月讀 Lofter預設', desc: '文學創作場景', lang: 'zh' },
     { id: 'tsukuyomi_theater', file: '月讀_theater_worldbook.json', name: '月讀 Theater預設', desc: '劇場生成場景', lang: 'zh' },
+    { id: 'gomorrah_chat', file: '蛾摩拉_chat_worldbook.json', name: '蛾摩拉 Chat預設', desc: '日常聊天對話場景', lang: 'zh' },
+    { id: 'gomorrah_lofter', file: '蛾摩拉_lofter_worldbook.json', name: '蛾摩拉 Lofter預設', desc: '文學創作場景', lang: 'zh' },
     { id: 'claude42', file: 'claude42_worldbook.json', name: 'Claude 4.2 預設', desc: 'Claude 4.2 專用優化', lang: 'zh' },
     { id: 'claude46', file: 'claude46_worldbook.json', name: 'Claude 4.6 預設', desc: 'Claude 4.6 專用優化', lang: 'zh' },
     { id: 'opus', file: 'opus_worldbook.json', name: 'Claude Opus 預設', desc: 'Claude Opus 專用優化', lang: 'zh' },

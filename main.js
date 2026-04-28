@@ -735,19 +735,15 @@
 
     const trackAppStorageForFrame = (frame, appId) => {
         if (!frame || !appId || frame.dataset.storageTracked === '1') return;
-        const originalSetItem = frame.contentWindow?.localStorage?.setItem;
-        const originalRemoveItem = frame.contentWindow?.localStorage?.removeItem;
-        if (!originalSetItem || !originalRemoveItem) return;
-
-        frame.contentWindow.localStorage.setItem = function(key, value) {
-            originalSetItem.call(frame.contentWindow.localStorage, key, value);
-            handleAppStorageMutation(appId, key);
-        };
-        frame.contentWindow.localStorage.removeItem = function(key) {
-            originalRemoveItem.call(frame.contentWindow.localStorage, key);
-            handleAppStorageMutation(appId, key);
-        };
         frame.dataset.storageTracked = '1';
+        // 用 StorageEvent 監聽，不覆蓋原生方法（避免污染備份）
+        try {
+            frame.contentWindow?.addEventListener('storage', (e) => {
+                if (e.key) handleAppStorageMutation(appId, e.key);
+            });
+        } catch (e) {
+            console.warn('[trackAppStorageForFrame] 監聽失敗:', e);
+        }
     };
 
     const getStorageValue = (key) => {
@@ -5451,8 +5447,21 @@ const handleEnd = (y) => {
         }
     });
 
+    const checkStorageStatus = async () => {
+        if (navigator.storage && navigator.storage.estimate) {
+            const { usage, quota } = await navigator.storage.estimate();
+            const usedMB = (usage / 1024 / 1024).toFixed(2);
+            const quotaMB = (quota / 1024 / 1024).toFixed(2);
+            console.log(`[Storage] 已用 ${usedMB}MB / 總計 ${quotaMB}MB`);
+            if (usage / quota > 0.8) {
+                console.warn('[Storage] 儲存空間即將用盡，請清理舊資料');
+            }
+        }
+    };
+
     function init() {
         requestStoragePersistence();
+        checkStorageStatus();
 
         applyLanguageToUI();
         updateClock();
