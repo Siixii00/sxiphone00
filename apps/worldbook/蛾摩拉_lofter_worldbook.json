@@ -2,7 +2,9 @@
   "description": "蛾摩拉 Lofter版本 - 適配文學創作場景 | 原作者：小回 (discord@hui_chan)",
   "version": "2.33-sxiphone",
   "author": "小回 (discord@hui_chan)",
+  "contributors": ["錢", "Mors", "少年心緒的作者"],
   "source": "蛾摩拉 v2.33-无缄默",
+  "community": "DC 群「喵喵電波」",
   "note": "本文件為蛾摩拉預設的sxiphone適配版本，專為文學創作和敘事場景優化。已移除setvar/getvar變量系統，改用觸發詞機制。適配多種模型使用。",
   "model_compatibility": {
     "primary": "Gemini",
