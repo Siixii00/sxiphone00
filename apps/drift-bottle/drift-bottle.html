@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>占卜小店</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@500;700&family=Cormorant+Garamond:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="drift-bottle.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="fortune-app">
+    <div class="drift-intro" id="drift-intro" aria-hidden="true">
+      <div class="drift-waves">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="drift-intro-copy" aria-hidden="true">
+        <p class="drift-intro-eyebrow">Fortune Boutique</p>
+        <h2 class="drift-intro-title">Drift Bottle</h2>
+      </div>
+      <div class="drift-bottle">
+        <span class="drift-star"></span>
+        <span class="drift-star"></span>
+        <span class="drift-star"></span>
+        <span class="drift-star"></span>
+      </div>
+    </div>
+    <header class="fortune-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>星海占卜小店</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="home-refresh-btn" aria-label="音效設定">
+          <i class="fas fa-music"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="fortune-main" id="fortune-home">
+      <section class="card category-card">
+        <h2>選擇占卜體系</h2>
+        <div class="segmented">
+          <button class="segment active" data-category="east" type="button">東占</button>
+          <button class="segment" data-category="west" type="button">西占</button>
+        </div>
+      </section>
+
+
+      <section class="card" id="east-birth-card">
+        <h2>輸入出生資訊（數字日期）</h2>
+        <div class="field-grid stacked-fields">
+          <label>出生日期
+            <input id="east-birth-date" type="date" inputmode="numeric">
+          </label>
+          <label>出生時間
+            <input id="east-birth-time" type="time" inputmode="numeric">
+          </label>
+          <label>曆法
+            <select id="east-calendar-type">
+              <option value="solar">國曆</option>
+              <option value="lunar">農曆</option>
+            </select>
+          </label>
+          <label>閏月
+            <select id="east-lunar-leap">
+              <option value="false">否</option>
+              <option value="true">是</option>
+            </select>
+          </label>
+          <label>性別
+            <select id="east-birth-gender">
+              <option value="F">女</option>
+              <option value="M">男</option>
+            </select>
+          </label>
+        </div>
+        <p class="result-note" id="east-lunar-note">請輸入出生日期與時間，可選擇國曆/農曆。</p>
+        <button class="fortune-btn" id="east-save-profile" type="button">儲存出生資訊</button>
+      </section>
+
+      <section class="card east-method-card" data-method-key="ziwei">
+        <button class="fortune-btn ghost" type="button">紫微斗數</button>
+        <p class="result-note">GitHub：fortel-labs / fortel-ziweidoushu</p>
+      </section>
+      <section class="card east-method-card" data-method-key="meihua">
+        <button class="fortune-btn ghost" type="button">梅花易數</button>
+      </section>
+      <section class="card east-method-card" data-method-key="flow">
+        <button class="fortune-btn ghost" type="button">農曆流年</button>
+      </section>
+
+
+      <section class="card is-hidden" id="west-birth-card">
+        <h2>輸入國曆出生資訊（選填）</h2>
+        <div class="field-grid triple">
+          <label>出生日期（國曆）
+            <input id="west-birth-date" type="date" inputmode="numeric">
+          </label>
+          <label>出生時間
+            <input id="west-birth-time" type="time" inputmode="numeric">
+          </label>
+          <label>性別
+            <select id="west-birth-gender">
+              <option value="F">女</option>
+              <option value="M">男</option>
+            </select>
+          </label>
+        </div>
+        <p class="result-note">用於占星本命盤計算，塔羅不需要此資訊。</p>
+      </section>
+
+      <section class="card west-method-card is-hidden" data-method-key="tarot">
+        <button class="fortune-btn ghost" type="button">塔羅占卜</button>
+        <p class="result-note">互動式洗牌、切牌、選牌，支援多種牌陣</p>
+      </section>
+      <section class="card west-method-card is-hidden" data-method-key="astrology">
+        <button class="fortune-btn ghost" type="button">西洋占星</button>
+        <p class="result-note">本命盤分析、運勢解讀（開發中）</p>
+      </section>
+    </main>
+
+    <section class="method-page hidden" id="page-ziwei">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>紫微斗數</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card">
+          <label>問題<textarea id="q-ziwei" rows="4" placeholder="輸入你想詢問的方向"></textarea></label>
+          <button class="fortune-btn generate-btn" data-method="ziwei" type="button">開始占卜</button>
+        </div>
+        <div class="card">
+          <h3 class="card-title">外部排盤</h3>
+          <p class="result-note">使用外部排盤網站完成後，可將排盤圖片網址與摘要貼回來保存。</p>
+          <a class="fortune-btn ghost" id="ziwei-external-link" href="https://ziwei-calculator.vercel.app/" target="_blank" rel="noopener">前往外部排盤</a>
+          <div class="field-grid stacked-fields">
+            <label>排盤圖片 URL
+              <input id="ziwei-result-image" type="url" placeholder="貼上圖片網址">
+            </label>
+            <label>排盤文字摘要
+              <textarea id="ziwei-result-note" rows="3" placeholder="貼上重點摘要"></textarea>
+            </label>
+          </div>
+          <p class="result-note">備註：若要用圖片辨識分析，請在 Settings 選擇支援視覺輸入（Vision）的模型；若模型不支援視覺，請直接在「排盤文字摘要」貼上命盤每一格文字（含宮位名稱），讓後端可對應 12 宮位進行分析。</p>
+          <button class="fortune-btn" id="ziwei-save-external" type="button">儲存外部排盤紀錄</button>
+          <p class="result-note" id="ziwei-analysis-note">尚未分析</p>
+          <pre class="result-detail" id="ziwei-analysis-result"></pre>
+        </div>
+        <div class="card">
+          <h3 class="card-title">內建排盤圖片</h3>
+          <p class="result-note">直接使用本機 ziwei-zenith API 生成排盤圖片。</p>
+          <button class="fortune-btn" id="ziwei-build-chart" type="button">產生內建排盤</button>
+          <button class="fortune-btn ghost" id="ziwei-download-chart" type="button">下載排盤圖片</button>
+          <p class="result-note" id="ziwei-chart-note">尚未產生排盤圖片</p>
+          <img id="ziwei-chart-image" alt="紫微斗數內建排盤" class="ziwei-preview is-hidden" />
+        </div>
+        <section class="card"><p class="result-main" id="r-ziwei">尚未占卜</p></section>
+        <section class="card"><pre class="result-detail" id="r-ziwei-detail">尚未排盤</pre></section>
+        <section class="card is-hidden" id="ziwei-external-preview">
+          <p class="result-main">外部排盤紀錄</p>
+          <img id="ziwei-preview-image" alt="紫微斗數排盤" class="ziwei-preview" />
+          <p class="result-note" id="ziwei-preview-note"></p>
+        </section>
+        <p class="result-note ai-analysis-hint">導入命盤資料後，即可進行 AI 模型分析。</p>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-meihua">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>梅花易數</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card">
+          <label>占問主題<textarea id="q-meihua" rows="3" placeholder="例如：這次轉職是否順利？"></textarea></label>
+          <div class="field-grid">
+            <label>起卦方式
+              <select id="meihua-cast-mode">
+                <option value="time">時間起卦（即時）</option>
+                <option value="number">數字起卦（自選）</option>
+              </select>
+            </label>
+            <label>動爻
+              <select id="meihua-moving-mode">
+                <option value="auto">自動推算</option>
+                <option value="manual">手動指定</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid" id="meihua-number-inputs">
+            <label>上卦數
+              <input id="meihua-number-a" type="number" min="1" step="1" placeholder="1-9999">
+            </label>
+            <label>下卦數
+              <input id="meihua-number-b" type="number" min="1" step="1" placeholder="1-9999">
+            </label>
+          </div>
+          <div class="field-grid single-row is-hidden" id="meihua-moving-manual-wrap">
+            <label>指定動爻（1-6）
+              <input id="meihua-moving-line" type="number" min="1" max="6" step="1" placeholder="1=初爻，6=上爻">
+            </label>
+          </div>
+          <button class="fortune-btn" id="meihua-cast-btn" type="button">起卦占卜</button>
+          <p class="result-note" id="meihua-cast-note">可直接使用時間起卦，或切換數字起卦。</p>
+        </div>
+        <section class="card"><p class="result-main" id="r-meihua">尚未起卦</p></section>
+        <section class="card"><pre class="result-detail" id="r-meihua-detail">尚未起卦</pre></section>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-flow">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>流年流月流日</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card">
+          <p class="result-note">依據當日/當年度農民曆資訊（農曆日期、歲次、節氣）進行流年、流月、流日分析。</p>
+          <button class="fortune-btn" id="open-flow-almanac" type="button">前往農民曆流運分析</button>
+        </div>
+        <section class="card"><p class="result-main" id="r-flow">點按上方按鈕進入分析頁。</p></section>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-flow-almanac">
+      <header class="method-page-header">
+        <button class="icon-btn" id="flow-almanac-back" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>農民曆流運分析</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card">
+          <label>分析主題
+            <textarea id="flow-almanac-question" rows="3" placeholder="例如：今年工作發展與合作運勢"></textarea>
+          </label>
+          <div class="field-grid">
+            <label>參考日期（流日）
+              <input id="flow-almanac-date" type="date" inputmode="numeric">
+            </label>
+            <label>參考年度（流年）
+              <input id="flow-almanac-year" type="number" min="1900" max="2100" step="1" placeholder="例如 2026">
+            </label>
+          </div>
+          <button class="fortune-btn" id="flow-almanac-generate" type="button">生成流年/流月/流日分析</button>
+          <p class="result-note" id="flow-almanac-note">尚未分析</p>
+        </div>
+        <section class="card"><p class="result-main" id="r-flow-almanac">尚未分析</p></section>
+        <section class="card"><pre class="result-detail" id="r-flow-almanac-detail">尚未分析</pre></section>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-astrology">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>占星</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card"><p class="result-note">占星專頁（可後續加入本命盤/行運盤排盤）。</p></div>
+        <div class="card">
+          <label>問題<textarea id="q-astrology" rows="4" placeholder="輸入你想詢問的方向"></textarea></label>
+          <button class="fortune-btn generate-btn" data-method="astrology" type="button">開始占卜</button>
+        </div>
+        <section class="card"><p class="result-main" id="r-astrology">尚未占卜</p></section>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-tarot">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>塔羅</h2>
+        <button class="icon-btn" id="tarot-settings-btn" type="button"><i class="fas fa-cog"></i></button>
+      </header>
+      <div class="method-page-body tarot-app">
+        <div class="card tarot-setup-card">
+          <div class="field-grid tarot-select-grid">
+            <label>牌系
+              <select id="tarot-deck-type">
+                <option value="rws">偉特塔羅 (Rider-Waite)</option>
+                <option value="thoth">托特塔羅 (Thoth)</option>
+                <option value="marseille">馬賽塔羅 (Marseille)</option>
+              </select>
+            </label>
+            <label>牌陣
+              <select id="tarot-spread">
+                <option value="single">單張指引</option>
+                <option value="three">三張牌陣（時間流）</option>
+                <option value="celtic">塞爾特十字（10張）</option>
+                <option value="relationship">關係牌陣（7張）</option>
+                <option value="decision">二選一牌陣（6張）</option>
+              </select>
+            </label>
+          </div>
+          <label>問題<textarea id="q-tarot" rows="2" placeholder="輸入你想詢問的方向（選填）"></textarea></label>
+          <button class="fortune-btn" id="tarot-start-btn" type="button">開始占卜</button>
+        </div>
+
+        <div class="tarot-game-area hidden" id="tarot-game-area">
+          <div class="tarot-instruction" id="tarot-instruction">
+            <span class="instruction-step">步驟 1/3</span>
+            <span class="instruction-text">請用手指滑動洗牌</span>
+          </div>
+          
+          <div class="tarot-table" id="tarot-table">
+            <div class="tarot-deck-area" id="tarot-deck-area">
+              <div class="tarot-deck" id="tarot-deck"></div>
+              <div class="shuffle-hint" id="shuffle-hint">
+                <i class="fas fa-hand-pointer"></i>
+                <span>左右滑動洗牌</span>
+              </div>
+            </div>
+            
+            <div class="tarot-cut-area hidden" id="tarot-cut-area">
+              <p class="cut-instruction">請點擊選擇切牌位置</p>
+              <div class="cut-decks" id="cut-decks"></div>
+            </div>
+            
+            <div class="tarot-spread-area hidden" id="tarot-spread-area">
+              <div class="spread-container" id="spread-container"></div>
+              <div class="draw-pile" id="draw-pile">
+                <div class="draw-pile-cards" id="draw-pile-cards"></div>
+                <p class="draw-hint">點擊或拖曳牌到牌陣位置</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tarot-controls">
+            <button class="tarot-ctrl-btn" id="tarot-reset-btn" type="button">
+              <i class="fas fa-redo"></i> 重新開始
+            </button>
+            <button class="tarot-ctrl-btn hidden" id="tarot-reveal-btn" type="button">
+              <i class="fas fa-eye"></i> 翻開牌面
+            </button>
+            <button class="tarot-ctrl-btn hidden" id="tarot-reading-btn" type="button">
+              <i class="fas fa-magic"></i> 查看解讀
+            </button>
+          </div>
+        </div>
+
+        <div class="tarot-result-area hidden" id="tarot-result-area">
+          <div class="card tarot-spread-display" id="tarot-spread-display"></div>
+          <div class="card">
+            <h3 class="card-title">塔羅解讀</h3>
+            <div class="tarot-reading-content" id="tarot-reading-content">
+              <p class="result-note">正在解讀中...</p>
+            </div>
+          </div>
+          <div class="card">
+            <button class="fortune-btn" id="tarot-new-reading-btn" type="button">重新占卜</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-tarot-settings">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-target="tarot" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>塔羅設定</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <div class="card">
+          <h3 class="card-title">牌背樣式</h3>
+          <div class="card-back-options" id="card-back-options">
+            <label class="card-back-option">
+              <input type="radio" name="card-back" value="default" checked>
+              <div class="card-back-preview default-back"></div>
+              <span>經典</span>
+            </label>
+            <label class="card-back-option">
+              <input type="radio" name="card-back" value="navy">
+              <div class="card-back-preview navy-back"></div>
+              <span>深藍</span>
+            </label>
+            <label class="card-back-option">
+              <input type="radio" name="card-back" value="crimson">
+              <div class="card-back-preview crimson-back"></div>
+              <span>暗紅</span>
+            </label>
+            <label class="card-back-option">
+              <input type="radio" name="card-back" value="mystic">
+              <div class="card-back-preview mystic-back"></div>
+              <span>神秘</span>
+            </label>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">自訂牌背</h3>
+          <p class="result-note">上傳自己的牌背圖片（建議 200x350 像素）</p>
+          <input type="file" id="custom-card-back-input" accept="image/*" hidden>
+          <button class="fortune-btn ghost" id="upload-card-back-btn" type="button">選擇圖片</button>
+          <div class="custom-back-preview hidden" id="custom-back-preview">
+            <img id="custom-back-img" alt="自訂牌背">
+            <button class="fortune-btn ghost small" id="remove-custom-back-btn" type="button">移除</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">其他設定</h3>
+          <div class="field-grid">
+            <label>顯示正逆位
+              <select id="show-reversed">
+                <option value="yes" selected>是</option>
+                <option value="no">否</option>
+              </select>
+            </label>
+            <label>動畫速度
+              <select id="animation-speed">
+                <option value="slow">慢速</option>
+                <option value="normal" selected>正常</option>
+                <option value="fast">快速</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="method-page hidden" id="page-audio">
+      <header class="method-page-header">
+        <button class="icon-btn page-back" data-back="home" type="button"><i class="fas fa-chevron-left"></i></button>
+        <h2>音效設定</h2><span></span>
+      </header>
+      <div class="method-page-body">
+        <section class="card audio-card">
+          <h2>海浪與白噪音設定</h2>
+          <div class="field-grid triple audio-grid">
+            <label>海浪音色
+              <select id="ocean-tone">
+                <option value="soft">柔和</option>
+                <option value="deep">深海</option>
+                <option value="bright">明亮</option>
+              </select>
+            </label>
+            <label>海浪音量
+              <input id="ocean-volume" type="range" min="0" max="100" value="45">
+            </label>
+            <label>白噪音
+              <select id="noise-toggle">
+                <option value="off">關閉</option>
+                <option value="on">開啟</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid audio-grid">
+            <label>白噪音音量
+              <input id="noise-volume" type="range" min="0" max="100" value="25">
+            </label>
+          </div>
+          <p class="result-note">首次操作會啟動音效，建議從較低音量開始調整。</p>
+        </section>
+      </div>
+    </section>
+
+    <div class="char-companion-panel hidden" id="char-companion-panel">
+      <div class="char-header">
+        <div class="char-avatar" id="char-avatar"></div>
+        <div class="char-info">
+          <div class="char-name" id="char-name">選擇角色</div>
+          <div class="char-status" id="char-status">陪玩模式</div>
+        </div>
+        <button class="char-select-btn" id="char-select-btn" title="選擇角色">
+          <i class="fas fa-user-friends"></i>
+        </button>
+      </div>
+      <div class="char-comment" id="char-comment">選擇一個角色陪你一起占卜吧！</div>
+      <div class="char-fortune-history" id="char-fortune-history"></div>
+    </div>
+
+    <div class="char-select-modal hidden" id="char-select-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>選擇陪占角色</h3>
+          <button class="close-btn" id="close-char-select"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="char-list" id="char-list"></div>
+          <div class="char-toggle-row">
+            <span>啟用角色陪占</span>
+            <label class="switch">
+              <input type="checkbox" id="char-companion-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="char-toggle-row">
+            <span>記錄占卜結果</span>
+            <label class="switch">
+              <input type="checkbox" id="fortune-memory-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script type="module" src="drift-bottle.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('drift-bottle');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('drift-bottle', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

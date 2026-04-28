@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>宅家</title>
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="home-app">
+    <div id="map-view" class="map-view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="handleBack()">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="app-title">我的家園</h1>
+        <div class="top-actions">
+          <div class="money-display">
+            <i data-lucide="wallet"></i>
+            <span id="current-balance">0</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-container">
+        <canvas id="map-canvas"></canvas>
+        <div id="map-overlay" class="map-overlay"></div>
+      </div>
+      
+      <div class="map-toolbar">
+        <button class="tool-btn" onclick="zoomIn()">
+          <i data-lucide="zoom-in"></i>
+        </button>
+        <button class="tool-btn" onclick="zoomOut()">
+          <i data-lucide="zoom-out"></i>
+        </button>
+        <button class="tool-btn" onclick="centerMap()">
+          <i data-lucide="locate"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="room-view" class="room-view hidden">
+      <div class="top-bar">
+        <button class="back-btn" onclick="exitRoom()">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="app-title">我的小屋</h1>
+        <div class="top-actions">
+          <button class="top-btn" onclick="openSettings()">
+            <i data-lucide="settings"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="room-tabs" class="room-tabs"></div>
+
+      <div class="main-content">
+        <div id="room-container" class="room-container">
+          <canvas id="room-canvas"></canvas>
+          <div id="character-layer" class="character-layer"></div>
+        </div>
+
+        <div id="furniture-panel" class="furniture-panel">
+          <div class="panel-header">
+            <h3>家具</h3>
+            <button class="close-panel-btn" onclick="toggleFurniturePanel()">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+          <div class="furniture-categories">
+            <button class="category-btn active" data-category="all" onclick="selectCategory('all')">全部</button>
+            <button class="category-btn" data-category="bed" onclick="selectCategory('bed')">床鋪</button>
+            <button class="category-btn" data-category="desk" onclick="selectCategory('desk')">桌椅</button>
+            <button class="category-btn" data-category="decor" onclick="selectCategory('decor')">裝飾</button>
+            <button class="category-btn" data-category="plant" onclick="selectCategory('plant')">植物</button>
+            <button class="category-btn" data-category="electronic" onclick="selectCategory('electronic')">電器</button>
+            <button class="category-btn" data-category="bath" onclick="selectCategory('bath')">衛浴</button>
+            <button class="category-btn" data-category="kitchen" onclick="selectCategory('kitchen')">廚房</button>
+          </div>
+          <div class="furniture-grid" id="furniture-grid"></div>
+        </div>
+
+        <div id="edit-mode-hint" class="edit-mode-hint hidden">
+          <span>編輯模式：點擊家具移動或刪除</span>
+          <button class="exit-edit-btn" onclick="exitEditMode()">完成</button>
+        </div>
+      </div>
+
+      <div class="bottom-toolbar">
+        <button class="tool-btn" onclick="toggleFurniturePanel()">
+          <i data-lucide="sofa"></i>
+          <span>家具</span>
+        </button>
+        <button class="tool-btn" onclick="enterEditMode()">
+          <i data-lucide="move"></i>
+          <span>編輯</span>
+        </button>
+        <button class="tool-btn" onclick="saveRoom()">
+          <i data-lucide="save"></i>
+          <span>儲存</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="buy-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="buy-modal-title">購買房產</h2>
+          <button class="close-btn" onclick="closeBuyModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="buy-preview" class="buy-preview"></div>
+          <div class="buy-info">
+            <div class="buy-price">
+              <i data-lucide="coins"></i>
+              <span id="buy-price-amount">0</span>
+            </div>
+            <p id="buy-description"></p>
+          </div>
+          <div class="buy-options" id="buy-options"></div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" id="buy-confirm-btn" onclick="confirmBuy()">確認購買</button>
+            <button class="modal-btn" onclick="closeBuyModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="char-select-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>選擇角色</h2>
+          <button class="close-btn" onclick="closeCharSelectModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="char-list" class="char-list"></div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" onclick="confirmCharSelect()">確認</button>
+            <button class="modal-btn" onclick="closeCharSelectModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="invite-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>發送邀請</h2>
+          <button class="close-btn" onclick="closeInviteModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="invite-preview">
+            <div class="invite-message" id="invite-message-preview"></div>
+          </div>
+          <div class="invite-input-section">
+            <label>自訂訊息（選填）</label>
+            <textarea id="invite-custom-message" placeholder="可以加入想說的話..."></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" onclick="sendInvite()">發送邀請</button>
+            <button class="modal-btn" onclick="closeInviteModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>設定</h2>
+          <button class="close-btn" onclick="closeSettings()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-item">
+            <label>房間風格</label>
+            <div class="style-options">
+              <button class="style-btn active" data-style="modern" onclick="setRoomStyle('modern')">現代</button>
+              <button class="style-btn" data-style="cozy" onclick="setRoomStyle('cozy')">溫馨</button>
+              <button class="style-btn" data-style="minimal" onclick="setRoomStyle('minimal')">極簡</button>
+              <button class="style-btn" data-style="gaming" onclick="setRoomStyle('gaming')">電競</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>地板顏色</label>
+            <div class="color-picker" id="floor-color-picker"></div>
+          </div>
+          <div class="setting-item">
+            <label>牆壁顏色</label>
+            <div class="color-picker" id="wall-color-picker"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="furniture-context-menu" class="context-menu hidden">
+      <button class="context-btn" onclick="rotateFurniture()">
+        <i data-lucide="rotate-cw"></i> 旋轉
+      </button>
+      <button class="context-btn" onclick="deleteFurniture()">
+        <i data-lucide="trash-2"></i> 刪除
+      </button>
+      <button class="context-btn cancel" onclick="hideContextMenu()">
+        <i data-lucide="x"></i> 取消
+      </button>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="home.js"></script>
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

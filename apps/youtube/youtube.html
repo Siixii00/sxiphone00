@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>YouTube</title>
+  <link rel="stylesheet" href="youtube.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="yt-app">
+    <header class="yt-topbar">
+      <button class="yt-icon" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="yt-logo">
+        <span class="yt-play"><i class="fas fa-play"></i></span>
+        <span class="yt-text">YouTube</span>
+      </div>
+      <div class="yt-actions">
+        <button class="yt-icon" id="appearance-btn" aria-label="設定"><i class="fas fa-cog"></i></button>
+        <button class="yt-icon" aria-label="搜尋"><i class="fas fa-magnifying-glass"></i></button>
+        <button class="yt-avatar" id="yt-char-btn" aria-label="切換角色視角">
+          <span>你</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="yt-chips" aria-label="篩選">
+      <select id="yt-filter-select" class="yt-filter-select" aria-label="篩選分類">
+        <option value="all">全部</option>
+        <option value="live">直播</option>
+        <option value="music">音樂</option>
+        <option value="game">遊戲</option>
+        <option value="tech">科技</option>
+        <option value="diy">手作</option>
+      </select>
+    </section>
+
+    <main class="yt-main">
+      <div class="yt-feed" id="yt-feed"></div>
+    </main>
+
+    <section class="yt-char-view" id="yt-char-view" hidden>
+      <header class="yt-char-topbar">
+        <button class="yt-icon" data-action="close-char" aria-label="返回">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="yt-char-title">角色視角</div>
+        <button class="yt-icon" data-action="refresh-char" aria-label="重新生成">
+          <i class="fas fa-rotate"></i>
+        </button>
+      </header>
+      <div class="yt-char-controls">
+        <label for="yt-char-select">角色</label>
+        <select id="yt-char-select" aria-label="選擇角色"></select>
+      </div>
+      <div class="yt-char-list" id="yt-char-list"></div>
+    </section>
+
+    <section class="yt-collections" id="yt-collections" hidden>
+      <header class="yt-collections-topbar">
+        <button class="yt-icon" data-action="close-collections" aria-label="返回">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="yt-collections-title">我的收藏</div>
+        <button class="yt-icon" data-action="add-collection" aria-label="新增收藏夾">
+          <i class="fas fa-folder-plus"></i>
+        </button>
+      </header>
+      <div class="yt-collections-list" id="yt-collections-list"></div>
+    </section>
+
+    <section class="yt-me-view" id="yt-me-view" hidden>
+      <header class="yt-me-topbar">
+        <button class="yt-icon" data-action="close-me" aria-label="返回">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="yt-me-title">我的頻道</div>
+        <button class="yt-icon" aria-label="設定"><i class="fas fa-cog"></i></button>
+      </header>
+      <div class="yt-me-header">
+        <div class="yt-me-avatar" id="yt-me-avatar"></div>
+        <div class="yt-me-info">
+          <div class="yt-me-name" id="yt-me-name">SXi User</div>
+          <div class="yt-me-sub" id="yt-me-sub">@sxiuser</div>
+        </div>
+      </div>
+      <div class="yt-me-stats">
+        <div><span>128</span><small>訂閱</small></div>
+        <div><span>3.2萬</span><small>觀看</small></div>
+        <div><span>56</span><small>影片</small></div>
+      </div>
+      <div class="yt-me-card">
+        <div class="yt-me-card-title">我的創作</div>
+        <div class="yt-me-grid" id="yt-me-videos"></div>
+      </div>
+      <div class="yt-me-card">
+        <div class="yt-me-card-title">常用功能</div>
+        <div class="yt-me-grid">
+          <button data-action="open-collections"><i class="far fa-folder"></i>收藏</button>
+          <button data-action="open-history"><i class="far fa-clock"></i>歷史</button>
+          <button data-action="open-liked"><i class="far fa-thumbs-up"></i>喜歡</button>
+          <button><i class="far fa-bookmark"></i>稍後觀看</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="yt-player-page" id="yt-player-page" hidden>
+      <header class="yt-player-topbar">
+        <button class="yt-icon" data-action="close-player" aria-label="返回">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="yt-player-title" id="yt-player-title">影片播放</div>
+        <button class="yt-icon" aria-label="更多"><i class="fas fa-ellipsis-v"></i></button>
+      </header>
+      <div class="yt-player-stage">
+        <div class="yt-player-video" id="yt-player-video">
+          <iframe title="影片播放器" src="" allow="autoplay; fullscreen" loading="lazy"></iframe>
+        </div>
+        <div class="yt-char-companion" id="yt-char-companion" hidden>
+          <div class="yt-char-companion-avatar" id="yt-char-companion-avatar"></div>
+          <div class="yt-char-companion-name" id="yt-char-companion-name"></div>
+          <button class="yt-char-companion-close" data-action="remove-companion" aria-label="關閉">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="yt-char-comment-bubble" id="yt-char-comment-bubble" hidden>
+          <div class="yt-char-comment-text" id="yt-char-comment-text"></div>
+        </div>
+        <div class="yt-ad-overlay" id="yt-ad-overlay" hidden>
+          <div class="yt-ad-container">
+            <div class="yt-ad-video">
+              <div class="yt-ad-placeholder">
+                <i class="fas fa-ad"></i>
+                <span>廣告</span>
+              </div>
+            </div>
+            <div class="yt-ad-info">
+              <div class="yt-ad-skip" id="yt-ad-skip">
+                <span id="yt-ad-countdown">5</span> 秒後可跳過廣告
+              </div>
+              <button class="yt-ad-skip-btn" id="yt-ad-skip-btn" hidden data-action="skip-ad">
+                跳過廣告 <i class="fas fa-forward"></i>
+              </button>
+              <div class="yt-ad-progress">
+                <div class="yt-ad-progress-bar" id="yt-ad-progress-bar"></div>
+              </div>
+            </div>
+            <div class="yt-ad-banner" id="yt-ad-banner">
+              <div class="yt-ad-banner-content">
+                <span class="yt-ad-banner-text" id="yt-ad-banner-text">🔥 限時優惠！立即點擊查看！</span>
+                <button class="yt-ad-banner-btn" data-action="click-ad">了解更多</button>
+              </div>
+              <button class="yt-ad-banner-close" data-action="close-ad-banner">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="yt-player-info">
+        <div class="yt-player-meta">
+          <div class="yt-player-title-main" id="yt-player-title-main">影片標題</div>
+          <div class="yt-player-sub" id="yt-player-sub">1.2萬 觀看 · 2 天前</div>
+        </div>
+        <div class="yt-player-actions">
+          <button class="yt-action-btn" data-action="like-video"><i class="far fa-thumbs-up"></i><span>讚</span></button>
+          <button class="yt-action-btn" data-action="dislike-video"><i class="far fa-thumbs-down"></i><span>不喜歡</span></button>
+          <button class="yt-action-btn" data-action="share-video"><i class="fas fa-share"></i><span>分享</span></button>
+          <button class="yt-action-btn" data-action="save-video"><i class="far fa-bookmark"></i><span>儲存</span></button>
+        </div>
+      </div>
+      <div class="yt-player-channel">
+        <div class="yt-player-channel-avatar"></div>
+        <div class="yt-player-channel-info">
+          <div class="yt-player-channel-name" id="yt-player-channel-name">頻道名稱</div>
+          <div class="yt-player-channel-sub" id="yt-player-channel-sub">12.5萬 訂閱</div>
+        </div>
+        <button class="yt-subscribe-btn">訂閱</button>
+      </div>
+      <div class="yt-player-desc" id="yt-player-desc"></div>
+      
+      <div class="yt-char-watch-section" id="yt-char-watch-section">
+        <div class="yt-char-watch-header">
+          <div class="yt-char-watch-avatar" id="yt-char-watch-avatar"></div>
+          <div class="yt-char-watch-info">
+            <div class="yt-char-watch-name" id="yt-char-watch-name">選擇角色</div>
+            <div class="yt-char-watch-status" id="yt-char-watch-status">正在觀看...</div>
+          </div>
+          <select id="yt-char-watch-select" aria-label="選擇觀看的角色">
+            <option value="">選擇角色</option>
+          </select>
+        </div>
+        <div class="yt-char-watch-reaction" id="yt-char-watch-reaction" hidden>
+          <div class="yt-char-reaction-text" id="yt-char-reaction-text"></div>
+          <div class="yt-char-reaction-time" id="yt-char-reaction-time"></div>
+        </div>
+        <div class="yt-char-watch-actions">
+          <button class="yt-ghost-btn" data-action="char-react" id="yt-char-react-btn"><i class="fas fa-comment"></i> 角色評論</button>
+          <button class="yt-ghost-btn" data-action="char-watch-history"><i class="far fa-clock"></i> 觀看紀錄</button>
+        </div>
+      </div>
+      
+      <div class="yt-player-comments">
+        <div class="yt-comments-header">留言</div>
+        <div class="yt-comment-item">
+          <div class="yt-comment-avatar"></div>
+          <div>
+            <div class="yt-comment-name">User123</div>
+            <div class="yt-comment-text">這影片太棒了！</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="yt-modal" id="yt-video-modal" hidden>
+      <div class="yt-modal-backdrop" data-action="close-modal"></div>
+      <div class="yt-modal-card">
+        <div class="yt-modal-header">
+          <div class="yt-modal-title">影片選項</div>
+          <button class="yt-icon small" data-action="close-modal" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="yt-modal-body">
+          <div class="yt-modal-row">
+            <button class="yt-primary-btn" data-action="generate-content">AI 生成新內容</button>
+          </div>
+          <div class="yt-modal-row">
+            <div class="yt-modal-text">或輸入影片網址播放：</div>
+            <div class="yt-url-input">
+              <i class="fas fa-link"></i>
+              <input id="yt-video-url" type="url" placeholder="https://youtube.com/..." aria-label="影片網址">
+            </div>
+            <button class="yt-ghost-btn" data-action="play-url">播放</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="yt-modal" id="yt-add-modal" hidden>
+      <div class="yt-modal-backdrop" data-action="close-add-modal"></div>
+      <div class="yt-modal-card">
+        <div class="yt-modal-header">
+          <div class="yt-modal-title">創建影片</div>
+          <button class="yt-icon small" data-action="close-add-modal" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="yt-modal-body">
+          <div class="yt-modal-row">
+            <label class="yt-modal-label" for="add-video-title">影片標題</label>
+            <input id="add-video-title" type="text" class="yt-text-input" placeholder="輸入影片標題">
+          </div>
+          <div class="yt-modal-row">
+            <label class="yt-modal-label">封面圖片</label>
+            <div class="yt-thumb-upload">
+              <div class="yt-thumb-preview" id="yt-thumb-preview">
+                <i class="fas fa-image"></i>
+                <span>點擊上傳封面</span>
+              </div>
+              <input type="file" id="add-video-thumb-file" accept="image/*" hidden>
+              <button class="yt-ghost-btn" data-action="upload-thumb" type="button">
+                <i class="fas fa-upload"></i> 選擇圖片
+              </button>
+              <button class="yt-ghost-btn" data-action="clear-thumb" type="button">
+                <i class="fas fa-times"></i> 清除
+              </button>
+            </div>
+          </div>
+          <div class="yt-modal-row">
+            <label class="yt-modal-label" for="add-video-url">影片連結（可選）</label>
+            <div class="yt-url-input">
+              <i class="fas fa-link"></i>
+              <input id="add-video-url" type="url" placeholder="https://...">
+            </div>
+            <div class="yt-modal-hint">支援 YouTube、Bilibili 等平台連結</div>
+          </div>
+          <div class="yt-modal-row">
+            <label class="yt-modal-label" for="add-video-tag">分類</label>
+            <select id="add-video-tag">
+              <option value="all">全部</option>
+              <option value="live">直播</option>
+              <option value="music">音樂</option>
+              <option value="game">遊戲</option>
+              <option value="tech">科技</option>
+              <option value="diy">手作</option>
+            </select>
+          </div>
+          <div class="yt-modal-row">
+            <label class="yt-modal-label">AI 輔助</label>
+            <div class="yt-ai-options">
+              <button class="yt-ghost-btn" data-action="ai-title"><i class="fas fa-magic"></i> 生成標題</button>
+              <button class="yt-ghost-btn" data-action="ai-desc"><i class="fas fa-pen"></i> 生成描述</button>
+            </div>
+          </div>
+          <div class="yt-modal-actions">
+            <button class="yt-ghost-btn" data-action="close-add-modal">取消</button>
+            <button class="yt-primary-btn" data-action="add-video">新增</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="yt-modal" id="yt-collection-modal" hidden>
+      <div class="yt-modal-backdrop" data-action="close-collection-modal"></div>
+      <div class="yt-modal-card">
+        <div class="yt-modal-header">
+          <div class="yt-modal-title">新增收藏夾</div>
+          <button class="yt-icon small" data-action="close-collection-modal" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="yt-modal-body">
+          <div class="yt-modal-row">
+            <label class="yt-modal-label" for="collection-name">收藏夾名稱</label>
+            <input id="collection-name" type="text" class="yt-text-input" placeholder="我的收藏">
+          </div>
+          <div class="yt-modal-actions">
+            <button class="yt-ghost-btn" data-action="close-collection-modal">取消</button>
+            <button class="yt-primary-btn" data-action="create-collection">建立</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="yt-modal" id="yt-save-modal" hidden>
+      <div class="yt-modal-backdrop" data-action="close-save-modal"></div>
+      <div class="yt-modal-card">
+        <div class="yt-modal-header">
+          <div class="yt-modal-title">儲存到收藏夾</div>
+          <button class="yt-icon small" data-action="close-save-modal" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="yt-modal-body">
+          <div class="yt-save-list" id="yt-save-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="yt-tabbar" aria-label="底部選單">
+      <button class="tab active" data-view="home" type="button"><i class="fas fa-house"></i><span>首頁</span></button>
+      <button class="tab" data-view="shorts" type="button"><i class="fas fa-bolt"></i><span>Shorts</span></button>
+      <button class="tab" data-action="open-add-modal" type="button" aria-label="新增"><span class="tab-plus">+</span></button>
+      <button class="tab" data-view="collections" type="button"><i class="far fa-folder"></i><span>收藏</span></button>
+      <button class="tab" data-view="me" type="button"><i class="far fa-user"></i><span>你</span></button>
+    </nav>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="youtube.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('youtube');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('youtube', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

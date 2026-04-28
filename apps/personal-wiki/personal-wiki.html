@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>個人紀錄</title>
+    <link rel="stylesheet" href="personal-wiki.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@200;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="wiki-container">
+        <header class="wiki-header">
+            <button class="btn-back" onclick="handleBack()">
+                <i class="fas fa-chevron-left"></i>
+                <span data-i18n="back">返回</span>
+            </button>
+            <h1 class="wiki-title" data-i18n="personalRecord">個人紀錄</h1>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="toggleSearch()" title="搜尋">
+                    <i class="fas fa-search"></i>
+                </button>
+                <button class="btn-icon" onclick="toggleGraphView()" title="圖譜視圖">
+                    <i class="fas fa-project-diagram"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="wiki-tabs">
+            <button class="wiki-tab active" data-tab="user-wiki">
+                <i class="fas fa-user"></i>
+                <span data-i18n="userWiki">User 百科</span>
+            </button>
+            <button class="wiki-tab" data-tab="char-wiki">
+                <i class="fas fa-heart"></i>
+                <span data-i18n="charWiki">Char 百科</span>
+            </button>
+            <button class="wiki-tab" data-tab="shared-wiki">
+                <i class="fas fa-users"></i>
+                <span data-i18n="sharedWiki">雙人共同百科</span>
+            </button>
+        </div>
+
+        <div class="search-bar hidden" id="searchBar">
+            <input type="text" id="searchInput" placeholder="搜尋記憶..." data-i18n-placeholder="searchPlaceholder">
+            <button class="btn-search" onclick="performSearch()">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <main class="wiki-content">
+            <section class="wiki-section active" id="user-wiki">
+                <div class="wiki-intro">
+                    <div class="intro-icon">
+                        <i class="fas fa-book-open"></i>
+                    </div>
+                    <h2 data-i18n="userWikiTitle">User 的個人百科</h2>
+                    <p data-i18n="userWikiDesc">記錄你的生活、工作、與 Char 的互動點滴。這是屬於你的圖像式記憶庫。</p>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="action-card" onclick="createNewEntry('user')">
+                        <i class="fas fa-plus-circle"></i>
+                        <span data-i18n="newEntry">新增條目</span>
+                    </button>
+                    <button class="action-card" onclick="importFromNotebook()">
+                        <i class="fas fa-file-import"></i>
+                        <span data-i18n="importNotebook">導入 Notebook</span>
+                    </button>
+                    <button class="action-card" onclick="syncMemory()">
+                        <i class="fas fa-sync"></i>
+                        <span data-i18n="syncMemory">同步記憶</span>
+                    </button>
+                    <button class="action-card" onclick="viewTimeline('user')">
+                        <i class="fas fa-stream"></i>
+                        <span data-i18n="timeline">時間軸</span>
+                    </button>
+                    <button class="action-card danger" onclick="deleteUserWiki()">
+                        <i class="fas fa-trash"></i>
+                        <span>刪除全部</span>
+                    </button>
+                </div>
+
+                <div class="wiki-api-section">
+                    <h3 class="api-section-title">
+                        <i class="fas fa-robot"></i>
+                        <span data-i18n="llmWikiGenerator">LLM Wiki 生成器</span>
+                    </h3>
+                    <div class="api-config">
+                        <div class="form-group">
+                            <label data-i18n="wikiApiEndpoint">API 端點</label>
+                            <input type="text" id="wikiApiEndpoint" placeholder="https://api.openai.com/v1/chat/completions">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="wikiApiKey">API Key</label>
+                            <input type="password" id="wikiApiKey" placeholder="sk-...">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="wikiModel">模型名稱</label>
+                            <input type="text" id="wikiModel" placeholder="gpt-4o" value="gpt-4o">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="wikiPrompt">生成提示詞</label>
+                            <textarea id="wikiPrompt" rows="4" placeholder="輸入提示詞，讓 AI 根據記憶生成 Wiki 條目...">根據以下記憶內容，生成一個結構化的 Wiki 條目，包含標題、分類、標籤和詳細內容：</textarea>
+                        </div>
+                        <button class="btn-generate-wiki" onclick="generateWikiWithLLM()">
+                            <i class="fas fa-magic"></i>
+                            <span data-i18n="generateWikiNow">立刻生成 Wiki</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wiki-categories">
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-star"></i>
+                            <span data-i18n="important">重要記憶</span>
+                        </h3>
+                        <div class="entry-list" id="user-important-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-users"></i>
+                            <span data-i18n="relationships">關係人物</span>
+                        </h3>
+                        <div class="entry-list" id="user-people-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span data-i18n="events">事件記錄</span>
+                        </h3>
+                        <div class="entry-list" id="user-events-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-lightbulb"></i>
+                            <span data-i18n="insights">洞察與反思</span>
+                        </h3>
+                        <div class="entry-list" id="user-insights-list"></div>
+                    </div>
+                </div>
+
+                <div class="wiki-index">
+                    <h3 class="index-title">
+                        <i class="fas fa-list"></i>
+                        <span data-i18n="index">索引</span>
+                    </h3>
+                    <div class="index-content" id="user-index"></div>
+                </div>
+
+                <div class="wiki-log">
+                    <h3 class="log-title">
+                        <i class="fas fa-history"></i>
+                        <span data-i18n="log">日誌</span>
+                    </h3>
+                    <div class="log-content" id="user-log"></div>
+                </div>
+
+                <div class="appearance-settings-card">
+                    <h3 class="appearance-card-title">
+                        <i class="fas fa-palette"></i>
+                        <span data-i18n="appearanceSettings">外觀設定</span>
+                    </h3>
+                    <p class="appearance-card-desc" data-i18n="appearanceCardDesc">自訂此應用程式的外觀樣式</p>
+                    <button class="btn-appearance-settings" onclick="openAppearanceSettings('user-wiki')">
+                        <i class="fas fa-cog"></i>
+                        <span data-i18n="openAppearanceSettings">開啟外觀設定</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="wiki-section" id="char-wiki">
+                <div class="char-selector">
+                    <label data-i18n="selectChar">選擇角色：</label>
+                    <select id="charSelect" onchange="selectChar(this.value)">
+                        <option value="" data-i18n="selectCharPlaceholder">請選擇角色</option>
+                    </select>
+                    <button class="btn-add-char" onclick="addNewChar()" title="新增角色">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn-import-settings" onclick="showImportCharModal()" title="從設定導入">
+                        <i class="fas fa-file-import"></i>
+                    </button>
+                    <button class="btn-delete-char" onclick="deleteChar()" title="刪除角色">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+
+                <div class="char-wiki-content hidden" id="char-wiki-content">
+                    <div class="char-profile">
+                        <div class="char-avatar" id="charAvatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="char-info">
+                            <h2 class="char-name" id="charName">角色名稱</h2>
+                            <p class="char-desc" id="charDesc">角色的描述</p>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="action-card" onclick="createNewEntry('char')">
+                            <i class="fas fa-plus-circle"></i>
+                            <span data-i18n="newEntry">新增條目</span>
+                        </button>
+                        <button class="action-card" onclick="viewTimeline('char')">
+                            <i class="fas fa-stream"></i>
+                            <span data-i18n="timeline">時間軸</span>
+                        </button>
+                        <button class="action-card" onclick="viewCharGraph()">
+                            <i class="fas fa-project-diagram"></i>
+                            <span data-i18n="relationshipGraph">關係圖譜</span>
+                        </button>
+                        <button class="action-card" onclick="exportCharWiki()">
+                            <i class="fas fa-download"></i>
+                            <span data-i18n="export">匯出</span>
+                        </button>
+                        <button class="action-card danger" onclick="deleteCharWiki()">
+                            <i class="fas fa-trash"></i>
+                            <span>刪除 Wiki</span>
+                        </button>
+                    </div>
+
+                    <div class="wiki-api-section">
+                        <h3 class="api-section-title">
+                            <i class="fas fa-robot"></i>
+                            <span>Char Wiki 生成器</span>
+                        </h3>
+                        <div class="api-config">
+                            <div class="form-group">
+                                <label>生成範圍</label>
+                                <select id="charWikiScope">
+                                    <option value="all">全部（根據角色設定與記憶）</option>
+                                    <option value="personality">性格特質</option>
+                                    <option value="background">背景故事</option>
+                                    <option value="preferences">喜好與習慣</option>
+                                    <option value="relationships">人際關係</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>額外提示（選填）</label>
+                                <textarea id="charWikiExtraPrompt" rows="2" placeholder="輸入額外的生成提示..."></textarea>
+                            </div>
+                            <button class="btn-generate-wiki" onclick="generateCharWikiNow()">
+                                <i class="fas fa-magic"></i>
+                                <span>立刻生成個人紀錄</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="wiki-categories">
+                        <div class="category-section">
+                            <h3 class="category-title">
+                                <i class="fas fa-heart"></i>
+                                <span data-i18n="charMemories">與 User 的記憶</span>
+                            </h3>
+                            <div class="entry-list" id="char-user-memories-list"></div>
+                        </div>
+
+                        <div class="category-section">
+                            <h3 class="category-title">
+                                <i class="fas fa-comments"></i>
+                                <span data-i18n="conversations">對話記錄</span>
+                            </h3>
+                            <div class="entry-list" id="char-conversations-list"></div>
+                        </div>
+
+                        <div class="category-section">
+                            <h3 class="category-title">
+                                <i class="fas fa-users"></i>
+                                <span data-i18n="npcRelations">NPC 關係</span>
+                            </h3>
+                            <div class="entry-list" id="char-npc-list"></div>
+                        </div>
+
+                        <div class="category-section">
+                            <h3 class="category-title">
+                                <i class="fas fa-globe"></i>
+                                <span data-i18n="worldView">世界觀</span>
+                            </h3>
+                            <div class="entry-list" id="char-world-list"></div>
+                        </div>
+
+                        <div class="category-section">
+                            <h3 class="category-title">
+                                <i class="fas fa-smile"></i>
+                                <span data-i18n="dailyLife">日常生活</span>
+                            </h3>
+                            <div class="entry-list" id="char-daily-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="wiki-index">
+                        <h3 class="index-title">
+                            <i class="fas fa-list"></i>
+                            <span data-i18n="index">索引</span>
+                        </h3>
+                        <div class="index-content" id="char-index"></div>
+                    </div>
+
+                    <div class="wiki-log">
+                        <h3 class="log-title">
+                            <i class="fas fa-history"></i>
+                            <span data-i18n="log">日誌</span>
+                        </h3>
+                        <div class="log-content" id="char-log"></div>
+                    </div>
+
+                    <div class="appearance-settings-card">
+                        <h3 class="appearance-card-title">
+                            <i class="fas fa-palette"></i>
+                            <span data-i18n="appearanceSettings">外觀設定</span>
+                        </h3>
+                        <p class="appearance-card-desc" data-i18n="appearanceCardDesc">自訂此應用程式的外觀樣式</p>
+                        <button class="btn-appearance-settings" onclick="openAppearanceSettings('char-wiki')">
+                            <i class="fas fa-cog"></i>
+                            <span data-i18n="openAppearanceSettings">開啟外觀設定</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="char-empty-state" id="char-empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3 data-i18n="noCharSelected">尚未選擇角色</h3>
+                    <p data-i18n="noCharDesc">選擇一個角色來查看他的個人紀錄百科，或新增一個角色開始記錄。</p>
+                    <button class="btn-primary" onclick="addNewChar()">
+                        <i class="fas fa-plus"></i>
+                        <span data-i18n="addChar">新增角色</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="wiki-section" id="shared-wiki">
+                <div class="wiki-intro shared-intro">
+                    <div class="intro-icon shared-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h2 data-i18n="sharedWikiTitle">雙人共同百科</h2>
+                    <p data-i18n="sharedWikiDesc">記錄 User 與 Char 共同的故事、互動與回憶。適合喜歡故事性強的用戶，建立屬於你們的共同歷史。</p>
+                </div>
+
+                <div class="shared-profile">
+                    <div class="shared-avatar-group">
+                        <div class="shared-avatar user-avatar" id="sharedUserAvatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="shared-heart">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="shared-avatar char-avatar" id="sharedCharAvatar">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+                    <div class="shared-names">
+                        <span id="sharedUserName">User</span>
+                        <span class="shared-ampersand">&</span>
+                        <span id="sharedCharName">Char</span>
+                    </div>
+                    <div class="shared-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="sharedEntryCount">0</span>
+                            <span class="stat-label" data-i18n="sharedEntries">共同條目</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="sharedDays">0</span>
+                            <span class="stat-label" data-i18n="sharedDaysLabel">相處天數</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="action-card" onclick="createNewEntry('shared')">
+                        <i class="fas fa-plus-circle"></i>
+                        <span data-i18n="newEntry">新增條目</span>
+                    </button>
+                    <button class="action-card" onclick="viewTimeline('shared')">
+                        <i class="fas fa-stream"></i>
+                        <span data-i18n="timeline">時間軸</span>
+                    </button>
+                    <button class="action-card" onclick="generateSharedStory()">
+                        <i class="fas fa-magic"></i>
+                        <span data-i18n="generateStory">生成故事</span>
+                    </button>
+                    <button class="action-card" onclick="exportSharedWiki()">
+                        <i class="fas fa-download"></i>
+                        <span data-i18n="export">匯出</span>
+                    </button>
+                </div>
+
+                <div class="wiki-api-section">
+                    <h3 class="api-section-title">
+                        <i class="fas fa-robot"></i>
+                        <span data-i18n="storyGenerator">故事生成器</span>
+                    </h3>
+                    <div class="api-config">
+                        <div class="form-group">
+                            <label data-i18n="storyType">故事類型</label>
+                            <select id="sharedStoryType">
+                                <option value="romance" data-i18n="storyRomance">浪漫愛情</option>
+                                <option value="adventure" data-i18n="storyAdventure">冒險旅程</option>
+                                <option value="daily" data-i18n="storyDaily">日常生活</option>
+                                <option value="fantasy" data-i18n="storyFantasy">奇幻世界</option>
+                                <option value="mystery" data-i18n="storyMystery">懸疑推理</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="storyLength">故事長度</label>
+                            <select id="sharedStoryLength">
+                                <option value="short" data-i18n="storyShort">短篇（1-2 段）</option>
+                                <option value="medium" data-i18n="storyMedium">中篇（3-5 段）</option>
+                                <option value="long" data-i18n="storyLong">長篇（5+ 段）</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="storyPrompt">額外提示（選填）</label>
+                            <textarea id="sharedStoryPrompt" rows="2" placeholder="輸入想要的故事元素或情節..."></textarea>
+                        </div>
+                        <button class="btn-generate-wiki" onclick="generateSharedStoryNow()">
+                            <i class="fas fa-magic"></i>
+                            <span data-i18n="generateStoryNow">立刻生成故事</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="wiki-categories">
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-heart"></i>
+                            <span data-i18n="sharedMemories">共同回憶</span>
+                        </h3>
+                        <div class="entry-list" id="shared-memories-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span data-i18n="sharedPlaces">一起去過的地方</span>
+                        </h3>
+                        <div class="entry-list" id="shared-places-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-calendar-check"></i>
+                            <span data-i18n="sharedMilestones">重要里程碑</span>
+                        </h3>
+                        <div class="entry-list" id="shared-milestones-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-book"></i>
+                            <span data-i18n="sharedStories">故事篇章</span>
+                        </h3>
+                        <div class="entry-list" id="shared-stories-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-gift"></i>
+                            <span data-i18n="sharedGifts">互送的禮物</span>
+                        </h3>
+                        <div class="entry-list" id="shared-gifts-list"></div>
+                    </div>
+
+                    <div class="category-section">
+                        <h3 class="category-title">
+                            <i class="fas fa-comments"></i>
+                            <span data-i18n="sharedDialogues">經典對話</span>
+                        </h3>
+                        <div class="entry-list" id="shared-dialogues-list"></div>
+                    </div>
+                </div>
+
+                <div class="wiki-index">
+                    <h3 class="index-title">
+                        <i class="fas fa-list"></i>
+                        <span data-i18n="index">索引</span>
+                    </h3>
+                    <div class="index-content" id="shared-index"></div>
+                </div>
+
+                <div class="wiki-log">
+                    <h3 class="log-title">
+                        <i class="fas fa-history"></i>
+                        <span data-i18n="log">日誌</span>
+                    </h3>
+                    <div class="log-content" id="shared-log"></div>
+                </div>
+
+                <div class="appearance-settings-card">
+                    <h3 class="appearance-card-title">
+                        <i class="fas fa-palette"></i>
+                        <span data-i18n="appearanceSettings">外觀設定</span>
+                    </h3>
+                    <p class="appearance-card-desc" data-i18n="appearanceCardDesc">自訂此應用程式的外觀樣式</p>
+                    <button class="btn-appearance-settings" onclick="openAppearanceSettings('shared-wiki')">
+                        <i class="fas fa-cog"></i>
+                        <span data-i18n="openAppearanceSettings">開啟外觀設定</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <div class="graph-view-overlay hidden" id="graphOverlay">
+            <div class="graph-view-container">
+                <div class="graph-header">
+                    <h3 data-i18n="memoryGraph">記憶圖譜</h3>
+                    <button class="btn-close" onclick="toggleGraphView()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="graph-canvas" id="graphCanvas"></div>
+                <div class="graph-controls">
+                    <button class="graph-btn" onclick="zoomIn()">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button class="graph-btn" onclick="zoomOut()">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button class="graph-btn" onclick="resetGraph()">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="entry-modal hidden" id="entryModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 data-i18n="editEntry">編輯條目</h3>
+                    <button class="btn-close" onclick="closeEntryModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label data-i18n="entryTitle">標題</label>
+                        <input type="text" id="entryTitle" placeholder="輸入標題...">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="entryCategory">分類</label>
+                        <select id="entryCategory">
+                            <option value="important">重要記憶</option>
+                            <option value="people">關係人物</option>
+                            <option value="events">事件記錄</option>
+                            <option value="insights">洞察與反思</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="entryTags">標籤</label>
+                        <input type="text" id="entryTags" placeholder="用逗號分隔多個標籤">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="entryContent">內容</label>
+                        <textarea id="entryContent" rows="6" placeholder="輸入內容..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="linkedMemories">關聯記憶</label>
+                        <div class="linked-memories" id="linkedMemories"></div>
+                        <button class="btn-link" onclick="openMemoryLinker()">
+                            <i class="fas fa-link"></i>
+                            <span data-i18n="linkMemory">連結記憶</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeEntryModal()" data-i18n="cancel">取消</button>
+                    <button class="btn-primary" onclick="saveEntry()" data-i18n="save">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="char-modal hidden" id="charModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 data-i18n="addChar">新增角色</h3>
+                    <button class="btn-close" onclick="closeCharModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label data-i18n="charName">角色名稱</label>
+                        <input type="text" id="newCharName" placeholder="輸入角色名稱...">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="charDesc">角色描述</label>
+                        <textarea id="newCharDesc" rows="3" placeholder="描述這個角色..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="charAvatar">頭像</label>
+                        <div class="avatar-upload">
+                            <div class="avatar-preview" id="avatarPreview">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <input type="file" id="avatarInput" accept="image/*" onchange="previewAvatar(this)">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeCharModal()" data-i18n="cancel">取消</button>
+                    <button class="btn-primary" onclick="saveChar()" data-i18n="save">保存</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="import-char-modal hidden" id="importCharModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 data-i18n="importCharFromSettings">從設定導入角色</h3>
+                    <button class="btn-close" onclick="closeImportCharModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="import-char-list" id="importCharList"></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="fab" onclick="quickAdd()">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <script src="../scripts/wiki-engine.js"></script>
+    <script src="../scripts/app-appearance-settings.js"></script>
+    <script src="personal-wiki.js"></script>
+</body>
+</html>

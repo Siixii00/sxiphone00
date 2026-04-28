@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chrome</title>
+  <link rel="stylesheet" href="chrome.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="chrome-mobile" data-mode="normal" data-view="home">
+    <header class="topbar">
+      <div class="top-left">
+        <button class="ghost-btn" id="home-back" aria-label="返回首頁"><i class="fas fa-chevron-left"></i></button>
+        <div class="view-toggle" id="view-toggle">
+          <button data-view="home" class="active">首頁</button>
+          <button data-view="bookmarks">書籤</button>
+          <button data-view="history">紀錄</button>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-btn" id="appearance-btn" aria-label="外觀設定"><i class="fas fa-palette"></i></button>
+        <button class="ghost-btn" id="mode-btn" aria-label="切換無痕">無痕</button>
+        <div class="avatar" id="profile-trigger" aria-label="使用者"></div>
+      </div>
+    </header>
+
+    <section class="panel home-panel" data-panel="home">
+      <div class="home-header">
+        <div class="google-mark">Google</div>
+      </div>
+
+      <div class="incognito-hero" id="incognito-hero" hidden>
+        <div class="incognito-badge" aria-hidden="true">
+          <i class="fas fa-user-secret"></i>
+        </div>
+        <div class="incognito-title">你已進入無痕模式</div>
+      </div>
+
+      <div class="search-card">
+        <i class="fas fa-search"></i>
+        <input type="text" value="https://www.google.com" aria-label="搜尋或輸入網址">
+        <button class="icon-btn" aria-label="語音搜尋"><i class="fas fa-microphone"></i></button>
+      </div>
+
+      <div class="quick-grid" id="incognito-quick-grid" hidden>
+        <div class="quick-tile">
+          <div class="tile-icon">NH</div>
+          <div class="tile-title">nhentai</div>
+        </div>
+        <div class="quick-tile">
+          <div class="tile-icon">AV</div>
+          <div class="tile-title">av.com</div>
+        </div>
+        <div class="quick-tile">
+          <div class="tile-icon">DR</div>
+          <div class="tile-title">dreams</div>
+        </div>
+      </div>
+
+
+    </section>
+
+    <section class="panel bookmarks-panel" data-panel="bookmarks" hidden>
+      <div class="panel-header">
+        <div class="panel-title">書籤</div>
+        <button class="ghost-btn" id="add-bookmark-btn"><i class="fas fa-plus"></i> 新增</button>
+      </div>
+      <div class="search-row">
+        <i class="fas fa-search"></i>
+        <input type="text" id="bookmark-search" placeholder="搜尋書籤" aria-label="搜尋書籤">
+      </div>
+      <div class="bookmark-list" id="bookmark-list"></div>
+    </section>
+
+    <section class="panel history-panel" data-panel="history" hidden>
+      <div class="panel-header">
+        <div class="panel-title">瀏覽紀錄</div>
+        <button class="ghost-btn" id="history-refresh">重新生成</button>
+      </div>
+      <div class="history-controls">
+        <label for="char-select">角色</label>
+        <select id="char-select" aria-label="選擇角色"></select>
+      </div>
+      <div class="history-list" id="history-list"></div>
+
+      <div class="history-detail" id="history-detail" hidden>
+        <div class="detail-header">
+          <button class="ghost-btn" id="history-back">返回</button>
+          <div class="detail-title" id="detail-title"></div>
+        </div>
+        <div class="detail-content" id="detail-content">請選擇一筆搜尋紀錄</div>
+      </div>
+    </section>
+
+    <footer class="bottombar">
+      <button class="icon-btn" aria-label="返回"><i class="fas fa-arrow-left"></i></button>
+      <button class="icon-btn" aria-label="分享"><i class="fas fa-share-from-square"></i></button>
+      <button class="icon-btn primary" id="new-tab-btn" aria-label="新增分頁"><i class="fas fa-plus"></i></button>
+      <button class="icon-btn" aria-label="瀏覽紀錄"><i class="fas fa-clock"></i></button>
+      <button class="icon-btn" aria-label="更多"><i class="fas fa-ellipsis"></i></button>
+    </footer>
+
+    <div class="status" id="status-text">已連線</div>
+  </div>
+
+  <aside class="profile-drawer" id="profile-drawer" aria-label="使用者選單">
+    <div class="profile-drawer-header">
+      <div class="profile-drawer-title">瀏覽設定</div>
+      <button class="ghost-btn" id="profile-close">關閉</button>
+    </div>
+    <div class="profile-drawer-body">
+      <div class="drawer-section">
+        <div class="drawer-label">User 面具</div>
+        <select id="chrome-user-select" class="drawer-select"></select>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-label">掛載世界書</div>
+        <div class="drawer-worldbook" id="chrome-worldbook-list"></div>
+      </div>
+      <button class="ghost-btn primary" id="profile-apply">套用設定</button>
+    </div>
+  </aside>
+  <div class="profile-backdrop" id="profile-backdrop" hidden></div>
+
+  <div class="history-modal" id="history-modal" hidden>
+    <div class="history-modal-backdrop"></div>
+    <div class="history-modal-card">
+      <div class="history-modal-header">
+        <div class="history-modal-title">新增搜尋紀錄</div>
+        <button class="ghost-btn" id="history-modal-close">關閉</button>
+      </div>
+      <div class="history-modal-body">
+        <div class="history-modal-hint">可由 AI 生成或手動輸入。</div>
+        <div class="history-modal-actions">
+          <button class="ghost-btn" id="history-generate-btn">AI 生成</button>
+          <button class="ghost-btn" id="history-manual-btn">手動輸入</button>
+        </div>
+
+        <div class="history-manual" id="history-manual" hidden>
+          <label>搜尋關鍵字</label>
+          <input type="text" id="history-manual-query" placeholder="例如：咖啡廳推薦">
+          <label>摘要（可留空）</label>
+          <textarea id="history-manual-summary" rows="3" placeholder="簡短摘要"></textarea>
+          <button class="ghost-btn primary" id="history-manual-save">儲存紀錄</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bookmark-modal" id="bookmark-modal" hidden>
+    <div class="history-modal-backdrop"></div>
+    <div class="history-modal-card">
+      <div class="history-modal-header">
+        <div class="history-modal-title">新增書籤</div>
+        <button class="ghost-btn" id="bookmark-modal-close">關閉</button>
+      </div>
+      <div class="history-modal-body">
+        <div class="history-manual">
+          <label>網站名稱</label>
+          <input type="text" id="bookmark-name" placeholder="例如：Google">
+          <label>網址</label>
+          <input type="text" id="bookmark-url" placeholder="例如：https://www.google.com">
+          <label>資料夾（選填）</label>
+          <select id="bookmark-folder">
+            <option value="">無</option>
+          </select>
+          <button class="ghost-btn primary" id="bookmark-save">儲存書籤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="chrome.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('chrome');
+          
+          // 確保一般模式使用白色背景
+          var app = document.querySelector('.chrome-mobile');
+          if (app && app.dataset.mode === 'normal') {
+              document.body.style.backgroundColor = '#f6f7fb';
+          }
+          
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('chrome', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

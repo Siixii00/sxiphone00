@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>劇場</title>
+  <link rel="stylesheet" href="theater.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="theater-app">
+    <header class="theater-header">
+      <button class="theater-back-btn" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="theater-logo">
+        <span class="material-symbols-rounded">theater_comedy</span>
+        <span class="theater-title">劇場</span>
+      </div>
+      <div class="theater-header-actions">
+        <button class="theater-icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="theater-icon-btn" id="settings-btn" aria-label="設定">
+          <i class="fas fa-cog"></i>
+        </button>
+        <button class="theater-icon-btn" id="add-content-btn" aria-label="新增內容">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="theater-search-bar" id="search-bar" hidden>
+      <div class="search-input-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" placeholder="搜尋節目...">
+        <button class="search-clear" id="search-clear"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+
+    <main class="theater-main" id="theater-main">
+      <section class="theater-hero" id="hero-section">
+        <div class="hero-bg" id="hero-bg"></div>
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+          <div class="hero-badge">精選推薦</div>
+          <h1 class="hero-title" id="hero-title">歡迎來到劇場</h1>
+          <p class="hero-desc" id="hero-desc">創造屬於你的故事，選擇角色開始演出</p>
+          <div class="hero-actions">
+            <button class="hero-btn primary" id="hero-play-btn">
+              <i class="fas fa-play"></i> 播放
+            </button>
+            <button class="hero-btn secondary" id="hero-info-btn">
+              <i class="fas fa-info-circle"></i> 詳情
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="theater-section" id="continue-watching">
+        <h2 class="section-title">繼續觀看</h2>
+        <div class="theater-row" id="continue-row"></div>
+      </section>
+
+      <section class="theater-section" id="my-list">
+        <h2 class="section-title">我的片單</h2>
+        <div class="theater-row" id="my-list-row"></div>
+      </section>
+
+      <section class="theater-section" id="trending">
+        <h2 class="section-title">熱門推薦</h2>
+        <div class="theater-row" id="trending-row"></div>
+      </section>
+
+      <section class="theater-section" id="new-releases">
+        <h2 class="section-title">最新上架</h2>
+        <div class="theater-row" id="new-releases-row"></div>
+      </section>
+
+      <section class="theater-section" id="text-theater-section">
+        <h2 class="section-title">文字小劇場</h2>
+        <div class="text-theater-input-area">
+          <textarea id="text-theater-input" placeholder="輸入小劇場描述，例如：&#10;假設 user 和 char 進入了一間神秘的咖啡館...&#10;user 決定向 char 表白...&#10;char 和 user 在雨中相遇..."></textarea>
+          <div class="text-theater-options">
+            <select id="text-theater-style">
+              <option value="interactive">互動式劇本</option>
+              <option value="visual">視覺小說卡牌</option>
+              <option value="dialogue">對話式劇本</option>
+              <option value="game">小遊戲模式</option>
+            </select>
+            <button class="text-theater-generate-btn" id="text-theater-generate-btn">
+              <i class="fas fa-magic"></i> 生成劇場
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="theater-section" id="categories">
+        <h2 class="section-title">分類瀏覽</h2>
+        <div class="category-grid" id="category-grid">
+          <button class="category-card" data-category="all">
+            <span class="material-symbols-rounded">apps</span>
+            <span>全部</span>
+          </button>
+          <button class="category-card" data-category="movie">
+            <span class="material-symbols-rounded">movie</span>
+            <span>電影</span>
+          </button>
+          <button class="category-card" data-category="series">
+            <span class="material-symbols-rounded">tv</span>
+            <span>影集</span>
+          </button>
+          <button class="category-card" data-category="anime">
+            <span class="material-symbols-rounded">animation</span>
+            <span>動漫</span>
+          </button>
+          <button class="category-card" data-category="documentary">
+            <span class="material-symbols-rounded">nature</span>
+            <span>紀錄片</span>
+          </button>
+          <button class="category-card" data-category="variety">
+            <span class="material-symbols-rounded">celebration</span>
+            <span>綜藝</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <section class="theater-player" id="player-section" hidden>
+      <header class="player-header">
+        <button class="theater-back-btn" data-action="close-player">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="player-title" id="player-title">播放中</div>
+        <button class="theater-icon-btn" data-action="player-settings">
+          <i class="fas fa-cog"></i>
+        </button>
+      </header>
+      <div class="player-stage">
+        <div class="player-content" id="player-content">
+          <div class="player-placeholder">
+            <span class="material-symbols-rounded">play_circle</span>
+            <p>選擇內容開始播放</p>
+          </div>
+        </div>
+      </div>
+      <div class="player-controls">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="control-buttons">
+          <button class="ctrl-btn" data-action="rewind">
+            <i class="fas fa-backward"></i>
+          </button>
+          <button class="ctrl-btn play-btn" id="play-pause-btn" data-action="toggle-play">
+            <i class="fas fa-play"></i>
+          </button>
+          <button class="ctrl-btn" data-action="forward">
+            <i class="fas fa-forward"></i>
+          </button>
+        </div>
+      </div>
+      <div class="player-info">
+        <h3 class="player-content-title" id="player-content-title">-</h3>
+        <p class="player-content-desc" id="player-content-desc">-</p>
+      </div>
+    </section>
+
+    <section class="text-theater-result" id="text-theater-result-section" hidden>
+      <header class="result-header">
+        <button class="theater-back-btn" data-action="close-text-result">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="result-title">文字小劇場</div>
+        <button class="theater-icon-btn" id="save-text-theater-btn">
+          <i class="fas fa-save"></i>
+        </button>
+      </header>
+      <div class="result-stage">
+        <div class="result-content" id="text-theater-result-content"></div>
+      </div>
+    </section>
+
+    <section class="theater-detail" id="detail-section" hidden>
+      <div class="detail-backdrop" id="detail-backdrop"></div>
+      <div class="detail-gradient"></div>
+      <header class="detail-header">
+        <button class="theater-back-btn" data-action="close-detail">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="detail-actions">
+          <button class="theater-icon-btn" data-action="edit-content">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="theater-icon-btn" data-action="delete-content">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </header>
+      <div class="detail-content">
+        <div class="detail-poster" id="detail-poster"></div>
+        <div class="detail-info">
+          <h1 class="detail-title" id="detail-title">標題</h1>
+          <div class="detail-meta">
+            <span class="detail-year" id="detail-year">2024</span>
+            <span class="detail-rating" id="detail-rating">
+              <i class="fas fa-star"></i> 4.5
+            </span>
+            <span class="detail-duration" id="detail-duration">120 分鐘</span>
+            <span class="detail-rating-badge" id="detail-rating-badge">普遍級</span>
+          </div>
+          <div class="detail-tags" id="detail-tags"></div>
+          <p class="detail-desc" id="detail-desc">描述</p>
+          <div class="detail-world-info" id="detail-world-info">
+            <h4>世界設定</h4>
+            <p id="detail-world-desc">-</p>
+          </div>
+          <div class="detail-participants" id="detail-participants">
+            <h4>演出者</h4>
+            <div class="participant-list" id="participant-list"></div>
+          </div>
+          <div class="detail-buttons">
+            <button class="detail-btn primary" data-action="open-play-settings">
+              <i class="fas fa-play"></i> 播放
+            </button>
+            <button class="detail-btn secondary" data-action="add-to-list">
+              <i class="fas fa-plus"></i> 加入片單
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="detail-html-preview" id="detail-html-preview">
+        <h3>內容預覽</h3>
+        <div class="preview-container" id="preview-container"></div>
+      </div>
+    </section>
+
+    <div class="theater-modal" id="play-settings-modal" hidden>
+      <div class="modal-backdrop" data-action="close-play-settings"></div>
+      <div class="modal-card large">
+        <header class="modal-header">
+          <h2 class="modal-title">播放設定</h2>
+          <button class="theater-icon-btn" data-action="close-play-settings">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="play-settings-preview">
+            <div class="settings-preview-card" id="settings-preview-card"></div>
+            <div class="settings-preview-info">
+              <h3 id="settings-title">-</h3>
+              <p id="settings-desc">-</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-globe"></i> 世界設定</label>
+            <div class="world-selector">
+              <select id="play-world-source">
+                <option value="custom">自訂世界</option>
+                <option value="worldbook">從世界書導入</option>
+                <option value="chat">從聊天歷史導入</option>
+              </select>
+              <div id="worldbook-select-wrap" hidden>
+                <select id="play-worldbook-select">
+                  <option value="">選擇世界書條目</option>
+                </select>
+              </div>
+              <div id="chat-select-wrap" hidden>
+                <select id="play-chat-select">
+                  <option value="">選擇聊天歷史</option>
+                  <option value="recent">最近 10 分鐘</option>
+                  <option value="all">全部對話</option>
+                </select>
+              </div>
+              <div id="custom-world-wrap">
+                <textarea id="play-custom-world" placeholder="輸入世界設定描述..." rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-users"></i> 演出者</label>
+            <div class="participant-selector">
+              <div class="participant-tabs">
+                <button class="participant-tab active" data-tab="chars">角色</button>
+                <button class="participant-tab" data-tab="users">用戶</button>
+                <button class="participant-tab" data-tab="npcs">NPC</button>
+              </div>
+              <div class="participant-list-select" id="participant-select-list"></div>
+              <div class="selected-participants" id="selected-participants">
+                <span class="hint">點擊上方角色加入演出</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label><i class="fas fa-heart"></i> 取向</label>
+              <select id="play-orientation">
+                <option value="general">一般</option>
+                <option value="bl">BL (男男)</option>
+                <option value="gl">GL (女女)</option>
+                <option value="bg">BG (男女)</option>
+                <option value="harem">後宮</option>
+                <option value="reverse-harem">逆後宮</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label><i class="fas fa-shield-alt"></i> 內容分級</label>
+              <select id="play-rating">
+                <option value="general">普遍級(0+)</option>
+                <option value="pg6">保護級(6+)</option>
+                <option value="pg12">輔12級(12+)</option>
+                <option value="pg15">輔15級(15+)</option>
+                <option value="r18">限制級(18+)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" id="age-confirm-group" hidden>
+            <div class="age-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>此內容適合 18 歲以上觀看，請確認您的年齡</span>
+              <label class="checkbox-label">
+                <input type="checkbox" id="age-confirm-checkbox">
+                <span>我已年滿 18 歲</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="modal-btn secondary" data-action="close-play-settings">取消</button>
+          <button class="modal-btn primary" id="start-play-btn">開始播放</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="theater-modal" id="add-modal" hidden>
+      <div class="modal-backdrop" data-action="close-add-modal"></div>
+      <div class="modal-card large">
+        <header class="modal-header">
+          <h2 class="modal-title">新增節目</h2>
+          <button class="theater-icon-btn" data-action="close-add-modal">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="content-title">標題</label>
+            <input type="text" id="content-title" placeholder="輸入標題">
+          </div>
+          <div class="form-group">
+            <label for="content-desc">描述</label>
+            <textarea id="content-desc" placeholder="輸入描述" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="content-category">分類</label>
+              <select id="content-category">
+                <option value="movie">電影</option>
+                <option value="series">影集</option>
+                <option value="anime">動漫</option>
+                <option value="documentary">紀錄片</option>
+                <option value="variety">綜藝</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="content-year">年份</label>
+              <input type="number" id="content-year" placeholder="2024" value="2024">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="content-orientation">取向</label>
+              <select id="content-orientation">
+                <option value="general">一般</option>
+                <option value="bl">BL</option>
+                <option value="gl">GL</option>
+                <option value="bg">BG</option>
+                <option value="harem">後宮</option>
+                <option value="reverse-harem">逆後宮</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="content-rating">內容分級</label>
+              <select id="content-rating">
+                <option value="general">普遍級(0+)</option>
+                <option value="pg6">保護級(6+)</option>
+                <option value="pg12">輔12級(12+)</option>
+                <option value="pg15">輔15級(15+)</option>
+                <option value="r18">限制級(18+)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="content-cover">封面圖片 URL</label>
+            <input type="url" id="content-cover" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>互動內容 HTML 內容</label>
+            <div class="html-template-bar">
+              <button class="template-btn" data-template="scene">場景模板</button>
+              <button class="template-btn" data-template="dialogue">對話模板</button>
+              <button class="template-btn" data-template="choice">選項模板</button>
+              <button class="template-btn" data-template="character">角色模板</button>
+              <button class="template-btn" data-template="interactive">互動模板</button>
+            </div>
+            <div class="html-editor">
+              <textarea id="content-html" placeholder="輸入 HTML 內容或選擇模板..." rows="10"></textarea>
+              <div class="html-toolbar">
+                <button class="html-tool-btn" data-insert="<div class=&quot;scene-box&quot;></div>">場景</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;dialogue-box&quot;><span class=&quot;speaker&quot;></span><p class=&quot;line&quot;></p></div>">對話</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;choice-box&quot;><button class=&quot;choice-btn&quot;></button></div>">選項</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;char-card&quot;></div>">角色</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;effect-fade&quot;></div>">淡入</button>
+                <button class="html-tool-btn" data-insert="<style></style>">樣式</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>預覽</label>
+            <div class="html-preview-box" id="add-preview-box"></div>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="modal-btn secondary" data-action="close-add-modal">取消</button>
+          <button class="modal-btn primary" data-action="save-content">儲存</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="theater-modal" id="edit-modal" hidden>
+      <div class="modal-backdrop" data-action="close-edit-modal"></div>
+      <div class="modal-card large">
+        <header class="modal-header">
+          <h2 class="modal-title">編輯節目</h2>
+          <button class="theater-icon-btn" data-action="close-edit-modal">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body">
+          <input type="hidden" id="edit-content-id">
+          <div class="form-group">
+            <label for="edit-title">標題</label>
+            <input type="text" id="edit-title" placeholder="輸入標題">
+          </div>
+          <div class="form-group">
+            <label for="edit-desc">描述</label>
+            <textarea id="edit-desc" placeholder="輸入描述" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-category">分類</label>
+              <select id="edit-category">
+                <option value="movie">電影</option>
+                <option value="series">影集</option>
+                <option value="anime">動漫</option>
+                <option value="documentary">紀錄片</option>
+                <option value="variety">綜藝</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-year">年份</label>
+              <input type="number" id="edit-year" placeholder="2024">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-orientation">取向</label>
+              <select id="edit-orientation">
+                <option value="general">一般</option>
+                <option value="bl">BL</option>
+                <option value="gl">GL</option>
+                <option value="bg">BG</option>
+                <option value="harem">後宮</option>
+                <option value="reverse-harem">逆後宮</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-rating">內容分級</label>
+              <select id="edit-rating">
+                <option value="general">普遍級(0+)</option>
+                <option value="pg6">保護級(6+)</option>
+                <option value="pg12">輔12級(12+)</option>
+                <option value="pg15">輔15級(15+)</option>
+                <option value="r18">限制級(18+)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-cover">封面圖片 URL</label>
+            <input type="url" id="edit-cover" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>互動內容 HTML 內容</label>
+            <div class="html-template-bar">
+              <button class="template-btn" data-template="scene">場景模板</button>
+              <button class="template-btn" data-template="dialogue">對話模板</button>
+              <button class="template-btn" data-template="choice">選項模板</button>
+              <button class="template-btn" data-template="character">角色模板</button>
+              <button class="template-btn" data-template="interactive">互動模板</button>
+            </div>
+            <div class="html-editor">
+              <textarea id="edit-html" placeholder="輸入 HTML 內容..." rows="10"></textarea>
+              <div class="html-toolbar">
+                <button class="html-tool-btn" data-insert="<div class=&quot;scene-box&quot;></div>">場景</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;dialogue-box&quot;><span class=&quot;speaker&quot;></span><p class=&quot;line&quot;></p></div>">對話</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;choice-box&quot;><button class=&quot;choice-btn&quot;></button></div>">選項</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;char-card&quot;></div>">角色</button>
+                <button class="html-tool-btn" data-insert="<div class=&quot;effect-fade&quot;></div>">淡入</button>
+                <button class="html-tool-btn" data-insert="<style></style>">樣式</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>預覽</label>
+            <div class="html-preview-box" id="edit-preview-box"></div>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="modal-btn secondary" data-action="close-edit-modal">取消</button>
+          <button class="modal-btn primary" data-action="update-content">更新</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="theater-modal" id="confirm-modal" hidden>
+      <div class="modal-backdrop" data-action="close-confirm-modal"></div>
+      <div class="modal-card small">
+        <header class="modal-header">
+          <h2 class="modal-title">確認刪除</h2>
+        </header>
+        <div class="modal-body">
+          <p id="confirm-message">確定要刪除此節目嗎？此操作無法復原。</p>
+        </div>
+        <footer class="modal-footer">
+          <button class="modal-btn secondary" data-action="close-confirm-modal">取消</button>
+          <button class="modal-btn danger" id="confirm-delete-btn">刪除</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="theater-modal" id="settings-modal" hidden>
+      <div class="modal-backdrop" data-action="close-settings-modal"></div>
+      <div class="modal-card large">
+        <header class="modal-header">
+          <h2 class="modal-title"><i class="fas fa-cog"></i> 劇場設定</h2>
+          <button class="theater-icon-btn" data-action="close-settings-modal">
+            <i class="fas fa-times"></i>
+          </button>
+        </header>
+        <div class="modal-body">
+          <div class="settings-section">
+            <h3 class="settings-section-title">
+              <i class="fas fa-book"></i> 從世界書導入劇場
+            </h3>
+            <p class="settings-section-desc">選擇世界書條目批量導入為劇場內容</p>
+            
+            <div class="worldbook-category-select">
+              <label>選擇世界書類別</label>
+              <select id="settings-worldbook-category">
+                <option value="theater">劇場</option>
+                <option value="global">全域</option>
+                <option value="keywords">關鍵字</option>
+                <option value="cot">思維鏈</option>
+                <option value="style">文風</option>
+                <option value="backend">後端</option>
+              </select>
+            </div>
+
+            <div class="worldbook-entries-list" id="settings-worldbook-entries">
+              <div class="loading-placeholder">載入中...</div>
+            </div>
+
+            <div class="batch-import-actions">
+              <button class="modal-btn secondary" id="select-all-entries-btn">
+                <i class="fas fa-check-double"></i> 全選
+              </button>
+              <button class="modal-btn secondary" id="deselect-all-entries-btn">
+                <i class="fas fa-times"></i> 取消全選
+              </button>
+              <button class="modal-btn primary" id="batch-import-btn">
+                <i class="fas fa-file-import"></i> 導入選取項目
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3 class="settings-section-title">
+              <i class="fas fa-trash-alt"></i> 清除資料
+            </h3>
+            <p class="settings-section-desc">清除所有劇場內容（此操作無法復原）</p>
+            <button class="modal-btn danger" id="clear-all-content-btn">
+              <i class="fas fa-trash"></i> 清除所有劇場內容
+            </button>
+          </div>
+        </div>
+        <footer class="modal-footer">
+          <button class="modal-btn secondary" data-action="close-settings-modal">關閉</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" hidden>
+      <span class="toast-message" id="toast-message"></span>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="theater.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('theater');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('theater', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

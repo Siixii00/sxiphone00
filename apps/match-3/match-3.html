@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>水果消消樂</title>
+  <link rel="stylesheet" href="match-3.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="match3-app">
+    <header class="match3-topbar">
+      <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="title">
+        <div class="name">🍬 水果消消樂</div>
+      </div>
+      <button class="icon-btn" id="help-btn" aria-label="說明">
+        <i class="fas fa-circle-info"></i>
+      </button>
+    </header>
+
+    <section class="worlds-screen" id="worlds-screen">
+      <div class="worlds-header">
+        <div>
+          <div class="worlds-title">選擇世界</div>
+          <div class="worlds-subtitle">點選關卡開始挑戰</div>
+        </div>
+        <button class="primary-btn" id="enter-latest">繼續最新關卡</button>
+      </div>
+      <div class="worlds-grid" id="worlds-grid"></div>
+      <div class="worlds-generator">
+        <div class="worlds-title">自訂生成關卡</div>
+        <div class="worlds-subtitle">依難度產生更多挑戰</div>
+        <div class="generator-controls">
+          <select id="gen-difficulty">
+            <option value="easy">簡單</option>
+            <option value="normal" selected>普通</option>
+            <option value="hard">困難</option>
+          </select>
+          <select id="gen-theme">
+            <option value="fruit" selected>水果果盤</option>
+            <option value="veggie">蔬菜樂園</option>
+            <option value="tropical">熱帶海島</option>
+            <option value="dessert">甜點工坊</option>
+          </select>
+          <input id="gen-count" type="number" min="1" max="30" value="5" placeholder="生成關卡數">
+          <button class="primary-btn" id="generate-level">生成關卡</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="match3-status" id="game-status">
+      <div class="status-card">
+        <div class="status-label">關卡</div>
+        <div class="status-value" id="level-label">1</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">目標</div>
+        <div class="status-value" id="target-label">800</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">分數</div>
+        <div class="status-value" id="score-label">0</div>
+      </div>
+      <div class="status-card">
+        <div class="status-label">步數</div>
+        <div class="status-value" id="moves-label">25</div>
+      </div>
+    </section>
+
+    <section class="match3-controls" id="game-controls">
+      <label class="control">
+        <span>選擇關卡</span>
+        <select id="level-select"></select>
+      </label>
+      <label class="control">
+        <span>難度</span>
+        <select id="difficulty-select">
+          <option value="easy">簡單</option>
+          <option value="normal" selected>普通</option>
+          <option value="hard">困難</option>
+        </select>
+      </label>
+      <button class="ghost-btn" id="restart-level">重新開始</button>
+    </section>
+
+    <section class="board-wrapper" id="game-board">
+      <div class="board" id="board"></div>
+    </section>
+
+    <section class="match3-footer" id="game-footer">
+      <div class="power-ups" id="power-ups">
+        <button class="power-btn" id="shuffle-btn" title="重新排列">
+          <span class="icon">🔀</span>
+          <span class="count" id="shuffle-count">3</span>
+        </button>
+        <button class="power-btn" id="hint-btn" title="提示">
+          <span class="icon">💡</span>
+          <span class="count" id="hint-count">3</span>
+        </button>
+        <button class="power-btn" id="bomb-btn" title="炸彈">
+          <span class="icon">💣</span>
+          <span class="count" id="bomb-count">2</span>
+        </button>
+      </div>
+      <div class="tip">提示：交換相鄰水果，湊滿 3 個以上即可消除。4個=直線消除，5個=彩虹炸彈，L/T形=範圍炸彈</div>
+      <div class="tip" id="level-status"></div>
+    </section>
+
+    <div class="char-companion-panel" id="char-companion-panel">
+      <div class="char-avatar" id="char-avatar"></div>
+      <div class="char-info">
+        <div class="char-name" id="char-name">角色</div>
+        <div class="char-level">進度：第 <span id="char-level-num">1</span> 關</div>
+      </div>
+      <div class="char-comment" id="char-comment">加油！</div>
+      <button class="char-toggle-btn" id="char-toggle-btn" title="邀請角色一起玩">
+        <i class="fas fa-user-friends"></i>
+      </button>
+    </div>
+
+    <div class="char-settings-panel hidden" id="char-settings-panel">
+      <div class="char-settings-header">
+        <span>角色陪玩設定</span>
+        <button class="close-btn" id="close-char-settings"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="char-settings-body">
+        <label class="setting-row">
+          <span>啟用角色陪玩</span>
+          <label class="switch">
+            <input type="checkbox" id="char-companion-toggle" checked>
+            <span class="slider"></span>
+          </label>
+        </label>
+        <label class="setting-row">
+          <span>評論頻率</span>
+          <select id="comment-frequency">
+            <option value="low">低（偶爾評論）</option>
+            <option value="normal" selected>普通</option>
+            <option value="high">高（頻繁評論）</option>
+          </select>
+        </label>
+        <div class="char-progress-section">
+          <div class="progress-title">角色遊玩進度</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="char-progress-fill" style="width: 5%"></div>
+          </div>
+          <div class="progress-text">第 <span id="char-current-level">1</span> / 100 關</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="match-3.js"></script>
+</body>
+</html>
+

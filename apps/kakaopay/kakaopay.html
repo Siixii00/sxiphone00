@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KakaoPay 記帳錢包</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="kakaopay.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="kakaopay-app">
+    <header class="top-bar">
+      <button class="icon-btn" id="closeBtn" aria-label="返回首頁">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <h1>KakaoPay</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fa-solid fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="simulatePayBtn" aria-label="模擬付款">
+          <i class="fa-solid fa-wave-square"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="wallet-card" aria-label="錢包總覽">
+        <p class="eyebrow">Apple Pay 風格錢包</p>
+        <h2 id="totalBalance">NT$0</h2>
+        <button class="set-balance-btn" id="setBalanceBtn" type="button">
+          <i class="fa-solid fa-pen"></i> 設定餘額
+        </button>
+        <div class="wallet-meta">
+          <div>
+            <span class="meta-label">本月支出</span>
+            <strong id="monthExpense">NT$0</strong>
+          </div>
+          <div>
+            <span class="meta-label">本月收入</span>
+            <strong id="monthIncome">NT$0</strong>
+          </div>
+        </div>
+        <div class="budget">
+          <div class="budget-top">
+            <span>本月預算</span>
+            <span id="budgetText">NT$0 / NT$0</span>
+          </div>
+          <div class="budget-track">
+            <div id="budgetFill" class="budget-fill"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-actions" aria-label="快速功能">
+        <button class="action-chip" type="button"><i class="fa-solid fa-paper-plane"></i> 轉帳</button>
+        <button class="action-chip" type="button"><i class="fa-solid fa-qrcode"></i> 掃碼</button>
+        <button class="action-chip" type="button"><i class="fa-solid fa-wallet"></i> 卡片</button>
+      </section>
+
+      <section class="sheet" aria-label="記帳輸入">
+        <div class="sheet-head">
+          <h3>新增記帳</h3>
+          <button id="resetBtn" class="ghost" type="button">重設示範資料</button>
+        </div>
+        <form id="entryForm" autocomplete="off">
+          <div class="grid-2">
+            <label>
+              類型
+              <select id="typeInput" required>
+                <option value="expense">支出</option>
+                <option value="income">收入</option>
+              </select>
+            </label>
+            <label>
+              類別
+              <select id="categoryInput" required>
+                <option value="餐飲">餐飲</option>
+                <option value="交通">交通</option>
+                <option value="購物">購物</option>
+                <option value="娛樂">娛樂</option>
+                <option value="薪資">薪資</option>
+                <option value="其他">其他</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-2">
+            <label>
+              金額
+              <input id="amountInput" type="number" min="1" step="1" placeholder="例如 320" required>
+            </label>
+            <label>
+              日期
+              <input id="dateInput" type="date" required>
+            </label>
+          </div>
+
+          <label>
+            備註
+            <input id="noteInput" type="text" maxlength="40" placeholder="例如：午餐 / 捷運 / 訂閱服務...">
+          </label>
+
+          <button class="primary" type="submit">加入記帳</button>
+        </form>
+      </section>
+
+      <section class="sheet" aria-label="交易紀錄">
+        <div class="sheet-head">
+          <h3>最近交易</h3>
+          <p id="historyHint">0 筆資料</p>
+        </div>
+        <div id="transactionList" class="transaction-list"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="kakaopay.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('kakaopay');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('kakaopay', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

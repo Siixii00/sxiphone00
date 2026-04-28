@@ -1,0 +1,22 @@
+{
+  "name": "sxiphone00",
+  "version": "1.0.0",
+  "description": "仿ios介面网页端应用程式 使用vscode编程，全程Gemini辅助 现处於开发中阶段",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "node ./node_modules/vite/bin/vite.js build && node ./scripts/copy-static.mjs",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "canvas": "^3.2.3",
+    "vite": "^8.0.5"
+  },
+  "dependencies": {
+    "fortel-ziweidoushu": "^1.3.4",
+    "lunar-ts": "^1.0.1"
+  }
+}

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>交換日記 | SXI Phone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=Yomogi&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="exchange-diary.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+  <body>
+  <div class="diary-app">
+    <section class="shelf-view" id="shelfView">
+      <header class="shelf-header">
+        <button class="cover-action" id="closeDiaryBtn" type="button" aria-label="關閉交換日記">
+          <span aria-hidden="true">↩</span>
+        </button>
+        <div class="shelf-title">書櫃</div>
+        <div class="header-actions">
+          <button class="ghost" id="appearance-btn" type="button" aria-label="外觀設定">🎨</button>
+          <button class="ghost" id="newDiaryBtn" type="button">+</button>
+        </div>
+      </header>
+      <div class="shelf-grid" id="diaryShelf"></div>
+    </section>
+
+    <section class="diary-view" id="diaryView" hidden>
+      <header class="diary-cover">
+        <div class="cover-title-row">
+          <button class="cover-action" id="backShelfBtn" type="button" aria-label="返回書櫃">
+            <span aria-hidden="true">↩</span>
+          </button>
+          <h1 class="cover-main-title" id="diaryTitle">紙間悄悄話</h1>
+          <button class="ghost rename-btn" id="renameDiaryBtn" type="button">改書名</button>
+        </div>
+        <div class="cover-content-box">
+          <div class="cover-left"></div>
+          <div class="cover-right">
+            <div class="date-card">
+              <span id="todayDate">──</span>
+              <small id="entrySummary">還沒有頁面</small>
+            </div>
+            <button class="ghost" id="syncSettingsBtn" type="button">重新整理資料</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="paper-page intro-page" aria-label="日記夥伴">
+        <div class="page-label">第一頁</div>
+        <div class="intro-copy">這一頁先寫下日記夥伴，像翻開書的第一張紙。</div>
+        <section class="npc-manage" aria-live="polite">
+          <div class="npc-manage-head">
+            <div>
+              <strong>日記夥伴</strong>
+              <span class="hint">可選多位 NPC</span>
+            </div>
+            <button class="link-btn" id="npcManageBtn" type="button">到設定管理 NPC</button>
+          </div>
+          <div class="npc-manage-list" id="npcManageList"></div>
+        </section>
+
+        <section class="npc-strip" aria-live="polite">
+          <div class="npc-active-card" id="activeNpcCard"></div>
+          <div class="npc-selector" id="npcList"></div>
+        </section>
+      </section>
+
+      <main class="diary-book">
+        <div class="book-binding" aria-hidden="true"></div>
+        <section class="paper-page left" aria-label="日記內容">
+          <div class="page-label">回憶頁</div>
+          <div class="prompt-card">
+            <div>
+              <p class="prompt-title">💌 今日提問</p>
+              <p class="prompt-text" id="promptText">寫給自己與夥伴的第一句話。</p>
+            </div>
+            <button class="outline" id="promptShuffleBtn" type="button">換一題</button>
+          </div>
+          <div class="timeline" id="entryList">
+            <div class="empty-state">
+              <p>目前還沒有任何頁面，寫下第一封信吧！</p>
+            </div>
+          </div>
+          <div class="page-watermark">SXI ✶ EXCHANGE</div>
+        </section>
+
+        <section class="paper-page right" aria-label="新增頁面">
+          <div class="page-label">新的墨跡</div>
+          <form id="entryForm" autocomplete="off">
+            <div class="form-group">
+              <div class="group-head">
+                <label>心情天氣</label>
+                <span class="hint">選一種貼在頁緣的天氣貼紙</span>
+              </div>
+              <div class="mood-picker" id="moodPicker"></div>
+            </div>
+
+            <div class="form-group">
+              <div class="group-head">
+                <label>貼紙標籤</label>
+                <span class="hint">可複選，描述這一頁的氛圍</span>
+              </div>
+              <div class="seal-board" id="sealBoard"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="entryContent">寫下想說的話</label>
+              <textarea id="entryContent" rows="7" placeholder="親愛的我們：今日想分享的祕密、心情、以及想對你說的一切……"></textarea>
+            </div>
+
+            <div class="form-footer">
+              <p class="npc-status" id="npcStatus">等待指定的 NPC 加入交換日記。</p>
+              <button class="primary" type="submit">寫進日記</button>
+            </div>
+          </form>
+
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script defer src="exchange-diary.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('exchange-diary');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('exchange-diary', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

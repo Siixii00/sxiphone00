@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>外送</title>
+  <link rel="stylesheet" href="delivery.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="delivery-app">
+    <header class="delivery-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="address-wrap" id="address-wrap">
+        <p>外送地址</p>
+        <h1 id="address-display">點擊輸入地址</h1>
+      </div>
+      <button class="icon-btn" id="cart-toggle-btn" aria-label="購物車">
+        <i class="fas fa-bag-shopping"></i>
+        <span class="cart-badge" id="cart-badge">0</span>
+      </button>
+    </header>
+
+    <main class="delivery-main">
+      <section class="search-card">
+        <i class="fas fa-magnifying-glass"></i>
+        <input id="search-input" type="text" placeholder="搜尋餐廳或餐點">
+      </section>
+
+      <section class="chip-row" id="category-row"></section>
+
+      <section class="promo-card" id="promo-card">
+        <div>
+          <p class="promo-label">限時優惠</p>
+          <h2>輸入 SXEAT 享 79 折</h2>
+          <p>新用戶再送免運券，今天吃點好吃的。</p>
+        </div>
+        <i class="fas fa-ticket-simple"></i>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h3>附近熱門</h3>
+          <button id="sort-btn" type="button">依評分</button>
+        </div>
+        <div class="restaurant-list" id="restaurant-list"></div>
+      </section>
+    </main>
+
+    <aside class="cart-sheet hidden" id="cart-sheet" aria-label="購物車">
+      <div class="cart-head">
+        <h3>你的購物車</h3>
+        <button id="cart-close-btn" type="button"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="cart-items" id="cart-items"></div>
+      <div class="cart-foot">
+        <div class="cart-total">
+          <span>總計</span>
+          <strong id="cart-total">NT$ 0</strong>
+        </div>
+        <button class="checkout-btn" id="checkout-btn" type="button">前往結帳</button>
+      </div>
+    </aside>
+
+<!-- 地址輸入面板 -->
+    <div class="address-panel hidden" id="address-panel">
+      <div class="address-panel-header">
+        <h3>選擇外送地點</h3>
+        <button class="icon-btn" id="address-close-btn" type="button">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="address-panel-body">
+        <div class="address-input-group">
+          <label for="city-input">城市</label>
+          <input type="text" id="city-input" placeholder="例如：台北市、東京、首爾...">
+        </div>
+        <div class="address-input-group">
+          <label for="district-input">行政區</label>
+          <input type="text" id="district-input" placeholder="例如：信義區、澀谷區...">
+        </div>
+        <div class="address-input-group">
+          <label for="street-input">街道地址（選填）</label>
+          <input type="text" id="street-input" placeholder="例如：松壗路 1 號">
+        </div>
+        <div class="address-input-group">
+          <label for="note-input">備註（選填）</label>
+          <input type="text" id="note-input" placeholder="例如：公寓 3 樓">
+        </div>
+        <div class="address-hint">
+          <i class="fas fa-info-circle"></i>
+          輸入地區後，將為您推薦該區附近的餐廳
+        </div>
+        <button class="address-save-btn" id="address-save-btn" type="button">確認地點</button>
+      </div>
+    </div>
+      <div class="address-panel-body">
+        <div class="address-input-group">
+          <label for="city-select">城市</label>
+          <select id="city-select">
+            <option value="">請選擇城市</option>
+          </select>
+        </div>
+        <div class="address-input-group">
+          <label for="district-select">行政區</label>
+          <select id="district-select">
+            <option value="">請先選擇城市</option>
+          </select>
+        </div>
+        <div class="address-input-group">
+          <label for="street-input">街道地址（選填）</label>
+          <input type="text" id="street-input" placeholder="例如：松壽路 1 號">
+        </div>
+        <div class="address-input-group">
+          <label for="note-input">備註（選填）</label>
+          <input type="text" id="note-input" placeholder="例如：公寓 3 樓">
+        </div>
+        <div class="address-hint">
+          <i class="fas fa-info-circle"></i>
+          選擇地區後，將為您推薦該區附近的餐廳
+        </div>
+        <button class="address-save-btn" id="address-save-btn" type="button">確認地點</button>
+      </div>
+    </div>
+
+    <!-- 餐廳詳情頁面 -->
+    <div class="restaurant-detail-panel hidden" id="restaurant-detail-panel">
+      <div class="detail-header">
+        <button class="icon-btn" id="detail-close-btn" type="button">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h3 id="detail-title">餐廳名稱</h3>
+        <div style="width:36px"></div>
+      </div>
+      <div class="detail-cover" id="detail-cover"></div>
+      <div class="detail-body">
+        <div class="detail-info">
+          <span class="detail-rating" id="detail-rating">⭐ 4.8</span>
+          <span class="detail-meta" id="detail-meta">分類 · 距離 · 運費</span>
+        </div>
+        <div class="detail-section">
+          <h4>菜單</h4>
+          <div class="detail-dishes" id="detail-dishes"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結帳確認頁面 -->
+    <div class="checkout-panel hidden" id="checkout-panel">
+      <div class="checkout-header">
+        <button class="icon-btn" id="checkout-close-btn" type="button">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h3>確認訂單</h3>
+        <div style="width:36px"></div>
+      </div>
+      <div class="checkout-body">
+        <div class="checkout-address-section">
+          <h4><i class="fas fa-location-dot"></i> 外送地址</h4>
+          <p id="checkout-address">尚未設定地址</p>
+        </div>
+        
+        <div class="checkout-items-section">
+          <h4><i class="fas fa-utensils"></i> 訂購內容</h4>
+          <div id="checkout-items"></div>
+        </div>
+        
+        <div class="checkout-summary">
+          <div class="summary-row">
+            <span>小計</span>
+            <span id="checkout-subtotal">NT$ 0</span>
+          </div>
+          <div class="summary-row">
+            <span>外送費</span>
+            <span id="checkout-fee">NT$ 0</span>
+          </div>
+          <div class="summary-row total">
+            <span>總計</span>
+            <strong id="checkout-total">NT$ 0</strong>
+          </div>
+        </div>
+        
+        <div class="checkout-note-section">
+          <h4><i class="fas fa-comment"></i> 訂單備註</h4>
+          <textarea id="checkout-note" placeholder="例如：不要蔥、少辣..."></textarea>
+        </div>
+      </div>
+      <div class="checkout-footer">
+        <button class="checkout-confirm-btn" id="checkout-confirm-btn" type="button">
+          <i class="fas fa-credit-card"></i> 確認付款
+        </button>
+      </div>
+    </div>
+
+    <!-- 付款成功頁面 -->
+    <div class="payment-success-panel hidden" id="payment-success-panel">
+      <div class="success-content">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>訂單成功！</h2>
+        <p class="success-message">您的餐點正在準備中</p>
+        <div class="success-details" id="success-details"></div>
+        <button class="success-close-btn" id="success-close-btn" type="button">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="delivery.js"></script>
+</body>
+</html>

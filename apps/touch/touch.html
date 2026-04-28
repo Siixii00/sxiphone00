@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>輔助觸控</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <link rel="stylesheet" href="touch.css">
+</head>
+<body>
+    <header class="ios-nav-bar">
+        <a href="javascript:void(0);" class="nav-back-button" id="backBtn">
+            <span class="back-icon">&lsaquo;</span> 返回
+        </a>
+        <div class="nav-title" id="navTitle">輔助觸控</div>
+    </header>
+
+    <main class="settings-content" id="main-page">
+        <div class="settings-group">
+            <div class="setting-item">
+                <span class="item-label">輔助觸控</span>
+                <label class="ios-switch" for="ballToggle">
+                    <input type="checkbox" id="ballToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="setting-item arrow">
+                <span class="item-label">懸浮球設定</span>
+            </div>
+            <div class="setting-item arrow" id="moreToggle">
+                <span class="item-label">更多功能</span>
+            </div>
+
+            <div class="submenu" id="moreMenu">
+                <div class="setting-item sub" data-func="closeApp"><span class="item-label">關閉應用程式</span></div>
+                <div class="setting-item sub" data-func="openSettings"><span class="item-label">開啟設定</span></div>
+                <div class="setting-item sub" data-func="takeScreenshot"><span class="item-label">截圖</span></div>
+                <div class="setting-item sub" data-func="switchApi"><span class="item-label">切換 API 伺服器</span></div>
+                <div class="setting-item sub" data-func="switchAppearance"><span class="item-label">切換外觀</span></div>
+                <div class="setting-item sub" data-func="playMusic"><span class="item-label">播放音樂</span></div>
+                <div class="setting-item sub" data-func="addToWiki"><span class="item-label">加入百科</span></div>
+                <div class="setting-item sub" data-func="forceSleep"><span class="item-label">立即睡眠</span></div>
+            </div>
+        </div>
+    </main>
+
+    <main class="settings-content" id="sub-page" style="display: none;">
+        <div class="settings-group">
+            <div class="setting-item">
+                <span class="item-label">大小</span>
+                <input type="range" id="sizeRange" min="40" max="120" value="60">
+            </div>
+            <div class="setting-item">
+                <span class="item-label">透明度</span>
+                <input type="range" id="opacityRange" min="10" max="100" value="40">
+            </div>
+            <div class="setting-item">
+                <span class="item-label">色相 (色環)</span>
+                <input type="range" id="hueRange" class="hue-range" min="0" max="360" value="0">
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="setting-item arrow" id="styleSelectToggle">
+                <span class="item-label">懸浮球樣式</span>
+            </div>
+            <div class="submenu" id="styleSelectMenu">
+                <label class="setting-item sub" for="ball-style-smoke">
+                    <span class="item-label">煙霧</span>
+                    <input type="radio" id="ball-style-smoke" name="ballStyle" value="smoke" checked>
+                </label>
+                <label class="setting-item sub" for="ball-style-frost">
+                    <span class="item-label">霜凍</span>
+                    <input type="radio" id="ball-style-frost" name="ballStyle" value="frost">
+                </label>
+                <label class="setting-item sub" for="ball-style-solid">
+                    <span class="item-label">純色</span>
+                    <input type="radio" id="ball-style-solid" name="ballStyle" value="solid">
+                </label>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div style="padding: 10px 16px; color: var(--text-gray); font-size: 13px;">在懸浮球顯示</div>
+            <div id="ballFunctionsContainer" class="ball-functions">
+                <div class="setting-item">
+                    <span class="item-label">關閉應用程式</span>
+                    <label class="ios-switch" for="ball-func-closeApp">
+                        <input type="checkbox" id="ball-func-closeApp" class="ball-func-toggle" data-func="closeApp" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">開啟設定</span>
+                    <label class="ios-switch" for="ball-func-openSettings">
+                        <input type="checkbox" id="ball-func-openSettings" class="ball-func-toggle" data-func="openSettings" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">截圖</span>
+                    <label class="ios-switch" for="ball-func-takeScreenshot">
+                        <input type="checkbox" id="ball-func-takeScreenshot" class="ball-func-toggle" data-func="takeScreenshot" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">切換 API 伺服器</span>
+                    <label class="ios-switch" for="ball-func-switchApi">
+                        <input type="checkbox" id="ball-func-switchApi" class="ball-func-toggle" data-func="switchApi" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">切換外觀</span>
+                    <label class="ios-switch" for="ball-func-switchAppearance">
+                        <input type="checkbox" id="ball-func-switchAppearance" class="ball-func-toggle" data-func="switchAppearance" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">播放音樂</span>
+                    <label class="ios-switch" for="ball-func-playMusic">
+                        <input type="checkbox" id="ball-func-playMusic" class="ball-func-toggle" data-func="playMusic" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">加入百科</span>
+                    <label class="ios-switch" for="ball-func-addToWiki">
+                        <input type="checkbox" id="ball-func-addToWiki" class="ball-func-toggle" data-func="addToWiki" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="item-label">立即睡眠</span>
+                    <label class="ios-switch" for="ball-func-forceSleep">
+                        <input type="checkbox" id="ball-func-forceSleep" class="ball-func-toggle" data-func="forceSleep" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="touch.js"></script>
+    <script src="../scripts/shared-settings.js"></script>
+</body>
+</html>

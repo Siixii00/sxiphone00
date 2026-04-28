@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bilibili</title>
+  <link rel="stylesheet" href="bilibili.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="bili-app">
+    <header class="topbar">
+      <div class="left">
+        <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')"><i class="fas fa-chevron-left"></i></button>
+      </div>
+      <div class="logo" aria-label="bilibili">bilibili</div>
+      <div class="right">
+        <button class="icon-btn" id="appearance-btn" aria-label="設定"><i class="fas fa-cog"></i></button>
+        <button class="icon-btn" id="char-history-btn" aria-label="角色瀏覽紀錄"><i class="far fa-user"></i></button>
+      </div>
+    </header>
+
+    <div class="search-row">
+      <div class="search" role="search">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="動漫、番劇、直播" aria-label="搜尋">
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="recommend">推薦</button>
+      <button class="tab" data-tab="anime">番劇</button>
+      <button class="tab" data-tab="live">直播</button>
+      <button class="tab" data-tab="hot">熱門</button>
+      <button class="tab" data-tab="games">遊戲</button>
+    </nav>
+
+    <main class="content" id="home-view">
+      <div class="content-inner" id="feed"></div>
+    </main>
+
+    <section class="me-view" id="me-view" hidden>
+      <div class="me-header">
+        <div class="me-avatar" id="me-avatar"></div>
+        <div class="me-info">
+          <div class="me-name" id="me-name">SXi User</div>
+          <div class="me-sub" id="me-sub">Lv.5 · 追番中</div>
+        </div>
+        <button class="me-edit">編輯</button>
+      </div>
+      <div class="me-stats">
+        <div><span>128</span><small>關注</small></div>
+        <div><span>3.2萬</span><small>粉絲</small></div>
+        <div><span>56</span><small>動態</small></div>
+      </div>
+      <div class="me-card">
+        <div class="me-card-title">常用功能</div>
+        <div class="me-grid">
+          <button>歷史紀錄</button>
+          <button>我的收藏</button>
+          <button>離線快取</button>
+          <button>稍後再看</button>
+        </div>
+      </div>
+      <div class="me-card">
+        <div class="me-card-title">創作中心</div>
+        <div class="me-grid">
+          <button>投稿</button>
+          <button>直播中心</button>
+          <button>草稿箱</button>
+          <button>收益</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="char-history" id="char-history" hidden>
+      <header class="char-history-topbar">
+        <button class="icon-btn" data-action="close-char-history" aria-label="返回"><i class="fas fa-chevron-left"></i></button>
+        <div class="char-history-title">角色瀏覽紀錄</div>
+        <button class="ghost-btn" data-action="refresh-char-history" aria-label="重新生成">重新生成</button>
+      </header>
+      <div class="char-history-controls">
+        <label for="char-history-select">角色</label>
+        <select id="char-history-select" aria-label="選擇角色"></select>
+      </div>
+      <div class="char-history-list" id="char-history-list"></div>
+    </section>
+
+    <section class="player-page" id="player-page" hidden>
+      <header class="player-topbar">
+        <button class="icon-btn" data-action="back-home" aria-label="返回"><i class="fas fa-chevron-left"></i></button>
+        <div class="player-title">影片播放</div>
+        <button class="icon-btn" data-action="player-more" aria-label="更多"><i class="fas fa-ellipsis-h"></i></button>
+      </header>
+      <div class="player-stage">
+        <div class="player-video" id="player-video">
+          <iframe title="影片播放器" src="" allow="autoplay; fullscreen" loading="lazy"></iframe>
+          <div class="danmu-layer" id="danmu-layer"></div>
+          <div class="char-companion" id="char-companion" hidden>
+            <div class="char-companion-avatar" id="char-companion-avatar"></div>
+            <div class="char-companion-name" id="char-companion-name"></div>
+            <button class="char-companion-close" data-action="remove-companion" aria-label="關閉">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="char-comment-bubble" id="char-comment-bubble" hidden>
+            <div class="char-comment-text" id="char-comment-text"></div>
+          </div>
+        </div>
+      </div>
+      <div class="player-char-controls">
+        <div class="char-select-row">
+          <label>一起觀看的角色</label>
+          <select id="char-watch-select" aria-label="選擇角色">
+            <option value="">選擇角色</option>
+          </select>
+        </div>
+        <div class="danmu-toggle-row">
+          <label>彈幕</label>
+          <button class="danmu-toggle active" id="danmu-toggle" aria-label="切換彈幕">
+            <i class="fas fa-comment-dots"></i>
+          </button>
+        </div>
+      </div>
+      <div class="player-info">
+        <div class="player-meta">
+          <div class="player-title-main" id="player-title">影片標題</div>
+          <div class="player-sub" id="player-sub">1.2萬 觀看 · 320 彈幕</div>
+        </div>
+        <div class="player-actions">
+          <button class="ghost-btn" id="like-btn"><i class="far fa-thumbs-up"></i> 讚</button>
+          <button class="ghost-btn"><i class="far fa-star"></i> 收藏</button>
+          <button class="ghost-btn"><i class="far fa-paper-plane"></i> 分享</button>
+        </div>
+      </div>
+      <div class="npc-section" id="npc-section">
+        <div class="npc-header">
+          <span class="npc-title"><i class="fas fa-users"></i> 正在觀看的 NPC</span>
+          <span class="npc-count" id="npc-count">0 人在看</span>
+        </div>
+        <div class="npc-list" id="npc-list"></div>
+      </div>
+      <div class="player-comments">
+        <div class="comments-header">熱門留言</div>
+        <div class="comment-item">
+          <div class="avatar"></div>
+          <div>
+            <div class="comment-name">Momo</div>
+            <div class="comment-text">這集超好看，已經重刷三次！</div>
+          </div>
+        </div>
+        <div class="comment-item">
+          <div class="avatar"></div>
+          <div>
+            <div class="comment-name">Kirin</div>
+            <div class="comment-text">畫面好精緻，推薦朋友一起看。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="modal" id="video-modal" hidden>
+      <div class="modal-backdrop" data-action="close"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="影片選項">
+        <div class="modal-header">
+          <div class="modal-title">影片操作</div>
+          <button class="icon-btn small" data-action="close" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-row">
+            <div class="modal-text">要刷新此分頁的影片內容嗎？</div>
+            <button class="primary-btn" data-action="refresh">生成影片內容</button>
+          </div>
+          <div class="modal-row">
+            <label class="modal-label" for="video-url">輸入影片網址（可貼上播放連結）</label>
+            <div class="url-input">
+              <i class="fas fa-link"></i>
+              <input id="video-url" type="url" placeholder="https://..." aria-label="影片網址">
+            </div>
+            <button class="ghost-btn" data-action="play">播放網址</button>
+          </div>
+          <div class="player" id="video-player" hidden>
+            <iframe title="影片播放器" src="" allow="autoplay; fullscreen" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="add-video-modal" hidden>
+      <div class="modal-backdrop" data-action="close-add"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="新增影片">
+        <div class="modal-header">
+          <div class="modal-title">新增影片</div>
+          <button class="icon-btn small" data-action="close-add" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-row">
+            <label class="modal-label" for="add-video-title">影片標題</label>
+            <input id="add-video-title" type="text" class="text-input" placeholder="輸入影片標題" aria-label="影片標題">
+          </div>
+          <div class="modal-row">
+            <label class="modal-label">封面圖片</label>
+            <div class="thumb-upload">
+              <div class="thumb-preview" id="bili-thumb-preview">
+                <i class="fas fa-image"></i>
+                <span>點擊上傳封面</span>
+              </div>
+              <input type="file" id="add-video-thumb-file" accept="image/*" hidden>
+              <div class="thumb-upload-btns">
+                <button class="ghost-btn" data-action="upload-thumb" type="button">
+                  <i class="fas fa-upload"></i> 選擇圖片
+                </button>
+                <button class="ghost-btn" data-action="clear-thumb" type="button">
+                  <i class="fas fa-times"></i> 清除
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-row">
+            <label class="modal-label" for="add-video-url">影片連結（可選）</label>
+            <div class="url-input">
+              <i class="fas fa-link"></i>
+              <input id="add-video-url" type="url" placeholder="https://..." aria-label="影片連結">
+            </div>
+            <div class="modal-hint">若填寫連結，點擊卡片會直接播放</div>
+          </div>
+          <div class="modal-row">
+            <label class="modal-label" for="add-video-tag">分區</label>
+            <select id="add-video-tag" aria-label="選擇分區">
+              <option value="current">沿用當前分頁</option>
+              <option value="recommend">推薦</option>
+              <option value="anime">番劇</option>
+              <option value="live">直播</option>
+              <option value="hot">熱門</option>
+              <option value="games">遊戲</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="ghost-btn" data-action="close-add">取消</button>
+            <button class="primary-btn" data-action="add-video">新增</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bottombar">
+      <button class="nav-btn active" data-view="home"><i class="fas fa-home"></i><span>首頁</span></button>
+      <button class="nav-btn" data-view="feed"><i class="far fa-compass"></i><span>追番</span></button>
+      <button class="nav-btn post" data-view="post"><i class="fas fa-plus"></i></button>
+      <button class="nav-btn" data-view="messages"><i class="far fa-comment-dots"></i><span>訊息</span></button>
+      <button class="nav-btn" data-view="me"><i class="far fa-user"></i><span>我的</span></button>
+    </footer>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="bilibili.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('bilibili');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('bilibili', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

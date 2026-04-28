@@ -1,0 +1,93 @@
+server:
+  port: 8000
+
+memory3d:
+  system:
+    name: Memory3D
+    version: 1.0.0
+    transport: streamable-http
+    timezone: Asia/Taipei
+
+  storage:
+    vault-path: ./vault/Memory3D
+    buckets-dir: ./buckets/
+    index-db: ./data/indexes.db
+    short-term-db: ./data/short_term.db
+
+  api:
+    provider: google
+    api-key-env: MEMORY3D_API_KEY
+    base-url: https://generativelanguage.googleapis.com/v1beta/openai
+    models:
+      sensory-extraction: gemini-2.5-flash-lite
+      feel-generation: gemini-2.5-flash-lite
+      embedding: gemini-embedding-001
+    rate-limits:
+      requests-per-minute: 30
+      requests-per-day: 1500
+
+  sensory:
+    enabled: true
+    extract-on-hold: true
+    cache-enabled: true
+    cache-ttl: 86400
+    fallback-to-rules: true
+
+  spatiotemporal:
+    enabled: true
+    auto-tag: true
+    timezone: Asia/Taipei
+    location-detection: true
+
+  sleep:
+    enabled: true
+    start-time: "02:00"
+    end-time: "06:00"
+    timezone: Asia/Taipei
+    duration-hours: 4
+    stages:
+      nrem1: 10
+      nrem2: 20
+      nrem3: 30
+      rem: 30
+    retry-on-failure: true
+    max-retries: 3
+
+  awakening:
+    enabled: true
+    recall-days: 7
+    min-importance: 5
+    generate-summary: true
+    greeting-enabled: true
+
+  search:
+    sensory-weight: 0.3
+    spatiotemporal-weight: 0.3
+    emotional-weight: 0.4
+    top-k: 20
+    parallel-search: true
+    result-cache-ttl: 3600
+
+  decay:
+    lambda: 0.05
+    threshold: 0.3
+    activation-boost: 0.3
+    emotional-resistance: 0.8
+
+spring:
+  application:
+    name: memory-3d
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.memory3d: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>臉書設定</title>
+  <link rel="stylesheet" href="../facebook/facebook.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="fb-app fb-settings-page">
+    <header class="fb-topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="fb-logo">
+          <i class="fab fa-facebook-f"></i>
+        </div>
+      </div>
+      <div class="topbar-title">設定</div>
+      <div class="topbar-actions">
+        <button class="icon-btn" aria-label="完成" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+          <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="settings-main">
+      <div class="settings-profile">
+        <div class="avatar profile-avatar-bind" id="settings-avatar"></div>
+        <div class="settings-profile-info">
+          <div class="name" id="settings-user-name">你</div>
+          <div class="handle">選擇帳號</div>
+        </div>
+      </div>
+
+      <section class="settings-section">
+        <div class="section-title">選擇帳號</div>
+        <div class="settings-group">
+          <select id="account-select" class="account-select">
+            <option value="user">你</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="settings-section" id="profile-edit-section">
+        <div class="section-title">帳號資料編輯</div>
+        <div class="settings-group">
+          <label for="edit-name">名字</label>
+          <input type="text" id="edit-name" placeholder="輸入名字">
+        </div>
+        <div class="settings-group">
+          <label for="edit-avatar">頭像網址</label>
+          <input type="text" id="edit-avatar" placeholder="輸入頭像圖片網址">
+        </div>
+        <div class="settings-group">
+          <label for="edit-cover">封面照片網址</label>
+          <input type="text" id="edit-cover" placeholder="輸入封面照片網址">
+        </div>
+        <div class="settings-group">
+          <label for="edit-bio">個人簡介</label>
+          <textarea id="edit-bio" placeholder="寫些關於自己的介紹..." rows="3"></textarea>
+        </div>
+        <div class="settings-group">
+          <label for="edit-relationship">感情狀態</label>
+          <select id="edit-relationship">
+            <option value="">未設定</option>
+            <option value="single">單身</option>
+            <option value="in-relationship">交往中</option>
+            <option value="engaged">已訂婚</option>
+            <option value="married">已婚</option>
+            <option value="complicated">關係複雜</option>
+            <option value="separated">分居中</option>
+            <option value="divorced">已離婚</option>
+            <option value="widowed">喪偶</option>
+          </select>
+        </div>
+        <div class="settings-group hidden" id="relationship-with-group">
+          <label for="edit-relationship-with">與誰交往</label>
+          <input type="text" id="edit-relationship-with" placeholder="輸入對方名字">
+        </div>
+        <div class="settings-group">
+          <label for="edit-location">居住地</label>
+          <input type="text" id="edit-location" placeholder="輸入居住地">
+        </div>
+        <div class="settings-group">
+          <label for="edit-work">工作</label>
+          <input type="text" id="edit-work" placeholder="輸入工作單位">
+        </div>
+        <div class="settings-group">
+          <label for="edit-education">學歷</label>
+          <input type="text" id="edit-education" placeholder="輸入學校">
+        </div>
+        <button class="settings-btn primary" id="save-profile-btn">儲存個人資料</button>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">好友管理</div>
+        <div class="settings-group">
+          <div class="settings-label">選擇要顯示的角色 (好友)</div>
+          <div id="char-friends-list" class="char-friends-list"></div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-label">選擇要顯示的 NPC (網友)</div>
+          <div id="npc-friends-list" class="npc-friends-list"></div>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">貼文設定</div>
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="generate-user-posts" checked>
+            <span>生成使用者貼文</span>
+          </label>
+        </div>
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="generate-friend-posts" checked>
+            <span>生成好友貼文</span>
+          </label>
+        </div>
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="generate-npc-posts">
+            <span>生成 NPC 網友貼文</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">社群氛圍設定</div>
+        <div class="settings-group">
+          <label for="community-tone">社群氛圍：</label>
+          <select id="community-tone">
+            <option value="friendly">友善溫和</option>
+            <option value="neutral">中立正常</option>
+            <option value="hostile">充滿爭議</option>
+            <option value="toxic">惡意攻擊</option>
+          </select>
+        </div>
+        <div class="settings-group">
+          <div class="settings-label">允許的內容類型：</div>
+          <label>
+            <input type="checkbox" id="allow-criticism" checked>
+            <span>批評言論</span>
+          </label>
+          <label>
+            <input type="checkbox" id="allow-sarcasm" checked>
+            <span>諷刺嘲諷</span>
+          </label>
+          <label>
+            <input type="checkbox" id="allow-arguments">
+            <span>筆戰爭吵</span>
+          </label>
+          <label>
+            <input type="checkbox" id="allow-trolling">
+            <span>釣魚引戰</span>
+          </label>
+        </div>
+        <div class="settings-group">
+          <label for="npc-personality">NPC 回應者個性：</label>
+          <textarea id="npc-personality" placeholder="描述回應者的人格特質、風格、個性..." rows="3"></textarea>
+        </div>
+        <div class="settings-group">
+          <label>
+            <input type="checkbox" id="enable-haters">
+            <span>啟用負面回應者</span>
+          </label>
+        </div>
+        <div class="settings-group hidden" id="hater-settings">
+          <label for="hater-profiles">負面回應者設定：</label>
+          <textarea id="hater-profiles" placeholder="描述負面用戶的特徵..." rows="3"></textarea>
+        </div>
+        <button class="settings-btn primary" id="community-save">儲存社群設定</button>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">世界書掛載</div>
+        <div id="wb-mount-list" class="wb-mount-list"></div>
+        <div class="wb-actions">
+          <button class="settings-btn" id="wb-refresh"><i class="fas fa-sync-alt"></i> 重新載入</button>
+          <button class="settings-btn primary" id="wb-save">儲存掛載設定</button>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">生成</div>
+        <button class="settings-btn primary" id="ai-generate-btn">
+          <i class="fas fa-wand-magic-sparkles"></i> AI 生成貼文
+        </button>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-title">贊助內容設定</div>
+        <div id="sponsored-list" class="sponsored-list"></div>
+        <div class="sponsored-add-row">
+          <input type="text" id="sponsored-title" placeholder="標題">
+          <input type="text" id="sponsored-link" placeholder="連結網址">
+          <input type="text" id="sponsored-image" placeholder="圖片網址 (選填)">
+          <button class="settings-btn" id="add-sponsored-btn"><i class="fas fa-plus"></i> 新增</button>
+        </div>
+        <button class="settings-btn primary" id="save-sponsored-btn">儲存贊助內容</button>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    window.isCharView = false;
+    window.charViewName = '';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('charView') === 'true') {
+      window.isCharView = true;
+      window.charViewName = params.get('charName') || '';
+    }
+  </script>
+  <script src="facebook-settings.js"></script>
+  <script src="../scripts/shared-settings.js"></script>
+</body>
+</html>
