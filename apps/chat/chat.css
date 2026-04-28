@@ -813,6 +813,14 @@ body, html {
     background-color: rgba(0, 0, 0, 0.05) !important;
 }
 
+/* 編輯模式 */
+.bubble.editing {
+    outline: 2px solid var(--primary-color, #007aff);
+    outline-offset: 2px;
+    background-color: rgba(255, 255, 200, 0.3) !important;
+    cursor: text;
+}
+
 /* --- 底部輸入區 --- */
 .input-area {
     background: #fff; 

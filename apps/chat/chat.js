@@ -2309,6 +2309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.id = 'context-menu';
         menu.innerHTML = `
             <div class="context-menu-item" onclick="copyText(event)">複製</div>
+            <div class="context-menu-item" onclick="editMsg(event)">編輯</div>
             <div class="context-menu-item" onclick="triggerRegen(event)">重新生成</div>
             <div class="context-menu-item danger" onclick="deleteMsg(event)">刪除</div>
         `;
@@ -6119,6 +6120,13 @@ function scheduleReadUpdate(msgId, delay) {
     const timestamp = options.timestamp || Date.now();
     row.dataset.timestamp = timestamp;
     
+    if (options.historyIndex !== undefined) {
+        row.dataset.historyIndex = options.historyIndex;
+    }
+    if (options.splitIndex !== undefined) {
+        row.dataset.splitIndex = options.splitIndex;
+    }
+    
     const currentCharConfig = getActiveConfig();
     const currentUserConfig = getUserConfig();
     
@@ -6277,20 +6285,20 @@ function renderHistory() {
         }, '*');
         return;
     }
-    history.forEach(m => {
+    history.forEach((m, historyIdx) => {
         const type = m.role === 'user' ? 'mine' : 'other';
         const timestamp = m.timestamp || Date.now();
         if (m.imageUrl) {
-            appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表情: ', '').replace(']', '') || 'emoji', timestamp });
+            appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表情: ', '').replace(']', '') || 'emoji', timestamp, historyIndex: historyIdx });
         } else if (m.generationMode === 'multi' && Array.isArray(m.splitMessages) && m.splitMessages.length > 0) {
-            for (const msg of m.splitMessages) {
+            m.splitMessages.forEach((msg, splitIdx) => {
                 const trimmedMsg = msg.trim();
                 if (trimmedMsg) {
-                    appendMsg(type, trimmedMsg, { timestamp });
+                    appendMsg(type, trimmedMsg, { timestamp, historyIndex: historyIdx, splitIndex: splitIdx });
                 }
-            }
+            });
         } else {
-            appendMsg(type, m.content, { timestamp });
+            appendMsg(type, m.content, { timestamp, historyIndex: historyIdx });
         }
     });
     
@@ -6796,14 +6804,31 @@ window.deleteMsg = (e) => {
     if (!currentTargetMsg) return;
     const chatFlow = document.getElementById('chat-flow');
     if (!chatFlow) return;
-    const allRows = Array.from(chatFlow.querySelectorAll('.msg-row'));
-    const index = allRows.indexOf(currentTargetMsg);
-    if (index !== -1) {
-        currentTargetMsg.remove();
-        let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-        history.splice(index, 1);
+    
+    const historyIndex = currentTargetMsg.dataset.historyIndex;
+    const splitIndex = currentTargetMsg.dataset.splitIndex;
+    
+    let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+    
+    if (historyIndex !== undefined) {
+        const hIdx = parseInt(historyIndex, 10);
+        const historyItem = history[hIdx];
+        
+        if (splitIndex !== undefined && historyItem?.generationMode === 'multi' && Array.isArray(historyItem.splitMessages)) {
+            const sIdx = parseInt(splitIndex, 10);
+            historyItem.splitMessages.splice(sIdx, 1);
+            
+            if (historyItem.splitMessages.length === 0) {
+                history.splice(hIdx, 1);
+            } else {
+                historyItem.content = historyItem.splitMessages.join('\n\n');
+            }
+        } else {
+            history.splice(hIdx, 1);
+        }
+        
         localStorage.setItem('sx_chat_history', JSON.stringify(history));
-
+        
         const activeId = getActiveChatId();
         if (activeId) {
             const sessions = loadChatSessions();
@@ -6813,7 +6838,10 @@ window.deleteMsg = (e) => {
                 saveChatSessions(sessions);
             }
         }
+        
+        renderHistory();
     }
+    
     closeContextMenu();
 };
 
@@ -6866,6 +6894,91 @@ window.triggerRegen = async (e) => {
 
     renderHistory();
     await handleTriggerAI();
+};
+
+window.editMsg = (e) => {
+    e.stopPropagation();
+    if (!currentTargetMsg) return;
+    
+    const bubble = currentTargetMsg.querySelector('.bubble');
+    if (!bubble) {
+        closeContextMenu();
+        return;
+    }
+    
+    const isEditing = bubble.getAttribute('contenteditable') === 'true';
+    if (isEditing) {
+        closeContextMenu();
+        return;
+    }
+    
+    const originalText = bubble.innerText?.trim() || '';
+    bubble.setAttribute('contenteditable', 'true');
+    bubble.classList.add('editing');
+    bubble.focus();
+    
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(bubble);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
+    const saveEdit = () => {
+        const newText = bubble.innerText?.trim() || originalText;
+        bubble.setAttribute('contenteditable', 'false');
+        bubble.classList.remove('editing');
+        
+        if (newText !== originalText) {
+            const historyIndex = currentTargetMsg.dataset.historyIndex;
+            const splitIndex = currentTargetMsg.dataset.splitIndex;
+            
+            let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+            
+            if (historyIndex !== undefined) {
+                const hIdx = parseInt(historyIndex, 10);
+                const historyItem = history[hIdx];
+                
+                if (splitIndex !== undefined && historyItem?.generationMode === 'multi' && Array.isArray(historyItem.splitMessages)) {
+                    const sIdx = parseInt(splitIndex, 10);
+                    historyItem.splitMessages[sIdx] = newText;
+                    historyItem.content = historyItem.splitMessages.join('\n\n');
+                } else if (historyItem) {
+                    historyItem.content = newText;
+                }
+                
+                localStorage.setItem('sx_chat_history', JSON.stringify(history));
+                
+                const activeId = getActiveChatId();
+                if (activeId) {
+                    const sessions = loadChatSessions();
+                    const target = sessions.find(s => s.id === activeId);
+                    if (target) {
+                        target.history = history;
+                        saveChatSessions(sessions);
+                    }
+                }
+            }
+        }
+        
+        bubble.removeEventListener('blur', saveEdit);
+        bubble.removeEventListener('keydown', handleKeydown);
+    };
+    
+    const handleKeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            bubble.blur();
+        }
+        if (e.key === 'Escape') {
+            bubble.innerText = originalText;
+            bubble.blur();
+        }
+    };
+    
+    bubble.addEventListener('blur', saveEdit);
+    bubble.addEventListener('keydown', handleKeydown);
+    
+    closeContextMenu();
 };
 
 // --- 11. API 設定初始化 (手機/iOS 兼容) ---
