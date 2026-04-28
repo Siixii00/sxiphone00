@@ -5593,6 +5593,187 @@ setInterval(() => {
     EnvAwarenessManager.updateWeatherCache();
 }, 30 * 60 * 1000);
 
+function initEncryptedCardImport() {
+    const cardApiUrlInput = document.getElementById('card-api-url');
+    const cardApiTestBtn = document.getElementById('card-api-test-btn');
+    const cardApiSaveBtn = document.getElementById('card-api-save-btn');
+    const cardApiStatus = document.getElementById('card-api-status');
+    const encryptedCodeInput = document.getElementById('encrypted-code-input');
+    const requestKeyBtn = document.getElementById('request-key-btn');
+    const importEncryptedCardBtn = document.getElementById('import-encrypted-card-btn');
+    const encryptedCardStatus = document.getElementById('encrypted-card-status');
+    const encryptedCardPreview = document.getElementById('encrypted-card-preview');
+    const deviceIdDisplay = document.getElementById('device-id-display');
+    
+    let currentCardData = null;
+    let currentUsageId = null;
+    
+    if (deviceIdDisplay && window.CharacterCardCrypto) {
+        deviceIdDisplay.textContent = CharacterCardCrypto.getDeviceId();
+    }
+    
+    const savedApiUrl = localStorage.getItem('sx_card_api_url') || '';
+    if (cardApiUrlInput) {
+        cardApiUrlInput.value = savedApiUrl;
+    }
+    
+    if (cardApiSaveBtn) {
+        cardApiSaveBtn.addEventListener('click', () => {
+            const url = cardApiUrlInput?.value.trim() || '';
+            if (url) {
+                localStorage.setItem('sx_card_api_url', url);
+                if (cardApiStatus) cardApiStatus.textContent = '✅ API 網址已儲存';
+            } else {
+                localStorage.removeItem('sx_card_api_url');
+                if (cardApiStatus) cardApiStatus.textContent = '已清除 API 網址';
+            }
+        });
+    }
+    
+    if (cardApiTestBtn) {
+        cardApiTestBtn.addEventListener('click', async () => {
+            const url = cardApiUrlInput?.value.trim();
+            if (!url) {
+                if (cardApiStatus) cardApiStatus.textContent = '❌ 請輸入 API 網址';
+                return;
+            }
+            
+            if (cardApiStatus) cardApiStatus.textContent = '測試連接中...';
+            
+            try {
+                const response = await fetch(`${url}/health`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    if (cardApiStatus) cardApiStatus.textContent = '✅ 連接成功';
+                } else {
+                    if (cardApiStatus) cardApiStatus.textContent = `⚠️ 伺服器回應 ${response.status}`;
+                }
+            } catch (e) {
+                if (cardApiStatus) cardApiStatus.textContent = `❌ 連接失敗：${e.message}`;
+            }
+        });
+    }
+    
+    if (requestKeyBtn) {
+        requestKeyBtn.addEventListener('click', async () => {
+            const code = encryptedCodeInput?.value.trim();
+            if (!code) {
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '❌ 請輸入加密代碼';
+                return;
+            }
+            
+            if (!window.CharacterCardCrypto) {
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '❌ 加密模組未載入';
+                return;
+            }
+            
+            if (encryptedCardStatus) encryptedCardStatus.textContent = '解析加密代碼中...';
+            
+            try {
+                const parsedCode = CharacterCardCrypto.parseEncryptedCode(code);
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '申請一次性金鑰中...';
+                
+                const apiUrl = localStorage.getItem('sx_card_api_url') || '';
+                if (!apiUrl) {
+                    if (encryptedCardStatus) encryptedCardStatus.textContent = '❌ 請先設定後端 API 網址';
+                    return;
+                }
+                
+                const keyResult = await CharacterCardCrypto.requestOneTimeKey(
+                    parsedCode.cardId,
+                    parsedCode.creatorId,
+                    apiUrl
+                );
+                
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '解密角色卡中...';
+                
+                const characterData = await CharacterCardCrypto.decryptCharacterCard(
+                    parsedCode.encryptedData,
+                    keyResult.oneTimeKey,
+                    parsedCode.iv,
+                    parsedCode.tag
+                );
+                
+                currentCardData = characterData;
+                currentUsageId = keyResult.usageId;
+                
+                if (encryptedCardPreview) {
+                    encryptedCardPreview.classList.remove('hidden');
+                    
+                    const nameEl = document.getElementById('preview-card-name');
+                    const creatorEl = document.getElementById('preview-card-creator');
+                    const personalityEl = document.getElementById('preview-card-personality');
+                    const backgroundEl = document.getElementById('preview-card-background');
+                    const avatarEl = document.getElementById('preview-card-avatar');
+                    
+                    if (nameEl) nameEl.textContent = characterData.name || '未命名角色';
+                    if (creatorEl) creatorEl.textContent = `創作者：${parsedCode.creatorId}`;
+                    if (personalityEl) personalityEl.textContent = characterData.personality ? `個性：${characterData.personality.slice(0, 100)}...` : '';
+                    if (backgroundEl) backgroundEl.textContent = characterData.background ? `背景：${characterData.background.slice(0, 100)}...` : '';
+                    
+                    if (avatarEl && characterData.avatar) {
+                        avatarEl.innerHTML = `<img src="${characterData.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                    }
+                    
+                    if (window.lucide) lucide.createIcons();
+                }
+                
+                if (importEncryptedCardBtn) importEncryptedCardBtn.disabled = false;
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '✅ 解密成功，請確認預覽後導入';
+                
+            } catch (e) {
+                console.error('[EncryptedCard] Error:', e);
+                if (encryptedCardStatus) encryptedCardStatus.textContent = `❌ ${e.message}`;
+                if (encryptedCardPreview) encryptedCardPreview.classList.add('hidden');
+                if (importEncryptedCardBtn) importEncryptedCardBtn.disabled = true;
+            }
+        });
+    }
+    
+    if (importEncryptedCardBtn) {
+        importEncryptedCardBtn.addEventListener('click', async () => {
+            if (!currentCardData) {
+                if (encryptedCardStatus) encryptedCardStatus.textContent = '❌ 沒有可導入的角色卡資料';
+                return;
+            }
+            
+            if (encryptedCardStatus) encryptedCardStatus.textContent = '儲存角色卡中...';
+            
+            try {
+                const savedChar = await CharacterCardCrypto.saveCharacterToLocalStorage(currentCardData);
+                
+                if (currentUsageId) {
+                    const apiUrl = localStorage.getItem('sx_card_api_url') || '';
+                    try {
+                        await CharacterCardCrypto.confirmImport(currentUsageId, apiUrl);
+                    } catch (e) {
+                        console.warn('[EncryptedCard] Failed to confirm import:', e);
+                    }
+                }
+                
+                if (encryptedCardStatus) encryptedCardStatus.textContent = `✅ 角色「${savedChar.name}」已成功導入`;
+                if (importEncryptedCardBtn) importEncryptedCardBtn.disabled = true;
+                if (encryptedCodeInput) encryptedCodeInput.value = '';
+                if (encryptedCardPreview) encryptedCardPreview.classList.add('hidden');
+                
+                currentCardData = null;
+                currentUsageId = null;
+                
+                if (typeof updateCharListUI === 'function') {
+                    updateCharListUI();
+                }
+                
+            } catch (e) {
+                console.error('[EncryptedCard] Save error:', e);
+                if (encryptedCardStatus) encryptedCardStatus.textContent = `❌ 儲存失敗：${e.message}`;
+            }
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         initMemoryTableSettings();
@@ -5602,6 +5783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         BackgroundPushManager.init();
         EnvAwarenessManager.init();
         FullscreenManager.init();
+        initEncryptedCardImport();
     }, 100);
 });
 

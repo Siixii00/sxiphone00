@@ -4850,3 +4850,191 @@ body {
 .arcade-custom-appearance input::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* 射飛鏢樣式 */
+.dart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 20px;
+}
+
+.dart-mode-prompt {
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dart-mode-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.dart-mode-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.dart-mode-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.dart-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dart-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--accent);
+}
+
+.dart-mode-btn i {
+  font-size: 24px;
+}
+
+.dart-mode-btn span {
+  font-size: 12px;
+}
+
+.dart-mode-prompt.hidden {
+  display: none;
+}
+
+.dart-header {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 300px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.dart-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dart-stat .label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.dart-stat .value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dart-stat.hidden {
+  display: none;
+}
+
+.dart-board-area {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+#dart-canvas {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dart-last-score {
+  position: absolute;
+  padding: 8px 16px;
+  background: rgba(251, 191, 36, 0.9);
+  color: #000;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 8px;
+  animation: dartScorePop 0.5s ease;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.dart-last-score.hidden {
+  display: none;
+}
+
+@keyframes dartScorePop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.dart-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dart-throw-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dart-throw-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.dart-throw-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dart-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.game-bg-layer.dart-bg {
+  background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
+}

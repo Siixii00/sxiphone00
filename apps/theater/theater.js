@@ -1688,7 +1688,7 @@
 
 ${stylePrompts[style]}`;
 
-    const userPrompt = `請根據以下描述生成一個${style === 'interactive' ? '互動式' : style === 'visual' ? '視覺化卡片' : style === 'dialogue' ? '對話式' : '小遊'小遊戲'}劇場：
+    const userPrompt = `請根據以下描述生成一個${style === 'interactive' ? '互動式' : style === 'visual' ? '視覺化卡片' : style === 'dialogue' ? '對話式' : '小遊戲'}劇場：
 
 【劇場描述】
 ${input}

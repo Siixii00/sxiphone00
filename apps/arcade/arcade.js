@@ -279,6 +279,7 @@ function openGameFromMap(machineId, machine) {
     whackamole: renderWhackAMoleGame,
     memory: renderMemoryGame,
     pinball: renderPinballGame,
+    dart: renderDartGame,
     gacha_genshin: () => renderGachaGameForMachine('genshin'),
     gacha_starrail: () => renderGachaGameForMachine('starrail'),
     gacha_zzz: () => renderGachaGameForMachine('zzz'),
@@ -360,7 +361,7 @@ function openGameFromMap(machineId, machine) {
     window.achievementEngine.checkAchievement(`play_${machineId}`);
   }
   
-  if (hasCharacter && characterDialogue && ['snake', 'slot', 'tetris', 'whackamole', 'memory'].includes(machineId)) {
+  if (hasCharacter && characterDialogue && ['snake', 'slot', 'tetris', 'whackamole', 'memory', 'dart'].includes(machineId)) {
     characterDialogue.onGameStart(machine.name);
   }
 }
@@ -3132,6 +3133,407 @@ function pinballGameLoop() {
   pinballCtx.fill();
   
   pinballAnimationId = requestAnimationFrame(pinballGameLoop);
+}
+
+// ============ 射飛鏢 ============
+let dartCanvas = null;
+let dartCtx = null;
+let dartScore = 0;
+let dartDartsLeft = 5;
+let dartRound = 1;
+let dartAim = { x: 150, y: 200 };
+let dartThrown = [];
+let dartAnimating = false;
+let dartLastScore = 0;
+let dartCharacterScore = 0;
+let dartDualMode = null;
+let dartAnimationId = null;
+
+const DART_SCORES = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+
+function renderDartGame() {
+  const area = document.getElementById('game-area');
+  const hasCharacter = window.arcadeGame?.character && Character.hasCharacter();
+  
+  let modeSelectorHTML = '';
+  if (hasCharacter && !dartDualMode) {
+    modeSelectorHTML = `
+      <div class="dart-mode-prompt" id="dart-mode-prompt">
+        <div class="dart-mode-title">🎯 偵測到已邀請角色</div>
+        <div class="dart-mode-subtitle">選擇遊戲模式</div>
+        <div class="dart-mode-buttons">
+          <button class="dart-mode-btn" onclick="startDartMode('single')">
+            <i class="fas fa-user"></i>
+            <span>單人模式</span>
+          </button>
+          <button class="dart-mode-btn" onclick="startDartMode('versus')">
+            <i class="fas fa-swords"></i>
+            <span>對戰模式</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  area.innerHTML = `
+    <div class="dart-container">
+      ${modeSelectorHTML}
+      <div class="dart-header">
+        <div class="dart-stat">
+          <span class="label">回合</span>
+          <span class="value" id="dart-round">1</span>
+        </div>
+        <div class="dart-stat">
+          <span class="label">飛鏢</span>
+          <span class="value" id="dart-left">5</span>
+        </div>
+        <div class="dart-stat">
+          <span class="label">玩家</span>
+          <span class="value" id="dart-score">0</span>
+        </div>
+        <div class="dart-stat hidden" id="dart-character-stat">
+          <span class="label">角色</span>
+          <span class="value" id="dart-character-score">0</span>
+        </div>
+      </div>
+      <div class="dart-board-area">
+        <canvas id="dart-canvas" width="300" height="400"></canvas>
+        <div class="dart-last-score hidden" id="dart-last-score"></div>
+      </div>
+      <div class="dart-controls">
+        <button class="dart-throw-btn" id="dart-throw-btn" onclick="throwDart()">
+          <i class="fas fa-crosshairs"></i> 發射
+        </button>
+      </div>
+      <div class="dart-hint">移動滑鼠或觸控瞄準，點擊發射</div>
+    </div>
+  `;
+  
+  if (!hasCharacter) {
+    initDartGame();
+  }
+}
+
+function startDartMode(mode) {
+  dartDualMode = mode;
+  const prompt = document.getElementById('dart-mode-prompt');
+  if (prompt) prompt.classList.add('hidden');
+  
+  if (mode === 'versus') {
+    document.getElementById('dart-character-stat').classList.remove('hidden');
+  }
+  
+  initDartGame();
+}
+
+function initDartGame() {
+  dartCanvas = document.getElementById('dart-canvas');
+  dartCtx = dartCanvas.getContext('2d');
+  dartScore = 0;
+  dartCharacterScore = 0;
+  dartDartsLeft = 5;
+  dartRound = 1;
+  dartThrown = [];
+  dartAim = { x: 150, y: 200 };
+  dartAnimating = false;
+  
+  document.getElementById('dart-score').textContent = '0';
+  document.getElementById('dart-left').textContent = '5';
+  document.getElementById('dart-round').textContent = '1';
+  
+  dartCanvas.addEventListener('mousemove', handleDartAim);
+  dartCanvas.addEventListener('touchmove', handleDartTouch);
+  dartCanvas.addEventListener('click', throwDart);
+  
+  renderDartBoard();
+}
+
+function handleDartAim(e) {
+  if (dartAnimating || dartDartsLeft <= 0) return;
+  
+  const rect = dartCanvas.getBoundingClientRect();
+  dartAim.x = e.clientX - rect.left;
+  dartAim.y = e.clientY - rect.top;
+  
+  renderDartBoard();
+}
+
+function handleDartTouch(e) {
+  e.preventDefault();
+  if (dartAnimating || dartDartsLeft <= 0) return;
+  
+  const rect = dartCanvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  dartAim.x = touch.clientX - rect.left;
+  dartAim.y = touch.clientY - rect.top;
+  
+  renderDartBoard();
+}
+
+function renderDartBoard() {
+  if (!dartCtx) return;
+  
+  const cx = 150;
+  const cy = 180;
+  const outerRadius = 140;
+  
+  dartCtx.fillStyle = '#1a1a2e';
+  dartCtx.fillRect(0, 0, 300, 400);
+  
+  dartCtx.fillStyle = '#0d0d15';
+  dartCtx.beginPath();
+  dartCtx.arc(cx, cy, outerRadius + 5, 0, Math.PI * 2);
+  dartCtx.fill();
+  
+  const colors = ['#1a1a1a', '#e8dcc4'];
+  for (let i = 0; i < 20; i++) {
+    const startAngle = (i * 18 - 99) * Math.PI / 180;
+    const endAngle = ((i + 1) * 18 - 99) * Math.PI / 180;
+    
+    dartCtx.fillStyle = colors[i % 2];
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.arc(cx, cy, outerRadius, startAngle, endAngle);
+    dartCtx.closePath();
+    dartCtx.fill();
+  }
+  
+  for (let i = 0; i < 20; i++) {
+    const startAngle = (i * 18 - 99) * Math.PI / 180;
+    const endAngle = ((i + 1) * 18 - 99) * Math.PI / 180;
+    
+    dartCtx.fillStyle = i % 2 === 0 ? '#22c55e' : '#ef4444';
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.arc(cx, cy, outerRadius * 0.9, startAngle, endAngle);
+    dartCtx.closePath();
+    dartCtx.fill();
+    
+    dartCtx.fillStyle = colors[i % 2];
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.arc(cx, cy, outerRadius * 0.54, startAngle, endAngle);
+    dartCtx.closePath();
+    dartCtx.fill();
+    
+    dartCtx.fillStyle = i % 2 === 0 ? '#22c55e' : '#ef4444';
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.arc(cx, cy, outerRadius * 0.48, startAngle, endAngle);
+    dartCtx.closePath();
+    dartCtx.fill();
+    
+    dartCtx.fillStyle = colors[i % 2];
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.arc(cx, cy, outerRadius * 0.16, startAngle, endAngle);
+    dartCtx.closePath();
+    dartCtx.fill();
+  }
+  
+  dartCtx.fillStyle = '#22c55e';
+  dartCtx.beginPath();
+  dartCtx.arc(cx, cy, outerRadius * 0.07, 0, Math.PI * 2);
+  dartCtx.fill();
+  
+  dartCtx.fillStyle = '#ef4444';
+  dartCtx.beginPath();
+  dartCtx.arc(cx, cy, outerRadius * 0.03, 0, Math.PI * 2);
+  dartCtx.fill();
+  
+  dartCtx.strokeStyle = '#333';
+  dartCtx.lineWidth = 1;
+  for (let i = 0; i < 20; i++) {
+    const angle = (i * 18 - 99) * Math.PI / 180;
+    dartCtx.beginPath();
+    dartCtx.moveTo(cx, cy);
+    dartCtx.lineTo(cx + Math.cos(angle) * outerRadius, cy + Math.sin(angle) * outerRadius);
+    dartCtx.stroke();
+  }
+  
+  dartCtx.font = '10px Arial';
+  dartCtx.fillStyle = '#fbbf24';
+  dartCtx.textAlign = 'center';
+  dartCtx.textBaseline = 'middle';
+  for (let i = 0; i < 20; i++) {
+    const angle = (i * 18 - 90) * Math.PI / 180;
+    const x = cx + Math.cos(angle) * (outerRadius + 12);
+    const y = cy + Math.sin(angle) * (outerRadius + 12);
+    dartCtx.fillText(DART_SCORES[i].toString(), x, y);
+  }
+  
+  dartThrown.forEach(dart => {
+    dartCtx.fillStyle = '#fbbf24';
+    dartCtx.beginPath();
+    dartCtx.arc(dart.x, dart.y, 4, 0, Math.PI * 2);
+    dartCtx.fill();
+    
+    dartCtx.strokeStyle = '#f59e0b';
+    dartCtx.lineWidth = 2;
+    dartCtx.beginPath();
+    dartCtx.moveTo(dart.x, dart.y);
+    dartCtx.lineTo(dart.x, dart.y - 8);
+    dartCtx.stroke();
+  });
+  
+  if (!dartAnimating && dartDartsLeft > 0) {
+    dartCtx.strokeStyle = 'rgba(251, 191, 36, 0.5)';
+    dartCtx.lineWidth = 1;
+    dartCtx.setLineDash([5, 5]);
+    dartCtx.beginPath();
+    dartCtx.arc(dartAim.x, dartAim.y, 15, 0, Math.PI * 2);
+    dartCtx.stroke();
+    dartCtx.beginPath();
+    dartCtx.moveTo(dartAim.x - 20, dartAim.y);
+    dartCtx.lineTo(dartAim.x + 20, dartAim.y);
+    dartCtx.stroke();
+    dartCtx.beginPath();
+    dartCtx.moveTo(dartAim.x, dartAim.y - 20);
+    dartCtx.lineTo(dartAim.x, dartAim.y + 20);
+    dartCtx.stroke();
+    dartCtx.setLineDash([]);
+  }
+  
+  dartCtx.fillStyle = '#333';
+  dartCtx.fillRect(0, 350, 300, 50);
+  dartCtx.fillStyle = '#fbbf24';
+  dartCtx.font = '14px Arial';
+  dartCtx.textAlign = 'center';
+  dartCtx.fillText('得分區域: 靶心50分 | 內圈25分 | 雙倍環/三倍環加乘', 150, 375);
+}
+
+function throwDart() {
+  if (dartAnimating || dartDartsLeft <= 0) return;
+  
+  dartAnimating = true;
+  const btn = document.getElementById('dart-throw-btn');
+  if (btn) btn.disabled = true;
+  
+  const cx = 150;
+  const cy = 180;
+  const outerRadius = 140;
+  
+  const accuracy = 0.85 + Math.random() * 0.15;
+  const targetX = cx + (dartAim.x - cx) * accuracy + (Math.random() - 0.5) * 20;
+  const targetY = cy + (dartAim.y - cy) * accuracy + (Math.random() - 0.5) * 20;
+  
+  const dx = targetX - cx;
+  const dy = targetY - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  let score = calculateDartScore(dist, dx, dy, outerRadius);
+  
+  dartThrown.push({ x: targetX, y: targetY, score: score });
+  dartLastScore = score;
+  dartScore += score;
+  
+  dartDartsLeft--;
+  document.getElementById('dart-score').textContent = dartScore;
+  document.getElementById('dart-left').textContent = dartDartsLeft;
+  
+  showDartScore(score, targetX, targetY);
+  
+  renderDartBoard();
+  
+  setTimeout(() => {
+    dartAnimating = false;
+    if (btn) btn.disabled = false;
+    
+    if (dartDartsLeft <= 0) {
+      if (dartDualMode === 'versus') {
+        characterThrowDart();
+      } else {
+        endDartRound();
+      }
+    }
+  }, 500);
+}
+
+function calculateDartScore(dist, dx, dy, outerRadius) {
+  const cx = 150;
+  const cy = 180;
+  
+  if (dist <= outerRadius * 0.03) return 50;
+  if (dist <= outerRadius * 0.07) return 25;
+  if (dist > outerRadius) return 0;
+  
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI + 99;
+  if (angle < 0) angle += 360;
+  const segmentIndex = Math.floor(angle / 18) % 20;
+  const baseScore = DART_SCORES[segmentIndex];
+  
+  const normalizedDist = dist / outerRadius;
+  
+  if (normalizedDist > 0.9 && normalizedDist <= 1.0) {
+    return baseScore * 2;
+  }
+  if (normalizedDist > 0.48 && normalizedDist <= 0.54) {
+    return baseScore * 3;
+  }
+  
+  return baseScore;
+}
+
+function showDartScore(score, x, y) {
+  const lastScoreEl = document.getElementById('dart-last-score');
+  if (lastScoreEl) {
+    lastScoreEl.textContent = score > 0 ? `+${score}` : 'Miss!';
+    lastScoreEl.className = 'dart-last-score';
+    lastScoreEl.style.left = `${x}px`;
+    lastScoreEl.style.top = `${y}px`;
+    
+    setTimeout(() => {
+      lastScoreEl.classList.add('hidden');
+    }, 1000);
+  }
+}
+
+function characterThrowDart() {
+  const cx = 150;
+  const cy = 180;
+  const outerRadius = 140;
+  
+  let charScore = 0;
+  for (let i = 0; i < 5; i++) {
+    const targetX = cx + (Math.random() - 0.5) * 100;
+    const targetY = cy + (Math.random() - 0.5) * 100;
+    const dx = targetX - cx;
+    const dy = targetY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    charScore += calculateDartScore(dist, dx, dy, outerRadius);
+  }
+  
+  dartCharacterScore = charScore;
+  document.getElementById('dart-character-score').textContent = dartCharacterScore;
+  
+  setTimeout(() => {
+    const winner = dartScore > dartCharacterScore ? '玩家' : 
+                   dartScore < dartCharacterScore ? '角色' : '平手';
+    alert(`遊戲結束！\n玩家: ${dartScore} 分\n角色: ${dartCharacterScore} 分\n\n${winner === '平手' ? '平手！' : winner + ' 獲勝！'}`);
+    updateHighScore('dart', dartScore);
+    dartDualMode = null;
+  }, 500);
+}
+
+function endDartRound() {
+  dartRound++;
+  
+  if (dartRound > 3) {
+    alert(`遊戲結束！總分: ${dartScore}`);
+    updateHighScore('dart', dartScore);
+    
+    if (window.achievementEngine) {
+      window.achievementEngine.updateStat('dart_score', dartScore);
+    }
+    return;
+  }
+  
+  dartDartsLeft = 5;
+  dartThrown = [];
+  document.getElementById('dart-left').textContent = '5';
+  document.getElementById('dart-round').textContent = dartRound;
+  
+  renderDartBoard();
 }
 
 // ============ 成人遊戲 ============

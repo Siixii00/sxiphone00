@@ -1390,6 +1390,91 @@
         </details>
     </section>
 
+    <!-- 加密角色卡導入 -->
+    <section class="group" id="settings-encrypted-card">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="key"></i>
+                    <span>加密角色卡導入</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">後端 API 設定</span>
+                    <p class="ios-caption">設定角色卡服務的後端 API 網址。此服務用於驗證與核發一次性解密金鑰。</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">API 網址</span>
+                    <input id="card-api-url" class="ios-input" placeholder="https://your-api.example.com">
+                </div>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="ios-btn" id="card-api-test-btn">測試連接</button>
+                    <button class="ios-btn primary" id="card-api-save-btn">保存設定</button>
+                </div>
+                <p class="ios-caption" id="card-api-status" style="margin-top:8px;"></p>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">導入加密角色卡</span>
+                    <p class="ios-caption">貼上創作者提供的加密代碼，申請一次性金鑰後即可導入角色卡。</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">加密代碼</span>
+                    <textarea id="encrypted-code-input" class="ios-textarea" rows="3" placeholder="貼上加密代碼（Base64 格式）"></textarea>
+                </div>
+                <div class="btn-row" style="margin-top:12px;">
+                    <button class="ios-btn" id="request-key-btn">申請金鑰</button>
+                    <button class="ios-btn primary" id="import-encrypted-card-btn" disabled>確認導入</button>
+                </div>
+                <p class="ios-caption" id="encrypted-card-status" style="margin-top:8px;"></p>
+
+                <div id="encrypted-card-preview" class="hidden" style="margin-top:16px;">
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin-bottom:16px;">
+                    <div class="cell-v">
+                        <span class="cell-label" style="font-weight:600;">角色卡預覽</span>
+                    </div>
+                    <div id="encrypted-card-preview-content" style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                            <div id="preview-card-avatar" style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                                <i data-lucide="bot" style="color:var(--ios-gray);"></i>
+                            </div>
+                            <div>
+                                <div id="preview-card-name" style="font-weight:600;font-size:16px;">—</div>
+                                <div id="preview-card-creator" style="font-size:12px;color:var(--ios-gray);">創作者：—</div>
+                            </div>
+                        </div>
+                        <div id="preview-card-personality" style="font-size:13px;color:var(--ios-gray);margin-bottom:8px;"></div>
+                        <div id="preview-card-background" style="font-size:13px;color:var(--ios-gray);"></div>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">使用說明</span>
+                    <div style="margin-top:12px;font-size:12px;color:var(--ios-gray);line-height:1.8;">
+                        <p><strong>步驟 1：</strong>向創作者索取加密代碼</p>
+                        <p><strong>步驟 2：</strong>貼上加密代碼到上方輸入框</p>
+                        <p><strong>步驟 3：</strong>點擊「申請金鑰」按鈕</p>
+                        <p><strong>步驟 4：</strong>預覽角色卡資訊</p>
+                        <p><strong>步驟 5：</strong>確認無誤後點擊「確認導入」</p>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label">裝置 ID</span>
+                    <p class="ios-caption" id="device-id-display" style="margin-top:4px;font-family:monospace;font-size:11px;word-break:break-all;">載入中...</p>
+                    <p class="ios-caption" style="margin-top:4px;">此 ID 用於識別您的裝置，創作者可查看誰導入了角色卡。</p>
+                </div>
+            </div>
+        </details>
+    </section>
+
     <!-- 顯示設定 -->
     <section class="group" id="settings-display">
         <details>
@@ -1461,6 +1546,8 @@
 <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
 <script src="../scripts/shared-settings.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/character-card-crypto.js"></script>
+<script src="../scripts/firebase-card-config.js"></script>
 <script src="settings.js"></script>
 <script>
     // 初始化 Lucide 圖標
