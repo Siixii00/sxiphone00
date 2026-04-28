@@ -1067,3 +1067,105 @@ textarea::-webkit-scrollbar, .ios-textarea::-webkit-scrollbar {
     background: rgba(255, 59, 48, 0.2);
     color: #FF3B30;
 }
+
+/* Developer Info Card */
+.developer-info-card {
+    padding: 16px;
+    text-align: center;
+}
+
+.developer-info-content {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.developer-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.developer-info-row:last-child {
+    border-bottom: none;
+}
+
+.developer-info-label {
+    font-size: 14px;
+    color: var(--ios-gray);
+}
+
+.developer-info-value {
+    font-size: 14px;
+    color: var(--ios-text);
+    font-weight: 500;
+}
+
+.developer-info-value.status-dev {
+    color: #FF9500;
+    background: rgba(255, 149, 0, 0.15);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.developer-info-value.status-beta {
+    color: #BF5AF2;
+    background: rgba(191, 90, 242, 0.15);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.developer-info-note {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 149, 0, 0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 149, 0, 0.15);
+}
+
+.developer-info-note .ios-caption {
+    color: #FF9500;
+    text-align: center;
+    font-size: 12px;
+}
+
+.developer-info-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: var(--ios-gray);
+    font-size: 12px;
+}
+
+.developer-info-footer [data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.developer-info-open-source {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(52, 199, 94, 0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(52, 199, 94, 0.15);
+    color: #34C759;
+    font-size: 12px;
+}
+
+.developer-info-open-source [data-lucide] {
+    width: 16px !important;
+    height: 16px !important;
+}
