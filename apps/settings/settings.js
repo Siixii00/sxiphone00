@@ -14,6 +14,189 @@ let iosTempData = null;
 const APP_FOLDER_PREFIX = 'sx_app_';
 const APP_FOLDER_SUFFIX = '_folder';
 
+const i18n = {
+    'zh-Hant': {
+        back: '返回',
+        controlCenter: '控制中心',
+        charManagement: '角色管理 (char)',
+        addChar: '新增角色',
+        charList: '角色清單',
+        setAvatar: '設定頭貼',
+        charName: '角色名稱',
+        charAvatarUrl: '頭貼 URL',
+        charPersonality: '個性 / Persona',
+        charBackground: '背景 / Story',
+        charWorldbook: 'WorldBook 參考 (可留空)',
+        charExamples: '對話範例 / Examples',
+        charSleepStart: '睡眠時間（開始）',
+        charSleepEnd: '睡眠時間（結束）',
+        saveChar: '儲存角色',
+        deleteChar: '刪除角色',
+        userManager: '用戶管理 (user)',
+        addUser: '新增用戶',
+        userList: '用戶清單',
+        userName: '用戶名稱',
+        userAvatarUrl: '頭貼 URL',
+        userPersonality: '個性 / Persona',
+        userBackground: '背景 / Story',
+        saveUser: '儲存用戶',
+        deleteUser: '刪除用戶',
+        apiSettings: 'API 設定',
+        apiUrl: 'API URL',
+        apiKey: 'API Key',
+        model: '模型',
+        saveApi: '儲存 API',
+        language: '語言',
+        theme: '主題',
+        darkMode: '深色模式',
+        lightMode: '淺色模式',
+        appearance: '外觀設定',
+        fontSize: '字體大小',
+        accentColor: '強調色',
+        memory: '記憶系統',
+        memoryInterval: '記憶間隔',
+        worldbook: '世界書',
+        importExport: '匯入/匯出',
+        import: '匯入',
+        export: '匯出',
+        reset: '重置',
+        confirmReset: '確定要重置所有設定嗎？',
+        yes: '是',
+        no: '否',
+        cancel: '取消',
+        confirm: '確定',
+        save: '儲存',
+        delete: '刪除',
+        edit: '編輯',
+        add: '新增',
+        search: '搜尋',
+        loading: '載入中...',
+        success: '成功',
+        error: '錯誤',
+        warning: '警告',
+        info: '資訊',
+        noData: '無資料',
+        selectChar: '選擇角色',
+        selectUser: '選擇用戶',
+        activeChar: '目前角色',
+        activeUser: '目前用戶',
+        presetManagement: '預設管理',
+        charPresets: '角色預設',
+        userPresets: '用戶預設',
+        applyPreset: '套用預設',
+        saveAsPreset: '儲存為預設',
+        presetName: '預設名稱',
+        presetDesc: '預設描述',
+        examplePlaceholder: '輸入對話範例，讓 AI 學習角色的說話風格。\n\n格式說明：\n- 完整模式：對話用「」、內心活動用()、動作直接描寫\n- 純對話模式：只輸出對話文字\n- 敘事模式：第三人稱小說風格',
+        exampleHint: '提供對話範例可讓 AI 更準確地模仿角色的語氣和風格，但 AI 不會照抄範例內容。'
+    },
+    'zh-Hans': {
+        back: '返回',
+        controlCenter: '控制中心',
+        charManagement: '角色管理 (char)',
+        addChar: '新增角色',
+        charList: '角色清单',
+        setAvatar: '设定头像',
+        charName: '角色名称',
+        charAvatarUrl: '头像 URL',
+        charPersonality: '个性 / Persona',
+        charBackground: '背景 / Story',
+        charWorldbook: 'WorldBook 参考 (可留空)',
+        charExamples: '对话范例 / Examples',
+        charSleepStart: '睡眠时间（开始）',
+        charSleepEnd: '睡眠时间（结束）',
+        saveChar: '储存角色',
+        deleteChar: '删除角色',
+        userManager: '用户管理 (user)',
+        addUser: '新增用户',
+        userList: '用户清单',
+        userName: '用户名称',
+        userAvatarUrl: '头像 URL',
+        userPersonality: '个性 / Persona',
+        userBackground: '背景 / Story',
+        saveUser: '储存用户',
+        deleteUser: '删除用户',
+        apiSettings: 'API 设定',
+        apiUrl: 'API URL',
+        apiKey: 'API Key',
+        model: '模型',
+        saveApi: '储存 API',
+        language: '语言',
+        theme: '主题',
+        darkMode: '深色模式',
+        lightMode: '浅色模式',
+        appearance: '外观设定',
+        fontSize: '字体大小',
+        accentColor: '强调色',
+        memory: '记忆系统',
+        memoryInterval: '记忆间隔',
+        worldbook: '世界书',
+        importExport: '汇入/汇出',
+        import: '汇入',
+        export: '汇出',
+        reset: '重置',
+        confirmReset: '确定要重置所有设定吗？',
+        yes: '是',
+        no: '否',
+        cancel: '取消',
+        confirm: '确定',
+        save: '储存',
+        delete: '删除',
+        edit: '编辑',
+        add: '新增',
+        search: '搜寻',
+        loading: '载入中...',
+        success: '成功',
+        error: '错误',
+        warning: '警告',
+        info: '资讯',
+        noData: '无资料',
+        selectChar: '选择角色',
+        selectUser: '选择用户',
+        activeChar: '目前角色',
+        activeUser: '目前用户',
+        presetManagement: '预设管理',
+        charPresets: '角色预设',
+        userPresets: '用户预设',
+        applyPreset: '套用预设',
+        saveAsPreset: '储存为预设',
+        presetName: '预设名称',
+        presetDesc: '预设描述',
+        examplePlaceholder: '输入对话范例，让 AI 学习角色的说话风格。\n\n格式说明：\n- 完整模式：对话用「」、内心活动用()、动作直接描写\n- 纯对话模式：只输出对话文字\n- 叙事模式：第三人称小说风格',
+        exampleHint: '提供对话范例可让 AI 更准确地模仿角色的语气和风格，但 AI 不会照抄范例内容。'
+    }
+};
+
+function t(key) {
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    const normalizedLang = lang === 'zh-CN' || lang === 'zh-SG' ? 'zh-Hans' : lang;
+    return i18n[normalizedLang]?.[key] || i18n['zh-Hant'][key] || key;
+}
+
+function applyLanguageToUI() {
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    document.documentElement.lang = lang === 'zh-CN' || lang === 'zh-SG' ? 'zh-Hans' : lang;
+    
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (el.tagName === 'INPUT' && el.placeholder !== undefined) {
+            el.placeholder = t(key);
+        } else {
+            el.textContent = t(key);
+        }
+    });
+    
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+    
+    const navTitle = document.querySelector('.nav-title');
+    if (navTitle) navTitle.textContent = t('controlCenter');
+    
+    const backBtn = document.querySelector('.back-button span');
+    if (backBtn) backBtn.textContent = t('back');
+}
+
 const collectAppFolders = () => {
     const folders = {};
     for (let i = 0; i < localStorage.length; i += 1) {
@@ -285,6 +468,9 @@ function saveUserMask() {
     alert(`✅ 用戶「${name || 'User'}」的預設人設已更新並儲存`);
 }
 document.addEventListener('DOMContentLoaded', async () => {
+    // 0. 套用語言到 UI
+    applyLanguageToUI();
+    
     // 1. 初始化圖標與清單
     if (window.lucide) lucide.createIcons();
     await initStorage(); // 確保先讀取資料
@@ -1473,6 +1659,8 @@ window.addEventListener('message', (event) => {
         if (document.documentElement) {
             document.documentElement.lang = data.lang;
         }
+        // 套用語言到 UI
+        applyLanguageToUI();
         // 觸發語言更新回調
         if (typeof window.SxLanguage !== 'undefined' && typeof window.SxLanguage.triggerUpdate === 'function') {
             window.SxLanguage.triggerUpdate(data.lang);

@@ -19,9 +19,9 @@
 <nav class="nav-bar">
     <button class="back-button" onclick="handleBack()" aria-label="返回桌面">
         <i data-lucide="chevron-left"></i>
-        <span>返回</span>
+        <span data-i18n="back">返回</span>
     </button>
-    <h1 class="nav-title">控制中心</h1>
+    <h1 class="nav-title" data-i18n="controlCenter">控制中心</h1>
     <div></div>
 </nav>
 
@@ -34,7 +34,7 @@
         <summary class="group-summary">
             <div class="summary-left">
                 <i data-lucide="bot"></i>
-                <span>角色管理 (char)</span>
+                <span data-i18n="charManagement">角色管理 (char)</span>
             </div>
             <i data-lucide="chevron-right" class="arrow"></i>
         </summary>
@@ -42,12 +42,12 @@
             <details class="nested-details">
                 <summary class="cell-link">
                     <div class="summary-left">
-                        <span>新增角色</span>
+                        <span data-i18n="addChar">新增角色</span>
                     </div>
                 </summary>
                 <div id="char-manager">
                     <div class="ios-cell">
-                        <span class="cell-label">角色清單</span>
+                        <span class="cell-label" data-i18n="charList">角色清單</span>
                         <div id="char-list" class="ios-list"></div>
                     </div>
 
@@ -56,48 +56,48 @@
                             <div id="charAvatarPreview" class="ios-avatar-wrapper">
                                 <i data-lucide="bot"></i>
                             </div>
-                            <span class="ios-caption">設定頭貼</span>
+                            <span class="ios-caption" data-i18n="setAvatar">設定頭貼</span>
                         </div>
 
                         <div class="ios-form-group">
                             <div class="ios-cell">
-                                <label class="cell-label" for="char-name-input">角色名稱</label>
+                                <label class="cell-label" for="char-name-input" data-i18n="charName">角色名稱</label>
                                 <input id="char-name-input" class="ios-input-minimal" placeholder="例如：AI 助理">
                             </div>
 
                             <div class="ios-cell">
-                                <label class="cell-label" for="char-avatar-input">頭貼 URL</label>
+                                <label class="cell-label" for="char-avatar-input" data-i18n="charAvatarUrl">頭貼 URL</label>
                                 <input id="char-avatar-input" class="ios-input-minimal" placeholder="輸入圖片網址..." oninput="updateCharAvatarPreview(this.value)">
                             </div>
 
                             <div class="ios-cell-v">
-                                <label class="cell-label" for="char-personality-input">個性 / Persona</label>
+                                <label class="cell-label" for="char-personality-input" data-i18n="charPersonality">個性 / Persona</label>
                                 <textarea id="char-personality-input" class="ios-textarea-minimal" rows="2" placeholder="角色個性"></textarea>
                             </div>
 
                             <div class="ios-cell-v">
-                                <label class="cell-label" for="char-background-input">背景 / Story</label>
+                                <label class="cell-label" for="char-background-input" data-i18n="charBackground">背景 / Story</label>
                                 <textarea id="char-background-input" class="ios-textarea-minimal" rows="2" placeholder="背景描述"></textarea>
                             </div>
 
                             <div class="ios-cell-v">
-                                <label class="cell-label" for="char-worldbook-input">WorldBook 參考 (可留空)</label>
+                                <label class="cell-label" for="char-worldbook-input" data-i18n="charWorldbook">WorldBook 參考 (可留空)</label>
                                 <textarea id="char-worldbook-input" class="ios-textarea-minimal" rows="2" placeholder="WorldBook 名稱或描述"></textarea>
                             </div>
 
                             <div class="ios-cell-v">
-                                <label class="cell-label" for="char-examples-input">對話範例 / Examples</label>
-                                <textarea id="char-examples-input" class="ios-textarea-minimal" rows="4" placeholder="輸入對話範例，讓 AI 學習角色的說話風格。&#10;&#10;格式說明：&#10;- 完整模式：對話用「」、內心活動用()、動作直接描寫&#10;- 純對話模式：只輸出對話文字&#10;- 敘事模式：第三人稱小說風格"></textarea>
-                                <p class="ios-caption" style="margin-top:4px;">提供對話範例可讓 AI 更準確地模仿角色的語氣和風格，但 AI 不會照抄範例內容。</p>
+                                <label class="cell-label" for="char-examples-input" data-i18n="charExamples">對話範例 / Examples</label>
+                                <textarea id="char-examples-input" class="ios-textarea-minimal" rows="4" data-i18n-placeholder="examplePlaceholder"></textarea>
+                                <p class="ios-caption" style="margin-top:4px;" data-i18n="exampleHint">提供對話範例可讓 AI 更準確地模仿角色的語氣和風格，但 AI 不會照抄範例內容。</p>
                             </div>
 
                             <div class="ios-cell">
-                                <label class="cell-label" for="char-sleep-start">睡眠時間（開始）</label>
+                                <label class="cell-label" for="char-sleep-start" data-i18n="charSleepStart">睡眠時間（開始）</label>
                                 <input id="char-sleep-start" class="ios-input-minimal" type="time" placeholder="例如：23:00">
                             </div>
 
                             <div class="ios-cell">
-                                <label class="cell-label" for="char-sleep-end">睡眠時間（結束）</label>
+                                <label class="cell-label" for="char-sleep-end" data-i18n="charSleepEnd">睡眠時間（結束）</label>
                                 <input id="char-sleep-end" class="ios-input-minimal" type="time" placeholder="例如：07:00">
                             </div>
 
