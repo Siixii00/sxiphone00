@@ -515,7 +515,9 @@ async function hydrateWorldbookUI() {
         } catch (e) { console.error("LocalForage 讀取失敗", e); }
     }
 
+    const savedSelections = loadSelectedWorldbooks();
     let hasExistingData = false;
+    
     for (const cat of categories) {
         const key = `sx_worldbook_${cat}`;
         if (persistedData && persistedData[key] && persistedData[key].length > 0) {
@@ -531,6 +533,44 @@ async function hydrateWorldbookUI() {
                     break;
                 }
             } catch(e) {}
+        }
+    }
+
+    if (!hasExistingData && savedSelections.length > 0) {
+        const mergedData = {
+            sx_worldbook_cot: [],
+            sx_worldbook_style: [],
+            sx_worldbook_global: [],
+            sx_worldbook_keywords: [],
+            sx_worldbook_backend: []
+        };
+        
+        for (const id of savedSelections) {
+            const wb = BUILTIN_WORLDBOOKS.find(w => w.id === id);
+            if (!wb) continue;
+            
+            try {
+                const response = await fetch(wb.file);
+                if (!response.ok) continue;
+                
+                const data = await response.json();
+                categories.forEach(cat => {
+                    const key = `sx_worldbook_${cat}`;
+                    if (data[key] && Array.isArray(data[key])) {
+                        mergedData[key] = mergedData[key].concat(data[key]);
+                    }
+                });
+            } catch (e) {
+                console.error(`Failed to load ${wb.file}:`, e);
+            }
+        }
+        
+        for (const cat of categories) {
+            const key = `sx_worldbook_${cat}`;
+            if (mergedData[key] && mergedData[key].length > 0) {
+                localStorage.setItem(key, JSON.stringify(mergedData[key]));
+                hasExistingData = true;
+            }
         }
     }
 

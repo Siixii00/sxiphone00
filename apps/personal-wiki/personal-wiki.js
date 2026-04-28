@@ -48,6 +48,30 @@ const i18n = {
         conversations: '對話記錄',
         npcRelations: 'NPC 關係',
         worldView: '世界觀',
+
+function getApiConfig() {
+    if (typeof SxSettings !== 'undefined' && SxSettings.getActiveApiWithFallback) {
+        const api = SxSettings.getActiveApiWithFallback();
+        if (api) {
+            return {
+                endpoint: api.url,
+                key: api.key,
+                model: api.model || 'gpt-4o'
+            };
+        }
+    }
+    const configs = JSON.parse(localStorage.getItem('api_configs') || '[]');
+    if (configs.length > 0) {
+        const idx = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+        const api = configs[idx] || configs[0];
+        return {
+            endpoint: api.url,
+            key: api.key,
+            model: api.model || 'gpt-4o'
+        };
+    }
+    return null;
+}
         dailyLife: '日常生活',
         memoryGraph: '記憶圖譜',
         editEntry: '編輯條目',
@@ -1200,14 +1224,14 @@ ${extraPrompt ? `- 額外要求：${extraPrompt}` : ''}
 
 請直接輸出故事內容，不需要標題。`;
 
-    const apiEndpoint = document.getElementById('wikiApiEndpoint')?.value || localStorage.getItem('sx_api_url');
-    const apiKey = document.getElementById('wikiApiKey')?.value || localStorage.getItem('sx_api_key');
-    const model = document.getElementById('wikiModel')?.value || 'gpt-4o';
-    
-    if (!apiEndpoint || !apiKey) {
+    const config = getApiConfig();
+    if (!config) {
         alert(t('apiNotConfigured'));
         return;
     }
+    const apiEndpoint = config.endpoint;
+    const apiKey = config.key;
+    const model = config.model;
     
     try {
         const response = await fetch(apiEndpoint, {
@@ -2099,15 +2123,15 @@ document.addEventListener('DOMContentLoaded', initApp);
 window.addEventListener('pagehide', saveWikiData);
 
 async function generateWikiWithLLM() {
-    const apiEndpoint = document.getElementById('wikiApiEndpoint').value.trim();
-    const apiKey = document.getElementById('wikiApiKey').value.trim();
-    const model = document.getElementById('wikiModel').value.trim() || 'gpt-4o';
-    const prompt = document.getElementById('wikiPrompt').value.trim();
-    
-    if (!apiEndpoint || !apiKey) {
+    const config = getApiConfig();
+    if (!config) {
         alert(t('apiNotConfigured'));
         return;
     }
+    const apiEndpoint = config.endpoint;
+    const apiKey = config.key;
+    const model = config.model;
+    const prompt = document.getElementById('wikiPrompt').value.trim();
     
     const btn = document.querySelector('.btn-generate-wiki');
     const originalContent = btn.innerHTML;
@@ -2270,16 +2294,16 @@ async function generateCharWikiNow() {
         return;
     }
     
-    const apiEndpoint = document.getElementById('wikiApiEndpoint').value.trim();
-    const apiKey = document.getElementById('wikiApiKey').value.trim();
-    const model = document.getElementById('wikiModel').value.trim() || 'gpt-4o';
-    const scope = document.getElementById('charWikiScope').value;
-    const extraPrompt = document.getElementById('charWikiExtraPrompt').value.trim();
-    
-    if (!apiEndpoint || !apiKey) {
+    const config = getApiConfig();
+    if (!config) {
         alert(t('apiNotConfigured'));
         return;
     }
+    const apiEndpoint = config.endpoint;
+    const apiKey = config.key;
+    const model = config.model;
+    const scope = document.getElementById('charWikiScope').value;
+    const extraPrompt = document.getElementById('charWikiExtraPrompt').value.trim();
     
     const btn = document.querySelector('#char-wiki-content .btn-generate-wiki');
     const originalContent = btn.innerHTML;
