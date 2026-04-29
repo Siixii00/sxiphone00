@@ -3979,6 +3979,35 @@ function initClassicMode() {
   }
 }
 
+function getPlayerSpriteOptionsHtml() {
+  var savedPlayerSprite = localStorage.getItem('sx_arcade_player_sprite') || 'default';
+  var spriteOptions = [
+    { id: 'default', name: '預設', colors: { body: '#4ade80', outline: '#166534' } },
+    { id: 'blue', name: '藍色', colors: { body: '#3b82f6', outline: '#1d4ed8' } },
+    { id: 'purple', name: '紫色', colors: { body: '#a855f7', outline: '#7c3aed' } },
+    { id: 'red', name: '紅色', colors: { body: '#ef4444', outline: '#dc2626' } },
+    { id: 'yellow', name: '黃色', colors: { body: '#f59e0b', outline: '#d97706' } },
+    { id: 'pink', name: '粉色', colors: { body: '#ec4899', outline: '#db2777' } },
+    { id: 'cyan', name: '青色', colors: { body: '#06b6d4', outline: '#0891b2' } }
+  ];
+  
+  return spriteOptions.map(opt => `
+    <div class="sprite-option-mini ${savedPlayerSprite === opt.id ? 'selected' : ''}" 
+         onclick="selectSettingsPlayerSprite('${opt.id}')"
+         title="${opt.name}">
+      <div class="sprite-preview-mini" style="background: ${opt.colors.body}; border: 2px solid ${opt.colors.outline};"></div>
+    </div>
+  `).join('');
+}
+
+function selectSettingsPlayerSprite(spriteId) {
+  localStorage.setItem('sx_arcade_player_sprite', spriteId);
+  document.querySelectorAll('#settings-player-sprite-options .sprite-option-mini').forEach(function(el) {
+    el.classList.remove('selected');
+  });
+  event.target.closest('.sprite-option-mini').classList.add('selected');
+}
+
 function openSettingsPanel() {
   var audioSettings = {};
   try {
@@ -4113,6 +4142,17 @@ function openSettingsPanel() {
                 <i class="fas fa-volume-up"></i> 音效
               </span>
               <div class="toggle-switch ${sfxEnabled ? 'active' : ''}" id="sfx-toggle"></div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="section-title">
+            <i class="fas fa-user"></i> 小人物外觀
+          </div>
+          <div class="sprite-settings-inline">
+            <div class="sprite-label">你的小人物：</div>
+            <div class="sprite-options-inline" id="settings-player-sprite-options">
+              ${getPlayerSpriteOptionsHtml()}
             </div>
           </div>
         </div>
@@ -4412,3 +4452,4 @@ window.topupFromKakaopayAmount = topupFromKakaopayAmount;
 window.toggleBGM = toggleBGM;
 window.toggleSFX = toggleSFX;
 window.coins = coins;
+window.selectSettingsPlayerSprite = selectSettingsPlayerSprite;

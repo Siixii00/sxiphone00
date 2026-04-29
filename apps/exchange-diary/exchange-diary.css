@@ -641,6 +641,11 @@ body::before {
   background: var(--tape);
   border-color: var(--accent);
   transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(201, 123, 99, 0.4);
+}
+
+.npc-chip.active .chip-avatar {
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
 .npc-chip span {

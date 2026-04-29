@@ -7,7 +7,8 @@ const ArcadeInvite = {
 function loadAllCharacters() {
   const characters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
   const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
-  const allChars = [...characters, ...masks];
+  const npcs = JSON.parse(localStorage.getItem('sx_npcs') || '[]');
+  const allChars = [...characters, ...masks, ...npcs];
   return allChars.filter(c => c && c.name && c.name !== '預設用戶');
 }
 
