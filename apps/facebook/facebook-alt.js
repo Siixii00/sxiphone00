@@ -188,6 +188,7 @@ function collectMountedWorldbookEntries() {
     if (!Array.isArray(data)) return;
     data.forEach((entry) => {
       const title = entry?.title || '';
+      if (!entry?.enabled) return;
       if (!title || !mountedNameSet.has(title)) return;
       entries.push({
         title,
