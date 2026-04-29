@@ -1995,10 +1995,23 @@ async function syncWithMemorySystem() {
             }
         }
         
-        if (window.parent && window.parent.unifiedMemory) {
-            const memory = window.parent.unifiedMemory;
-            const recentMemories = await memory.recall('', { limit: 10 });
-            console.log('[PersonalWiki] 統一記憶系統:', recentMemories);
+        if (window.MemoryHelper) {
+            try {
+                const memResult = await window.MemoryHelper.recall('', { limit: 10 });
+                if (memResult?.memories?.length > 0) {
+                    console.log('[PersonalWiki] 統一記憶系統:', memResult.memories.length, '條');
+                }
+            } catch (memErr) {
+                console.warn('[PersonalWiki] MemoryHelper 調用失敗:', memErr);
+            }
+        } else if (window.parent?.unifiedMemory) {
+            try {
+                const memory = window.parent.unifiedMemory;
+                const recentMemories = await memory.recall('', { limit: 10 });
+                console.log('[PersonalWiki] 統一記憶系統:', recentMemories);
+            } catch (memErr) {
+                console.warn('[PersonalWiki] unifiedMemory 調用失敗:', memErr);
+            }
         }
         
         await loadUserWiki();
