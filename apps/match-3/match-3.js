@@ -917,14 +917,32 @@ const generateCharComment = async (context) => {
   contextText += `目標: ${context.target || 800}\n`;
   contextText += `剩餘步數: ${context.moves || 0}\n`;
   if (context.combo) contextText += `連擊數: ${context.combo}\n`;
-  contextText += `事件: ${context.event || '進行中'}\n`;
+  
+  const eventDescriptions = {
+    combo: '玩家達成連擊',
+    pass: '玩家過關了',
+    fail: '玩家失敗了',
+    progress: '遊戲進行中',
+    start: '遊戲剛開始',
+    tap: '玩家點擊了你的頭貼，想跟你互動'
+  };
+  contextText += `事件: ${eventDescriptions[context.event] || context.event || '進行中'}\n`;
+
+  const promptGuides = {
+    combo: '請生成一句對連擊的評論或鼓勵',
+    pass: '請生成一句恭喜過關的話',
+    fail: '請生成一句安慰或鼓勵的話',
+    progress: '請生成一句對遊戲進度的評論',
+    start: '請生成一句開場白或鼓勵',
+    tap: '請生成一句回應玩家點擊頭貼的互動話語，可以是打招呼、問候、或簡單的回應'
+  };
 
   const prompt = `${contextText}
 
-請生成一句角色在看到這個遊戲狀況時會說的話，要求：
+請生成一句角色在這個情況下會說的話，要求：
 1. 符合角色性格
 2. 簡短自然（10-30字）
-3. 可以是鼓勵、評論、驚嘆或吐槽
+3. ${promptGuides[context.event] || '可以是鼓勵、評論、驚嘆或吐槽'}
 
 輸出 JSON 格式。`;
 
@@ -1006,6 +1024,12 @@ const generateFallbackComment = (context) => {
       '這關應該難不倒你！',
       '一起加油！',
       '準備好了嗎？'
+    ],
+    tap: [
+      '怎麼了？需要幫忙嗎？',
+      '我在這裡陪你喔！',
+      '加油！你可以的！',
+      '有什麼想聊的嗎？'
     ]
   };
 
@@ -1021,7 +1045,8 @@ const generateFallbackComment = (context) => {
       pass: ['勉強過關了。', '哼，我就說你可以。', '別驕傲，下一關更難。', '還算可以。'],
       fail: ['這樣就不行了？', '再試一次，別讓我失望。', '你應該能做得更好。', '別放棄。'],
       progress: ['繼續。', '還差得遠。', '專心點。', '別分心。'],
-      start: ['開始吧。', '別拖拖拉拉。', '準備好了嗎？', '我等著看你的表現。']
+      start: ['開始吧。', '別拖拖拉拉。', '準備好了嗎？', '我等著看你的表現。'],
+      tap: ['幹嘛點我？', '專心玩遊戲。', '有事？', '哼，想我了？']
     }[context.event] || comments.progress;
   } else if (gentle.some(key => personality.includes(key))) {
     pool = {
@@ -1029,7 +1054,8 @@ const generateFallbackComment = (context) => {
       pass: ['恭喜過關！辛苦了！', '太好了！你做到了！', '我就知道你行的！', '休息一下再繼續？'],
       fail: ['沒關係，慢慢來。', '別難過，再試一次？', '這關有點難呢。', '我相信你的！'],
       progress: ['加油！你快到了！', '不錯喔！繼續！', '再努力一下！', '你可以的！'],
-      start: ['加油喔！', '我會陪著你的！', '一起努力吧！', '準備好了嗎？']
+      start: ['加油喔！', '我會陪著你的！', '一起努力吧！', '準備好了嗎？'],
+      tap: ['怎麼了？', '我在這裡陪你喔！', '需要幫忙嗎？', '加油！']
     }[context.event] || comments.progress;
   } else if (playful.some(key => personality.includes(key))) {
     pool = {
@@ -1037,15 +1063,18 @@ const generateFallbackComment = (context) => {
       pass: ['過關啦！耶！', '太棒了！慶祝一下！', '下一關！下一關！', '你超強的！'],
       fail: ['哎呀，差一點！', '沒事沒事，再來！', '這次運氣不好啦！', '下次一定行！'],
       progress: ['快快快！', '加油加油！', '衝啊！', '你可以的！'],
-      start: ['開始開始！', '好期待喔！', '來玩吧！', '衝衝衝！']
+      start: ['開始開始！', '好期待喔！', '來玩吧！', '衝衝衝！'],
+      tap: ['嘿嘿，找我嗎？', '想聊天嗎？', '我在這！', '怎麼啦？']
     }[context.event] || comments.progress;
   }
 
   return pool[Math.floor(Math.random() * pool.length)];
 };
 
-const shouldShowComment = () => {
+const shouldShowComment = (force = false) => {
   if (!charCompanionEnabled) return false;
+  
+  if (force) return true;
   
   const now = Date.now();
   const cooldown = {
@@ -1057,8 +1086,8 @@ const shouldShowComment = () => {
   return now - lastCommentTime > cooldown;
 };
 
-const showCharComment = async (context) => {
-  if (!shouldShowComment()) return;
+const showCharComment = async (context, force = false) => {
+  if (!shouldShowComment(force)) return;
   
   const commentEl = document.getElementById('char-comment');
   if (!commentEl) return;
@@ -1091,6 +1120,7 @@ const initCharCompanion = () => {
   const companionToggle = document.getElementById('char-companion-toggle');
   const frequencySelect = document.getElementById('comment-frequency');
   const charSelect = document.getElementById('char-select');
+  const charAvatarEl = document.getElementById('char-avatar');
   
   charCompanionEnabled = localStorage.getItem(CHAR_COMPANION_KEY) !== 'false';
   charCommentFrequency = localStorage.getItem(COMMENT_FREQUENCY_KEY) || 'normal';
@@ -1098,6 +1128,14 @@ const initCharCompanion = () => {
   
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (frequencySelect) frequencySelect.value = charCommentFrequency;
+  
+  // 點擊頭貼生成互動對話
+  charAvatarEl?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (charCompanionEnabled && charData?.name) {
+      showCharComment({ event: 'tap', level: currentLevel, score, target, moves }, true);
+    }
+  });
   
   // 載入角色列表
   const loadCharList = () => {

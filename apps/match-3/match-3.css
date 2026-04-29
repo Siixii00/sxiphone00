@@ -480,6 +480,17 @@ body {
   background-size: cover;
   background-position: center;
   border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.char-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 12px rgba(255, 138, 61, 0.5);
+}
+
+.char-avatar:active {
+  transform: scale(0.95);
 }
 
 .char-info {

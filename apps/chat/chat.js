@@ -805,23 +805,130 @@ function loadCharMemoryForDiary(charName) {
     }
 }
 
-function generateDiaryContent(history, charName, userName) {
+async function generateDiaryContent(history, charName, userName) {
     const charData = getActiveConfig();
     const personality = (charData?.personality || '').trim();
     const background = (charData?.background || '').trim();
     const memory = loadCharMemoryForDiary(charName);
     
-    if (!history || history.length === 0) {
-        return generateDiaryFromPersonality(charName, userName, personality, background, memory, []);
+    const apiResult = await generateDiaryFromAI(charName, userName, personality, background, memory, history);
+    if (apiResult) {
+        return apiResult;
     }
     
-    const todayHistory = history.filter(msg => msg.content);
+    return generateDiaryFromPersonality(charName, userName, personality, background, memory, history || []);
+}
+
+async function generateDiaryFromAI(charName, userName, personality, background, memory, chatHistory) {
+    let apiUrl = '';
+    let apiKey = '';
+    let modelName = '';
     
-    if (todayHistory.length === 0) {
-        return generateDiaryFromPersonality(charName, userName, personality, background, memory, []);
+    if (typeof window.SettingsReader !== 'undefined' && window.SettingsReader.getActiveApiWithFallback) {
+        const api = window.SettingsReader.getActiveApiWithFallback();
+        if (api) {
+            apiUrl = api.url || '';
+            apiKey = api.key || '';
+            modelName = api.model || '';
+        }
     }
     
-    return generateDiaryFromPersonality(charName, userName, personality, background, memory, todayHistory);
+    if (!apiUrl) {
+        apiUrl = localStorage.getItem('sx_new_api_url') || localStorage.getItem('sx_nova_api_url') || '';
+        apiKey = localStorage.getItem('sx_new_api_key') || localStorage.getItem('sx_nova_api_key') || '';
+        modelName = localStorage.getItem('sx_new_api_model') || '';
+    }
+    
+    if (!apiUrl || !apiKey) {
+        console.log('[Diary] 未設定 API，使用靜態生成');
+        return null;
+    }
+    
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const langName = window.getAIReadableLangName?.(lang) || '繁體中文';
+    
+    let personalitySection = '';
+    if (personality && personality.trim()) {
+        personalitySection = `角色個性：${personality.trim()}`;
+    }
+    if (background && background.trim()) {
+        personalitySection += `\n角色背景：${background.trim()}`;
+    }
+    
+    let historyContext = '';
+    if (chatHistory && chatHistory.length > 0) {
+        const recentMessages = chatHistory.slice(-10).map(msg => {
+            const role = msg.role === 'user' ? userName : charName;
+            return `${role}: ${msg.content?.slice(0, 100) || ''}`;
+        }).join('\n');
+        historyContext = `今天的聊天記錄（最近 10 則）：
+${recentMessages}`;
+    }
+    
+    let memoryContext = '';
+    if (memory && memory.length > 0) {
+        const recentMemory = memory.slice(-5).map(m => m.content?.slice(0, 50) || '').join('；');
+        memoryContext = `過去的聊天回憶：
+${recentMemory}`;
+    }
+    
+    const systemPrompt = `你是 ${charName}，正在寫一篇日記記錄今天的心情和與 ${userName} 的互動。
+請使用 ${langName} 撰寫。
+
+${personalitySection}
+${historyContext}
+${memoryContext}
+
+日記撰寫規則：
+1. 用第一人稱「我」來寫，像在寫私人日記
+2. 語氣要自然、真誠，符合角色的個性
+3. 可以提到今天和 ${userName} 的對話內容、感受、想法
+4. 長度約 100-200 字
+5. 不要使用模板文字，要具體描述今天的事情
+6. 最後加上簽名「—— ${charName}」`;
+
+    const userPrompt = `請以 ${charName} 的身分，寫一篇今天的日記。`;
+
+    const endpoint = apiUrl.endsWith('/chat/completions') 
+        ? apiUrl 
+        : apiUrl.replace(/\/$/, '') + '/chat/completions';
+    
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: modelName || 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.85,
+                max_tokens: 500
+            })
+        });
+        
+        if (!response.ok) {
+            console.error('[Diary] API 錯誤:', response.status);
+            return null;
+        }
+        
+        const data = await response.json();
+        const content = data?.choices?.[0]?.message?.content?.trim();
+        
+        if (!content) {
+            return null;
+        }
+        
+        console.log('[Diary] AI 生成成功:', content.substring(0, 50) + '...');
+        return content;
+    } catch (err) {
+        console.error('[Diary] API 呼叫失敗:', err);
+        return null;
+    }
 }
 
 function generateDiaryFromPersonality(charName, userName, personality, background, memory, chatHistory) {
@@ -3198,12 +3305,16 @@ function initSideDrawer() {
         diaryPanel?.classList.remove('active');
     };
 
-    const handleGenerateDiary = () => {
+    const handleGenerateDiary = async () => {
         const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
         const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         
-        currentDiaryContent = generateDiaryContent(history, charName, userName);
+        if (diaryPreview) {
+            diaryPreview.textContent = '正在生成日記...';
+        }
+        
+        currentDiaryContent = await generateDiaryContent(history, charName, userName);
         
         if (diaryPreview) {
             const time = diaryTimeInput?.value || '22:00';
@@ -3212,13 +3323,17 @@ function initSideDrawer() {
         }
     };
 
-    const handleSaveDiary = () => {
+    const handleSaveDiary = async () => {
         if (!currentDiaryContent) {
-            handleGenerateDiary();
+            await handleGenerateDiary();
         }
         
         const date = diaryDateInput?.value || getTodayDateString();
         const time = diaryTimeInput?.value || '22:00';
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
+        const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+        const userAvatar = localStorage.getItem('sx_user_avatar') || '';
         
         const diaries = getDiaries();
         const existingIndex = diaries.findIndex(d => d.date === date);
@@ -3228,7 +3343,7 @@ function initSideDrawer() {
             date,
             time,
             content: currentDiaryContent,
-            charName: charConfig?.name || getActiveConfig().name || 'AI 助理',
+            charName,
             createdAt: Date.now()
         };
         
@@ -3239,8 +3354,103 @@ function initSideDrawer() {
         }
         
         saveDiaries(diaries);
+        
+        await saveToExchangeDiary({
+            content: currentDiaryContent,
+            charName,
+            userName,
+            charAvatar,
+            userAvatar,
+            date,
+            time
+        });
+        
         closeDiaryPanel();
         alert('日記已儲存！');
+    };
+
+    const saveToExchangeDiary = async (diaryData) => {
+        const { content, charName, userName, charAvatar, userAvatar, date, time } = diaryData;
+        
+        const EXCHANGE_DIARY_BOOKS_KEY = 'sx_exchange_diary_books';
+        const EXCHANGE_DIARY_ACTIVE_KEY = 'sx_exchange_diary_active_book';
+        
+        const charId = `char:${deriveCharId({ name: charName, avatar: charAvatar })}`;
+        const userId = 'user:me';
+        
+        let books = [];
+        try {
+            const raw = localStorage.getItem(EXCHANGE_DIARY_BOOKS_KEY);
+            books = raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.warn('[Chat] 無法解析交換日記資料:', e);
+            books = [];
+        }
+        
+        let targetBook = books.find(book => {
+            const hasChar = book.npcIds?.some(id => id === charId || id.includes(charName));
+            const hasUser = book.npcIds?.some(id => id === userId || id.includes(userName));
+            return hasChar && hasUser;
+        });
+        
+        if (!targetBook) {
+            targetBook = {
+                id: `book-${Date.now()}`,
+                title: `${userName} 與 ${charName} 的交換日記`,
+                npcIds: [charId, userId],
+                activeNpcId: charId,
+                entries: [],
+                archivedPages: [],
+                currentPageDate: new Date().toDateString(),
+                isArchived: false
+            };
+            books.push(targetBook);
+            console.log('[Chat] 建立新的交換日記本:', targetBook.title);
+        }
+        
+        const charEntry = {
+            id: `entry-${Date.now()}`,
+            npcId: charId,
+            author: 'npc',
+            authorName: charName,
+            avatar: charAvatar,
+            mood: 'starry',
+            tags: [],
+            content,
+            date: new Date().toISOString()
+        };
+        
+        targetBook.entries.push(charEntry);
+        targetBook.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+        targetBook.currentPageDate = new Date().toDateString();
+        
+        localStorage.setItem(EXCHANGE_DIARY_BOOKS_KEY, JSON.stringify(books));
+        localStorage.setItem(EXCHANGE_DIARY_ACTIVE_KEY, targetBook.id);
+        
+        if (typeof localforage !== 'undefined') {
+            try {
+                const existingData = await localforage.getItem('sx_app_persisted_data') || {};
+                await localforage.setItem('sx_app_persisted_data', {
+                    ...existingData,
+                    sx_exchange_diary_books: books,
+                    sx_exchange_diary_active_book: targetBook.id
+                });
+                console.log('[Chat] 交換日記已持久化儲存');
+            } catch (e) {
+                console.error('[Chat] 交換日記持久化儲存失敗:', e);
+            }
+        }
+        
+        console.log('[Chat] 日記已儲存到交換日記:', targetBook.title);
+    };
+
+    const deriveCharId = (char = {}) => {
+        const seed = `${char.name || ''}|${char.avatar || ''}`;
+        let hash = 17;
+        for (let i = 0; i < seed.length; i++) {
+            hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+        }
+        return `char-${hash.toString(16)}`;
     };
 
     const openCheckPhonePanel = () => {

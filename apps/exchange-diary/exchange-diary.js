@@ -877,7 +877,7 @@
 ${personality.trim()}`;
     } else {
       personalitySection = `你的個性與背景：
-請根據你的名字和與 ${userName} 的關係，自然地展現你的個性。用真誠的方式回應。`;
+你是一個溫暖、真誠的${sourceDesc}，關心 ${userName} 的生活和感受。用自然的方式回應，展現你的關心。`;
     }
     
     const memory = loadCharacterMemory(npcName);
@@ -970,7 +970,34 @@ ${userEntry?.content || '（空白）'}
     const background = (npc?.background || '').trim();
     const notes = (npc?.notes || '').trim();
     
-    const memory = loadCharacterMemory(npcName);
+    const userContent = userEntry?.content || '';
+    const snippet = userContent.length > 30 ? userContent.slice(0, 30) + '...' : userContent;
+    
+    const tags = userEntry?.tags || [];
+    const tagLabels = tags.map(tagId => findLabel(tagId));
+    
+    const mood = MOOD_OPTIONS.find(m => m.id === userEntry?.mood);
+    const moodDesc = mood ? `${mood.icon} ${mood.label}` : '普通';
+    
+    const hasPersonality = personality || background || notes;
+    
+    if (!hasPersonality) {
+      const fallbackSentences = [];
+      
+      if (userContent) {
+        fallbackSentences.push(`讀完你寫的「${snippet}」，我有很多感觸。`);
+      }
+      
+      if (tagLabels.length > 0) {
+        fallbackSentences.push(`你貼的${tagLabels.join('、')}，我會好好收藏。`);
+      }
+      
+      fallbackSentences.push(`謝謝你願意和我分享這些，每一天和你交換日記都是特別的時光。`);
+      fallbackSentences.push(`希望明天也能繼續這樣的對話。`);
+      fallbackSentences.push(`—— ${npcName}`);
+      
+      return fallbackSentences.join('\n');
+    }
     
     const sentences = [];
     
@@ -978,8 +1005,7 @@ ${userEntry?.content || '（空白）'}
     const bgParts = background.split(/[，,、。；;\s]+/).filter(p => p.trim());
     const notesParts = notes.split(/[，,、。；;\s]+/).filter(p => p.trim());
     
-    const userContent = userEntry?.content || '';
-    const snippet = userContent.length > 30 ? userContent.slice(0, 30) + '...' : userContent;
+    const memory = loadCharacterMemory(npcName);
     
     if (personalityParts.length > 0) {
       const randomTrait = personalityParts[Math.floor(Math.random() * personalityParts.length)];
@@ -1005,9 +1031,7 @@ ${userEntry?.content || '（空白）'}
       }
     }
     
-    const tags = userEntry?.tags || [];
-    if (tags.length > 0) {
-      const tagLabels = tags.map(tagId => findLabel(tagId));
+    if (tagLabels.length > 0) {
       sentences.push(`你貼的${tagLabels.join('、')}，我會好好收藏。`);
     }
     
