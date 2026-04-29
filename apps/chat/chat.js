@@ -531,14 +531,13 @@ function renderWorldbookOptions() {
     if (!container) return;
     
     const worldbookData = getWorldbookData();
-    const worldbookIndex = getWorldbookIndex();
     const mounts = getWorldbookMounts();
     const categories = [
-        { key: 'global', label: '全域設定', icon: 'globe' },
-        { key: 'cot', label: '思維鏈', icon: 'brain' },
-        { key: 'style', label: '文風設定', icon: 'brush' },
-        { key: 'keywords', label: '關鍵字', icon: 'tags' },
-        { key: 'backend', label: '後端設定', icon: 'cog' }
+        { key: 'global', label: '全域設定', icon: 'globe', defaultChecked: true },
+        { key: 'cot', label: '思維鏈', icon: 'brain', defaultChecked: false },
+        { key: 'style', label: '文風設定', icon: 'brush', defaultChecked: false },
+        { key: 'keywords', label: '關鍵字', icon: 'tags', defaultChecked: false },
+        { key: 'backend', label: '後端設定', icon: 'cog', defaultChecked: false }
     ];
     
     const mountMap = new Map(mounts.map(m => [m.name, m]));
@@ -567,20 +566,41 @@ function renderWorldbookOptions() {
     // 添加通用常識庫（預設）
     container.insertAdjacentHTML('beforeend', makeMountRow('通用常識庫', 'mid', true));
 
-    // 顯示分類
+    // 顯示分類 - 直接從 worldbookData 讀取條目，不依賴 worldbookIndex
+    let hasAnyEntries = false;
+    
     categories.forEach(cat => {
         const catKey = `sx_worldbook_${cat.key}`;
-        const catData = worldbookData[catKey];
-        if (!catData || catData.length === 0) return;
+        const entries = worldbookData[catKey];
+        
+        // 直接檢查 entries 是否為有效陣列且有內容
+        if (!entries || !Array.isArray(entries) || entries.length === 0) return;
+        
+        hasAnyEntries = true;
+        
+        // 添加分類標題
         container.insertAdjacentHTML('beforeend', `
             <div class="wb-mount-category">${cat.label}</div>
         `);
 
-        const entries = worldbookIndex.filter(item => item.category === cat.key);
+        // 直接從 entries 讀取條目
+        // global 分類預設勾選，其他分類預設不勾選
         entries.forEach(entry => {
-            container.insertAdjacentHTML('beforeend', makeMountRow(entry.title));
+            if (entry && entry.title) {
+                container.insertAdjacentHTML('beforeend', makeMountRow(entry.title, 'mid', cat.defaultChecked));
+            }
         });
     });
+    
+    // 如果沒有任何條目，顯示提示訊息
+    if (!hasAnyEntries) {
+        container.insertAdjacentHTML('beforeend', `
+            <div class="wb-mount-empty-hint" style="padding: 12px; color: #888; font-size: 12px; text-align: center;">
+                尚無世界書條目<br>
+                <small>請先到「世界書」應用程式新增內容</small>
+            </div>
+        `);
+    }
 
     if (dropdownToggle) {
         const selectedCount = container.querySelectorAll('.wb-enable:checked').length;
@@ -1806,8 +1826,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `background-image: url('${charAvatar}'); background-size: cover; background-position: center;` 
                 : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
             
+            // 修復: 為占位符添加特殊 ID 標記，表示這是空狀態佔位符，不可刪除
             chatListView.innerHTML = `
-                <div class="chat-list-item" style="justify-content: center; color: #888;">
+                <div class="chat-list-item chat-list-placeholder" data-chat-id="__placeholder__" style="justify-content: center; color: #888;">
                     <div class="chat-avatar" style="${avatarStyle}"></div>
                     <div class="chat-info" style="text-align: center;">
                         <div class="chat-name">${charName}</div>
@@ -1884,6 +1905,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chatListView?.addEventListener('contextmenu', (event) => {
         const item = event.target.closest('.chat-list-item');
         if (!item) return;
+        
+        // 修復: 檢查是否為佔位符項目，佔位符不顯示刪除選項
+        const chatId = item.dataset.chatId;
+        if (chatId === '__placeholder__') {
+            console.log('[Chat] 佔位符項目不支援右鍵選單');
+            return;
+        }
+        
         event.preventDefault();
         showChatActions(item);
     });
@@ -1892,6 +1921,13 @@ document.addEventListener('DOMContentLoaded', () => {
     chatListView?.addEventListener('touchstart', (event) => {
         const item = event.target.closest('.chat-list-item');
         if (!item) return;
+        
+        // 修復: 檢查是否為佔位符項目
+        const chatId = item.dataset.chatId;
+        if (chatId === '__placeholder__') {
+            return;
+        }
+        
         longPressTimer = setTimeout(() => {
             showChatActions(item);
         }, 500);
@@ -1905,18 +1941,57 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     chatHideBtn?.addEventListener('click', () => {
-        if (!selectedChatItem) return;
+        if (!selectedChatItem) {
+            console.warn('[Chat] 隱藏失敗: 未選擇任何聊天項目');
+            hideChatActions();
+            return;
+        }
         selectedChatItem.style.display = 'none';
         hideChatActions();
     });
 
     chatDeleteBtn?.addEventListener('click', () => {
-        if (!selectedChatItem) return;
-        const sessions = loadChatSessions().filter(s => s.id !== selectedChatItem.dataset.chatId);
-        saveChatSessions(sessions);
+        // 修復: 添加診斷日誌和錯誤提示
+        console.log('[Chat] 刪除按鈕點擊, selectedChatItem:', selectedChatItem);
+        
+        if (!selectedChatItem) {
+            console.warn('[Chat] 刪除失敗: 未選擇任何聊天項目');
+            alert('請先長按或右鍵點擊要刪除的聊天項目');
+            hideChatActions();
+            return;
+        }
+        
+        const chatId = selectedChatItem.dataset.chatId;
+        console.log('[Chat] 嘗試刪除 chatId:', chatId);
+        
+        // 修復: 檢查是否為佔位符項目
+        if (chatId === '__placeholder__') {
+            console.warn('[Chat] 無法刪除佔位符項目');
+            alert('此為空狀態佔位符，無法刪除。請先開始新的對話。');
+            hideChatActions();
+            return;
+        }
+        
+        // 修復: 檢查 chatId 是否存在
+        if (!chatId) {
+            console.error('[Chat] 刪除失敗: chatId 為空');
+            alert('刪除失敗：無法識別此聊天項目');
+            hideChatActions();
+            return;
+        }
+        
+        const sessions = loadChatSessions();
+        const newSessions = sessions.filter(s => s.id !== chatId);
+        
+        console.log('[Chat] 刪除前 sessions 數量:', sessions.length, '刪除後:', newSessions.length);
+        
+        saveChatSessions(newSessions);
         selectedChatItem.remove();
         renderFriendsList();
+        renderChatListFromStorage(); // 修復: 重新渲染列表以確保一致性
         hideChatActions();
+        
+        console.log('[Chat] 聊天項目已成功刪除');
     });
 
 
@@ -1993,6 +2068,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initDatingInvitation();
     initDatingInviteSettings();
     initGreetingSettings();
+    initRelationshipDistanceSettings();
 
 
     const chatFontRange = document.getElementById('chat-font-range');
@@ -2209,14 +2285,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (deleteChatBtn) {
         deleteChatBtn.onclick = () => {
             if (!confirm('確定要刪除目前對話嗎？')) return;
+            
             const activeId = getActiveChatId();
-            const sessions = loadChatSessions().filter(s => s.id !== activeId);
-            saveChatSessions(sessions);
+            console.log('[Chat] 刪除當前對話, activeId:', activeId);
+            
+            // 修復: 檢查 activeId 是否存在
+            if (!activeId) {
+                console.warn('[Chat] 刪除失敗: 沒有活躍的對話');
+                alert('目前沒有活躍的對話可刪除');
+                return;
+            }
+            
+            const sessions = loadChatSessions();
+            const newSessions = sessions.filter(s => s.id !== activeId);
+            
+            console.log('[Chat] 刪除前 sessions 數量:', sessions.length, '刪除後:', newSessions.length);
+            
+            saveChatSessions(newSessions);
             localStorage.removeItem('sx_chat_history');
+            localStorage.removeItem('sx_chat_active'); // 修復: 清除活躍對話 ID
+            
             renderHistory();
             renderChatListFromStorage();
             showChatList();
             alert('目前對話已刪除');
+            
+            console.log('[Chat] 當前對話已成功刪除');
         };
     }
 
@@ -5325,18 +5419,28 @@ const WorldInfoEngine = {
             if (!entries || !Array.isArray(entries)) return;
 
             entries.forEach(entry => {
+                // 檢查條目本身的 enabled 狀態
+                if (entry.enabled === false) return;
+                
                 // 檢查是否被掛載
                 const mount = mounts.find(m => m.name === entry.title);
-                if (!mount || !mount.enabled) return;
-
                 const isGlobal = (cat === 'global');
+                
+                // global 分類預設啟用，不需要在 mounts 中設定
+                // 其他分類需要在 mounts 中明確啟用
+                const isMountEnabled = isGlobal 
+                    ? (mount?.enabled ?? true)  // global 預設 true
+                    : (mount?.enabled ?? false); // 其他分類預設 false
+                
+                if (!isMountEnabled) return;
+
                 const titleMatch = entry.title && latestText.includes(entry.title);
                 const keywordMatch = entry.triggers && entry.triggers.some(k => latestText.includes(k));
 
                 if (isGlobal || titleMatch || keywordMatch) {
                     const content = `<${cat.toUpperCase()} title="${entry.title}">\n${entry.content}\n</${cat.toUpperCase()}>\n`;
                     
-                    const position = mount.position || 'mid';
+                    const position = mount?.position || 'mid';
                     contentByPosition[position].push(content);
                 }
             });
@@ -5360,6 +5464,73 @@ const ChatEngine = {
         const depth = parseInt(localStorage.getItem('chat_history_range')) || 30;
         let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         return history.slice(-depth);
+    },
+    // 獲取關係距離設定
+    getRelationshipDistanceSettings() {
+        const meetupMentionEnabled = localStorage.getItem('sx_meetup_mention_enabled') !== 'false';
+        const distance = localStorage.getItem('sx_relationship_distance') || 'moderate';
+        return {
+            meetupMentionEnabled,
+            distance
+        };
+    },
+    // 根據關係距離設定生成提示
+    getRelationshipDistancePrompt(settings) {
+        const { meetupMentionEnabled, distance } = settings;
+        
+        const distanceGuides = {
+            'close': {
+                description: '親密距離',
+                instructions: `你們的關係非常親密，可以自然地討論以下話題：
+- 線下見面、約會、一起出遊
+- 同居、一起生活
+- 親密的肢體接觸
+- 未來的共同計畫
+請根據角色性格自然地表達對見面的期待和渴望。`
+            },
+            'moderate': {
+                description: '適中距離',
+                instructions: `你們的關係正在發展中，可以偶爾提及：
+- 見面的可能性，但不要太頻繁
+- 一起參加活動的邀約
+- 對未來見面的期待
+請保持自然，不要過於急切地推進見面話題。`
+            },
+            'distant': {
+                description: '遠距離',
+                instructions: `你們目前維持遠距離的關係模式。請注意：
+- **避免主動提及線下見面、約會地點等話題**
+- 可以討論線上活動、共同的興趣愛好
+- 如果用戶主動提起見面，可以溫和地回應，但不要過度期待
+- 專注於線上互動的品質和情感連結
+- 可以表達對用戶的關心，但以遠距離的方式呈現`
+            },
+            'strict-online': {
+                description: '純線上關係',
+                instructions: `你們的關係嚴格限制在線上。請務必遵守：
+- **絕對禁止提及任何線下見面、約會、碰面相關的話題**
+- **不要詢問用戶的具體位置或住址**
+- **不要提議任何需要線下見面的活動**
+- 專注於線上聊天、分享、情感交流
+- 如果用戶提到見面，請溫和地轉移話題或表示線上互動也很好
+- 這是一種讓用戶感到安全的關係模式，請尊重這個邊界`
+            }
+        };
+        
+        const guide = distanceGuides[distance] || distanceGuides['moderate'];
+        
+        // 如果關閉了見面提及，額外添加限制
+        let additionalNote = '';
+        if (!meetupMentionEnabled && distance !== 'strict-online') {
+            additionalNote = `\n\n**額外提醒**：用戶已關閉「提及線下見面」功能，請避免主動提起任何見面相關話題。`;
+        }
+        
+        return `
+# RELATIONSHIP_DISTANCE_SETTINGS
+## 關係模式：${guide.description}
+${guide.instructions}${additionalNote}
+
+請根據這個設定調整你的回應方式，確保用戶感到舒適和安全。`;
     },
     // 根據語言返回標點符號規範
     getPunctuationRules(lang) {
@@ -5778,6 +5949,10 @@ ${examples}
         const generationMode = this.getGenerationMode();
         const modeInstructions = this.getModeInstructions(generationMode, lang);
         
+        // 獲取關係距離設定
+        const relationshipSettings = this.getRelationshipDistanceSettings();
+        const relationshipPrompt = this.getRelationshipDistancePrompt(relationshipSettings);
+        
         // 模式名稱對照
         const modeNames = {
             'dialogue': '純對話模式',
@@ -5824,6 +5999,7 @@ ${dynamicWI || "（無觸發的世界書內容）"}
 ${worldbookContext}
 ${awakeningContext}
 ${fortuneMemorySection}
+${relationshipPrompt}
 ${modeEmphasis}
 ${modeInstructions}
 # RESPONSE_GUIDELINES
@@ -6145,6 +6321,9 @@ function scheduleReadUpdate(msgId, delay) {
     let content = text;
     if (options.type === 'image' && options.url) {
         content = `<img src="${options.url}" alt="${options.name || 'emoji'}" style="max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: contain;">`;
+    } else if (content && typeof content === 'string') {
+        // 清理無意義的換行，讓文字更易讀
+        content = sanitizeLineBreaks(content);
     }
     
     const timeStr = formatMessageTime(timestamp);
@@ -6525,12 +6704,34 @@ function sanitizeEllipsis(text) {
         .replace(/\.{2,}/g, '。')
         .replace(/。{2,}/g, '。')
         .replace(/…+/g, '。')
-        .replace(/\.\.\.\.\.*/g, '。')
+        .replace(/\.\.\.\.\.\.*/g, '。')
         .replace(/[.。][.。]+/g, '。')
         .replace(/(\s*\.\s*){2,}/g, '。')
         .replace(/「\s*」/g, '')
         .replace(/「\s*。/g, '「')
         .replace(/。\s*」/g, '。」');
+}
+
+/**
+ * 清理文字中的無意義換行
+ * - 移除開頭和結尾的空白行
+ * - 將連續 3 個以上的換行合併為 2 個（保留段落分隔）
+ * - 移除每行結尾的多餘空白
+ */
+function sanitizeLineBreaks(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    return text
+        // 移除每行結尾的空白
+        .replace(/[ \t]+\n/g, '\n')
+        // 移除每行結尾的空白（最後一行）
+        .replace(/[ \t]+$/, '')
+        // 將連續 3 個以上的換行合併為 2 個
+        .replace(/\n{3,}/g, '\n\n')
+        // 移除開頭的空白行
+        .replace(/^\n+/, '')
+        // 移除結尾的空白行
+        .replace(/\n+$/, '');
 }
 
 const RandomGreetingSystem = {
@@ -6767,6 +6968,47 @@ function initGreetingSettings() {
     probabilityInput?.addEventListener('change', saveSettings);
     minIntervalInput?.addEventListener('change', saveSettings);
     maxIntervalInput?.addEventListener('change', saveSettings);
+}
+
+// 關係距離設定初始化
+const MEETUP_MENTION_KEY = 'sx_meetup_mention_enabled';
+const RELATIONSHIP_DISTANCE_KEY = 'sx_relationship_distance';
+
+function initRelationshipDistanceSettings() {
+    const toggle = document.getElementById('meetup-mention-toggle');
+    const status = document.getElementById('meetup-mention-status');
+    const distanceSelect = document.getElementById('relationship-distance');
+    
+    if (!toggle) return;
+    
+    // 載入保存的設定
+    const meetupEnabled = localStorage.getItem(MEETUP_MENTION_KEY) !== 'false';
+    const distance = localStorage.getItem(RELATIONSHIP_DISTANCE_KEY) || 'moderate';
+    
+    toggle.checked = meetupEnabled;
+    if (distanceSelect) distanceSelect.value = distance;
+    
+    const updateStatus = () => {
+        if (status) {
+            status.textContent = toggle.checked ? '角色可能會提及見面' : '角色不會主動提見面';
+        }
+    };
+    updateStatus();
+    
+    const saveSettings = () => {
+        localStorage.setItem(MEETUP_MENTION_KEY, toggle.checked ? 'true' : 'false');
+        if (distanceSelect) {
+            localStorage.setItem(RELATIONSHIP_DISTANCE_KEY, distanceSelect.value);
+        }
+        updateStatus();
+        console.log('[Chat] 關係距離設定已保存:', {
+            meetupMentionEnabled: toggle.checked,
+            distance: distanceSelect?.value
+        });
+    };
+    
+    toggle.addEventListener('change', saveSettings);
+    distanceSelect?.addEventListener('change', saveSettings);
 }
 
 function handleHouseInviteResponse(aiReply, history) {

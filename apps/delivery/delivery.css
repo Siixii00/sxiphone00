@@ -53,10 +53,13 @@ body {
   grid-template-columns: 40px 1fr 40px;
   gap: 10px;
   align-items: center;
-  padding: 48px 14px 12px;
+  padding: 35px 14px 12px;
   background: var(--delivery-surface);
   border-bottom: 1px solid var(--delivery-border);
   backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .icon-btn {
@@ -442,9 +445,12 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 48px 14px 12px;
+  padding: 35px 14px 12px;
   background: var(--delivery-surface);
   border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .address-panel-header h3 {
@@ -547,9 +553,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 48px 14px 12px;
+  padding: 35px 14px 12px;
   background: var(--delivery-surface);
   border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .detail-header h3 {
@@ -679,9 +688,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 48px 14px 12px;
+  padding: 35px 14px 12px;
   background: var(--delivery-surface);
   border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .checkout-header h3 {
@@ -907,5 +919,107 @@ body {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* 響應式設計 - 小屏幕適配 */
+@media (max-width: 768px) {
+  .delivery-header,
+  .address-panel-header,
+  .detail-header,
+  .checkout-header {
+    padding-top: 30px;
+  }
+  
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .delivery-header {
+    grid-template-columns: 32px 1fr 32px;
+  }
+}
+
+@media (max-width: 380px) {
+  .delivery-header,
+  .address-panel-header,
+  .detail-header,
+  .checkout-header {
+    padding: 25px 10px 10px;
+  }
+  
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .delivery-header {
+    grid-template-columns: 28px 1fr 28px;
+    gap: 6px;
+  }
+  
+  .address-wrap h1 {
+    font-size: 13px;
+  }
+  
+  .address-wrap p {
+    font-size: 10px;
+  }
+  
+  .cart-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+  
+  .search-card {
+    padding: 8px 10px;
+  }
+  
+  .search-card input {
+    font-size: 13px;
+  }
+  
+  .promo-card {
+    padding: 10px;
+  }
+  
+  .promo-card h2 {
+    font-size: 15px;
+  }
+  
+  .promo-card p {
+    font-size: 11px;
+  }
+  
+  .restaurant-card .cover {
+    height: 100px;
+  }
+  
+  .restaurant-body {
+    padding: 8px;
+  }
+  
+  .restaurant-head h4 {
+    font-size: 13px;
+  }
+  
+  .restaurant-meta {
+    font-size: 11px;
+  }
+  
+  .detail-cover {
+    height: 140px;
+  }
+  
+  .detail-dish-item {
+    padding: 10px;
+  }
+  
+  .detail-dish-add {
+    width: 30px;
+    height: 30px;
+  }
 }
 

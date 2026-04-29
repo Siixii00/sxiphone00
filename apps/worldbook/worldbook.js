@@ -116,7 +116,8 @@ window.confirmImportSelection = async function() {
         sx_worldbook_style: [],
         sx_worldbook_global: [],
         sx_worldbook_keywords: [],
-        sx_worldbook_backend: []
+        sx_worldbook_backend: [],
+        sx_worldbook_theater: []
     };
     
     let importCount = 0;
@@ -148,7 +149,7 @@ window.confirmImportSelection = async function() {
         if (container && mergedData[key].length > 0) {
             container.innerHTML = '';
             mergedData[key].forEach(entry => {
-                const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                 container.insertAdjacentHTML('beforeend', createDrawerItemHTML(
                     entry.title,
                     entry.triggers.join(', '),
@@ -159,8 +160,25 @@ window.confirmImportSelection = async function() {
         }
     });
     
+    // 立即將資料保存到 localStorage
     const parts = window.getSerializedWorldbookParts();
+    
+    // 保存世界書資料到 localStorage（這是關鍵！）
+    Object.keys(parts).forEach(key => {
+        if (key !== 'sx_detected_forbidden') {
+            localStorage.setItem(key, JSON.stringify(parts[key]));
+        }
+    });
+    
+    // 同時保存禁止詞
+    if (parts.sx_detected_forbidden) {
+        localStorage.setItem('sx_detected_forbidden', JSON.stringify(parts.sx_detected_forbidden));
+    }
+    
+    // 保存索引
     window.persistWorldbookIndex?.(parts);
+    
+    console.log('[Worldbook] 內置世界書已導入並保存到 localStorage:', Object.keys(parts).map(k => `${k}: ${parts[k]?.length || 0} 條`));
     
     if (window.parent && typeof window.parent.saveAll === 'function') {
         await window.parent.saveAll();
@@ -603,7 +621,7 @@ async function hydrateWorldbookUI() {
         if (container && entries.length > 0) {
             container.innerHTML = '';
             entries.forEach(entry => {
-                const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                 container.insertAdjacentHTML('beforeend', createDrawerItemHTML(entry.title, entry.triggers.join(', '), entry.content, isEnabled));
             });
         }
@@ -858,7 +876,7 @@ window.importIvoryTower = async function(silent = false) {
             if (container && entries.length > 0) {
                 container.innerHTML = '';
                 entries.forEach(entry => {
-                    const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                    const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                     container.insertAdjacentHTML('beforeend', createDrawerItemHTML(
                         entry.title, 
                         entry.triggers.join(', '), 

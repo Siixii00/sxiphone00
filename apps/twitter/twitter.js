@@ -56,7 +56,7 @@ function getWorldbookContext() {
   for (const [cat, list] of Object.entries(data)) {
     if (list && list.length > 0) {
       list.slice(0, 5).forEach(e => {
-        if (e.title && e.content) {
+        if (e.enabled && e.title && e.content) {
           entries.push(`【${e.title}】${e.content.slice(0, 200)}`);
         }
       });

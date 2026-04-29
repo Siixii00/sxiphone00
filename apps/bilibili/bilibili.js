@@ -1001,13 +1001,15 @@ function createDanmu(text, color = '#fff') {
   danmu.textContent = text;
   danmu.style.color = color;
   danmu.style.top = `${Math.random() * 70 + 10}%`;
+  danmu.style.right = '0';
   danmu.style.animationDuration = `${6 + Math.random() * 4}s`;
   
   danmuLayer.appendChild(danmu);
   
-  setTimeout(() => {
+  // 動畫結束後移除
+  danmu.addEventListener('animationend', () => {
     danmu.remove();
-  }, 12000);
+  });
 }
 
 function startDanmu() {

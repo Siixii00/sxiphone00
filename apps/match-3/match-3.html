@@ -112,10 +112,10 @@
     <div class="char-companion-panel" id="char-companion-panel">
       <div class="char-avatar" id="char-avatar"></div>
       <div class="char-info">
-        <div class="char-name" id="char-name">角色</div>
+        <div class="char-name" id="char-name"></div>
         <div class="char-level">進度：第 <span id="char-level-num">1</span> 關</div>
       </div>
-      <div class="char-comment" id="char-comment">加油！</div>
+      <div class="char-comment" id="char-comment"></div>
       <button class="char-toggle-btn" id="char-toggle-btn" title="邀請角色一起玩">
         <i class="fas fa-user-friends"></i>
       </button>
@@ -127,6 +127,12 @@
         <button class="close-btn" id="close-char-settings"><i class="fas fa-times"></i></button>
       </div>
       <div class="char-settings-body">
+        <label class="setting-row">
+          <span>選擇陪伴角色</span>
+          <select id="char-select">
+            <option value="">載入中...</option>
+          </select>
+        </label>
         <label class="setting-row">
           <span>啟用角色陪玩</span>
           <label class="switch">

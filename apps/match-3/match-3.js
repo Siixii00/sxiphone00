@@ -66,6 +66,7 @@ const LEVEL_SCORE_KEY = 'sx_match3_level_scores';
 const CHAR_COMPANION_KEY = 'sx_match3_char_companion';
 const CHAR_PROGRESS_KEY = 'sx_match3_char_progress';
 const COMMENT_FREQUENCY_KEY = 'sx_match3_comment_frequency';
+const CHAR_PANEL_POSITION_KEY = 'sx_match3_char_panel_position';
 
 let board = [];
 let activeShape = SHAPES[0];
@@ -1089,6 +1090,7 @@ const initCharCompanion = () => {
   const closeSettingsBtn = document.getElementById('close-char-settings');
   const companionToggle = document.getElementById('char-companion-toggle');
   const frequencySelect = document.getElementById('comment-frequency');
+  const charSelect = document.getElementById('char-select');
   
   charCompanionEnabled = localStorage.getItem(CHAR_COMPANION_KEY) !== 'false';
   charCommentFrequency = localStorage.getItem(COMMENT_FREQUENCY_KEY) || 'normal';
@@ -1097,24 +1099,187 @@ const initCharCompanion = () => {
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (frequencySelect) frequencySelect.value = charCommentFrequency;
   
-  const char = getCharData();
-  charData = char;
+  // 載入角色列表
+  const loadCharList = () => {
+    const raw = localStorage.getItem('sx_characters') || '[]';
+    try {
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list) || list.length === 0) {
+        if (charSelect) charSelect.innerHTML = '<option value="">尚未建立角色</option>';
+        panel?.classList.add('hidden');
+        return;
+      }
+      
+      const currentCharName = localStorage.getItem('sx_char_name') || '';
+      if (charSelect) {
+        charSelect.innerHTML = list.map((char, index) => 
+          `<option value="${index}" ${char.name === currentCharName ? 'selected' : ''}>${char.name}</option>`
+        ).join('');
+      }
+      
+      // 更新當前角色資料
+      updateCharDisplay();
+    } catch (e) {
+      if (charSelect) charSelect.innerHTML = '<option value="">載入失敗</option>';
+    }
+  };
   
-  const charNameEl = document.getElementById('char-name');
-  const charAvatarEl = document.getElementById('char-avatar');
+  // 更新角色顯示
+  const updateCharDisplay = () => {
+    const char = getCharData();
+    charData = char;
+    
+    const charNameEl = document.getElementById('char-name');
+    const charAvatarEl = document.getElementById('char-avatar');
+    const charCommentEl = document.getElementById('char-comment');
+    
+    if (char?.name) {
+      if (charNameEl) charNameEl.textContent = char.name;
+      if (charAvatarEl && char.avatar) {
+        charAvatarEl.style.backgroundImage = `url('${char.avatar}')`;
+        charAvatarEl.style.backgroundColor = 'transparent';
+      } else if (charAvatarEl) {
+        charAvatarEl.style.backgroundImage = '';
+        charAvatarEl.style.backgroundColor = 'var(--muted)';
+      }
+    } else {
+      if (charNameEl) charNameEl.textContent = '';
+      if (charAvatarEl) {
+        charAvatarEl.style.backgroundImage = '';
+        charAvatarEl.style.backgroundColor = 'var(--muted)';
+      }
+    }
+    
+    // 清空預設評論，等待 AI 生成
+    if (charCommentEl) charCommentEl.textContent = '';
+    
+    updateCharProgressUI();
+  };
   
-  if (charNameEl && char?.name) charNameEl.textContent = char.name;
-  if (charAvatarEl && char?.avatar) {
-    charAvatarEl.style.backgroundImage = `url('${char.avatar}')`;
-  }
+  // 角色選擇變更
+  charSelect?.addEventListener('change', () => {
+    const index = parseInt(charSelect.value);
+    const raw = localStorage.getItem('sx_characters') || '[]';
+    try {
+      const list = JSON.parse(raw);
+      if (list[index]) {
+        localStorage.setItem('sx_char_name', list[index].name);
+        updateCharDisplay();
+        // 生成新的評論
+        if (charCompanionEnabled) {
+          showCharComment({ event: 'start', level: currentLevel });
+        }
+      }
+    } catch (e) {
+      console.error('[match-3] 切換角色失敗:', e);
+    }
+  });
   
-  updateCharProgressUI();
+  loadCharList();
   
   if (!charCompanionEnabled) {
     panel?.classList.add('hidden');
   }
   
-  toggleBtn?.addEventListener('click', () => {
+  // 載入上次保存的位置
+  const savedPosition = localStorage.getItem(CHAR_PANEL_POSITION_KEY);
+  if (savedPosition && panel) {
+    try {
+      const pos = JSON.parse(savedPosition);
+      if (pos.left !== undefined && pos.top !== undefined) {
+        panel.style.left = pos.left;
+        panel.style.top = pos.top;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+      }
+    } catch (e) {
+      console.warn('[match-3] 無法解析保存的位置:', e);
+    }
+  }
+  
+  // 拖曳功能
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let panelStartX = 0;
+  let panelStartY = 0;
+  
+  const handleDragStart = (e) => {
+    // 如果點擊的是設定按鈕，不啟動拖曳
+    if (e.target.closest('.char-toggle-btn')) return;
+    
+    isDragging = true;
+    panel.classList.add('dragging');
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    dragStartX = clientX;
+    dragStartY = clientY;
+    
+    const rect = panel.getBoundingClientRect();
+    panelStartX = rect.left;
+    panelStartY = rect.top;
+    
+    // 切換到絕對定位
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    panel.style.left = `${panelStartX}px`;
+    panel.style.top = `${panelStartY}px`;
+    
+    e.preventDefault();
+  };
+  
+  const handleDragMove = (e) => {
+    if (!isDragging) return;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    const deltaX = clientX - dragStartX;
+    const deltaY = clientY - dragStartY;
+    
+    let newX = panelStartX + deltaX;
+    let newY = panelStartY + deltaY;
+    
+    // 限制在視窗範圍內
+    const panelRect = panel.getBoundingClientRect();
+    const maxX = window.innerWidth - panelRect.width;
+    const maxY = window.innerHeight - panelRect.height;
+    
+    newX = Math.max(0, Math.min(newX, maxX));
+    newY = Math.max(0, Math.min(newY, maxY));
+    
+    panel.style.left = `${newX}px`;
+    panel.style.top = `${newY}px`;
+    
+    e.preventDefault();
+  };
+  
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.classList.remove('dragging');
+    
+    // 保存位置
+    localStorage.setItem(CHAR_PANEL_POSITION_KEY, JSON.stringify({
+      left: panel.style.left,
+      top: panel.style.top
+    }));
+  };
+  
+  // 綁定拖曳事件
+  panel?.addEventListener('mousedown', handleDragStart);
+  panel?.addEventListener('touchstart', handleDragStart, { passive: false });
+  
+  document.addEventListener('mousemove', handleDragMove);
+  document.addEventListener('touchmove', handleDragMove, { passive: false });
+  
+  document.addEventListener('mouseup', handleDragEnd);
+  document.addEventListener('touchend', handleDragEnd);
+  
+  toggleBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
     settingsPanel?.classList.toggle('hidden');
   });
   
@@ -1133,7 +1298,7 @@ const initCharCompanion = () => {
     localStorage.setItem(COMMENT_FREQUENCY_KEY, charCommentFrequency);
   });
   
-  if (charCompanionEnabled) {
+  if (charCompanionEnabled && charData?.name) {
     showCharComment({ event: 'start', level: currentLevel });
   }
 };

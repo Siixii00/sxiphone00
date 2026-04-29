@@ -734,6 +734,32 @@
         </div>
 
         <div class="accordion-item">
+            <div class="accordion-header">關係距離設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">允許提及線下見面</div>
+                        <div class="toggle-sub" id="meetup-mention-status">關閉時角色不會主動提見面</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="meetup-mention-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="meetup-settings" style="margin-top: 12px;">
+                    <label for="relationship-distance">關係距離偏好</label>
+                    <select id="relationship-distance" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 4px;">
+                        <option value="close">親密距離 - 可以討論見面、約會、同居等話題</option>
+                        <option value="moderate" selected>適中距離 - 偶爾提及見面，但不過於頻繁</option>
+                        <option value="distant">遠距離 - 維持線上關係，避免提及線下見面</option>
+                        <option value="strict-online">純線上 - 嚴格禁止任何見面相關話題</option>
+                    </select>
+                </div>
+                <p class="toggle-hint">設定您與角色的關係距離偏好。選擇「遠距離」或「純線上」時，角色會避免提及線下見面、約會地點等可能讓您感到不安的話題。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
             <div class="accordion-header">隨機問候設定 <i class="fas fa-chevron-down"></i></div>
             <div class="accordion-body">
                 <div class="toggle-row">

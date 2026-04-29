@@ -748,14 +748,31 @@ async function generateAO3Content() {
 
   try {
     const context = buildAO3Context();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    
+    // 使用 AO3 應用內的語言選擇器
+    const selectedLang = els.languagePrimary?.value || 'zh-Hant';
+    
+    // 語言代碼轉換為 AI 可讀的名稱
+    const langNames = {
+      'en': 'English',
+      'zh-Hant': '繁體中文',
+      'zh-Hans': '简体中文',
+      'ja': '日本語',
+      'ko': '한국어',
+      'es': 'Español',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'th': 'ไทย',
+      'ru': 'Русский'
+    };
+    const langName = langNames[selectedLang] || '繁體中文';
 
     const fandom = state.tags.fandom.join(', ') || '未指定';
     const relationship = state.tags.relationship.join(', ') || '未指定';
     const characters = state.tags.characters.join(', ') || '未指定';
 
     const systemPrompt = `你是一位專業的同人文作家，擅長根據角色設定和使用者背景創作符合人物性格的同人文。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
+請使用 ${langName} 撰撰寫。
 輸出格式為 JSON: {"title": "標題", "content": "正文內容", "tags": ["標籤1", "標籤2"]}`;
 
     const prompt = `${context}

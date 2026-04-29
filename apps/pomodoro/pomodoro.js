@@ -186,11 +186,25 @@
   }
 
   function getActiveMask(){
+    // 優先從 sx_char_name / sx_char_avatar 讀取當前激活角色
+    const charName = localStorage.getItem('sx_char_name');
+    const charAvatar = localStorage.getItem('sx_char_avatar');
+    
+    if (charName && charName !== '預設用戶') {
+      return { name: charName, avatar: charAvatar || '' };
+    }
+    
+    // 其次檢查 sx_masks
     const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
-    if (masks.length > 0) return masks[0] || { name: 'AI 夥伴', avatar: '' };
-    const name = localStorage.getItem('sx_char_name') || 'AI 夥伴';
-    const avatar = localStorage.getItem('sx_char_avatar') || '';
-    return { name, avatar };
+    if (masks.length > 0 && masks[0] && masks[0].name) {
+      return { 
+        name: masks[0].name, 
+        avatar: masks[0].avatar || '' 
+      };
+    }
+    
+    // 最後使用預設值
+    return { name: 'AI 夥伴', avatar: '' };
   }
 
   function getHistorySlice(depth=30){

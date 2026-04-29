@@ -521,7 +521,7 @@
     if (!state.activeNpc) {
       ui.activeNpcCard.innerHTML = '<p class="npc-placeholder">尚未選擇夥伴，建立一位願意與你交換日記的角色吧。</p>';
     } else {
-      const { name, avatar, role, notes } = state.activeNpc;
+      const { name, avatar } = state.activeNpc;
       ui.activeNpcCard.innerHTML = '';
       const avatarBox = document.createElement('div');
       avatarBox.className = 'npc-avatar';
@@ -531,15 +531,7 @@
       meta.className = 'npc-meta';
       const title = document.createElement('h3');
       title.textContent = name || '未命名夥伴';
-      const roleEl = document.createElement('span');
-      roleEl.textContent = role || '親密夥伴';
       meta.appendChild(title);
-      meta.appendChild(roleEl);
-      if (notes) {
-        const noteEl = document.createElement('p');
-        noteEl.textContent = notes;
-        meta.appendChild(noteEl);
-      }
 
       ui.activeNpcCard.appendChild(avatarBox);
       ui.activeNpcCard.appendChild(meta);
@@ -888,7 +880,6 @@ ${personality.trim()}`;
 請根據你的名字和與 ${userName} 的關係，自然地展現你的個性。用真誠的方式回應。`;
     }
     
-    const memorySection = '';
     const memory = loadCharacterMemory(npcName);
     let memoryContext = '';
     if (memory && memory.length > 0) {

@@ -3629,16 +3629,32 @@
         const ballCenterX = offsetX + ballRect.width / 2;
 
         const panelWidth = floatingPanel.offsetWidth || 210;
+        const panelHeight = floatingPanel.offsetHeight || 300;
         const isLeftSide = ballCenterX < containerRect.width / 2;
         const margin = 12;
 
+        // 水平位置
         if (isLeftSide) {
             floatingPanel.style.left = `${offsetX + ballRect.width + margin}px`;
         } else {
             floatingPanel.style.left = `${offsetX - panelWidth - margin}px`;
         }
 
-        floatingPanel.style.top = `${offsetY + 10}px`;
+        // 垂直位置 - 考虑底部边界
+        let topPosition = offsetY + 10;
+        const bottomEdge = topPosition + panelHeight;
+        const containerHeight = containerRect.height;
+
+        if (bottomEdge > containerHeight - 20) {
+            // 如果面板超出底部，将其向上调整
+            topPosition = containerHeight - panelHeight - 20;
+            // 确保不会超出顶部
+            if (topPosition < 10) {
+                topPosition = 10;
+            }
+        }
+
+        floatingPanel.style.top = `${topPosition}px`;
         floatingPanel.style.right = 'auto';
     };
 

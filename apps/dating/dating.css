@@ -58,12 +58,14 @@ body {
   backdrop-filter: none;
   border-bottom: none;
   z-index: 100;
+  gap: 10px;
 }
 
 .app-title {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
 }
 
 .app-title h1 {
@@ -76,11 +78,13 @@ body {
   background-clip: text;
   margin: 0;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .top-actions {
   display: flex;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .top-btn {
@@ -112,6 +116,17 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
+  max-width: 35%;
+  overflow: hidden;
+}
+
+.char-info > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  font-size: 14px;
 }
 
 .char-avatar {
@@ -413,8 +428,14 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scene-selection::-webkit-scrollbar {
+  display: none;
 }
 
 /* ==================== 約會設定 ==================== */
@@ -1094,6 +1115,75 @@ body {
     grid-template-columns: repeat(3, 50px);
     grid-template-rows: repeat(3, 50px);
     gap: 8px;
+  }
+  
+  .top-info {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  
+  .char-info {
+    max-width: 30%;
+  }
+  
+  .char-info > span {
+    max-width: 50px;
+    font-size: 12px;
+  }
+  
+  .app-title h1 {
+    font-size: 24px;
+  }
+  
+  .top-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .char-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 380px) {
+  .scene-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .scene-card {
+    padding: 20px 15px;
+  }
+  
+  .scene-card i {
+    font-size: 28px;
+  }
+  
+  .scene-card span {
+    font-size: 13px;
+  }
+  
+  .custom-map-import {
+    padding: 15px;
+  }
+  
+  .import-options {
+    flex-direction: column;
+  }
+  
+  .import-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .char-info > span {
+    max-width: 40px;
+    font-size: 11px;
+  }
+  
+  .app-title h1 {
+    font-size: 20px;
   }
 }
 

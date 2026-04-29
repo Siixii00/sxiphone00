@@ -388,6 +388,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .post-header {
@@ -403,7 +405,11 @@ body {
 
 .post-meta { color: var(--fb-muted); font-size: 13px; }
 
-.post-body { line-height: 1.5; }
+.post-body { 
+  line-height: 1.5; 
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 
 .post-actions {
   display: grid;
@@ -1220,6 +1226,7 @@ body {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--fb-border);
+  overflow: hidden;
 }
 
 .comments-list {
@@ -1237,6 +1244,8 @@ body {
   padding: 8px;
   background: #1f232a;
   border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .comment-author {
@@ -1248,6 +1257,10 @@ body {
 .comment-text {
   font-size: 14px;
   color: var(--fb-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
 }
 
 .comment-time {
@@ -1259,10 +1272,12 @@ body {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  min-width: 0;
 }
 
 .comment-input {
   flex: 1;
+  min-width: 0;
   border: 1px solid var(--fb-border);
   background: #1f232a;
   color: var(--fb-text);
@@ -1287,6 +1302,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .profile-page {

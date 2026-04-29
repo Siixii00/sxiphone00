@@ -966,13 +966,14 @@ async function selectChar(charId) {
     
     if (char) {
         document.getElementById('charName').textContent = char.name;
-        document.getElementById('charDesc').textContent = char.description ? char.description.slice(0, 50) + (char.description.length > 50 ? '...' : '') : '點擊展開查看詳情';
+        document.getElementById('charDesc').textContent = '';
         
         if (char.avatar) {
             document.getElementById('charAvatar').innerHTML = `<img src="${char.avatar}" alt="${char.name}">`;
+        } else {
+            document.getElementById('charAvatar').innerHTML = `<i class="fas fa-user-circle"></i>`;
         }
         
-        // 建立詳細資訊內容
         const detailEl = document.getElementById('charProfileDetail');
         detailEl.innerHTML = `
             ${char.description ? `<div class="char-profile-detail-section">
@@ -1994,10 +1995,23 @@ async function syncWithMemorySystem() {
             }
         }
         
-        if (window.parent && window.parent.unifiedMemory) {
-            const memory = window.parent.unifiedMemory;
-            const recentMemories = await memory.recall('', { limit: 10 });
-            console.log('[PersonalWiki] 統一記憶系統:', recentMemories);
+        if (window.MemoryHelper) {
+            try {
+                const memResult = await window.MemoryHelper.recall('', { limit: 10 });
+                if (memResult?.memories?.length > 0) {
+                    console.log('[PersonalWiki] 統一記憶系統:', memResult.memories.length, '條');
+                }
+            } catch (memErr) {
+                console.warn('[PersonalWiki] MemoryHelper 調用失敗:', memErr);
+            }
+        } else if (window.parent?.unifiedMemory) {
+            try {
+                const memory = window.parent.unifiedMemory;
+                const recentMemories = await memory.recall('', { limit: 10 });
+                console.log('[PersonalWiki] 統一記憶系統:', recentMemories);
+            } catch (memErr) {
+                console.warn('[PersonalWiki] unifiedMemory 調用失敗:', memErr);
+            }
         }
         
         await loadUserWiki();

@@ -391,27 +391,29 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
   text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5);
   animation: danmuScroll linear forwards;
   z-index: 3;
+  will-change: transform;
 }
 
 @keyframes danmuScroll {
-  from { transform: translateX(100%); }
-  to { transform: translateX(-100%); }
+  0% { left: 100%; transform: translateX(0); }
+  100% { left: 0%; transform: translateX(-100%); }
 }
 
 .char-companion {
   position: absolute;
-  bottom: 16px;
-  right: 16px;
+  bottom: 12px;
+  right: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 50px;
-  padding: 6px 14px 6px 6px;
+  padding: 4px 10px 4px 4px;
   z-index: 5;
   animation: companionFadeIn 0.3s ease;
+  max-width: 180px;
 }
 
 .char-companion[hidden] { display: none; }
@@ -422,8 +424,8 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
 }
 
 .char-companion-avatar {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, #fb7299, #f25285);
   background-size: cover;
@@ -433,14 +435,17 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
 
 .char-companion-name {
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
 }
 
 .char-companion-close {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   border: none;
@@ -448,8 +453,9 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
   display: grid;
   place-items: center;
   cursor: pointer;
-  font-size: 12px;
-  margin-left: 4px;
+  font-size: 10px;
+  margin-left: 2px;
+  flex-shrink: 0;
 }
 
 .char-companion-close:hover {
@@ -459,14 +465,14 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
 
 .char-comment-bubble {
   position: absolute;
-  bottom: 70px;
-  right: 16px;
-  max-width: 260px;
+  bottom: 50px;
+  right: 12px;
+  max-width: 200px;
   background: rgba(251, 114, 153, 0.95);
   backdrop-filter: blur(10px);
-  border-radius: 16px;
+  border-radius: 12px;
   border-bottom-right-radius: 4px;
-  padding: 12px 14px;
+  padding: 8px 10px;
   z-index: 5;
   animation: bubblePop 0.3s ease;
   box-shadow: 0 4px 20px rgba(251, 114, 153, 0.3);
@@ -481,8 +487,8 @@ body { font-family: "PingFang TC", "SF Pro Display", "Segoe UI", sans-serif; bac
 
 .char-comment-text {
   color: #fff;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .player-char-controls {

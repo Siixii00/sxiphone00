@@ -5045,3 +5045,46 @@ body {
 .game-bg-layer.dart-bg {
   background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
 }
+
+.sprite-settings-inline {
+  margin-top: 8px;
+}
+
+.sprite-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.sprite-options-inline {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sprite-option-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sprite-option-mini:hover {
+  transform: scale(1.1);
+}
+
+.sprite-option-mini.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.sprite-preview-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}

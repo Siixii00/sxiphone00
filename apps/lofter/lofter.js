@@ -401,11 +401,14 @@ async function renderFeed() {
 
   const bookmarks = await getBookmarks();
   const bookmarkIds = new Set(bookmarks.map(b => b.id));
+  const followList = loadListFromStorage(FOLLOW_POST_KEY);
+  const followSet = new Set(followList.map(item => `${item.title}-${item.author}`));
 
   feedEl.innerHTML = list.map((post, index) => {
     const postId = generatePostId(post, index);
     if (!post.id) post.id = postId;
     const isBookmarked = bookmarkIds.has(postId);
+    const isFollowed = followSet.has(`${post.title}-${post.author}`);
     return `
     <article class="post-card post-card-compact" data-index="${index}" data-post-id="${escapeHTML(postId)}">
       <div class="post-card-header" onclick="togglePostExpand(this)">
@@ -433,8 +436,8 @@ async function renderFeed() {
             <i class="far fa-heart"></i><span>${post.likes}</span>
           </button>
           <button class="action" type="button"><i class="far fa-comment"></i><span>${post.comments}</span></button>
+          <button class="action follow-action ${isFollowed ? 'is-followed' : ''}" type="button"><i class="${isFollowed ? 'fas' : 'far'} fa-star"></i><span>${isFollowed ? '已追蹤' : '追蹤'}</span></button>
           <button class="action bookmark-action ${isBookmarked ? 'bookmarked' : ''}" type="button"><i class="${isBookmarked ? 'fas' : 'far'} fa-bookmark"></i></button>
-          <button class="action" type="button"><i class="fas fa-share-nodes"></i><span>${post.shares}</span></button>
         </footer>
       </div>
     </article>
@@ -592,16 +595,42 @@ function bindFollowEvents(container) {
     if (!followBtn) return;
     const card = event.target.closest('.post-card');
     if (!card) return;
+    
     const title = card.querySelector('.post-title')?.textContent || '未命名文章';
     const author = card.querySelector('.author')?.textContent || '匿名作者';
+    const fullContent = card.querySelector('.post-full-content')?.textContent || '';
+    const category = card.querySelector('.meta')?.textContent?.split('·')[0]?.trim() || '同人文';
+    
     const list = loadListFromStorage(FOLLOW_POST_KEY);
     const exists = list.find(item => item.title === title && item.author === author);
-    if (exists) return;
-    list.unshift({ title, author, time: '剛剛', status: '連載中' });
-    localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
+    
+    if (exists) {
+      // 已追蹤，取消追蹤
+      const index = list.findIndex(item => item.title === title && item.author === author);
+      if (index >= 0) {
+        list.splice(index, 1);
+        localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
+        followBtn.classList.remove('is-followed');
+        followBtn.querySelector('i').className = 'far fa-star';
+        followBtn.querySelector('span').textContent = '追蹤';
+      }
+    } else {
+      // 新增追蹤
+      list.unshift({ 
+        title, 
+        author, 
+        time: '剛剛', 
+        status: '連載中',
+        fullContent,
+        category
+      });
+      localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
+      followBtn.classList.add('is-followed');
+      followBtn.querySelector('i').className = 'fas fa-star';
+      followBtn.querySelector('span').textContent = '已追蹤';
+    }
+    
     renderFollowFeed();
-    followBtn.classList.add('is-followed');
-    followBtn.querySelector('span').textContent = '已追蹤';
   });
 }
 
@@ -1289,17 +1318,18 @@ function renderFollowFeed() {
   if (!followFeedEl) return;
   const list = loadListFromStorage(FOLLOW_POST_KEY);
   if (list.length === 0) {
-    followFeedEl.innerHTML = '';
+    followFeedEl.innerHTML = '<div class="empty-state"><i class="far fa-star"></i><p>尚未追蹤任何文章</p><p class="empty-hint">在文章中點擊「追蹤」按鈕即可追蹤</p></div>';
     return;
   }
+  
   const generated = list.map((item, index) => ({
     author: item.author,
-    category: `追蹤中 · ${item.status}`,
+    category: item.category || `追蹤中 · ${item.status}`,
     title: item.title,
-    summary: 'AI 續寫已準備，點擊可生成下一篇章。',
-    text: 'AI 續寫已準備，點擊可生成下一篇章。',
-    excerpt: '追蹤此作品後，系統會依據文筆與設定自動延伸續集。',
-    fullContent: '追蹤此作品後，系統會依據文筆與設定自動延伸續集。',
+    summary: item.fullContent ? item.fullContent.slice(0, 100) + '...' : 'AI 續寫已準備，點擊可生成下一篇章。',
+    text: item.fullContent || 'AI 續寫已準備，點擊可生成下一篇章。',
+    excerpt: item.fullContent || '追蹤此作品後，系統會依據文筆與設定自動延伸續集。',
+    fullContent: item.fullContent || '',
     tags: ['#連載', '#追蹤中'],
     time: item.time,
     likes: 0,
@@ -1307,6 +1337,7 @@ function renderFollowFeed() {
     shares: 0,
     isFollowed: true
   }));
+  
   followFeedEl.innerHTML = generated.map((post, index) => buildPostHTML(post, index)).join('');
 }
 
