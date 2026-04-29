@@ -149,7 +149,7 @@ window.confirmImportSelection = async function() {
         if (container && mergedData[key].length > 0) {
             container.innerHTML = '';
             mergedData[key].forEach(entry => {
-                const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                 container.insertAdjacentHTML('beforeend', createDrawerItemHTML(
                     entry.title,
                     entry.triggers.join(', '),
@@ -621,7 +621,7 @@ async function hydrateWorldbookUI() {
         if (container && entries.length > 0) {
             container.innerHTML = '';
             entries.forEach(entry => {
-                const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                 container.insertAdjacentHTML('beforeend', createDrawerItemHTML(entry.title, entry.triggers.join(', '), entry.content, isEnabled));
             });
         }
@@ -876,7 +876,7 @@ window.importIvoryTower = async function(silent = false) {
             if (container && entries.length > 0) {
                 container.innerHTML = '';
                 entries.forEach(entry => {
-                    const isEnabled = entry.enabled !== undefined ? entry.enabled : true;
+                    const isEnabled = entry.enabled !== undefined ? entry.enabled : false;
                     container.insertAdjacentHTML('beforeend', createDrawerItemHTML(
                         entry.title, 
                         entry.triggers.join(', '), 
