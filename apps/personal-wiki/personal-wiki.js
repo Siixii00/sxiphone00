@@ -966,13 +966,14 @@ async function selectChar(charId) {
     
     if (char) {
         document.getElementById('charName').textContent = char.name;
-        document.getElementById('charDesc').textContent = char.description ? char.description.slice(0, 50) + (char.description.length > 50 ? '...' : '') : '點擊展開查看詳情';
+        document.getElementById('charDesc').textContent = '';
         
         if (char.avatar) {
             document.getElementById('charAvatar').innerHTML = `<img src="${char.avatar}" alt="${char.name}">`;
+        } else {
+            document.getElementById('charAvatar').innerHTML = `<i class="fas fa-user-circle"></i>`;
         }
         
-        // 建立詳細資訊內容
         const detailEl = document.getElementById('charProfileDetail');
         detailEl.innerHTML = `
             ${char.description ? `<div class="char-profile-detail-section">
