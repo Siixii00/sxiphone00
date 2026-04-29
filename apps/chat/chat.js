@@ -531,14 +531,13 @@ function renderWorldbookOptions() {
     if (!container) return;
     
     const worldbookData = getWorldbookData();
-    const worldbookIndex = getWorldbookIndex();
     const mounts = getWorldbookMounts();
     const categories = [
-        { key: 'global', label: '全域設定', icon: 'globe' },
-        { key: 'cot', label: '思維鏈', icon: 'brain' },
-        { key: 'style', label: '文風設定', icon: 'brush' },
-        { key: 'keywords', label: '關鍵字', icon: 'tags' },
-        { key: 'backend', label: '後端設定', icon: 'cog' }
+        { key: 'global', label: '全域設定', icon: 'globe', defaultChecked: true },
+        { key: 'cot', label: '思維鏈', icon: 'brain', defaultChecked: false },
+        { key: 'style', label: '文風設定', icon: 'brush', defaultChecked: false },
+        { key: 'keywords', label: '關鍵字', icon: 'tags', defaultChecked: false },
+        { key: 'backend', label: '後端設定', icon: 'cog', defaultChecked: false }
     ];
     
     const mountMap = new Map(mounts.map(m => [m.name, m]));
@@ -567,20 +566,41 @@ function renderWorldbookOptions() {
     // 添加通用常識庫（預設）
     container.insertAdjacentHTML('beforeend', makeMountRow('通用常識庫', 'mid', true));
 
-    // 顯示分類
+    // 顯示分類 - 直接從 worldbookData 讀取條目，不依賴 worldbookIndex
+    let hasAnyEntries = false;
+    
     categories.forEach(cat => {
         const catKey = `sx_worldbook_${cat.key}`;
-        const catData = worldbookData[catKey];
-        if (!catData || catData.length === 0) return;
+        const entries = worldbookData[catKey];
+        
+        // 直接檢查 entries 是否為有效陣列且有內容
+        if (!entries || !Array.isArray(entries) || entries.length === 0) return;
+        
+        hasAnyEntries = true;
+        
+        // 添加分類標題
         container.insertAdjacentHTML('beforeend', `
             <div class="wb-mount-category">${cat.label}</div>
         `);
 
-        const entries = worldbookIndex.filter(item => item.category === cat.key);
+        // 直接從 entries 讀取條目
+        // global 分類預設勾選，其他分類預設不勾選
         entries.forEach(entry => {
-            container.insertAdjacentHTML('beforeend', makeMountRow(entry.title));
+            if (entry && entry.title) {
+                container.insertAdjacentHTML('beforeend', makeMountRow(entry.title, 'mid', cat.defaultChecked));
+            }
         });
     });
+    
+    // 如果沒有任何條目，顯示提示訊息
+    if (!hasAnyEntries) {
+        container.insertAdjacentHTML('beforeend', `
+            <div class="wb-mount-empty-hint" style="padding: 12px; color: #888; font-size: 12px; text-align: center;">
+                尚無世界書條目<br>
+                <small>請先到「世界書」應用程式新增內容</small>
+            </div>
+        `);
+    }
 
     if (dropdownToggle) {
         const selectedCount = container.querySelectorAll('.wb-enable:checked').length;
@@ -5399,18 +5419,28 @@ const WorldInfoEngine = {
             if (!entries || !Array.isArray(entries)) return;
 
             entries.forEach(entry => {
+                // 檢查條目本身的 enabled 狀態
+                if (entry.enabled === false) return;
+                
                 // 檢查是否被掛載
                 const mount = mounts.find(m => m.name === entry.title);
-                if (!mount || !mount.enabled) return;
-
                 const isGlobal = (cat === 'global');
+                
+                // global 分類預設啟用，不需要在 mounts 中設定
+                // 其他分類需要在 mounts 中明確啟用
+                const isMountEnabled = isGlobal 
+                    ? (mount?.enabled ?? true)  // global 預設 true
+                    : (mount?.enabled ?? false); // 其他分類預設 false
+                
+                if (!isMountEnabled) return;
+
                 const titleMatch = entry.title && latestText.includes(entry.title);
                 const keywordMatch = entry.triggers && entry.triggers.some(k => latestText.includes(k));
 
                 if (isGlobal || titleMatch || keywordMatch) {
                     const content = `<${cat.toUpperCase()} title="${entry.title}">\n${entry.content}\n</${cat.toUpperCase()}>\n`;
                     
-                    const position = mount.position || 'mid';
+                    const position = mount?.position || 'mid';
                     contentByPosition[position].push(content);
                 }
             });
