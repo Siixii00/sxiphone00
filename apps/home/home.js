@@ -12,20 +12,36 @@ const ROOM_TYPES = {
 const HomeApp = {
   currentRoom: 'user',
   currentSubRoom: 'living_room',
+  currentCommunity: null,
   canvas: null,
   ctx: null,
   mapCanvas: null,
   mapCtx: null,
-  gridSize: 32,
-  roomWidth: 16,
-  roomHeight: 12,
+  gridSize: 48,
+  roomWidth: 12,
+  roomHeight: 10,
+  baseRoomWidth: 12,
+  baseRoomHeight: 10,
+  roomExpansions: {
+    user: {
+      living_room: { width: 0, height: 0 },
+      bedroom: { width: 0, height: 0 },
+      bathroom: { width: 0, height: 0 },
+      study: { width: 0, height: 0 },
+      kitchen: { width: 0, height: 0 },
+      balcony: { width: 0, height: 0 }
+    }
+  },
   editMode: false,
+  mapEditMode: false,
   selectedFurniture: null,
   draggedFurniture: null,
   dragOffset: { x: 0, y: 0 },
   roomStyle: 'modern',
   floorColor: '#4a4a6a',
   wallColor: '#3a3a5a',
+  floorStyle: 'wood_light',
+  wallStyle: 'paint_white',
   placedFurniture: { 
     user: {
       living_room: [],
@@ -43,6 +59,12 @@ const HomeApp = {
   pendingBuy: null,
   pendingCharIdx: null,
   townMap: null,
+  communityMap: null,
+  communityBuildings: [],
+  communityEmptyLots: [],
+  communityDecorations: [],
+  customPlacedBuildings: [],
+  customPlacedDecorations: [],
   buildings: [],
   emptyLots: [],
   decorations: [],
@@ -50,13 +72,213 @@ const HomeApp = {
   dragStartX: null,
   dragStartY: null,
   lastMapOffsetX: 0,
-  lastMapOffsetY: 0
+  lastMapOffsetY: 0,
+  selectedMapItem: null,
+  draggedMapItem: null
 };
 
 const MAP_CONFIG = {
   tileSize: 48,
   width: 20,
   height: 15
+};
+
+const COMMUNITY_MAP_CONFIG = {
+  tileSize: 40,
+  width: 40,
+  height: 30
+};
+
+const COMMUNITIES = {
+  residential: {
+    id: 'residential',
+    name: '溫馨住宅區',
+    icon: 'home',
+    description: '玩家和角色的家園',
+    badge: '我的家',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'residential',
+    bgColor: '#2d5a27',
+    buildings: [
+      { type: 'PLAYER_HOUSE', x: 18, y: 12, width: 3, height: 3 },
+      { type: 'CONVENIENCE', x: 30, y: 8, width: 2, height: 2 },
+      { type: 'CAFE', x: 8, y: 8, width: 2, height: 2 }
+    ],
+    emptyLots: [
+      { x: 8, y: 18, width: 2, height: 2 },
+      { x: 30, y: 18, width: 2, height: 2 },
+      { x: 18, y: 22, width: 2, height: 2 }
+    ],
+    decorations: [
+      { type: 'tree', positions: [[2, 2], [6, 3], [35, 2], [38, 4], [3, 25], [36, 26]] },
+      { type: 'lamp', positions: [[10, 10], [25, 10], [10, 20], [25, 20]] },
+      { type: 'flower', positions: [[4, 5], [34, 5], [5, 24], [34, 24]] },
+      { type: 'mailbox', positions: [[17, 16], [21, 16]] },
+      { type: 'garden', positions: [[12, 5], [28, 5]] }
+    ]
+  },
+  commercial: {
+    id: 'commercial',
+    name: '繁華商業區',
+    icon: 'store',
+    description: '商店、餐廳、咖啡廳林立',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'commercial',
+    bgColor: '#3a3a4a',
+    buildings: [
+      { type: 'SUPERMARKET', x: 5, y: 8, width: 3, height: 2 },
+      { type: 'CAFE', x: 12, y: 8, width: 2, height: 2 },
+      { type: 'CONVENIENCE', x: 18, y: 8, width: 2, height: 2 },
+      { type: 'RESTAURANT', x: 25, y: 8, width: 3, height: 2 },
+      { type: 'BOOKSTORE', x: 32, y: 8, width: 2, height: 2 },
+      { type: 'BAKERY', x: 5, y: 18, width: 2, height: 2 }
+    ],
+    emptyLots: [],
+    decorations: [
+      { type: 'neon_sign', positions: [[7, 6], [14, 6], [27, 6]] },
+      { type: 'billboard', positions: [[20, 2], [35, 3]] },
+      { type: 'bus_stop', positions: [[38, 12], [2, 12]] },
+      { type: 'vending_machine', positions: [[10, 15], [30, 15]] }
+    ]
+  },
+  leisure: {
+    id: 'leisure',
+    name: '休閒公園區',
+    icon: 'trees',
+    description: '公園、遊樂場、運動場',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'leisure',
+    bgColor: '#228B22',
+    buildings: [
+      { type: 'PARK', x: 5, y: 5, width: 8, height: 6 },
+      { type: 'PLAYGROUND', x: 20, y: 8, width: 5, height: 4 },
+      { type: 'SPORTS_FIELD', x: 30, y: 5, width: 6, height: 5 },
+      { type: 'PICNIC_AREA', x: 10, y: 20, width: 4, height: 3 }
+    ],
+    emptyLots: [],
+    decorations: [
+      { type: 'fountain', positions: [[8, 8], [22, 10]] },
+      { type: 'bench', positions: [[15, 12], [25, 12], [15, 22], [25, 22]] },
+      { type: 'flower_bed', positions: [[3, 3], [37, 3], [3, 27], [37, 27]] },
+      { type: 'tree', positions: [[2, 15], [38, 15], [15, 5], [25, 5]] }
+    ]
+  },
+  nature: {
+    id: 'nature',
+    name: '自然森林區',
+    icon: 'tree-pine',
+    description: '森林步道、湖泊、山丘',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'nature',
+    bgColor: '#1a4a1a',
+    buildings: [
+      { type: 'FOREST_CABIN', x: 5, y: 5, width: 2, height: 2 },
+      { type: 'VIEWPOINT', x: 35, y: 3, width: 2, height: 2 },
+      { type: 'LAKE_PAVILION', x: 18, y: 20, width: 3, height: 2 }
+    ],
+    emptyLots: [],
+    decorations: [
+      { type: 'big_tree', positions: [[2, 8], [8, 12], [15, 5], [25, 8], [32, 12], [38, 8]] },
+      { type: 'stream', positions: [[0, 15, 40, 2]] },
+      { type: 'rock', positions: [[10, 10], [30, 10], [20, 25]] },
+      { type: 'lake', positions: [[15, 18, 10, 6]] },
+      { type: 'wildflower', positions: [[5, 20], [35, 20], [12, 28], [28, 28]] }
+    ]
+  },
+  seaside: {
+    id: 'seaside',
+    name: '海濱度假區',
+    icon: 'umbrella',
+    description: '海灘、碼頭、燈塔',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'seaside',
+    bgColor: '#87CEEB',
+    buildings: [
+      { type: 'BEACH_HUT', x: 5, y: 20, width: 2, height: 2 },
+      { type: 'DOCK', x: 35, y: 15, width: 3, height: 4 },
+      { type: 'LIGHTHOUSE', x: 2, y: 5, width: 2, height: 3 },
+      { type: 'SEAFOOD_RESTAURANT', x: 15, y: 20, width: 3, height: 2 }
+    ],
+    emptyLots: [],
+    decorations: [
+      { type: 'coconut_tree', positions: [[8, 18], [25, 18], [32, 22]] },
+      { type: 'beach_chair', positions: [[10, 24], [20, 24], [30, 24]] },
+      { type: 'wave', positions: [[0, 26, 40, 3]] },
+      { type: 'shell', positions: [[5, 28], [15, 28], [25, 28], [35, 28]] },
+      { type: 'boat', positions: [[36, 12]] }
+    ]
+  },
+  cultural: {
+    id: 'cultural',
+    name: '文化藝術區',
+    icon: 'landmark',
+    description: '博物館、圖書館、學校',
+    mapWidth: 40,
+    mapHeight: 30,
+    terrain: 'cultural',
+    bgColor: '#4a3a2d',
+    buildings: [
+      { type: 'MUSEUM', x: 5, y: 5, width: 4, height: 3 },
+      { type: 'LIBRARY', x: 15, y: 5, width: 3, height: 3 },
+      { type: 'SCHOOL', x: 25, y: 5, width: 4, height: 3 },
+      { type: 'ART_CENTER', x: 35, y: 5, width: 3, height: 3 }
+    ],
+    emptyLots: [],
+    decorations: [
+      { type: 'statue', positions: [[10, 12], [20, 12], [30, 12]] },
+      { type: 'flag', positions: [[3, 3], [12, 3], [24, 3], [34, 3]] },
+      { type: 'fountain', positions: [[18, 15]] },
+      { type: 'flower_bed', positions: [[5, 10], [15, 10], [25, 10], [35, 10]] }
+    ]
+  }
+};
+
+const COMMUNITY_TILE_TYPES = {
+  GRASS: 0,
+  ROAD_H: 1,
+  ROAD_V: 2,
+  ROAD_CROSS: 3,
+  SIDEWALK: 4,
+  WATER: 5,
+  SAND: 6,
+  FOREST: 7,
+  STONE_PATH: 8,
+  CONCRETE: 9,
+  GARDEN: 10,
+  STREAM: 11,
+  BEACH: 12
+};
+
+const COMMUNITY_BUILDINGS = {
+  PLAYER_HOUSE: { id: 'player_house', name: '我的家', color: '#e94560', roofColor: '#c73e54', price: 0 },
+  CHAR_HOUSE: { id: 'char_house', name: 'TA的家', color: '#4facfe', roofColor: '#3a8bc9', price: 15000 },
+  SHARED_HOUSE: { id: 'shared_house', name: '共同的家', color: '#ff6b9d', roofColor: '#d94a7b', price: 25000 },
+  CONVENIENCE: { id: 'convenience', name: '便利商店', color: '#2ecc71', roofColor: '#27ae60', price: 0, isShop: true },
+  CAFE: { id: 'cafe', name: '咖啡廳', color: '#8B4513', roofColor: '#654321', price: 0, isShop: true },
+  SUPERMARKET: { id: 'supermarket', name: '超市', color: '#e74c3c', roofColor: '#c0392b', price: 0, isShop: true },
+  RESTAURANT: { id: 'restaurant', name: '餐廳', color: '#ff6b6b', roofColor: '#d63031', price: 0, isShop: true },
+  BOOKSTORE: { id: 'bookstore', name: '書店', color: '#9b59b6', roofColor: '#8e44ad', price: 0, isShop: true },
+  BAKERY: { id: 'bakery', name: '蛋糕店', color: '#f1c40f', roofColor: '#d4ac0d', price: 0, isShop: true },
+  PARK: { id: 'park', name: '公園', color: '#228B22', roofColor: '#1a6b1a', price: 0, isPark: true },
+  PLAYGROUND: { id: 'playground', name: '遊樂場', color: '#e91e63', roofColor: '#c2185b', price: 0, isPark: true },
+  SPORTS_FIELD: { id: 'sports_field', name: '運動場', color: '#4CAF50', roofColor: '#388E3C', price: 0, isPark: true },
+  PICNIC_AREA: { id: 'picnic_area', name: '野餐區', color: '#8BC34A', roofColor: '#689F38', price: 0, isPark: true },
+  FOREST_CABIN: { id: 'forest_cabin', name: '森林小屋', color: '#5D4037', roofColor: '#4E342E', price: 0 },
+  VIEWPOINT: { id: 'viewpoint', name: '觀景台', color: '#607D8B', roofColor: '#455A64', price: 0 },
+  LAKE_PAVILION: { id: 'lake_pavilion', name: '湖畔亭', color: '#795548', roofColor: '#6D4C41', price: 0 },
+  BEACH_HUT: { id: 'beach_hut', name: '海灘小屋', color: '#FF9800', roofColor: '#F57C00', price: 0 },
+  DOCK: { id: 'dock', name: '碼頭', color: '#8D6E63', roofColor: '#6D4C41', price: 0 },
+  LIGHTHOUSE: { id: 'lighthouse', name: '燈塔', color: '#ffffff', roofColor: '#e0e0e0', price: 0 },
+  SEAFOOD_RESTAURANT: { id: 'seafood_restaurant', name: '海鮮餐廳', color: '#00BCD4', roofColor: '#0097A7', price: 0, isShop: true },
+  MUSEUM: { id: 'museum', name: '博物館', color: '#9E9E9E', roofColor: '#757575', price: 0 },
+  LIBRARY: { id: 'library', name: '圖書館', color: '#3F51B5', roofColor: '#303F9F', price: 0 },
+  SCHOOL: { id: 'school', name: '學校', color: '#FF5722', roofColor: '#E64A19', price: 0 },
+  ART_CENTER: { id: 'art_center', name: '藝術中心', color: '#E91E63', roofColor: '#C2185B', price: 0 }
 };
 
 const TILE_TYPES = {
@@ -106,6 +328,80 @@ const ROOM_STYLES = {
 const FLOOR_COLORS = ['#4a4a6a', '#8B7355', '#e0e0e0', '#1a1a2e', '#2d4a3e', '#4a3a2d', '#3a2d4a', '#4a2d3a'];
 const WALL_COLORS = ['#3a3a5a', '#D2691E', '#f5f5f5', '#16213e', '#1a3a2e', '#3a2d1a', '#2d1a3a', '#3a1a2d'];
 
+const RARITY_CONFIG = {
+  common: { name: '普通', color: '#9e9e9e', glow: 'rgba(158,158,158,0.3)', rate: 0.6, priceMultiplier: 1 },
+  rare: { name: '稀有', color: '#2196f3', glow: 'rgba(33,150,243,0.4)', rate: 0.25, priceMultiplier: 1.5 },
+  epic: { name: '史詩', color: '#9c27b0', glow: 'rgba(156,39,176,0.5)', rate: 0.12, priceMultiplier: 2.5 },
+  legendary: { name: '傳說', color: '#ff9800', glow: 'rgba(255,152,0,0.6)', rate: 0.03, priceMultiplier: 5 }
+};
+
+const FLOOR_STYLES = [
+  { id: 'wood_light', name: '淺色木地板', pattern: 'wood', baseColor: '#DEB887', accentColor: '#D2B48C', price: 0 },
+  { id: 'wood_dark', name: '深色木地板', pattern: 'wood', baseColor: '#8B4513', accentColor: '#654321', price: 1000 },
+  { id: 'tile_white', name: '白色磁磚', pattern: 'tile', baseColor: '#f5f5f5', accentColor: '#e0e0e0', price: 800 },
+  { id: 'tile_marble', name: '大理石磁磚', pattern: 'marble', baseColor: '#f0f0f0', accentColor: '#d0d0d0', price: 2000 },
+  { id: 'carpet_beige', name: '米色地毯', pattern: 'carpet', baseColor: '#F5F5DC', accentColor: '#FAEBD7', price: 600 },
+  { id: 'concrete', name: '水泥地板', pattern: 'concrete', baseColor: '#808080', accentColor: '#696969', price: 500 },
+  { id: 'parquet', name: '拼花地板', pattern: 'parquet', baseColor: '#CD853F', accentColor: '#8B4513', price: 1500 }
+];
+
+const WALL_STYLES = [
+  { id: 'paint_white', name: '白色油漆', pattern: 'paint', baseColor: '#ffffff', price: 0 },
+  { id: 'paint_pastel', name: '粉彩油漆', pattern: 'paint', baseColor: '#E6E6FA', price: 500 },
+  { id: 'wallpaper_floral', name: '花卉壁紙', pattern: 'floral', baseColor: '#FFF0F5', accentColor: '#FF69B4', price: 1200 },
+  { id: 'wallpaper_striped', name: '條紋壁紙', pattern: 'striped', baseColor: '#F5F5F5', accentColor: '#4169E1', price: 1000 },
+  { id: 'wallpaper_geometric', name: '幾何壁紙', pattern: 'geometric', baseColor: '#2F4F4F', accentColor: '#00CED1', price: 1100 },
+  { id: 'brick_exposed', name: '裸露磚牆', pattern: 'brick', baseColor: '#8B4513', accentColor: '#A0522D', price: 1500 },
+  { id: 'wood_panel', name: '木質壁板', pattern: 'wood_panel', baseColor: '#DEB887', accentColor: '#D2B48C', price: 1800 }
+];
+
+const SEASONAL_EVENTS = [
+  {
+    id: 'christmas_2024',
+    name: '聖誕佳節',
+    type: 'holiday',
+    startDate: '2024-12-01',
+    endDate: '2024-12-25',
+    furniture: [
+      { id: 'christmas_tree', name: '聖誕樹', price: 2000, rarity: 'epic', width: 2, height: 3 },
+      { id: 'christmas_wreath', name: '聖誕花圈', price: 800, rarity: 'rare', width: 2, height: 2 },
+      { id: 'christmas_stocking', name: '聖誕襪', price: 300, rarity: 'common', width: 1, height: 1 },
+      { id: 'snow_globe', name: '水晶雪球', price: 1500, rarity: 'epic', width: 1, height: 1 }
+    ],
+    discount: 0.9,
+    banner: '聖誕限定家具登場！'
+  },
+  {
+    id: 'valentine_2025',
+    name: '情人節',
+    type: 'holiday',
+    startDate: '2025-02-01',
+    endDate: '2025-02-14',
+    furniture: [
+      { id: 'heart_garland', name: '愛心掛飾', price: 600, rarity: 'rare', width: 2, height: 1 },
+      { id: 'rose_bouquet', name: '玫瑰花束', price: 1200, rarity: 'epic', width: 1, height: 2 },
+      { id: 'love_letter_frame', name: '情書相框', price: 500, rarity: 'common', width: 1, height: 1 }
+    ],
+    discount: 0.85,
+    banner: '情人節限定，表達愛意'
+  },
+  {
+    id: 'halloween_2025',
+    name: '萬聖節',
+    type: 'holiday',
+    startDate: '2025-10-15',
+    endDate: '2025-10-31',
+    furniture: [
+      { id: 'pumpkin_lamp', name: '南瓜燈', price: 800, rarity: 'rare', width: 1, height: 1 },
+      { id: 'ghost_deco', name: '幽靈掛飾', price: 500, rarity: 'common', width: 1, height: 1 },
+      { id: 'bat_garland', name: '蝙蝠掛飾', price: 600, rarity: 'rare', width: 2, height: 1 },
+      { id: 'witch_hat', name: '巫師帽裝飾', price: 1000, rarity: 'epic', width: 1, height: 1 }
+    ],
+    discount: 0.9,
+    banner: '萬聖節限定，搞怪登場'
+  }
+];
+
 const FURNITURE_CATALOG = [
   { id: 'bed_single', name: '單人床', category: 'bed', width: 2, height: 3, pixels: generateBedPixels('#8B4513', '#DEB887') },
   { id: 'bed_double', name: '雙人床', category: 'bed', width: 3, height: 3, pixels: generateBedPixels('#654321', '#FFDAB9') },
@@ -132,6 +428,49 @@ const FURNITURE_CATALOG = [
   { id: 'sink', name: '洗手台', category: 'bath', width: 1, height: 1, pixels: generateSinkPixels() },
   { id: 'stove', name: '爐灶', category: 'kitchen', width: 2, height: 1, pixels: generateStovePixels() },
   { id: 'kitchen_counter', name: '流理台', category: 'kitchen', width: 2, height: 1, pixels: generateKitchenCounterPixels() }
+];
+
+const FURNITURE_SHOP_CATALOG = [
+  { id: 'wall_painting_1', name: '抽象掛畫', category: 'wall_decor', price: 500, width: 2, height: 2, description: '現代風格抽象藝術畫作', rarity: 'common', interactive: false },
+  { id: 'wall_painting_2', name: '風景油畫', category: 'wall_decor', price: 800, width: 3, height: 2, description: '古典風格風景畫作', rarity: 'rare', interactive: false },
+  { id: 'wall_photo_frame', name: '照片牆', category: 'wall_decor', price: 400, width: 2, height: 2, description: '可放角色照片', rarity: 'common', interactive: false },
+  { id: 'wall_mirror_decor', name: '裝飾鏡', category: 'wall_decor', price: 600, width: 1, height: 2, description: '附邊框裝飾', rarity: 'common', interactive: false },
+  { id: 'wall_tapestry', name: '掛毯', category: 'wall_decor', price: 700, width: 2, height: 3, description: '波西米亞風格', rarity: 'rare', interactive: false },
+  { id: 'wall_clock', name: '掛鐘', category: 'wall_decor', price: 350, width: 1, height: 1, description: '顯示真實時間', rarity: 'common', interactive: true },
+  { id: 'wall_shelf', name: '壁掛架', category: 'wall_decor', price: 450, width: 2, height: 1, description: '可放小物', rarity: 'common', interactive: false },
+  { id: 'curtain_basic', name: '基本窗簾', category: 'curtain', price: 400, width: 2, height: 3, description: '素色款式', rarity: 'common', interactive: false },
+  { id: 'curtain_lace', name: '蕾絲窗簾', category: 'curtain', price: 550, width: 2, height: 3, description: '浪漫風格', rarity: 'rare', interactive: false },
+  { id: 'curtain_blackout', name: '遮光窗簾', category: 'curtain', price: 600, width: 2, height: 3, description: '深色系', rarity: 'common', interactive: false },
+  { id: 'curtain_pattern', name: '圖案窗簾', category: 'curtain', price: 500, width: 2, height: 3, description: '幾何圖案', rarity: 'common', interactive: false },
+  { id: 'blind_wooden', name: '木製百葉窗', category: 'curtain', price: 750, width: 2, height: 3, description: '自然風格', rarity: 'rare', interactive: false },
+  { id: 'blind_roman', name: '羅馬簾', category: 'curtain', price: 650, width: 2, height: 3, description: '優雅款式', rarity: 'rare', interactive: false },
+  { id: 'ceiling_light', name: '吸頂燈', category: 'lighting', price: 600, width: 2, height: 1, description: '基本照明', rarity: 'common', interactive: true },
+  { id: 'chandelier', name: '水晶吊燈', category: 'lighting', price: 1500, width: 2, height: 2, description: '豪華款式', rarity: 'epic', interactive: true },
+  { id: 'floor_lamp', name: '落地燈', category: 'lighting', price: 500, width: 1, height: 2, description: '立燈', rarity: 'common', interactive: true },
+  { id: 'wall_sconce', name: '壁燈', category: 'lighting', price: 400, width: 1, height: 1, description: '牆面照明', rarity: 'common', interactive: true },
+  { id: 'string_lights', name: '燈串', category: 'lighting', price: 350, width: 3, height: 1, description: '氣氛燈', rarity: 'rare', interactive: true },
+  { id: 'desk_lamp_luxury', name: '設計師檯燈', category: 'lighting', price: 800, width: 1, height: 1, description: '高級款式', rarity: 'rare', interactive: true },
+  { id: 'neon_sign', name: '霓虹燈牌', category: 'lighting', price: 900, width: 2, height: 1, description: '個性裝飾', rarity: 'epic', interactive: true },
+  { id: 'throw_pillow_1', name: '抱枕組', category: 'textile', price: 200, width: 1, height: 1, description: '可疊加放置', rarity: 'common', interactive: false },
+  { id: 'throw_blanket', name: '毛毯', category: 'textile', price: 350, width: 2, height: 1, description: '可放沙發上', rarity: 'common', interactive: false },
+  { id: 'area_rug_round', name: '圓形地毯', category: 'textile', price: 500, width: 2, height: 2, description: '裝飾用', rarity: 'common', interactive: false },
+  { id: 'area_rug_fuzzy', name: '毛茸地毯', category: 'textile', price: 600, width: 3, height: 2, description: '溫暖風格', rarity: 'rare', interactive: false },
+  { id: 'bed_runner', name: '床尾巾', category: 'textile', price: 300, width: 2, height: 1, description: '床鋪裝飾', rarity: 'common', interactive: false },
+  { id: 'cushion_set', name: '靠墊組', category: 'textile', price: 250, width: 1, height: 1, description: '地板坐墊', rarity: 'common', interactive: false },
+  { id: 'curtain_valance', name: '窗簾頭', category: 'textile', price: 300, width: 2, height: 1, description: '搭配窗簾', rarity: 'common', interactive: false },
+  { id: 'floor_vase_large', name: '大型落地花瓶', category: 'floor_decor', price: 600, width: 1, height: 2, description: '東方風格', rarity: 'rare', interactive: false },
+  { id: 'floor_candle_set', name: '蠟燭組', category: 'floor_decor', price: 250, width: 1, height: 1, description: '氣氛營造', rarity: 'common', interactive: false },
+  { id: 'floor_books_stack', name: '書籍堆疊', category: 'floor_decor', price: 150, width: 1, height: 1, description: '裝飾用', rarity: 'common', interactive: false },
+  { id: 'floor_plant_tall', name: '高大盆栽', category: 'floor_decor', price: 450, width: 1, height: 2, description: '綠色植栽', rarity: 'common', interactive: false },
+  { id: 'floor_statue', name: '小型雕像', category: 'floor_decor', price: 500, width: 1, height: 1, description: '藝術品', rarity: 'rare', interactive: false },
+  { id: 'floor_basket', name: '收納籃', category: 'floor_decor', price: 300, width: 1, height: 1, description: '實用裝飾', rarity: 'common', interactive: false },
+  { id: 'floor_mat_welcome', name: '歡迎地墊', category: 'floor_decor', price: 200, width: 2, height: 1, description: '入口用', rarity: 'common', interactive: false },
+  { id: 'chandelier_crystal', name: '水晶吊燈(傳說)', category: 'lighting', price: 7500, width: 2, height: 2, description: '閃爍動畫效果', rarity: 'legendary', interactive: true },
+  { id: 'wall_art_golden', name: '金箔藝術畫', category: 'wall_decor', price: 10000, width: 2, height: 2, description: '金色光暈', rarity: 'legendary', interactive: false },
+  { id: 'curtain_silk', name: '絲綢窗簾', category: 'curtain', price: 5000, width: 2, height: 3, description: '流光效果', rarity: 'legendary', interactive: false },
+  { id: 'neon_sign_custom', name: '客製化霓虹燈', category: 'lighting', price: 3000, width: 2, height: 1, description: '可自訂文字', rarity: 'epic', interactive: true },
+  { id: 'floor_fountain', name: '室內噴泉', category: 'floor_decor', price: 4500, width: 2, height: 2, description: '水流動畫', rarity: 'epic', interactive: true },
+  { id: 'wall_aquarium', name: '壁掛魚缸', category: 'wall_decor', price: 3500, width: 2, height: 2, description: '魚游動畫', rarity: 'epic', interactive: true }
 ];
 
 function generateBedPixels(woodColor, sheetColor) {
@@ -474,6 +813,725 @@ function adjustColor(hex, amt) {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+function generateShopFurniturePixels(id, ctx, size) {
+  const s = size / 16;
+  ctx.imageSmoothingEnabled = false;
+  
+  switch(id) {
+    case 'wall_painting_1':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(3 * s, 3 * s, 10 * s, 10 * s);
+      ctx.fillStyle = '#3498db';
+      ctx.fillRect(5 * s, 5 * s, 6 * s, 3 * s);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(5 * s, 9 * s, 3 * s, 3 * s);
+      break;
+    case 'wall_painting_2':
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(1 * s, 1 * s, 14 * s, 6 * s);
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(1 * s, 7 * s, 6 * s, 8 * s);
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(7 * s, 5 * s, 4 * s, 10 * s);
+      break;
+    case 'wall_photo_frame':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(2 * s, 2 * s, 5 * s, 5 * s);
+      ctx.fillRect(9 * s, 2 * s, 5 * s, 5 * s);
+      ctx.fillRect(2 * s, 9 * s, 5 * s, 5 * s);
+      ctx.fillRect(9 * s, 9 * s, 5 * s, 5 * s);
+      ctx.fillStyle = '#fde8c8';
+      ctx.fillRect(3 * s, 3 * s, 3 * s, 3 * s);
+      break;
+    case 'wall_mirror_decor':
+      ctx.fillStyle = '#DAA520';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillRect(3 * s, 3 * s, 4 * s, 6 * s);
+      break;
+    case 'wall_tapestry':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 0, 2 * s, 16 * s);
+      ctx.fillRect(14 * s, 0, 2 * s, 16 * s);
+      ctx.fillStyle = '#FF6347';
+      ctx.fillRect(2 * s, 0, 12 * s, 16 * s);
+      ctx.fillStyle = '#FFD700';
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(4 * s, (2 + i * 4) * s, 8 * s, 2 * s);
+      }
+      break;
+    case 'wall_clock':
+      ctx.fillStyle = '#8B4513';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 7 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 6 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.fillRect(8 * s, 3 * s, 0.5 * s, 5 * s);
+      ctx.fillRect(8 * s, 8 * s, 3 * s, 0.5 * s);
+      break;
+    case 'wall_shelf':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 4 * s, 16 * s, 3 * s);
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(1 * s, 7 * s, 2 * s, 6 * s);
+      ctx.fillRect(13 * s, 7 * s, 2 * s, 6 * s);
+      ctx.fillStyle = '#3498db';
+      ctx.fillRect(4 * s, 1 * s, 3 * s, 3 * s);
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(9 * s, 1 * s, 3 * s, 3 * s);
+      break;
+    case 'curtain_basic':
+      ctx.fillStyle = '#D2691E';
+      ctx.fillRect(0, 0, 3 * s, 16 * s);
+      ctx.fillRect(13 * s, 0, 3 * s, 16 * s);
+      ctx.fillStyle = '#F5DEB3';
+      ctx.fillRect(3 * s, 0, 5 * s, 16 * s);
+      ctx.fillRect(8 * s, 0, 5 * s, 16 * s);
+      ctx.fillStyle = '#DEB887';
+      ctx.fillRect(3 * s, 2 * s, 5 * s, 1 * s);
+      ctx.fillRect(8 * s, 6 * s, 5 * s, 1 * s);
+      break;
+    case 'curtain_lace':
+      ctx.fillStyle = '#FFB6C1';
+      ctx.fillRect(0, 0, 3 * s, 16 * s);
+      ctx.fillRect(13 * s, 0, 3 * s, 16 * s);
+      ctx.fillStyle = '#FFF0F5';
+      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.arc(6 * s, (1 + i * 2) * s, 1.5 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(10 * s, (2 + i * 2) * s, 1.5 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case 'curtain_blackout':
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#16213e';
+      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
+      ctx.fillStyle = '#0d0d1a';
+      ctx.fillRect(5 * s, 2 * s, 6 * s, 2 * s);
+      ctx.fillRect(5 * s, 8 * s, 6 * s, 2 * s);
+      break;
+    case 'curtain_pattern':
+      ctx.fillStyle = '#4a4a6a';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#e94560';
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          ctx.fillRect((2 + i * 3) * s, (j * 4) * s, 2 * s, 2 * s);
+        }
+      }
+      break;
+    case 'blind_wooden':
+      ctx.fillStyle = '#8B4513';
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(0, (i * 3) * s, 16 * s, 2 * s);
+      }
+      ctx.fillStyle = '#D2691E';
+      ctx.fillRect(7 * s, 0, 2 * s, 16 * s);
+      break;
+    case 'blind_roman':
+      ctx.fillStyle = '#F5F5DC';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#DEB887';
+      for (let i = 0; i < 5; i++) {
+        ctx.fillRect(0, (i * 3 + 2) * s, 16 * s, 1 * s);
+      }
+      break;
+    case 'ceiling_light':
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(0, 0, 16 * s, 4 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 8 * s, 6 * s, 4 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF8DC';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 8 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'chandelier':
+    case 'chandelier_crystal':
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(7 * s, 0, 2 * s, 4 * s);
+      ctx.fillStyle = '#FFD700';
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc((3 + i * 3.5) * s, 10 * s, 2 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#FFF';
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc((3 + i * 3.5) * s, 10 * s, 1 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case 'floor_lamp':
+      ctx.fillStyle = '#333';
+      ctx.fillRect(6 * s, 10 * s, 4 * s, 6 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(8 * s, 6 * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF8DC';
+      ctx.beginPath();
+      ctx.arc(8 * s, 6 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'wall_sconce':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(4 * s, 2 * s, 8 * s, 2 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'string_lights':
+      ctx.fillStyle = '#333';
+      ctx.fillRect(0, 2 * s, 16 * s, 1 * s);
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = colors[i];
+        ctx.beginPath();
+        ctx.arc((2 + i * 3) * s, 5 * s, 2 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case 'desk_lamp_luxury':
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(5 * s, 12 * s, 6 * s, 4 * s);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(7 * s, 4 * s, 2 * s, 8 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 4 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'neon_sign':
+    case 'neon_sign_custom':
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
+      ctx.strokeStyle = '#ff00ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 5 * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#00ffff';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 3 * s, 0, Math.PI * 2);
+      ctx.stroke();
+      break;
+    case 'throw_pillow_1':
+      ctx.fillStyle = '#FF6B6B';
+      ctx.fillRect(2 * s, 4 * s, 12 * s, 10 * s);
+      ctx.fillStyle = '#FFB6C1';
+      ctx.fillRect(4 * s, 6 * s, 8 * s, 6 * s);
+      break;
+    case 'throw_blanket':
+      ctx.fillStyle = '#6B8E23';
+      ctx.fillRect(0, 4 * s, 16 * s, 8 * s);
+      ctx.fillStyle = '#556B2F';
+      ctx.fillRect(2 * s, 6 * s, 12 * s, 4 * s);
+      break;
+    case 'area_rug_round':
+      ctx.fillStyle = '#DC143C';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 8 * s, 7 * s, 7 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 8 * s, 4 * s, 4 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'area_rug_fuzzy':
+      ctx.fillStyle = '#F5DEB3';
+      ctx.fillRect(0, 2 * s, 16 * s, 12 * s);
+      ctx.fillStyle = '#DEB887';
+      for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 4; j++) {
+          ctx.fillRect((i * 2) * s, (3 + j * 3) * s, 1 * s, 2 * s);
+        }
+      }
+      break;
+    case 'bed_runner':
+      ctx.fillStyle = '#8B0000';
+      ctx.fillRect(0, 6 * s, 16 * s, 6 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(2 * s, 7 * s, 12 * s, 4 * s);
+      break;
+    case 'cushion_set':
+      ctx.fillStyle = '#9370DB';
+      ctx.beginPath();
+      ctx.ellipse(5 * s, 8 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#8A2BE2';
+      ctx.beginPath();
+      ctx.ellipse(11 * s, 8 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'curtain_valance':
+      ctx.fillStyle = '#D2691E';
+      ctx.fillRect(0, 0, 16 * s, 6 * s);
+      ctx.fillStyle = '#F5DEB3';
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc((2 + i * 4) * s, 10 * s, 2 * s, Math.PI, 0);
+        ctx.fill();
+      }
+      break;
+    case 'floor_vase_large':
+      ctx.fillStyle = '#8B4513';
+      ctx.beginPath();
+      ctx.moveTo(4 * s, 16 * s);
+      ctx.lineTo(6 * s, 4 * s);
+      ctx.lineTo(10 * s, 4 * s);
+      ctx.lineTo(12 * s, 16 * s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#228B22';
+      ctx.beginPath();
+      ctx.arc(8 * s, 3 * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'floor_candle_set':
+      ctx.fillStyle = '#FFF8DC';
+      ctx.fillRect(4 * s, 6 * s, 3 * s, 10 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.ellipse(5.5 * s, 5 * s, 1.5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF8DC';
+      ctx.fillRect(9 * s, 8 * s, 3 * s, 8 * s);
+      ctx.fillStyle = '#FF6347';
+      ctx.beginPath();
+      ctx.ellipse(10.5 * s, 7 * s, 1.5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'floor_books_stack':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(3 * s, 8 * s, 10 * s, 8 * s);
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(4 * s, 6 * s, 8 * s, 2 * s);
+      ctx.fillStyle = '#3498db';
+      ctx.fillRect(3 * s, 4 * s, 10 * s, 2 * s);
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(5 * s, 2 * s, 6 * s, 2 * s);
+      break;
+    case 'floor_plant_tall':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(5 * s, 12 * s, 6 * s, 4 * s);
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(7 * s, 2 * s, 2 * s, 10 * s);
+      ctx.beginPath();
+      ctx.arc(6 * s, 4 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(10 * s, 6 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(8 * s, 2 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'floor_statue':
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(6 * s, 8 * s, 4 * s, 8 * s);
+      ctx.beginPath();
+      ctx.arc(8 * s, 5 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(4 * s, 14 * s, 8 * s, 2 * s);
+      break;
+    case 'floor_basket':
+      ctx.fillStyle = '#D2691E';
+      ctx.fillRect(3 * s, 4 * s, 10 * s, 12 * s);
+      ctx.fillStyle = '#8B4513';
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(3 * s, (4 + i * 3) * s, 10 * s, 1 * s);
+      }
+      ctx.fillStyle = '#D2691E';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 4 * s, 5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'floor_mat_welcome':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 4 * s, 16 * s, 8 * s);
+      ctx.fillStyle = '#DEB887';
+      ctx.fillRect(2 * s, 6 * s, 12 * s, 4 * s);
+      ctx.fillStyle = '#333';
+      ctx.font = `${2 * s}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText('WELCOME', 8 * s, 9 * s);
+      break;
+    case 'wall_art_golden':
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#FFA500';
+      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 4 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath();
+      ctx.arc(8 * s, 8 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'curtain_silk':
+      ctx.fillStyle = '#9370DB';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#BA55D3';
+      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect((2 + i * 2) * s, 0, 1 * s, 16 * s);
+      }
+      break;
+    case 'floor_fountain':
+      ctx.fillStyle = '#4169E1';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 10 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.ellipse(8 * s, 10 * s, 5 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4169E1';
+      ctx.fillRect(7 * s, 4 * s, 2 * s, 6 * s);
+      ctx.fillStyle = '#ADD8E6';
+      ctx.beginPath();
+      ctx.arc(8 * s, 3 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'wall_aquarium':
+      ctx.fillStyle = '#4169E1';
+      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
+      ctx.fillStyle = '#FF6347';
+      ctx.beginPath();
+      ctx.arc(5 * s, 8 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(11 * s, 10 * s, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    default:
+      ctx.fillStyle = '#9e9e9e';
+      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
+      ctx.fillStyle = '#616161';
+      ctx.fillRect(4 * s, 4 * s, 8 * s, 8 * s);
+  }
+}
+
+function drawFloorPattern(ctx, x, y, width, height, style) {
+  if (!style || style.pattern === 'solid') {
+    ctx.fillStyle = style?.baseColor || '#4a4a6a';
+    ctx.fillRect(x, y, width, height);
+    return;
+  }
+  
+  switch(style.pattern) {
+    case 'wood':
+      drawWoodFloor(ctx, x, y, width, height, style);
+      break;
+    case 'tile':
+      drawTileFloor(ctx, x, y, width, height, style);
+      break;
+    case 'marble':
+      drawMarbleFloor(ctx, x, y, width, height, style);
+      break;
+    case 'carpet':
+      drawCarpetFloor(ctx, x, y, width, height, style);
+      break;
+    case 'concrete':
+      drawConcreteFloor(ctx, x, y, width, height, style);
+      break;
+    case 'parquet':
+      drawParquetFloor(ctx, x, y, width, height, style);
+      break;
+    default:
+      ctx.fillStyle = style.baseColor;
+      ctx.fillRect(x, y, width, height);
+  }
+}
+
+function drawWoodFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  const plankHeight = 20;
+  const plankWidth = 80;
+  
+  ctx.fillStyle = style.accentColor;
+  for (let py = y; py < y + height; py += plankHeight) {
+    for (let px = x; px < x + width; px += plankWidth) {
+      ctx.strokeStyle = adjustColor(style.baseColor, -20);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, py, Math.min(plankWidth, x + width - px), Math.min(plankHeight, y + height - py));
+    }
+  }
+}
+
+function drawTileFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  const tileSize = 32;
+  
+  ctx.strokeStyle = style.accentColor;
+  ctx.lineWidth = 2;
+  
+  for (let ty = y; ty < y + height; ty += tileSize) {
+    for (let tx = x; tx < x + width; tx += tileSize) {
+      ctx.strokeRect(tx, ty, Math.min(tileSize, x + width - tx), Math.min(tileSize, y + height - ty));
+    }
+  }
+}
+
+function drawMarbleFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.strokeStyle = style.accentColor;
+  ctx.lineWidth = 1;
+  
+  for (let i = 0; i < 20; i++) {
+    const mx = x + Math.random() * width;
+    const my = y + Math.random() * height;
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.quadraticCurveTo(mx + Math.random() * 50, my + Math.random() * 30, mx + Math.random() * 80, my + Math.random() * 60);
+    ctx.stroke();
+  }
+}
+
+function drawCarpetFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = style.accentColor;
+  for (let i = 0; i < 50; i++) {
+    const cx = x + Math.random() * width;
+    const cy = y + Math.random() * height;
+    ctx.fillRect(cx, cy, 2, 3);
+  }
+}
+
+function drawConcreteFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = style.accentColor;
+  for (let i = 0; i < 30; i++) {
+    const cx = x + Math.random() * width;
+    const cy = y + Math.random() * height;
+    ctx.fillRect(cx, cy, Math.random() * 4 + 1, Math.random() * 4 + 1);
+  }
+}
+
+function drawParquetFloor(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  const blockSize = 16;
+  
+  for (let by = y; by < y + height; by += blockSize) {
+    for (let bx = x; bx < x + width; bx += blockSize) {
+      const isAlternate = (Math.floor((bx - x) / blockSize) + Math.floor((by - y) / blockSize)) % 2;
+      ctx.fillStyle = isAlternate ? style.baseColor : style.accentColor;
+      ctx.fillRect(bx, by, Math.min(blockSize, x + width - bx), Math.min(blockSize, y + height - by));
+    }
+  }
+}
+
+function drawWallPattern(ctx, x, y, width, height, style) {
+  if (!style || style.pattern === 'paint') {
+    ctx.fillStyle = style?.baseColor || '#3a3a5a';
+    ctx.fillRect(x, y, width, height);
+    return;
+  }
+  
+  switch(style.pattern) {
+    case 'floral':
+      drawFloralWallpaper(ctx, x, y, width, height, style);
+      break;
+    case 'striped':
+      drawStripedWallpaper(ctx, x, y, width, height, style);
+      break;
+    case 'geometric':
+      drawGeometricWallpaper(ctx, x, y, width, height, style);
+      break;
+    case 'brick':
+      drawBrickWall(ctx, x, y, width, height, style);
+      break;
+    case 'wood_panel':
+      drawWoodPanelWall(ctx, x, y, width, height, style);
+      break;
+    default:
+      ctx.fillStyle = style.baseColor;
+      ctx.fillRect(x, y, width, height);
+  }
+}
+
+function drawFloralWallpaper(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = style.accentColor;
+  for (let fy = y + 10; fy < y + height; fy += 30) {
+    for (let fx = x + 10; fx < x + width; fx += 30) {
+      ctx.beginPath();
+      ctx.arc(fx, fy, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(fx + 10, fy + 10, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawStripedWallpaper(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = style.accentColor;
+  const stripeWidth = 20;
+  for (let sx = x; sx < x + width; sx += stripeWidth * 2) {
+    ctx.fillRect(sx, y, stripeWidth, height);
+  }
+}
+
+function drawGeometricWallpaper(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.strokeStyle = style.accentColor;
+  ctx.lineWidth = 2;
+  
+  const gridSize = 40;
+  for (let gy = y; gy < y + height; gy += gridSize) {
+    for (let gx = x; gx < x + width; gx += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(gx + gridSize, gy + gridSize);
+      ctx.moveTo(gx + gridSize, gy);
+      ctx.lineTo(gx, gy + gridSize);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawBrickWall(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  const brickWidth = 40;
+  const brickHeight = 20;
+  let offset = 0;
+  
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  
+  for (let by = y; by < y + height; by += brickHeight) {
+    for (let bx = x + offset; bx < x + width; bx += brickWidth) {
+      ctx.strokeRect(bx, by, brickWidth, brickHeight);
+    }
+    offset = offset === 0 ? -brickWidth / 2 : 0;
+  }
+}
+
+function drawWoodPanelWall(ctx, x, y, width, height, style) {
+  ctx.fillStyle = style.baseColor;
+  ctx.fillRect(x, y, width, height);
+  
+  const panelHeight = 60;
+  
+  ctx.strokeStyle = style.accentColor;
+  ctx.lineWidth = 3;
+  
+  for (let py = y; py < y + height; py += panelHeight) {
+    ctx.beginPath();
+    ctx.moveTo(x, py);
+    ctx.lineTo(x + width, py);
+    ctx.stroke();
+  }
+}
+
+function getActiveEvents() {
+  const now = new Date();
+  const activeEvents = [];
+  
+  SEASONAL_EVENTS.forEach(event => {
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    const nowYear = now.getFullYear();
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    
+    const adjustedStart = new Date(nowYear, start.getMonth(), start.getDate());
+    const adjustedEnd = new Date(nowYear, end.getMonth(), end.getDate());
+    
+    if (now >= adjustedStart && now <= adjustedEnd) {
+      activeEvents.push({...event, startDate: adjustedStart, endDate: adjustedEnd});
+    }
+  });
+  
+  return activeEvents;
+}
+
+function isWeekendSale() {
+  const now = new Date();
+  const day = now.getDay();
+  return day === 0 || day === 6;
+}
+
+function getWeekendDiscount() {
+  return isWeekendSale() ? 0.8 : 1;
+}
+
+function getDiscountedPrice(furniture, event) {
+  if (!furniture) return 0;
+  
+  let price = furniture.price;
+  
+  if (isWeekendSale()) {
+    price = Math.floor(price * getWeekendDiscount());
+  }
+  
+  if (event && event.discount) {
+    price = Math.floor(price * event.discount);
+  }
+  
+  return price;
+}
+
+function getShopFurniturePixels(id) {
+  return (ctx, size) => generateShopFurniturePixels(id, ctx, size);
+}
+
 function renderSprite(sprite, canvas, size = 96) {
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
@@ -526,11 +1584,282 @@ function renderSprite(sprite, canvas, size = 96) {
 
 function init() {
   loadSavedData();
-  initMap();
+  renderWorldNav();
   renderFurnitureCatalog();
   updateBalance();
   
   if (window.lucide) lucide.createIcons();
+}
+
+function renderWorldNav() {
+  const grid = document.getElementById('community-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  Object.values(COMMUNITIES).forEach(community => {
+    const card = document.createElement('div');
+    card.className = `community-card ${community.id}`;
+    card.onclick = () => selectCommunity(community.id);
+    
+    card.innerHTML = `
+      <div class="community-icon">
+        <i data-lucide="${community.icon}"></i>
+      </div>
+      <div class="community-name">${community.name}</div>
+      <div class="community-desc">${community.description}</div>
+      ${community.badge ? `<div class="community-badge">${community.badge}</div>` : ''}
+      <div class="community-preview">
+        <canvas id="preview-${community.id}" width="160" height="80"></canvas>
+      </div>
+    `;
+    
+    grid.appendChild(card);
+    
+    setTimeout(() => {
+      renderCommunityPreview(community.id);
+    }, 50);
+  });
+  
+  updateBalanceNav();
+  
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateBalanceNav() {
+  const el = document.getElementById('current-balance-nav');
+  if (el) el.textContent = formatCurrency(getBalance());
+}
+
+function renderCommunityPreview(communityId) {
+  const canvas = document.getElementById(`preview-${communityId}`);
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const community = COMMUNITIES[communityId];
+  
+  ctx.fillStyle = community.bgColor;
+  ctx.fillRect(0, 0, 160, 80);
+  
+  const tileSize = 4;
+  for (let y = 0; y < 20; y++) {
+    for (let x = 0; x < 40; x++) {
+      const px = x * tileSize;
+      const py = y * tileSize;
+      
+      if (community.terrain === 'seaside' && y > 16) {
+        ctx.fillStyle = '#f4d03f';
+        ctx.fillRect(px, py, tileSize, tileSize);
+      } else if (community.terrain === 'nature') {
+        ctx.fillStyle = Math.random() > 0.7 ? '#1a5a1a' : community.bgColor;
+        ctx.fillRect(px, py, tileSize, tileSize);
+      }
+    }
+  }
+  
+  community.buildings.forEach(building => {
+    const buildingData = COMMUNITY_BUILDINGS[building.type];
+    if (buildingData) {
+      const bx = (building.x / 40) * 160;
+      const by = (building.y / 30) * 80;
+      const bw = (building.width / 40) * 160;
+      const bh = (building.height / 30) * 80;
+      
+      ctx.fillStyle = buildingData.color;
+      ctx.fillRect(bx, by, bw, bh);
+      
+      ctx.fillStyle = buildingData.roofColor;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + bw / 2, by - bh * 0.3);
+      ctx.lineTo(bx + bw, by);
+      ctx.closePath();
+      ctx.fill();
+    }
+  });
+  
+  community.decorations.forEach(dec => {
+    dec.positions.forEach(pos => {
+      const dx = (pos[0] / 40) * 160;
+      const dy = (pos[1] / 30) * 80;
+      
+      if (dec.type === 'tree' || dec.type === 'big_tree') {
+        ctx.fillStyle = '#228B22';
+        ctx.beginPath();
+        ctx.arc(dx, dy, 4, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (dec.type === 'fountain') {
+        ctx.fillStyle = '#4169E1';
+        ctx.beginPath();
+        ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  });
+}
+
+function selectCommunity(communityId) {
+  const community = COMMUNITIES[communityId];
+  if (!community) return;
+  
+  HomeApp.currentCommunity = communityId;
+  
+  document.getElementById('world-nav-view').classList.add('hidden');
+  document.getElementById('map-view').classList.remove('hidden');
+  
+  const titleEl = document.querySelector('#map-view .app-title');
+  if (titleEl) titleEl.textContent = community.name;
+  
+  initCommunityMap();
+}
+
+function initCommunityMap() {
+  HomeApp.mapCanvas = document.getElementById('map-canvas');
+  if (!HomeApp.mapCanvas) {
+    console.error('Map canvas not found');
+    return;
+  }
+  HomeApp.mapCtx = HomeApp.mapCanvas.getContext('2d');
+  
+  generateCommunityMap();
+  
+  setTimeout(() => {
+    resizeMapCanvas();
+  }, 50);
+  
+  window.addEventListener('resize', resizeMapCanvas);
+  
+  HomeApp.mapCanvas.addEventListener('click', handleCommunityMapClick);
+  HomeApp.mapCanvas.addEventListener('mousedown', handleMapDragStart);
+  HomeApp.mapCanvas.addEventListener('mousemove', handleCommunityMapDragMove);
+  HomeApp.mapCanvas.addEventListener('mouseup', handleMapDragEnd);
+  HomeApp.mapCanvas.addEventListener('mouseleave', handleMapDragEnd);
+}
+
+function generateCommunityMap() {
+  const community = COMMUNITIES[HomeApp.currentCommunity];
+  if (!community) return;
+  
+  const map = [];
+  const config = COMMUNITY_MAP_CONFIG;
+  
+  for (let y = 0; y < config.height; y++) {
+    map[y] = [];
+    for (let x = 0; x < config.width; x++) {
+      map[y][x] = getCommunityTile(community, x, y);
+    }
+  }
+  
+  HomeApp.communityMap = map;
+  HomeApp.communityBuildings = [];
+  HomeApp.communityEmptyLots = [];
+  HomeApp.communityDecorations = [];
+  
+  community.buildings.forEach(building => {
+    const buildingData = COMMUNITY_BUILDINGS[building.type];
+    if (buildingData) {
+      HomeApp.communityBuildings.push({
+        type: building.type,
+        x: building.x,
+        y: building.y,
+        width: building.width,
+        height: building.height,
+        data: buildingData
+      });
+    }
+  });
+  
+  community.emptyLots.forEach(lot => {
+    HomeApp.communityEmptyLots.push({
+      x: lot.x,
+      y: lot.y,
+      width: lot.width,
+      height: lot.height
+    });
+  });
+  
+  community.decorations.forEach(dec => {
+    dec.positions.forEach(pos => {
+      HomeApp.communityDecorations.push({
+        type: dec.type,
+        x: pos[0],
+        y: pos[1],
+        width: pos[2] || 1,
+        height: pos[3] || 1
+      });
+    });
+  });
+}
+
+function getCommunityTile(community, x, y) {
+  const config = COMMUNITY_MAP_CONFIG;
+  
+  if (community.terrain === 'residential') {
+    const roadY = Math.floor(config.height / 2);
+    const roadX = Math.floor(config.width / 2);
+    
+    if (y >= roadY - 1 && y <= roadY + 2) {
+      if (x >= roadX - 1 && x <= roadX + 2) {
+        return COMMUNITY_TILE_TYPES.ROAD_CROSS;
+      }
+      return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    if (x >= roadX - 1 && x <= roadX + 2) {
+      return COMMUNITY_TILE_TYPES.ROAD_V;
+    }
+    if (y === roadY - 2 || y === roadY + 3) {
+      return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    return COMMUNITY_TILE_TYPES.GRASS;
+  }
+  
+  if (community.terrain === 'commercial') {
+    const roadY = Math.floor(config.height / 2);
+    
+    if (y >= roadY - 1 && y <= roadY + 2) {
+      return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    if (y === roadY - 2 || y === roadY + 3) {
+      return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    return COMMUNITY_TILE_TYPES.CONCRETE;
+  }
+  
+  if (community.terrain === 'leisure') {
+    if (Math.random() > 0.85) {
+      return COMMUNITY_TILE_TYPES.GARDEN;
+    }
+    return COMMUNITY_TILE_TYPES.GRASS;
+  }
+  
+  if (community.terrain === 'nature') {
+    if (Math.random() > 0.9) {
+      return COMMUNITY_TILE_TYPES.FOREST;
+    }
+    return COMMUNITY_TILE_TYPES.GRASS;
+  }
+  
+  if (community.terrain === 'seaside') {
+    if (y > config.height - 6) {
+      return COMMUNITY_TILE_TYPES.BEACH;
+    }
+    if (y > config.height - 4) {
+      return COMMUNITY_TILE_TYPES.SAND;
+    }
+    return COMMUNITY_TILE_TYPES.GRASS;
+  }
+  
+  if (community.terrain === 'cultural') {
+    const centerX = Math.floor(config.width / 2);
+    const centerY = Math.floor(config.height / 2);
+    
+    if (Math.abs(x - centerX) < 8 && Math.abs(y - centerY) < 6) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    return COMMUNITY_TILE_TYPES.GRASS;
+  }
+  
+  return COMMUNITY_TILE_TYPES.GRASS;
 }
 
 function loadSavedData() {
@@ -576,10 +1905,26 @@ function loadSavedData() {
       HomeApp.roomStyle = data.roomStyle || 'modern';
       HomeApp.floorColor = data.floorColor || ROOM_STYLES[HomeApp.roomStyle].floor;
       HomeApp.wallColor = data.wallColor || ROOM_STYLES[HomeApp.roomStyle].wall;
+      HomeApp.floorStyle = data.floorStyle || 'wood_light';
+      HomeApp.wallStyle = data.wallStyle || 'paint_white';
       if (data.characterSprite) {
         HomeApp.characterSprite = data.characterSprite;
       }
       HomeApp.properties = data.properties || [];
+      
+      if (data.roomExpansions) {
+        HomeApp.roomExpansions = data.roomExpansions;
+        updateRoomSize();
+      }
+      
+      if (data.customPlacedBuildings) {
+        HomeApp.customPlacedBuildings = data.customPlacedBuildings;
+      }
+      if (data.customPlacedDecorations) {
+        HomeApp.customPlacedDecorations = data.customPlacedDecorations;
+      }
+      
+      loadOwnedFurnitureToCatalog(data.ownedFurniture || []);
     }
     
     const userSprite = localStorage.getItem('sx_user_sprite');
@@ -591,6 +1936,23 @@ function loadSavedData() {
   } catch (e) {
     console.warn('載入儲存資料失敗:', e);
   }
+}
+
+function loadOwnedFurnitureToCatalog(ownedIds) {
+  ownedIds.forEach(itemId => {
+    const shopItem = FURNITURE_SHOP_CATALOG.find(f => f.id === itemId);
+    if (shopItem && !FURNITURE_CATALOG.find(f => f.id === itemId)) {
+      FURNITURE_CATALOG.push({
+        id: shopItem.id,
+        name: shopItem.name,
+        category: shopItem.category,
+        width: shopItem.width,
+        height: shopItem.height,
+        pixels: getShopFurniturePixels(shopItem.id),
+        interactive: shopItem.interactive
+      });
+    }
+  });
 }
 
 function initializeDefaultFurniture() {
@@ -625,13 +1987,22 @@ function initializeDefaultFurniture() {
 
 function saveData() {
   try {
+    const existingData = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
     const data = {
       placedFurniture: HomeApp.placedFurniture,
       roomStyle: HomeApp.roomStyle,
       floorColor: HomeApp.floorColor,
       wallColor: HomeApp.wallColor,
+      floorStyle: HomeApp.floorStyle || existingData.floorStyle || 'wood_light',
+      wallStyle: HomeApp.wallStyle || existingData.wallStyle || 'paint_white',
       characterSprite: HomeApp.characterSprite,
-      properties: HomeApp.properties
+      properties: HomeApp.properties,
+      ownedFurniture: existingData.ownedFurniture || [],
+      ownedFloorStyles: existingData.ownedFloorStyles || ['wood_light'],
+      ownedWallStyles: existingData.ownedWallStyles || ['paint_white'],
+      roomExpansions: HomeApp.roomExpansions,
+      customPlacedBuildings: HomeApp.customPlacedBuildings,
+      customPlacedDecorations: HomeApp.customPlacedDecorations
     };
     localStorage.setItem('sx_home_data', JSON.stringify(data));
   } catch (e) {
@@ -836,7 +2207,715 @@ function resizeMapCanvas() {
   HomeApp.mapCanvas.width = rect.width;
   HomeApp.mapCanvas.height = rect.height;
   
-  renderMap();
+  if (HomeApp.currentCommunity) {
+    renderCommunityMap();
+  } else {
+    renderMap();
+  }
+}
+
+function renderCommunityMap() {
+  const ctx = HomeApp.mapCtx;
+  const canvas = HomeApp.mapCanvas;
+  
+  if (!ctx || !canvas || canvas.width === 0 || canvas.height === 0) return;
+  
+  const community = COMMUNITIES[HomeApp.currentCommunity];
+  if (!community) return;
+  
+  ctx.fillStyle = community.bgColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  const tileSize = COMMUNITY_MAP_CONFIG.tileSize * HomeApp.mapScale;
+  const mapWidth = COMMUNITY_MAP_CONFIG.width * tileSize;
+  const mapHeight = COMMUNITY_MAP_CONFIG.height * tileSize;
+  const offsetX = (canvas.width - mapWidth) / 2 + HomeApp.mapOffset.x;
+  const offsetY = (canvas.height - mapHeight) / 2 + HomeApp.mapOffset.y;
+  
+  renderCommunityTiles(ctx, offsetX, offsetY, tileSize, community);
+  renderCommunityDecorations(ctx, offsetX, offsetY, tileSize);
+  renderCommunityBuildings(ctx, offsetX, offsetY, tileSize);
+  renderCommunityEmptyLots(ctx, offsetX, offsetY, tileSize);
+  renderCommunityProperties(ctx, offsetX, offsetY, tileSize);
+}
+
+function renderCommunityTiles(ctx, offsetX, offsetY, tileSize, community) {
+  const map = HomeApp.communityMap;
+  if (!map) return;
+  
+  const config = COMMUNITY_MAP_CONFIG;
+  
+  for (let y = 0; y < config.height; y++) {
+    for (let x = 0; x < config.width; x++) {
+      const px = offsetX + x * tileSize;
+      const py = offsetY + y * tileSize;
+      const tileType = map[y][x];
+      
+      drawCommunityTile(ctx, px, py, tileSize, tileType, community);
+    }
+  }
+}
+
+function drawCommunityTile(ctx, x, y, size, type, community) {
+  switch (type) {
+    case COMMUNITY_TILE_TYPES.GRASS:
+      ctx.fillStyle = community.terrain === 'nature' ? '#1a4a1a' : '#2d5a27';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = community.terrain === 'nature' ? '#2a5a2a' : '#3a6b34';
+      for (let i = 0; i < 3; i++) {
+        const gx = x + Math.random() * size;
+        const gy = y + Math.random() * size;
+        ctx.fillRect(gx, gy, 2, 4);
+      }
+      break;
+      
+    case COMMUNITY_TILE_TYPES.ROAD_H:
+    case COMMUNITY_TILE_TYPES.ROAD_V:
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#4a4a4a';
+      ctx.fillRect(x + size * 0.1, y + size * 0.4, size * 0.8, size * 0.2);
+      ctx.fillStyle = '#ffcc00';
+      if (type === COMMUNITY_TILE_TYPES.ROAD_H) {
+        ctx.fillRect(x + size * 0.2, y + size * 0.45, size * 0.3, size * 0.1);
+      } else {
+        ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.3);
+      }
+      break;
+      
+    case COMMUNITY_TILE_TYPES.ROAD_CROSS:
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#4a4a4a';
+      ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.8, size * 0.8);
+      break;
+      
+    case COMMUNITY_TILE_TYPES.SIDEWALK:
+      ctx.fillStyle = '#8a8a8a';
+      ctx.fillRect(x, y, size, size);
+      ctx.strokeStyle = '#7a7a7a';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+      break;
+      
+    case COMMUNITY_TILE_TYPES.CONCRETE:
+      ctx.fillStyle = '#5a5a5a';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#6a6a6a';
+      ctx.fillRect(x + size * 0.05, y + size * 0.05, size * 0.45, size * 0.45);
+      ctx.fillRect(x + size * 0.5, y + size * 0.5, size * 0.45, size * 0.45);
+      break;
+      
+    case COMMUNITY_TILE_TYPES.GARDEN:
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#32CD32';
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(x + Math.random() * size * 0.8, y + Math.random() * size * 0.8, 3, 3);
+      }
+      break;
+      
+    case COMMUNITY_TILE_TYPES.FOREST:
+      ctx.fillStyle = '#0d3a0d';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#1a5a1a';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case COMMUNITY_TILE_TYPES.SAND:
+    case COMMUNITY_TILE_TYPES.BEACH:
+      ctx.fillStyle = type === COMMUNITY_TILE_TYPES.BEACH ? '#f4d03f' : '#e6c229';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#d4ac0d';
+      for (let i = 0; i < 2; i++) {
+        ctx.fillRect(x + Math.random() * size, y + Math.random() * size, 2, 2);
+      }
+      break;
+      
+    case COMMUNITY_TILE_TYPES.STONE_PATH:
+      ctx.fillStyle = '#8B7355';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#9B8365';
+      ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.35, size * 0.35);
+      ctx.fillRect(x + size * 0.55, y + size * 0.55, size * 0.35, size * 0.35);
+      break;
+      
+    default:
+      ctx.fillStyle = community.bgColor;
+      ctx.fillRect(x, y, size, size);
+  }
+}
+
+function renderCommunityDecorations(ctx, offsetX, offsetY, tileSize) {
+  if (!HomeApp.communityDecorations) return;
+  
+  HomeApp.communityDecorations.forEach(dec => {
+    const px = offsetX + dec.x * tileSize;
+    const py = offsetY + dec.y * tileSize;
+    
+    drawCommunityDecoration(ctx, px, py, tileSize, dec.type, dec.width, dec.height);
+  });
+  
+  if (HomeApp.customPlacedDecorations && HomeApp.customPlacedDecorations.length > 0) {
+    HomeApp.customPlacedDecorations.forEach(dec => {
+      const px = offsetX + dec.x * tileSize;
+      const py = offsetY + dec.y * tileSize;
+      
+      drawCommunityDecoration(ctx, px, py, tileSize, dec.type || 'tree', dec.width, dec.height);
+    });
+  }
+}
+
+function drawCommunityDecoration(ctx, x, y, size, type, width = 1, height = 1) {
+  switch (type) {
+    case 'tree':
+    case 'big_tree':
+      const treeSize = type === 'big_tree' ? 1.5 : 1;
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(x + size * 0.4, y + size * 0.5, size * 0.2 * treeSize, size * 0.5);
+      ctx.fillStyle = '#228B22';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.35, size * 0.35 * treeSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#32CD32';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.35, y + size * 0.25, size * 0.15 * treeSize, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case 'lamp':
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + size * 0.45, y + size * 0.3, size * 0.1, size * 0.6);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + size * 0.35, y + size * 0.25, size * 0.3, size * 0.1);
+      ctx.fillStyle = '#ffeb3b';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.2, size * 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case 'flower':
+    case 'wildflower':
+      const colors = ['#FF69B4', '#FFD700', '#FF6347', '#9370DB'];
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = colors[i];
+        ctx.beginPath();
+        ctx.arc(x + size * (0.2 + i * 0.2), y + size * 0.5, size * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+      
+    case 'garden':
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(x, y, size * width, size * height);
+      ctx.fillStyle = '#FF69B4';
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.arc(x + Math.random() * size * width, y + Math.random() * size * height, size * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+      
+    case 'mailbox':
+      ctx.fillStyle = '#c73e54';
+      ctx.fillRect(x + size * 0.3, y + size * 0.4, size * 0.4, size * 0.3);
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + size * 0.45, y + size * 0.3, size * 0.1, size * 0.6);
+      break;
+      
+    case 'fountain':
+      ctx.fillStyle = '#4169E1';
+      ctx.beginPath();
+      ctx.ellipse(x + size * 0.5, y + size * 0.6, size * 0.4, size * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.ellipse(x + size * 0.5, y + size * 0.6, size * 0.3, size * 0.18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4169E1';
+      ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.4);
+      break;
+      
+    case 'bench':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x, y + size * 0.4, size, size * 0.15);
+      ctx.fillRect(x + size * 0.1, y + size * 0.55, size * 0.1, size * 0.3);
+      ctx.fillRect(x + size * 0.8, y + size * 0.55, size * 0.1, size * 0.3);
+      break;
+      
+    case 'flower_bed':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x, y, size, size);
+      ctx.fillStyle = '#FF69B4';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(x + size * (0.25 + i * 0.25), y + size * 0.5, size * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+      
+    case 'coconut_tree':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x + size * 0.4, y + size * 0.3, size * 0.2, size * 0.7);
+      ctx.fillStyle = '#228B22';
+      for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.ellipse(x + size * 0.5 + Math.cos(angle) * size * 0.3, y + size * 0.2 + Math.sin(angle) * size * 0.15, size * 0.25, size * 0.08, angle, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+      
+    case 'beach_chair':
+      ctx.fillStyle = '#ff6b6b';
+      ctx.fillRect(x + size * 0.1, y + size * 0.3, size * 0.8, size * 0.4);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + size * 0.15, y + size * 0.35, size * 0.7, size * 0.3);
+      break;
+      
+    case 'wave':
+      ctx.fillStyle = 'rgba(65, 105, 225, 0.5)';
+      for (let i = 0; i < width; i++) {
+        ctx.beginPath();
+        ctx.arc(x + i * size + size * 0.5, y + size * 0.5, size * 0.3, 0, Math.PI);
+        ctx.fill();
+      }
+      break;
+      
+    case 'shell':
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f5f5dc';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.1, 0, Math.PI);
+      ctx.fill();
+      break;
+      
+    case 'boat':
+      ctx.fillStyle = '#8B4513';
+      ctx.beginPath();
+      ctx.moveTo(x + size * 0.1, y + size * 0.5);
+      ctx.lineTo(x + size * 0.9, y + size * 0.5);
+      ctx.lineTo(x + size * 0.7, y + size * 0.7);
+      ctx.lineTo(x + size * 0.3, y + size * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.35);
+      ctx.fillRect(x + size * 0.3, y + size * 0.35, size * 0.4, size * 0.15);
+      break;
+      
+    case 'statue':
+      ctx.fillStyle = '#9E9E9E';
+      ctx.fillRect(x + size * 0.35, y + size * 0.2, size * 0.3, size * 0.6);
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.15, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#757575';
+      ctx.fillRect(x + size * 0.3, y + size * 0.8, size * 0.4, size * 0.1);
+      break;
+      
+    case 'flag':
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.7);
+      ctx.fillStyle = '#e94560';
+      ctx.fillRect(x + size * 0.55, y + size * 0.2, size * 0.35, size * 0.25);
+      break;
+      
+    case 'neon_sign':
+      ctx.fillStyle = '#ff00ff';
+      ctx.fillRect(x, y + size * 0.3, size * 0.8, size * 0.4);
+      ctx.fillStyle = '#00ffff';
+      ctx.fillRect(x + size * 0.1, y + size * 0.35, size * 0.6, size * 0.3);
+      break;
+      
+    case 'billboard':
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x + size * 0.1, y, size * 0.8, size * 0.6);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + size * 0.15, y + size * 0.1, size * 0.7, size * 0.4);
+      ctx.fillStyle = '#666';
+      ctx.fillRect(x + size * 0.4, y + size * 0.6, size * 0.2, size * 0.4);
+      break;
+      
+    case 'bus_stop':
+      ctx.fillStyle = '#4CAF50';
+      ctx.fillRect(x + size * 0.2, y + size * 0.3, size * 0.6, size * 0.5);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + size * 0.25, y + size * 0.35, size * 0.5, size * 0.1);
+      break;
+      
+    case 'vending_machine':
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(x + size * 0.2, y, size * 0.6, size);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x + size * 0.25, y + size * 0.2, size * 0.5, size * 0.5);
+      break;
+      
+    case 'rock':
+      ctx.fillStyle = '#696969';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.5, y + size * 0.6, size * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#808080';
+      ctx.beginPath();
+      ctx.arc(x + size * 0.4, y + size * 0.5, size * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case 'lake':
+      ctx.fillStyle = '#4169E1';
+      ctx.beginPath();
+      ctx.ellipse(x + size * width * 0.5, y + size * height * 0.5, size * width * 0.4, size * height * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.ellipse(x + size * width * 0.5, y + size * height * 0.5, size * width * 0.3, size * height * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+      
+    case 'stream':
+      ctx.fillStyle = '#4169E1';
+      ctx.fillRect(x, y + size * 0.3, size * width, size * height * 0.4);
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(x + size * 0.1, y + size * 0.4, size * width * 0.8, size * height * 0.2);
+      break;
+  }
+}
+
+function renderCommunityBuildings(ctx, offsetX, offsetY, tileSize) {
+  if (!HomeApp.communityBuildings) return;
+  
+  HomeApp.communityBuildings.forEach(building => {
+    const px = offsetX + building.x * tileSize;
+    const py = offsetY + building.y * tileSize;
+    const width = building.width * tileSize;
+    const height = building.height * tileSize;
+    
+    building.renderX = px;
+    building.renderY = py;
+    building.renderWidth = width;
+    building.renderHeight = height;
+    
+    if (building.data.isPark) {
+      drawCommunityPark(ctx, px, py, width, height, tileSize);
+    } else if (building.type === 'LIGHTHOUSE') {
+      drawLighthouse(ctx, px, py, width, height, tileSize);
+    } else if (building.type === 'PLAYGROUND') {
+      drawPlayground(ctx, px, py, width, height, tileSize);
+    } else if (building.type === 'SPORTS_FIELD') {
+      drawSportsField(ctx, px, py, width, height, tileSize);
+    } else {
+      drawCommunityBuilding(ctx, px, py, width, height, building.data, tileSize);
+    }
+  });
+  
+  if (HomeApp.customPlacedBuildings && HomeApp.customPlacedBuildings.length > 0) {
+    HomeApp.customPlacedBuildings.forEach(building => {
+      const px = offsetX + building.x * tileSize;
+      const py = offsetY + building.y * tileSize;
+      const width = building.width * tileSize;
+      const height = building.height * tileSize;
+      
+      building.renderX = px;
+      building.renderY = py;
+      building.renderWidth = width;
+      building.renderHeight = height;
+      
+      drawCommunityBuilding(ctx, px, py, width, height, {
+        color: building.color || '#e94560',
+        roofColor: building.roofColor || '#c73e54',
+        name: building.name
+      }, tileSize);
+    });
+  }
+}
+
+function drawCommunityBuilding(ctx, x, y, width, height, data, tileSize) {
+  ctx.fillStyle = data.roofColor || '#8B4513';
+  ctx.beginPath();
+  ctx.moveTo(x, y + height * 0.3);
+  ctx.lineTo(x + width / 2, y);
+  ctx.lineTo(x + width, y + height * 0.3);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.fillStyle = data.color;
+  ctx.fillRect(x, y + height * 0.3, width, height * 0.7);
+  
+  ctx.fillStyle = '#87CEEB';
+  const winWidth = width * 0.15;
+  const winHeight = height * 0.2;
+  ctx.fillRect(x + width * 0.15, y + height * 0.4, winWidth, winHeight);
+  ctx.fillRect(x + width * 0.55, y + height * 0.4, winWidth, winHeight);
+  
+  ctx.fillStyle = '#8B4513';
+  const doorWidth = width * 0.2;
+  const doorHeight = height * 0.35;
+  ctx.fillRect(x + width * 0.4, y + height * 0.65, doorWidth, doorHeight);
+  
+  ctx.fillStyle = '#eaeaea';
+  ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+  ctx.textAlign = 'center';
+  ctx.fillText(data.name, x + width / 2, y + height + 15);
+}
+
+function drawCommunityPark(ctx, x, y, width, height, tileSize) {
+  ctx.fillStyle = '#228B22';
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = '#1a6b1a';
+  for (let i = 0; i < 5; i++) {
+    const tx = x + width * (0.15 + i * 0.18);
+    const ty = y + height * 0.5;
+    ctx.beginPath();
+    ctx.arc(tx, ty, tileSize * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  ctx.fillStyle = '#4169E1';
+  ctx.beginPath();
+  ctx.ellipse(x + width * 0.7, y + height * 0.7, tileSize * 0.5, tileSize * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = '#eaeaea';
+  ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('公園', x + width / 2, y + height + 15);
+}
+
+function drawLighthouse(ctx, x, y, width, height, tileSize) {
+  ctx.fillStyle = '#e0e0e0';
+  ctx.fillRect(x + width * 0.3, y + height * 0.2, width * 0.4, height * 0.8);
+  
+  ctx.fillStyle = '#ff0000';
+  ctx.beginPath();
+  ctx.arc(x + width * 0.5, y + height * 0.15, width * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = '#ffeb3b';
+  ctx.beginPath();
+  ctx.arc(x + width * 0.5, y + height * 0.15, width * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = '#eaeaea';
+  ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('燈塔', x + width / 2, y + height + 15);
+}
+
+function drawPlayground(ctx, x, y, width, height, tileSize) {
+  ctx.fillStyle = '#e91e63';
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.fillStyle = '#ff6b9d';
+  ctx.fillRect(x + width * 0.1, y + height * 0.2, width * 0.3, height * 0.5);
+  
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x + width * 0.15, y + height * 0.25, width * 0.2, height * 0.4);
+  
+  ctx.fillStyle = '#eaeaea';
+  ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('遊樂場', x + width / 2, y + height + 15);
+}
+
+function drawSportsField(ctx, x, y, width, height, tileSize) {
+  ctx.fillStyle = '#4CAF50';
+  ctx.fillRect(x, y, width, height);
+  
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 5, y + 5, width - 10, height - 10);
+  
+  ctx.beginPath();
+  ctx.moveTo(x + width / 2, y + 5);
+  ctx.lineTo(x + width / 2, y + height - 5);
+  ctx.stroke();
+  
+  ctx.fillStyle = '#eaeaea';
+  ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('運動場', x + width / 2, y + height + 15);
+}
+
+function renderCommunityEmptyLots(ctx, offsetX, offsetY, tileSize) {
+  if (!HomeApp.communityEmptyLots) return;
+  
+  HomeApp.communityEmptyLots.forEach((lot, idx) => {
+    const px = offsetX + lot.x * tileSize;
+    const py = offsetY + lot.y * tileSize;
+    const width = lot.width * tileSize;
+    const height = lot.height * tileSize;
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillRect(px, py, width, height);
+    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(px, py, width, height);
+    ctx.setLineDash([]);
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
+    ctx.textAlign = 'center';
+    ctx.fillText('空地', px + width / 2, py + height / 2 - 5);
+    ctx.fillText('點擊購買', px + width / 2, py + height / 2 + 15);
+    
+    lot.renderX = px;
+    lot.renderY = py;
+    lot.renderWidth = width;
+    lot.renderHeight = height;
+  });
+}
+
+function renderCommunityProperties(ctx, offsetX, offsetY, tileSize) {
+  const chars = JSON.parse(localStorage.getItem('sx_characters') || '[]');
+  
+  if (!HomeApp.properties) return;
+  
+  HomeApp.properties.forEach((property, idx) => {
+    if (property.communityId !== HomeApp.currentCommunity) return;
+    
+    const lot = HomeApp.communityEmptyLots[idx];
+    if (!lot) return;
+    
+    const char = chars[property.charIdx];
+    const charName = char?.name || 'TA';
+    
+    const px = lot.renderX || (offsetX + lot.x * tileSize);
+    const py = lot.renderY || (offsetY + lot.y * tileSize);
+    const width = lot.renderWidth || (lot.width * tileSize);
+    const height = lot.renderHeight || (lot.height * tileSize);
+    
+    const data = property.type === 'shared' ? COMMUNITY_BUILDINGS.SHARED_HOUSE : COMMUNITY_BUILDINGS.CHAR_HOUSE;
+    
+    ctx.fillStyle = data.roofColor;
+    ctx.beginPath();
+    ctx.moveTo(px, py + height * 0.3);
+    ctx.lineTo(px + width / 2, py);
+    ctx.lineTo(px + width, py + height * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = data.color;
+    ctx.fillRect(px, py + height * 0.3, width, height * 0.7);
+    
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(px + width * 0.15, py + height * 0.4, width * 0.15, height * 0.2);
+    ctx.fillRect(px + width * 0.55, py + height * 0.4, width * 0.15, height * 0.2);
+    
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(px + width * 0.4, py + height * 0.65, width * 0.2, height * 0.35);
+    
+    const label = property.type === 'shared' ? `與${charName}的家` : `${charName}的家`;
+    ctx.fillStyle = '#eaeaea';
+    ctx.font = `${Math.max(10, tileSize * 0.22)}px "Noto Sans TC"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, px + width / 2, py + height + 15);
+    
+    property.renderX = px;
+    property.renderY = py;
+    property.renderWidth = width;
+    property.renderHeight = height;
+  });
+}
+
+function handleCommunityMapClick(e) {
+  if (HomeApp.isDragging) return;
+  
+  const rect = HomeApp.mapCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const tileSize = COMMUNITY_MAP_CONFIG.tileSize * HomeApp.mapScale;
+  const mapWidth = COMMUNITY_MAP_CONFIG.width * tileSize;
+  const mapHeight = COMMUNITY_MAP_CONFIG.height * tileSize;
+  const offsetX = (HomeApp.mapCanvas.width - mapWidth) / 2 + HomeApp.mapOffset.x;
+  const offsetY = (HomeApp.mapCanvas.height - mapHeight) / 2 + HomeApp.mapOffset.y;
+  
+  const gridX = Math.floor((x - offsetX) / tileSize);
+  const gridY = Math.floor((y - offsetY) / tileSize);
+  
+  if (HomeApp.mapEditMode) {
+    if (HomeApp.selectedMapItem) {
+      placeMapItem(gridX, gridY);
+    } else {
+      const clickedItem = findMapItemAt(gridX, gridY);
+      if (clickedItem) {
+        HomeApp.selectedMapItem = clickedItem;
+        showMapContextMenu(e.clientX, e.clientY);
+      }
+    }
+    return;
+  }
+  
+  const playerHouse = HomeApp.communityBuildings.find(b => b.type === 'PLAYER_HOUSE');
+  if (playerHouse) {
+    const px = offsetX + playerHouse.x * tileSize;
+    const py = offsetY + playerHouse.y * tileSize;
+    const pw = playerHouse.width * tileSize;
+    const ph = playerHouse.height * tileSize;
+    
+    if (x >= px && x <= px + pw && y >= py && y <= py + ph) {
+      enterRoom('user');
+      return;
+    }
+  }
+  
+  for (const property of HomeApp.properties) {
+    if (property.communityId === HomeApp.currentCommunity && property.renderX !== undefined) {
+      if (x >= property.renderX && x <= property.renderX + property.renderWidth &&
+          y >= property.renderY && y <= property.renderY + property.renderHeight) {
+        enterProperty(HomeApp.properties.indexOf(property));
+        return;
+      }
+    }
+  }
+  
+  for (const lot of HomeApp.communityEmptyLots) {
+    if (lot.renderX !== undefined) {
+      if (x >= lot.renderX && x <= lot.renderX + lot.renderWidth &&
+          y >= lot.renderY && y <= lot.renderY + lot.renderHeight) {
+        openBuyModal(lot);
+        return;
+      }
+    }
+  }
+  
+  for (const building of HomeApp.communityBuildings) {
+    if (building.data.isShop) {
+      const bx = offsetX + building.x * tileSize;
+      const by = offsetY + building.y * tileSize;
+      const bw = building.width * tileSize;
+      const bh = building.height * tileSize;
+      
+      if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
+        showShopInfo(building);
+        return;
+      }
+    }
+  }
+}
+
+function handleCommunityMapDragMove(e) {
+  if (HomeApp.dragStartX === null) return;
+  
+  const dx = e.clientX - HomeApp.dragStartX;
+  const dy = e.clientY - HomeApp.dragStartY;
+  
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    HomeApp.isDragging = true;
+  }
+  
+  HomeApp.mapOffset.x = HomeApp.lastMapOffsetX + dx;
+  HomeApp.mapOffset.y = HomeApp.lastMapOffsetY + dy;
+  
+  renderCommunityMap();
 }
 
 function renderMap() {
@@ -1385,13 +3464,16 @@ function exitRoom() {
     if (roomView) roomView.classList.add('hidden');
     if (mapView) mapView.classList.remove('hidden');
     
-    renderMap();
+    if (HomeApp.currentCommunity) {
+      renderCommunityMap();
+    } else {
+      renderMap();
+    }
     updateBalance();
     
     if (window.lucide) lucide.createIcons();
   } catch (e) {
     console.error('exitRoom error:', e);
-    // 強制返回地圖視圖
     const roomView = document.getElementById('room-view');
     const mapView = document.getElementById('map-view');
     if (roomView) roomView.classList.add('hidden');
@@ -1424,11 +3506,11 @@ function renderRoom() {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    ctx.fillStyle = HomeApp.wallColor;
-    ctx.fillRect(offsetX, offsetY, HomeApp.roomWidth * gridSize, HomeApp.roomHeight * gridSize);
+    const wallStyle = WALL_STYLES.find(s => s.id === HomeApp.wallStyle) || { pattern: 'paint', baseColor: HomeApp.wallColor };
+    const floorStyle = FLOOR_STYLES.find(s => s.id === HomeApp.floorStyle) || { pattern: 'solid', baseColor: HomeApp.floorColor };
     
-    ctx.fillStyle = HomeApp.floorColor;
-    ctx.fillRect(offsetX, offsetY + 2 * gridSize, HomeApp.roomWidth * gridSize, (HomeApp.roomHeight - 2) * gridSize);
+    drawWallPattern(ctx, offsetX, offsetY, HomeApp.roomWidth * gridSize, HomeApp.roomHeight * gridSize, wallStyle);
+    drawFloorPattern(ctx, offsetX, offsetY + 2 * gridSize, HomeApp.roomWidth * gridSize, (HomeApp.roomHeight - 2) * gridSize, floorStyle);
   }
   
   for (let x = 0; x <= HomeApp.roomWidth; x++) {
@@ -1839,6 +3921,7 @@ function saveRoom() {
 function openSettings() {
   document.getElementById('settings-modal').classList.remove('hidden');
   renderColorPickers();
+  renderStylePickers();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -1899,18 +3982,30 @@ function renderColorPickers() {
 
 function zoomIn() {
   HomeApp.mapScale = Math.min(2, HomeApp.mapScale + 0.25);
-  renderMap();
+  if (HomeApp.currentCommunity) {
+    renderCommunityMap();
+  } else {
+    renderMap();
+  }
 }
 
 function zoomOut() {
   HomeApp.mapScale = Math.max(0.5, HomeApp.mapScale - 0.25);
-  renderMap();
+  if (HomeApp.currentCommunity) {
+    renderCommunityMap();
+  } else {
+    renderMap();
+  }
 }
 
 function centerMap() {
   HomeApp.mapOffset = { x: 0, y: 0 };
   HomeApp.mapScale = 1;
-  renderMap();
+  if (HomeApp.currentCommunity) {
+    renderCommunityMap();
+  } else {
+    renderMap();
+  }
 }
 
 function openBuyModal(lot) {
@@ -2171,8 +4266,19 @@ function processPayment(amount, itemName) {
 function handleBack() {
   try {
     const roomView = document.getElementById('room-view');
+    const mapView = document.getElementById('map-view');
+    const worldNavView = document.getElementById('world-nav-view');
+    
     if (roomView && !roomView.classList.contains('hidden')) {
       exitRoom();
+      return;
+    }
+    
+    if (mapView && !mapView.classList.contains('hidden')) {
+      mapView.classList.add('hidden');
+      if (worldNavView) worldNavView.classList.remove('hidden');
+      HomeApp.currentCommunity = null;
+      updateBalanceNav();
       return;
     }
     
@@ -2181,12 +4287,721 @@ function handleBack() {
     }
   } catch (e) {
     console.error('handleBack error:', e);
-    // 嘗試直接關閉應用
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'closeApp' }, '*');
     }
   }
 }
+
+let currentShopItem = null;
+let currentShopCategory = 'all';
+
+function openFurnitureShop() {
+  document.getElementById('furniture-shop-modal').classList.remove('hidden');
+  renderShopGrid();
+  updateShopBalance();
+  renderEventBanner();
+  bindShopEvents();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeFurnitureShop() {
+  document.getElementById('furniture-shop-modal').classList.add('hidden');
+}
+
+function renderShopGrid() {
+  const grid = document.getElementById('shop-grid');
+  if (!grid) return;
+  
+  const ownedFurniture = getOwnedFurniture();
+  const activeEvent = getActiveEvents()[0];
+  
+  const filtered = currentShopCategory === 'all' 
+    ? FURNITURE_SHOP_CATALOG 
+    : FURNITURE_SHOP_CATALOG.filter(f => f.category === currentShopCategory);
+  
+  grid.innerHTML = filtered.map(item => {
+    const isOwned = ownedFurniture.includes(item.id);
+    const discountedPrice = getDiscountedPrice(item, activeEvent);
+    const hasDiscount = discountedPrice < item.price;
+    const rarityClass = `rarity-${item.rarity}`;
+    
+    return `
+      <div class="shop-item ${rarityClass} ${isOwned ? 'owned' : ''}" data-item-id="${item.id}">
+        <canvas width="48" height="48"></canvas>
+        <span class="shop-item-name">${item.name}</span>
+        <span class="shop-item-price ${hasDiscount ? 'discounted' : ''}">NT$${discountedPrice}</span>
+        ${hasDiscount ? `<span class="shop-item-original-price">NT$${item.price}</span>` : ''}
+        ${isOwned ? '<span class="shop-item-owned">已擁有</span>' : ''}
+      </div>
+    `;
+  }).join('');
+  
+  grid.querySelectorAll('.shop-item').forEach(el => {
+    const itemId = el.dataset.itemId;
+    const canvas = el.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    generateShopFurniturePixels(itemId, ctx, 48);
+    
+    el.addEventListener('click', () => showItemDetail(itemId));
+  });
+}
+
+function renderEventBanner() {
+  const banner = document.getElementById('shop-event-banner');
+  const activeEvents = getActiveEvents();
+  
+  if (activeEvents.length === 0 && !isWeekendSale()) {
+    banner.classList.add('hidden');
+    return;
+  }
+  
+  let bannerText = '';
+  if (isWeekendSale()) {
+    bannerText = '週末特賣！全場 8 折';
+  }
+  if (activeEvents.length > 0) {
+    bannerText = activeEvents[0].banner;
+  }
+  
+  banner.innerHTML = `
+    <span class="shop-event-text">${bannerText}</span>
+    <span class="shop-event-action">查看 <i data-lucide="chevron-right"></i></span>
+  `;
+  banner.classList.remove('hidden');
+  banner.onclick = () => showEventDetails(activeEvents[0]);
+  
+  if (window.lucide) lucide.createIcons();
+}
+
+function showEventDetails(event) {
+  if (event) {
+    alert(`${event.name}\n${event.startDate.toLocaleDateString()} - ${event.endDate.toLocaleDateString()}\n\n折扣: ${Math.round(event.discount * 100)}%`);
+  }
+}
+
+function bindShopEvents() {
+  document.querySelectorAll('.shop-category-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.shop-category-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentShopCategory = btn.dataset.category;
+      renderShopGrid();
+    });
+  });
+}
+
+function updateShopBalance() {
+  const el = document.getElementById('shop-balance');
+  if (el) el.textContent = `NT$ ${formatCurrency(getBalance())}`;
+}
+
+function showItemDetail(itemId) {
+  const item = FURNITURE_SHOP_CATALOG.find(f => f.id === itemId);
+  if (!item) return;
+  
+  currentShopItem = item;
+  
+  const canvas = document.getElementById('item-preview-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, 96, 96);
+  generateShopFurniturePixels(itemId, ctx, 96);
+  
+  document.getElementById('item-name').textContent = item.name;
+  document.getElementById('item-description').textContent = item.description;
+  document.getElementById('item-size').textContent = `尺寸: ${item.width}x${item.height}`;
+  
+  const rarityEl = document.getElementById('item-rarity');
+  rarityEl.textContent = RARITY_CONFIG[item.rarity].name;
+  rarityEl.className = `item-rarity ${item.rarity}`;
+  
+  const activeEvent = getActiveEvents()[0];
+  const discountedPrice = getDiscountedPrice(item, activeEvent);
+  const hasDiscount = discountedPrice < item.price;
+  
+  document.getElementById('item-price').textContent = `NT$${discountedPrice}`;
+  document.getElementById('item-original-price').textContent = hasDiscount ? `NT$${item.price}` : '';
+  
+  const ownedFurniture = getOwnedFurniture();
+  const buyBtn = document.getElementById('buy-item-btn');
+  if (ownedFurniture.includes(item.id)) {
+    buyBtn.textContent = '已擁有';
+    buyBtn.disabled = true;
+  } else {
+    buyBtn.textContent = '購買';
+    buyBtn.disabled = false;
+  }
+  
+  document.getElementById('item-detail-modal').classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeItemDetail() {
+  document.getElementById('item-detail-modal').classList.add('hidden');
+  currentShopItem = null;
+}
+
+function buyShopItem() {
+  if (!currentShopItem) return;
+  
+  const ownedFurniture = getOwnedFurniture();
+  if (ownedFurniture.includes(currentShopItem.id)) {
+    alert('您已擁有此家具！');
+    return;
+  }
+  
+  const activeEvent = getActiveEvents()[0];
+  const price = getDiscountedPrice(currentShopItem, activeEvent);
+  const balance = getBalance();
+  
+  if (balance < price) {
+    alert('餘額不足！請到 kakaopay 充值');
+    return;
+  }
+  
+  closeItemDetail();
+  openPaymentPinModal(price, currentShopItem.name);
+}
+
+function openPaymentPinModal(amount, itemName) {
+  document.getElementById('payment-amount-display').textContent = `NT$ ${formatCurrency(amount)}`;
+  document.getElementById('payment-details-display').innerHTML = `
+    <div>商品: ${itemName}</div>
+    <div>金額: NT$${formatCurrency(amount)}</div>
+  `;
+  
+  const pinInputs = document.querySelectorAll('.pin-input');
+  pinInputs.forEach(input => input.value = '');
+  pinInputs[0]?.focus();
+  
+  document.getElementById('payment-pin-modal').classList.remove('hidden');
+}
+
+function closePaymentPinModal() {
+  document.getElementById('payment-pin-modal').classList.add('hidden');
+}
+
+function confirmPaymentPin() {
+  const pinInputs = document.querySelectorAll('.pin-input');
+  const pin = Array.from(pinInputs).map(i => i.value).join('');
+  
+  if (pin.length !== 4) {
+    alert('請輸入 4 位數密碼');
+    return;
+  }
+  
+  if (!currentShopItem) return;
+  
+  const activeEvent = getActiveEvents()[0];
+  const price = getDiscountedPrice(currentShopItem, activeEvent);
+  
+  processShopPayment(price, currentShopItem.id, currentShopItem.name);
+}
+
+function processShopPayment(amount, itemId, itemName) {
+  const ledgerRaw = localStorage.getItem('sxiphone.kakaopay.ledger.v1');
+  let ledger;
+  try {
+    ledger = JSON.parse(ledgerRaw || '{}');
+  } catch {
+    ledger = {};
+  }
+  
+  const transactions = Array.isArray(ledger?.transactions) ? ledger.transactions : [];
+  
+  transactions.unshift({
+    id: `tx_${Date.now()}`,
+    type: 'expense',
+    category: '家具',
+    amount: amount,
+    note: `購買家具：${itemName}`,
+    date: getTodayYMD(),
+    createdAt: Date.now(),
+    source: 'home-shop'
+  });
+  
+  localStorage.setItem('sxiphone.kakaopay.ledger.v1', JSON.stringify({ 
+    budget: ledger?.budget || 30000, 
+    transactions 
+  }));
+  
+  window.parent?.postMessage({
+    type: 'KAKAOPAY_FURNITURE_PURCHASE',
+    amount: amount,
+    itemName: itemName,
+    source: 'home-shop'
+  }, '*');
+  
+  addOwnedFurniture(itemId);
+  
+  closePaymentPinModal();
+  alert(`購買成功！${itemName} 已加入您的家具庫`);
+  
+  renderShopGrid();
+  updateShopBalance();
+  updateBalance();
+}
+
+function getTodayYMD() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getOwnedFurniture() {
+  try {
+    const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+    return data.ownedFurniture || [];
+  } catch {
+    return [];
+  }
+}
+
+function addOwnedFurniture(itemId) {
+  try {
+    const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+    if (!data.ownedFurniture) data.ownedFurniture = [];
+    if (!data.ownedFurniture.includes(itemId)) {
+      data.ownedFurniture.push(itemId);
+    }
+    localStorage.setItem('sx_home_data', JSON.stringify(data));
+    
+    const shopItem = FURNITURE_SHOP_CATALOG.find(f => f.id === itemId);
+    if (shopItem) {
+      FURNITURE_CATALOG.push({
+        id: shopItem.id,
+        name: shopItem.name,
+        category: shopItem.category,
+        width: shopItem.width,
+        height: shopItem.height,
+        pixels: getShopFurniturePixels(shopItem.id),
+        interactive: shopItem.interactive
+      });
+    }
+    
+    renderFurnitureCatalog();
+  } catch (e) {
+    console.error('Failed to add owned furniture:', e);
+  }
+}
+
+function getOwnedFloorStyles() {
+  try {
+    const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+    return data.ownedFloorStyles || ['wood_light'];
+  } catch {
+    return ['wood_light'];
+  }
+}
+
+function getOwnedWallStyles() {
+  try {
+    const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+    return data.ownedWallStyles || ['paint_white'];
+  } catch {
+    return ['paint_white'];
+  }
+}
+
+function renderStylePickers() {
+  const floorPicker = document.getElementById('floor-style-picker');
+  const wallPicker = document.getElementById('wall-style-picker');
+  
+  if (floorPicker) {
+    const ownedFloorStyles = getOwnedFloorStyles();
+    const currentFloorStyle = HomeApp.floorStyle || 'wood_light';
+    
+    floorPicker.innerHTML = FLOOR_STYLES.map(style => {
+      const isOwned = ownedFloorStyles.includes(style.id);
+      const isActive = currentFloorStyle === style.id;
+      return `
+        <div class="style-option ${isActive ? 'active' : ''} ${!isOwned ? 'locked' : ''}" 
+             data-style-id="${style.id}" data-pattern="floor">
+          <canvas width="40" height="40"></canvas>
+          ${!isOwned && style.price > 0 ? `<span class="style-option-price">NT$${style.price}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    floorPicker.querySelectorAll('.style-option').forEach(el => {
+      const canvas = el.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      const styleId = el.dataset.styleId;
+      const style = FLOOR_STYLES.find(s => s.id === styleId);
+      if (style) {
+        ctx.fillStyle = style.baseColor;
+        ctx.fillRect(0, 0, 40, 40);
+        ctx.fillStyle = style.accentColor;
+        ctx.fillRect(5, 5, 30, 30);
+      }
+      
+      el.addEventListener('click', () => selectFloorStyle(styleId));
+    });
+  }
+  
+  if (wallPicker) {
+    const ownedWallStyles = getOwnedWallStyles();
+    const currentWallStyle = HomeApp.wallStyle || 'paint_white';
+    
+    wallPicker.innerHTML = WALL_STYLES.map(style => {
+      const isOwned = ownedWallStyles.includes(style.id);
+      const isActive = currentWallStyle === style.id;
+      return `
+        <div class="style-option ${isActive ? 'active' : ''} ${!isOwned ? 'locked' : ''}" 
+             data-style-id="${style.id}" data-pattern="wall">
+          <canvas width="40" height="40"></canvas>
+          ${!isOwned && style.price > 0 ? `<span class="style-option-price">NT$${style.price}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+    
+    wallPicker.querySelectorAll('.style-option').forEach(el => {
+      const canvas = el.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      const styleId = el.dataset.styleId;
+      const style = WALL_STYLES.find(s => s.id === styleId);
+      if (style) {
+        ctx.fillStyle = style.baseColor;
+        ctx.fillRect(0, 0, 40, 40);
+        if (style.accentColor) {
+          ctx.fillStyle = style.accentColor;
+          ctx.fillRect(5, 5, 30, 30);
+        }
+      }
+      
+      el.addEventListener('click', () => selectWallStyle(styleId));
+    });
+  }
+}
+
+function selectFloorStyle(styleId) {
+  const style = FLOOR_STYLES.find(s => s.id === styleId);
+  if (!style) return;
+  
+  const ownedFloorStyles = getOwnedFloorStyles();
+  
+  if (!ownedFloorStyles.includes(styleId)) {
+    if (style.price > 0) {
+      const balance = getBalance();
+      if (balance < style.price) {
+        alert('餘額不足！');
+        return;
+      }
+      if (confirm(`購買「${style.name}」需要 NT$${style.price}，確定購買嗎？`)) {
+        purchaseFloorStyle(style);
+      }
+      return;
+    }
+  }
+  
+  HomeApp.floorStyle = styleId;
+  HomeApp.floorColor = style.baseColor;
+  
+  document.querySelectorAll('#floor-style-picker .style-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.styleId === styleId);
+  });
+  
+  renderRoom();
+  saveData();
+}
+
+function selectWallStyle(styleId) {
+  const style = WALL_STYLES.find(s => s.id === styleId);
+  if (!style) return;
+  
+  const ownedWallStyles = getOwnedWallStyles();
+  
+  if (!ownedWallStyles.includes(styleId)) {
+    if (style.price > 0) {
+      const balance = getBalance();
+      if (balance < style.price) {
+        alert('餘額不足！');
+        return;
+      }
+      if (confirm(`購買「${style.name}」需要 NT$${style.price}，確定購買嗎？`)) {
+        purchaseWallStyle(style);
+      }
+      return;
+    }
+  }
+  
+  HomeApp.wallStyle = styleId;
+  HomeApp.wallColor = style.baseColor;
+  
+  document.querySelectorAll('#wall-style-picker .style-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.styleId === styleId);
+  });
+  
+  renderRoom();
+  saveData();
+}
+
+function purchaseFloorStyle(style) {
+  const ledgerRaw = localStorage.getItem('sxiphone.kakaopay.ledger.v1');
+  let ledger;
+  try {
+    ledger = JSON.parse(ledgerRaw || '{}');
+  } catch {
+    ledger = {};
+  }
+  
+  const transactions = Array.isArray(ledger?.transactions) ? ledger.transactions : [];
+  
+  transactions.unshift({
+    id: `tx_${Date.now()}`,
+    type: 'expense',
+    category: '裝潢',
+    amount: style.price,
+    note: `購買地板樣式：${style.name}`,
+    date: getTodayYMD(),
+    createdAt: Date.now(),
+    source: 'home-shop'
+  });
+  
+  localStorage.setItem('sxiphone.kakaopay.ledger.v1', JSON.stringify({ 
+    budget: ledger?.budget || 30000, 
+    transactions 
+  }));
+  
+  const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+  if (!data.ownedFloorStyles) data.ownedFloorStyles = ['wood_light'];
+  if (!data.ownedFloorStyles.includes(style.id)) {
+    data.ownedFloorStyles.push(style.id);
+  }
+  data.floorStyle = style.id;
+  localStorage.setItem('sx_home_data', JSON.stringify(data));
+  
+  HomeApp.floorStyle = style.id;
+  HomeApp.floorColor = style.baseColor;
+  
+  renderStylePickers();
+  updateBalance();
+  renderRoom();
+  
+  alert(`購買成功！已套用「${style.name}」`);
+}
+
+function purchaseWallStyle(style) {
+  const ledgerRaw = localStorage.getItem('sxiphone.kakaopay.ledger.v1');
+  let ledger;
+  try {
+    ledger = JSON.parse(ledgerRaw || '{}');
+  } catch {
+    ledger = {};
+  }
+  
+  const transactions = Array.isArray(ledger?.transactions) ? ledger.transactions : [];
+  
+  transactions.unshift({
+    id: `tx_${Date.now()}`,
+    type: 'expense',
+    category: '裝潢',
+    amount: style.price,
+    note: `購買牆壁樣式：${style.name}`,
+    date: getTodayYMD(),
+    createdAt: Date.now(),
+    source: 'home-shop'
+  });
+  
+  localStorage.setItem('sxiphone.kakaopay.ledger.v1', JSON.stringify({ 
+    budget: ledger?.budget || 30000, 
+    transactions 
+  }));
+  
+  const data = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
+  if (!data.ownedWallStyles) data.ownedWallStyles = ['paint_white'];
+  if (!data.ownedWallStyles.includes(style.id)) {
+    data.ownedWallStyles.push(style.id);
+  }
+  data.wallStyle = style.id;
+  localStorage.setItem('sx_home_data', JSON.stringify(data));
+  
+  HomeApp.wallStyle = style.id;
+  HomeApp.wallColor = style.baseColor;
+  
+  renderStylePickers();
+  updateBalance();
+  renderRoom();
+  
+  alert(`購買成功！已套用「${style.name}」`);
+}
+
+function handleInteractiveFurniture(item) {
+  const catalogItem = FURNITURE_CATALOG.find(f => f.id === item.id) || 
+                      FURNITURE_SHOP_CATALOG.find(f => f.id === item.id);
+  
+  if (!catalogItem || !catalogItem.interactive) return false;
+  
+  const menu = document.getElementById('interactive-menu-modal');
+  const optionsContainer = document.getElementById('interactive-menu-options');
+  
+  document.getElementById('interactive-item-name').textContent = catalogItem.name;
+  
+  let options = [];
+  
+  switch(catalogItem.id) {
+    case 'wall_clock':
+      const now = new Date();
+      options = [
+        { label: `現在時間: ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`, action: () => {} },
+        { label: '報時', action: () => alert(`現在時間是 ${now.getHours()} 點 ${now.getMinutes()} 分`) }
+      ];
+      break;
+    case 'ceiling_light':
+    case 'floor_lamp':
+    case 'wall_sconce':
+    case 'desk_lamp_luxury':
+      options = [
+        { label: item.isOn ? '關燈' : '開燈', action: () => toggleLight(item) },
+        { label: '調整亮度', action: () => adjustBrightness(item) }
+      ];
+      break;
+    case 'chandelier':
+    case 'chandelier_crystal':
+      options = [
+        { label: item.isOn ? '關燈' : '開燈', action: () => toggleLight(item) },
+        { label: '閃爍模式', action: () => setLightMode(item, 'blink') }
+      ];
+      break;
+    case 'neon_sign':
+    case 'neon_sign_custom':
+      options = [
+        { label: item.isOn ? '關閉' : '開啟', action: () => toggleLight(item) },
+        { label: '變換顏色', action: () => changeNeonColor(item) }
+      ];
+      break;
+    case 'string_lights':
+      options = [
+        { label: item.isOn ? '關閉' : '開啟', action: () => toggleLight(item) },
+        { label: '閃爍模式', action: () => setLightMode(item, 'twinkle') }
+      ];
+      break;
+    case 'floor_fountain':
+      options = [
+        { label: item.isOn ? '關閉' : '開啟', action: () => toggleFountain(item) },
+        { label: '水流模式', action: () => setFountainMode(item) }
+      ];
+      break;
+    case 'wall_aquarium':
+      options = [
+        { label: '餵魚', action: () => feedFish(item) },
+        { label: '新增魚', action: () => addFish(item) }
+      ];
+      break;
+    case 'tv':
+      options = [
+        { label: '開啟', action: () => alert('電視已開啟') },
+        { label: '切換頻道', action: () => alert('切換頻道...') }
+      ];
+      break;
+    default:
+      options = [
+        { label: '互動', action: () => alert('與家具互動') }
+      ];
+  }
+  
+  options.push({ label: '取消', action: () => closeInteractiveMenu() });
+  
+  optionsContainer.innerHTML = options.map((opt, idx) => `
+    <button class="interactive-menu-btn" data-option-idx="${idx}">
+      ${opt.label}
+    </button>
+  `).join('');
+  
+  optionsContainer.querySelectorAll('.interactive-menu-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      options[idx].action();
+      closeInteractiveMenu();
+    });
+  });
+  
+  menu.classList.remove('hidden');
+  return true;
+}
+
+function closeInteractiveMenu() {
+  document.getElementById('interactive-menu-modal').classList.add('hidden');
+}
+
+function toggleLight(item) {
+  item.isOn = !item.isOn;
+  renderRoom();
+  saveData();
+}
+
+function adjustBrightness(item) {
+  const brightness = prompt('請輸入亮度 (1-100):', '50');
+  if (brightness) {
+    item.brightness = Math.max(1, Math.min(100, parseInt(brightness)));
+    renderRoom();
+    saveData();
+  }
+}
+
+function setLightMode(item, mode) {
+  item.lightMode = mode;
+  renderRoom();
+  saveData();
+}
+
+function changeNeonColor(item) {
+  const colors = ['#ff00ff', '#00ffff', '#ff0000', '#00ff00', '#ffff00'];
+  const currentIdx = colors.indexOf(item.neonColor || '#ff00ff');
+  item.neonColor = colors[(currentIdx + 1) % colors.length];
+  renderRoom();
+  saveData();
+}
+
+function toggleFountain(item) {
+  item.isOn = !item.isOn;
+  renderRoom();
+  saveData();
+}
+
+function setFountainMode(item) {
+  const modes = ['gentle', 'strong', 'pulse'];
+  const currentIdx = modes.indexOf(item.fountainMode || 'gentle');
+  item.fountainMode = modes[(currentIdx + 1) % modes.length];
+  renderRoom();
+  saveData();
+}
+
+function feedFish(item) {
+  alert('魚兒們吃飽了！');
+}
+
+function addFish(item) {
+  if (!item.fishCount) item.fishCount = 2;
+  if (item.fishCount < 5) {
+    item.fishCount++;
+    renderRoom();
+    saveData();
+    alert('新增了一條魚！');
+  } else {
+    alert('魚缸已滿！');
+  }
+}
+
+function initPinInputs() {
+  const pinInputs = document.querySelectorAll('.pin-input');
+  pinInputs.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+      if (e.target.value && index < pinInputs.length - 1) {
+        pinInputs[index + 1].focus();
+      }
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && index > 0) {
+        pinInputs[index - 1].focus();
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPinInputs();
+});
 
 window.selectCategory = selectCategory;
 window.toggleFurniturePanel = toggleFurniturePanel;
@@ -2216,5 +5031,417 @@ window.openInviteModal = openInviteModal;
 window.closeInviteModal = closeInviteModal;
 window.sendInvite = sendInvite;
 window.switchSubRoom = switchSubRoom;
+window.selectCommunity = selectCommunity;
+window.openFurnitureShop = openFurnitureShop;
+window.closeFurnitureShop = closeFurnitureShop;
+window.showItemDetail = showItemDetail;
+window.closeItemDetail = closeItemDetail;
+window.buyShopItem = buyShopItem;
+window.closePaymentPinModal = closePaymentPinModal;
+window.confirmPaymentPin = confirmPaymentPin;
+window.closeInteractiveMenu = closeInteractiveMenu;
+
+const EXPAND_PRICES = {
+  width: 5000,
+  height: 5000,
+  both: 8000
+};
+
+const MAP_EDIT_CATALOG = {
+  buildings: [
+    { id: 'small_house', name: '小屋', width: 2, height: 2, price: 10000, color: '#e94560', roofColor: '#c73e54' },
+    { id: 'garden_shed', name: '花園小屋', width: 2, height: 2, price: 5000, color: '#8B4513', roofColor: '#654321' },
+    { id: 'gazebo', name: '涼亭', width: 2, height: 2, price: 8000, color: '#DEB887', roofColor: '#D2691E' },
+    { id: 'fountain', name: '噴泉', width: 2, height: 2, price: 12000, color: '#4169E1', roofColor: '#87CEEB' }
+  ],
+  decorations: [
+    { id: 'tree_oak', name: '橡樹', width: 1, height: 1, price: 500, type: 'tree' },
+    { id: 'tree_pine', name: '松樹', width: 1, height: 1, price: 500, type: 'tree' },
+    { id: 'flower_bed', name: '花圃', width: 2, height: 1, price: 300, type: 'flower' },
+    { id: 'bench', name: '長椅', width: 2, height: 1, price: 400, type: 'bench' },
+    { id: 'lamp_post', name: '路燈', width: 1, height: 1, price: 600, type: 'lamp' },
+    { id: 'mailbox', name: '信箱', width: 1, height: 1, price: 200, type: 'mailbox' }
+  ],
+  roads: [
+    { id: 'road_h', name: '道路', width: 1, height: 1, price: 100, type: 'road_h' },
+    { id: 'road_v', name: '道路', width: 1, height: 1, price: 100, type: 'road_v' },
+    { id: 'road_cross', name: '十字路口', width: 1, height: 1, price: 150, type: 'road_cross' },
+    { id: 'sidewalk', name: '人行道', width: 1, height: 1, price: 50, type: 'sidewalk' }
+  ]
+};
+
+function getCurrentRoomSize() {
+  const expansion = HomeApp.roomExpansions?.user?.[HomeApp.currentSubRoom] || { width: 0, height: 0 };
+  return {
+    width: HomeApp.baseRoomWidth + expansion.width,
+    height: HomeApp.baseRoomHeight + expansion.height
+  };
+}
+
+function updateRoomSize() {
+  const size = getCurrentRoomSize();
+  HomeApp.roomWidth = size.width;
+  HomeApp.roomHeight = size.height;
+}
+
+function openRoomExpand() {
+  const modal = document.getElementById('room-expand-modal');
+  if (!modal) return;
+  
+  const currentSize = getCurrentRoomSize();
+  document.getElementById('current-room-size').textContent = `${currentSize.width} x ${currentSize.height}`;
+  document.getElementById('expanded-room-size').textContent = `${currentSize.width + 2} x ${currentSize.height + 2}`;
+  
+  const expansion = HomeApp.roomExpansions?.user?.[HomeApp.currentSubRoom] || { width: 0, height: 0 };
+  const multiplier = 1 + expansion.width * 0.1 + expansion.height * 0.1;
+  
+  document.getElementById('expand-width-price').textContent = Math.floor(EXPAND_PRICES.width * multiplier);
+  document.getElementById('expand-height-price').textContent = Math.floor(EXPAND_PRICES.height * multiplier);
+  document.getElementById('expand-both-price').textContent = Math.floor(EXPAND_PRICES.both * multiplier);
+  
+  modal.classList.remove('hidden');
+}
+
+function closeRoomExpand() {
+  const modal = document.getElementById('room-expand-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function expandRoom(type) {
+  const expansion = HomeApp.roomExpansions?.user?.[HomeApp.currentSubRoom] || { width: 0, height: 0 };
+  const multiplier = 1 + expansion.width * 0.1 + expansion.height * 0.1;
+  
+  let price = 0;
+  if (type === 'width') {
+    price = Math.floor(EXPAND_PRICES.width * multiplier);
+  } else if (type === 'height') {
+    price = Math.floor(EXPAND_PRICES.height * multiplier);
+  } else if (type === 'both') {
+    price = Math.floor(EXPAND_PRICES.both * multiplier);
+  }
+  
+  const balance = getBalance();
+  if (balance < price) {
+    alert('金幣不足！');
+    return;
+  }
+  
+  if (!confirm(`確定要花費 ${price} 金幣擴建房間嗎？`)) return;
+  
+  updateBalance(-price);
+  
+  if (!HomeApp.roomExpansions) {
+    HomeApp.roomExpansions = { user: {} };
+  }
+  if (!HomeApp.roomExpansions.user) {
+    HomeApp.roomExpansions.user = {};
+  }
+  if (!HomeApp.roomExpansions.user[HomeApp.currentSubRoom]) {
+    HomeApp.roomExpansions.user[HomeApp.currentSubRoom] = { width: 0, height: 0 };
+  }
+  
+  if (type === 'width') {
+    HomeApp.roomExpansions.user[HomeApp.currentSubRoom].width += 2;
+  } else if (type === 'height') {
+    HomeApp.roomExpansions.user[HomeApp.currentSubRoom].height += 2;
+  } else if (type === 'both') {
+    HomeApp.roomExpansions.user[HomeApp.currentSubRoom].width += 2;
+    HomeApp.roomExpansions.user[HomeApp.currentSubRoom].height += 2;
+  }
+  
+  updateRoomSize();
+  resizeRoomCanvas();
+  saveData();
+  closeRoomExpand();
+  
+  alert('房間擴建成功！');
+}
+
+function toggleMapEditMode() {
+  HomeApp.mapEditMode = !HomeApp.mapEditMode;
+  
+  const hint = document.getElementById('map-edit-hint');
+  const panel = document.getElementById('map-edit-panel');
+  const btn = document.getElementById('map-edit-btn');
+  
+  if (HomeApp.mapEditMode) {
+    if (hint) hint.classList.remove('hidden');
+    if (panel) panel.classList.add('open');
+    if (btn) btn.style.background = 'rgba(233, 69, 96, 0.4)';
+    renderMapEditCatalog('buildings');
+  } else {
+    if (hint) hint.classList.add('hidden');
+    if (panel) panel.classList.remove('open');
+    if (btn) btn.style.background = '';
+  }
+}
+
+function exitMapEditMode() {
+  HomeApp.mapEditMode = false;
+  HomeApp.selectedMapItem = null;
+  
+  const hint = document.getElementById('map-edit-hint');
+  const panel = document.getElementById('map-edit-panel');
+  const btn = document.getElementById('map-edit-btn');
+  
+  if (hint) hint.classList.add('hidden');
+  if (panel) panel.classList.remove('open');
+  if (btn) btn.style.background = '';
+}
+
+function toggleMapEditPanel() {
+  const panel = document.getElementById('map-edit-panel');
+  if (panel) {
+    panel.classList.toggle('open');
+  }
+}
+
+function selectMapEditCategory(category) {
+  document.querySelectorAll('.map-edit-categories .category-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.category === category) {
+      btn.classList.add('active');
+    }
+  });
+  renderMapEditCatalog(category);
+}
+
+function renderMapEditCatalog(category) {
+  const grid = document.getElementById('map-edit-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  const items = MAP_EDIT_CATALOG[category] || [];
+  
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'map-edit-item';
+    div.onclick = () => selectMapEditItem(item);
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 48;
+    canvas.height = 48;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    
+    drawMapEditItemPreview(ctx, item, 48);
+    
+    div.appendChild(canvas);
+    
+    const name = document.createElement('span');
+    name.textContent = item.name;
+    div.appendChild(name);
+    
+    const price = document.createElement('span');
+    price.style.color = '#ffd700';
+    price.style.fontSize = '10px';
+    price.textContent = `$${item.price}`;
+    div.appendChild(price);
+    
+    grid.appendChild(div);
+  });
+}
+
+function drawMapEditItemPreview(ctx, item, size) {
+  const s = size / 16;
+  
+  if (item.type === 'tree') {
+    ctx.fillStyle = '#228B22';
+    ctx.beginPath();
+    ctx.arc(8 * s, 6 * s, 5 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(7 * s, 10 * s, 2 * s, 4 * s);
+  } else if (item.type === 'flower') {
+    ctx.fillStyle = '#228B22';
+    ctx.fillRect(0, 10 * s, 16 * s, 6 * s);
+    ctx.fillStyle = '#FF69B4';
+    ctx.beginPath();
+    ctx.arc(4 * s, 8 * s, 3 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(12 * s, 8 * s, 3 * s, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (item.type === 'bench') {
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(0, 6 * s, 16 * s, 4 * s);
+    ctx.fillRect(2 * s, 10 * s, 2 * s, 4 * s);
+    ctx.fillRect(12 * s, 10 * s, 2 * s, 4 * s);
+  } else if (item.type === 'lamp') {
+    ctx.fillStyle = '#333';
+    ctx.fillRect(7 * s, 4 * s, 2 * s, 10 * s);
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(8 * s, 4 * s, 3 * s, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (item.type === 'mailbox') {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(5 * s, 6 * s, 6 * s, 8 * s);
+    ctx.fillStyle = '#e94560';
+    ctx.fillRect(6 * s, 8 * s, 4 * s, 3 * s);
+  } else if (item.type && item.type.startsWith('road')) {
+    ctx.fillStyle = '#555';
+    ctx.fillRect(0, 0, 16 * s, 16 * s);
+    if (item.type === 'road_h' || item.type === 'road_cross') {
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(6 * s, 7 * s, 4 * s, 2 * s);
+    }
+    if (item.type === 'road_v' || item.type === 'road_cross') {
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(7 * s, 6 * s, 2 * s, 4 * s);
+    }
+  } else if (item.type === 'sidewalk') {
+    ctx.fillStyle = '#999';
+    ctx.fillRect(0, 0, 16 * s, 16 * s);
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(2 * s, 2 * s, 5 * s, 5 * s);
+    ctx.fillRect(9 * s, 9 * s, 5 * s, 5 * s);
+  } else {
+    ctx.fillStyle = item.roofColor || '#8B4513';
+    ctx.beginPath();
+    ctx.moveTo(0, 6 * s);
+    ctx.lineTo(8 * s, 0);
+    ctx.lineTo(16 * s, 6 * s);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = item.color || '#e94560';
+    ctx.fillRect(0, 6 * s, 16 * s, 10 * s);
+    
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(3 * s, 8 * s, 4 * s, 4 * s);
+    ctx.fillRect(9 * s, 8 * s, 4 * s, 4 * s);
+    
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(6 * s, 11 * s, 4 * s, 5 * s);
+  }
+}
+
+function selectMapEditItem(item) {
+  HomeApp.selectedMapItem = item;
+  
+  document.querySelectorAll('.map-edit-item').forEach(el => {
+    el.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+}
+
+function placeMapItem(gridX, gridY) {
+  if (!HomeApp.selectedMapItem) return;
+  
+  const item = HomeApp.selectedMapItem;
+  const balance = getBalance();
+  
+  if (balance < item.price) {
+    alert('金幣不足！');
+    return;
+  }
+  
+  const newItem = {
+    ...item,
+    x: gridX,
+    y: gridY,
+    id: `${item.id}_${Date.now()}`
+  };
+  
+  if (!HomeApp.customPlacedBuildings) {
+    HomeApp.customPlacedBuildings = [];
+  }
+  
+  if (item.id.includes('house') || item.id.includes('shed') || item.id.includes('gazebo') || item.id === 'fountain') {
+    HomeApp.customPlacedBuildings.push(newItem);
+  } else {
+    if (!HomeApp.customPlacedDecorations) {
+      HomeApp.customPlacedDecorations = [];
+    }
+    HomeApp.customPlacedDecorations.push(newItem);
+  }
+  
+  updateBalance(-item.price);
+  renderCommunityMap();
+  saveData();
+}
+
+function moveMapItem() {
+  const menu = document.getElementById('map-item-context-menu');
+  if (!menu || !HomeApp.selectedMapItem) return;
+  
+  HomeApp.draggedMapItem = HomeApp.selectedMapItem;
+  hideMapContextMenu();
+}
+
+function deleteMapItem() {
+  if (!HomeApp.selectedMapItem) return;
+  
+  const idx = HomeApp.customPlacedBuildings?.findIndex(b => b.id === HomeApp.selectedMapItem.id);
+  if (idx !== undefined && idx >= 0) {
+    HomeApp.customPlacedBuildings.splice(idx, 1);
+  } else {
+    const decIdx = HomeApp.customPlacedDecorations?.findIndex(d => d.id === HomeApp.selectedMapItem.id);
+    if (decIdx !== undefined && decIdx >= 0) {
+      HomeApp.customPlacedDecorations.splice(decIdx, 1);
+    }
+  }
+  
+  hideMapContextMenu();
+  renderCommunityMap();
+  saveData();
+}
+
+function hideMapContextMenu() {
+  const menu = document.getElementById('map-item-context-menu');
+  if (menu) menu.classList.add('hidden');
+  HomeApp.selectedMapItem = null;
+}
+
+function handleMapEditClick(e) {
+  if (!HomeApp.mapEditMode) return;
+  
+  const rect = HomeApp.mapCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  const tileSize = COMMUNITY_MAP_CONFIG.tileSize * HomeApp.mapScale;
+  const gridX = Math.floor((x - HomeApp.mapOffset.x) / tileSize);
+  const gridY = Math.floor((y - HomeApp.mapOffset.y) / tileSize);
+  
+  if (HomeApp.selectedMapItem) {
+    placeMapItem(gridX, gridY);
+  } else {
+    const clickedItem = findMapItemAt(gridX, gridY);
+    if (clickedItem) {
+      HomeApp.selectedMapItem = clickedItem;
+      showMapContextMenu(e.clientX, e.clientY);
+    }
+  }
+}
+
+function findMapItemAt(gridX, gridY) {
+  const allItems = [...(HomeApp.customPlacedBuildings || []), ...(HomeApp.customPlacedDecorations || [])];
+  return allItems.find(item => {
+    return gridX >= item.x && gridX < item.x + item.width &&
+           gridY >= item.y && gridY < item.y + item.height;
+  });
+}
+
+function showMapContextMenu(x, y) {
+  const menu = document.getElementById('map-item-context-menu');
+  if (!menu) return;
+  
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.classList.remove('hidden');
+}
+
+window.openRoomExpand = openRoomExpand;
+window.closeRoomExpand = closeRoomExpand;
+window.expandRoom = expandRoom;
+window.toggleMapEditMode = toggleMapEditMode;
+window.exitMapEditMode = exitMapEditMode;
+window.toggleMapEditPanel = toggleMapEditPanel;
+window.selectMapEditCategory = selectMapEditCategory;
+window.moveMapItem = moveMapItem;
+window.deleteMapItem = deleteMapItem;
+window.hideMapContextMenu = hideMapContextMenu;
 
 document.addEventListener('DOMContentLoaded', init);

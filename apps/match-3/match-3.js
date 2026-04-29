@@ -1090,6 +1090,7 @@ const initCharCompanion = () => {
   const closeSettingsBtn = document.getElementById('close-char-settings');
   const companionToggle = document.getElementById('char-companion-toggle');
   const frequencySelect = document.getElementById('comment-frequency');
+  const charSelect = document.getElementById('char-select');
   
   charCompanionEnabled = localStorage.getItem(CHAR_COMPANION_KEY) !== 'false';
   charCommentFrequency = localStorage.getItem(COMMENT_FREQUENCY_KEY) || 'normal';
@@ -1098,18 +1099,83 @@ const initCharCompanion = () => {
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (frequencySelect) frequencySelect.value = charCommentFrequency;
   
-  const char = getCharData();
-  charData = char;
+  // 載入角色列表
+  const loadCharList = () => {
+    const raw = localStorage.getItem('sx_characters') || '[]';
+    try {
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list) || list.length === 0) {
+        if (charSelect) charSelect.innerHTML = '<option value="">尚未建立角色</option>';
+        panel?.classList.add('hidden');
+        return;
+      }
+      
+      const currentCharName = localStorage.getItem('sx_char_name') || '';
+      if (charSelect) {
+        charSelect.innerHTML = list.map((char, index) => 
+          `<option value="${index}" ${char.name === currentCharName ? 'selected' : ''}>${char.name}</option>`
+        ).join('');
+      }
+      
+      // 更新當前角色資料
+      updateCharDisplay();
+    } catch (e) {
+      if (charSelect) charSelect.innerHTML = '<option value="">載入失敗</option>';
+    }
+  };
   
-  const charNameEl = document.getElementById('char-name');
-  const charAvatarEl = document.getElementById('char-avatar');
+  // 更新角色顯示
+  const updateCharDisplay = () => {
+    const char = getCharData();
+    charData = char;
+    
+    const charNameEl = document.getElementById('char-name');
+    const charAvatarEl = document.getElementById('char-avatar');
+    const charCommentEl = document.getElementById('char-comment');
+    
+    if (char?.name) {
+      if (charNameEl) charNameEl.textContent = char.name;
+      if (charAvatarEl && char.avatar) {
+        charAvatarEl.style.backgroundImage = `url('${char.avatar}')`;
+        charAvatarEl.style.backgroundColor = 'transparent';
+      } else if (charAvatarEl) {
+        charAvatarEl.style.backgroundImage = '';
+        charAvatarEl.style.backgroundColor = 'var(--muted)';
+      }
+    } else {
+      if (charNameEl) charNameEl.textContent = '';
+      if (charAvatarEl) {
+        charAvatarEl.style.backgroundImage = '';
+        charAvatarEl.style.backgroundColor = 'var(--muted)';
+      }
+    }
+    
+    // 清空預設評論，等待 AI 生成
+    if (charCommentEl) charCommentEl.textContent = '';
+    
+    updateCharProgressUI();
+  };
   
-  if (charNameEl && char?.name) charNameEl.textContent = char.name;
-  if (charAvatarEl && char?.avatar) {
-    charAvatarEl.style.backgroundImage = `url('${char.avatar}')`;
-  }
+  // 角色選擇變更
+  charSelect?.addEventListener('change', () => {
+    const index = parseInt(charSelect.value);
+    const raw = localStorage.getItem('sx_characters') || '[]';
+    try {
+      const list = JSON.parse(raw);
+      if (list[index]) {
+        localStorage.setItem('sx_char_name', list[index].name);
+        updateCharDisplay();
+        // 生成新的評論
+        if (charCompanionEnabled) {
+          showCharComment({ event: 'start', level: currentLevel });
+        }
+      }
+    } catch (e) {
+      console.error('[match-3] 切換角色失敗:', e);
+    }
+  });
   
-  updateCharProgressUI();
+  loadCharList();
   
   if (!charCompanionEnabled) {
     panel?.classList.add('hidden');
@@ -1232,7 +1298,7 @@ const initCharCompanion = () => {
     localStorage.setItem(COMMENT_FREQUENCY_KEY, charCommentFrequency);
   });
   
-  if (charCompanionEnabled) {
+  if (charCompanionEnabled && charData?.name) {
     showCharComment({ event: 'start', level: currentLevel });
   }
 };
