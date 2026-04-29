@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色卡加密產生器 - 創作者工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 24px;
+        }
+        .section {
+            background: #1c1c1e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #0a84ff;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #0a84ff;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #0070e0;
+        }
+        .btn-secondary {
+            background: #3a3a3c;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #4a4a4c;
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .status {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: rgba(52, 199, 89, 0.2);
+            color: #34c759;
+        }
+        .status.error {
+            background: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+        }
+        .status.info {
+            background: rgba(10, 132, 255, 0.2);
+            color: #0a84ff;
+        }
+        .code-output {
+            background: #2c2c2e;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+        .copy-btn {
+            margin-top: 8px;
+        }
+        .creator-info {
+            background: rgba(10, 132, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .creator-info h3 {
+            margin-bottom: 8px;
+        }
+        .creator-info code {
+            background: #2c2c2e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 8px 16px;
+            background: #2c2c2e;
+            border: none;
+            border-radius: 8px;
+            color: #888;
+            cursor: pointer;
+        }
+        .tab.active {
+            background: #0a84ff;
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card-list {
+            margin-top: 16px;
+        }
+        .card-item {
+            background: #2c2c2e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-item-info h4 {
+            margin-bottom: 4px;
+        }
+        .card-item-info p {
+            font-size: 12px;
+            color: #888;
+        }
+        .usage-stats {
+            margin-top: 16px;
+        }
+        .usage-item {
+            background: #2c2c2e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .usage-item .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        .status-badge.confirmed {
+            background: rgba(52, 199, 89, 0.2);
+            color: #34c759;
+        }
+        .status-badge.pending {
+            background: rgba(255, 149, 0, 0.2);
+            color: #ff9500;
+        }
+        .status-badge.expired {
+            background: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+        }
+        .hidden {
+            display: none;
+        }
+        @media (max-width: 600px) {
+            .btn-row {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 角色卡加密產生器</h1>
+        <p class="subtitle">創作者工具 - 加密並分享您的角色卡</p>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="register">註冊創作者</button>
+            <button class="tab" data-tab="create">建立角色卡</button>
+            <button class="tab" data-tab="manage">管理角色卡</button>
+            <button class="tab" data-tab="usage">使用記錄</button>
+        </div>
+
+        <div id="tab-register" class="tab-content active">
+            <div class="section">
+                <div class="section-title">📝 註冊創作者帳號</div>
+                
+                <div id="creator-info-display" class="creator-info hidden">
+                    <h3>✅ 已註冊</h3>
+                    <p>創作者 ID：<code id="display-creator-id">—</code></p>
+                    <p>創作者金鑰：<code id="display-creator-key">—</code></p>
+                    <p style="margin-top:8px;font-size:12px;color:#ff9500;">⚠️ 請妥善保存您的創作者金鑰，遺失將無法恢復</p>
+                </div>
+
+                <div id="register-form">
+                    <div class="form-group">
+                        <label>創作者名稱</label>
+                        <input type="text" id="creator-name" placeholder="您的名稱或暱稱">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="creator-email" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>網站（選填）</label>
+                        <input type="url" id="creator-website" placeholder="https://your-website.com">
+                    </div>
+                    <div class="form-group">
+                        <label>後端 API 網址</label>
+                        <input type="url" id="api-url" placeholder="https://your-firebase-project.web.app">
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="register-btn">註冊</button>
+                        <button class="btn btn-secondary" id="load-creator-btn">載入已保存的帳號</button>
+                    </div>
+                </div>
+
+                <div id="register-status" class="status hidden"></div>
+            </div>
+        </div>
+
+        <div id="tab-create" class="tab-content">
+            <div class="section">
+                <div class="section-title">🎭 建立加密角色卡</div>
+                
+                <div class="form-group">
+                    <label>角色名稱</label>
+                    <input type="text" id="card-name" placeholder="角色名稱">
+                </div>
+                <div class="form-group">
+                    <label>頭貼 URL</label>
+                    <input type="url" id="card-avatar" placeholder="https://example.com/avatar.png">
+                </div>
+                <div class="form-group">
+                    <label>個性 / Persona</label>
+                    <textarea id="card-personality" placeholder="描述角色的個性特質..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>背景 / Story</label>
+                    <textarea id="card-background" placeholder="描述角色的背景故事..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>對話範例 / Examples</label>
+                    <textarea id="card-examples" placeholder="對話範例，讓 AI 學習角色的說話風格..." style="min-height:150px;"></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="create-card-btn">建立加密角色卡</button>
+                </div>
+
+                <div id="create-status" class="status hidden"></div>
+
+                <div id="code-output-section" class="hidden">
+                    <div class="section-title" style="margin-top:16px;">📋 加密代碼</div>
+                    <p style="font-size:12px;color:#888;margin-bottom:8px;">將此代碼分享給使用者，他們可以在 SxiPhone 中導入此角色卡</p>
+                    <div class="code-output" id="encrypted-code-output"></div>
+                    <button class="btn btn-secondary copy-btn" id="copy-code-btn">複製代碼</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-manage" class="tab-content">
+            <div class="section">
+                <div class="section-title">📚 已建立的角色卡</div>
+                <button class="btn btn-secondary" id="refresh-cards-btn">重新載入</button>
+                <div id="cards-list" class="card-list">
+                    <p style="color:#888;margin-top:16px;">載入中...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-usage" class="tab-content">
+            <div class="section">
+                <div class="section-title">📊 使用記錄</div>
+                <p style="font-size:12px;color:#888;margin-bottom:16px;">查看誰導入了您的角色卡</p>
+                <button class="btn btn-secondary" id="refresh-usage-btn">重新載入</button>
+                <div id="usage-list" class="usage-stats">
+                    <p style="color:#888;margin-top:16px;">載入中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'sx_creator_data';
+
+        let creatorData = null;
+
+        const $ = id => document.getElementById(id);
+
+        function showStatus(elementId, message, type) {
+            const el = $(elementId);
+            el.textContent = message;
+            el.className = `status ${type}`;
+            el.classList.remove('hidden');
+        }
+
+        function saveCreatorData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            creatorData = data;
+        }
+
+        function loadCreatorData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                creatorData = JSON.parse(saved);
+                return true;
+            }
+            return false;
+        }
+
+        function displayCreatorInfo() {
+            if (creatorData) {
+                $('creator-info-display').classList.remove('hidden');
+                $('register-form').classList.add('hidden');
+                $('display-creator-id').textContent = creatorData.creatorId;
+                $('display-creator-key').textContent = creatorData.creatorKey;
+                if (creatorData.apiUrl) {
+                    $('api-url').value = creatorData.apiUrl;
+                }
+            } else {
+                $('creator-info-display').classList.add('hidden');
+                $('register-form').classList.remove('hidden');
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            $(`tab-${tabName}`).classList.add('active');
+        }
+
+        async function registerCreator() {
+            const name = $('creator-name').value.trim();
+            const email = $('creator-email').value.trim();
+            const website = $('creator-website').value.trim();
+            const apiUrl = $('api-url').value.trim();
+
+            if (!name || !email || !apiUrl) {
+                showStatus('register-status', '請填寫名稱、Email 和 API 網址', 'error');
+                return;
+            }
+
+            showStatus('register-status', '註冊中...', 'info');
+
+            try {
+                const response = await fetch(`${apiUrl}/registerCreator`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, website })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '註冊失敗');
+                }
+
+                saveCreatorData({
+                    creatorId: result.creatorId,
+                    creatorKey: result.creatorKey,
+                    name,
+                    email,
+                    website,
+                    apiUrl
+                });
+
+                showStatus('register-status', '✅ 註冊成功！', 'success');
+                displayCreatorInfo();
+
+            } catch (e) {
+                showStatus('register-status', `❌ ${e.message}`, 'error');
+            }
+        }
+
+        async function createCard() {
+            if (!creatorData || !creatorData.creatorId || !creatorData.creatorKey) {
+                showStatus('create-status', '請先註冊創作者帳號', 'error');
+                return;
+            }
+
+            const cardData = {
+                name: $('card-name').value.trim(),
+                avatar: $('card-avatar').value.trim(),
+                personality: $('card-personality').value.trim(),
+                background: $('card-background').value.trim(),
+                examples: $('card-examples').value.trim()
+            };
+
+            if (!cardData.name) {
+                showStatus('create-status', '請輸入角色名稱', 'error');
+                return;
+            }
+
+            showStatus('create-status', '加密中...', 'info');
+
+            try {
+                const keyBytes = new Uint8Array(atob(creatorData.creatorKey).split('').map(c => c.charCodeAt(0)));
+                const key = await crypto.subtle.importKey(
+                    'raw',
+                    keyBytes,
+                    { name: 'AES-GCM' },
+                    false,
+                    ['encrypt']
+                );
+
+                const encoder = new TextEncoder();
+                const dataBytes = encoder.encode(JSON.stringify(cardData));
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv },
+                    key,
+                    dataBytes
+                );
+
+                const encryptedBytes = new Uint8Array(encrypted);
+                const ciphertext = encryptedBytes.slice(0, encryptedBytes.length - 16);
+                const tag = encryptedBytes.slice(encryptedBytes.length - 16);
+
+                const uint8ToBase64 = bytes => btoa(String.fromCharCode(...bytes));
+
+                const encryptedData = uint8ToBase64(ciphertext);
+                const ivBase64 = uint8ToBase64(iv);
+                const tagBase64 = uint8ToBase64(tag);
+
+                showStatus('create-status', '註冊角色卡中...', 'info');
+
+                const response = await fetch(`${creatorData.apiUrl}/registerCard`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        creatorId: creatorData.creatorId,
+                        creatorKey: creatorData.creatorKey,
+                        cardName: cardData.name,
+                        encryptedData,
+                        iv: ivBase64,
+                        tag: tagBase64
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '註冊失敗');
+                }
+
+                const codePayload = {
+                    version: '1.0',
+                    cardId: result.cardId,
+                    creatorId: creatorData.creatorId,
+                    createdAt: Date.now(),
+                    encryptedData,
+                    iv: ivBase64,
+                    tag: tagBase64
+                };
+
+                const code = btoa(JSON.stringify(codePayload));
+
+                $('encrypted-code-output').textContent = code;
+                $('code-output-section').classList.remove('hidden');
+                showStatus('create-status', '✅ 角色卡建立成功！', 'success');
+
+            } catch (e) {
+                showStatus('create-status', `❌ ${e.message}`, 'error');
+            }
+        }
+
+        async function loadCards() {
+            if (!creatorData || !creatorData.creatorId || !creatorData.creatorKey) {
+                $('cards-list').innerHTML = '<p style="color:#888;">請先註冊創作者帳號</p>';
+                return;
+            }
+
+            $('cards-list').innerHTML = '<p style="color:#888;">載入中...</p>';
+
+            try {
+                const response = await fetch(`${creatorData.apiUrl}/getCreatorCards`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        creatorId: creatorData.creatorId,
+                        creatorKey: creatorData.creatorKey
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '載入失敗');
+                }
+
+                if (!result.cards || result.cards.length === 0) {
+                    $('cards-list').innerHTML = '<p style="color:#888;">尚未建立任何角色卡</p>';
+                    return;
+                }
+
+                $('cards-list').innerHTML = result.cards.map(card => `
+                    <div class="card-item">
+                        <div class="card-item-info">
+                            <h4>${card.cardName}</h4>
+                            <p>使用次數：${card.usageCount} | 建立時間：${card.createdAt ? new Date(card.createdAt).toLocaleString() : '未知'}</p>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                $('cards-list').innerHTML = `<p style="color:#ff3b30;">❌ ${e.message}</p>`;
+            }
+        }
+
+        async function loadUsageLogs() {
+            if (!creatorData || !creatorData.creatorId || !creatorData.creatorKey) {
+                $('usage-list').innerHTML = '<p style="color:#888;">請先註冊創作者帳號</p>';
+                return;
+            }
+
+            $('usage-list').innerHTML = '<p style="color:#888;">載入中...</p>';
+
+            try {
+                const response = await fetch(`${creatorData.apiUrl}/getUsageLogs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        creatorId: creatorData.creatorId,
+                        creatorKey: creatorData.creatorKey
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || '載入失敗');
+                }
+
+                if (!result.logs || result.logs.length === 0) {
+                    $('usage-list').innerHTML = '<p style="color:#888;">尚無使用記錄</p>';
+                    return;
+                }
+
+                $('usage-list').innerHTML = result.logs.map(log => `
+                    <div class="usage-item">
+                        <span>裝置 ID：${log.userId.slice(0, 8)}...</span>
+                        <span class="status-badge ${log.status}">${log.status}</span>
+                        <br>
+                        <span style="color:#888;font-size:11px;">
+                            ${log.usedAt ? new Date(log.usedAt).toLocaleString() : '未知時間'}
+                        </span>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                $('usage-list').innerHTML = `<p style="color:#ff3b30;">❌ ${e.message}</p>`;
+            }
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                switchTab(tabName);
+                if (tabName === 'manage') loadCards();
+                if (tabName === 'usage') loadUsageLogs();
+            });
+        });
+
+        $('register-btn').addEventListener('click', registerCreator);
+        $('load-creator-btn').addEventListener('click', () => {
+            if (loadCreatorData()) {
+                displayCreatorInfo();
+                showStatus('register-status', '✅ 已載入保存的帳號', 'success');
+            } else {
+                showStatus('register-status', '❌ 找不到保存的帳號', 'error');
+            }
+        });
+
+        $('create-card-btn').addEventListener('click', createCard);
+
+        $('copy-code-btn').addEventListener('click', () => {
+            const code = $('encrypted-code-output').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('已複製到剪貼簿');
+            });
+        });
+
+        $('refresh-cards-btn').addEventListener('click', loadCards);
+        $('refresh-usage-btn').addEventListener('click', loadUsageLogs);
+
+        if (loadCreatorData()) {
+            displayCreatorInfo();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bubbles</title>
+  <link rel="stylesheet" href="bubbles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="bubble-app">
+    <header class="bubble-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>bubble</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="settings-btn" aria-label="設定">
+          <i class="fas fa-gear"></i>
+        </button>
+        <button class="icon-btn" id="refresh-btn" aria-label="更新訊息">
+          <i class="fas fa-rotate"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="role-switch" role="tablist" aria-label="頁面切換">
+      <button class="role-btn active" data-view="artist" role="tab" aria-selected="true">藝人頁面</button>
+      <button class="role-btn" data-view="user" role="tab" aria-selected="false">一般用戶頁面</button>
+    </section>
+
+    <main class="bubble-main">
+      <section class="view active" id="artist-view" aria-label="藝人頁面">
+        <section class="chat-feed" id="artist-feed"></section>
+
+        <div class="composer">
+          <input id="artist-input" type="text" placeholder="以藝人身份發送訊息...">
+          <button id="artist-send" type="button">發送</button>
+        </div>
+      </section>
+
+      <section class="view" id="user-view" aria-label="一般用戶頁面">
+        <section class="chat-feed" id="user-feed"></section>
+        
+        <section class="subscribed-artists-grid" id="subscribed-artists-grid"></section>
+
+        <div class="composer" id="user-composer" style="display: none;">
+          <input id="user-input" type="text" placeholder="發送給藝人的訊息...">
+          <button id="user-send" type="button">送出</button>
+        </div>
+        
+        <div class="user-chat-view" id="user-chat-view" style="display: none;">
+          <header class="chat-header">
+            <button class="icon-btn" id="back-to-artists" aria-label="返回">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="chat-artist-info">
+              <img id="chat-artist-avatar" src="" alt="">
+              <span id="chat-artist-name"></span>
+            </div>
+          </header>
+          <section class="chat-feed" id="user-chat-feed"></section>
+          <div class="composer">
+            <input id="user-chat-input" type="text" placeholder="發送給藝人的訊息...">
+            <button id="user-chat-send" type="button">送出</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="settings-overlay" id="settings-overlay"></div>
+    <aside class="settings-sheet" id="settings-sheet">
+      <div class="settings-sheet-header">
+        <h2>設定</h2>
+        <button class="icon-btn" id="close-settings" aria-label="關閉">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="settings-sheet-content">
+        <div class="settings-group">
+          <div class="settings-group-title">藝人介面外觀</div>
+          <div class="settings-field">
+            <label for="artist-bg-color">背景顏色</label>
+            <input type="color" id="artist-bg-color" value="#0f1420">
+          </div>
+          <div class="settings-field">
+            <label for="artist-primary-color">主題色</label>
+            <input type="color" id="artist-primary-color" value="#867bff">
+          </div>
+          <div class="settings-field">
+            <label for="artist-text-color">文字顏色</label>
+            <input type="color" id="artist-text-color" value="#e9efff">
+          </div>
+          <div class="settings-field">
+            <label for="artist-bubble-color">訊息氣泡顏色</label>
+            <input type="color" id="artist-bubble-color" value="#182132">
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">藝人設定</div>
+          <div class="settings-field">
+            <label>從設定導入藝人</label>
+            <select id="settings-artist-import">
+              <option value="">-- 選擇藝人 --</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="settings-artist-name">藝人名稱</label>
+            <input type="text" id="settings-artist-name" placeholder="輸入藝人名稱">
+          </div>
+          <div class="settings-field">
+            <label for="settings-artist-avatar">藝人頭像網址</label>
+            <input type="url" id="settings-artist-avatar" placeholder="https://example.com/avatar.jpg">
+          </div>
+          <div class="settings-field">
+            <label for="settings-artist-status">藝人狀態</label>
+            <input type="text" id="settings-artist-status" placeholder="輸入狀態文字">
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">粉絲回覆設定</div>
+          <div class="settings-field">
+            <label for="settings-fan-name">預設粉絲名稱</label>
+            <input type="text" id="settings-fan-name" placeholder="輸入粉絲名稱" value="팬">
+          </div>
+          <div class="settings-field">
+            <label for="settings-fan-language">粉絲回覆語言</label>
+            <select id="settings-fan-language">
+              <option value="ko">韓文 (한국어)</option>
+              <option value="ja">日文 (日本語)</option>
+              <option value="zh">繁體中文</option>
+              <option value="en">英文 (English)</option>
+              <option value="ko-ja">韓文 + 日文混合</option>
+              <option value="ko-zh">韓文 + 中文混合</option>
+              <option value="mixed">多語言混合</option>
+            </select>
+          </div>
+          <div class="settings-field toggle-field">
+            <label for="settings-anti-fan">啟用黑粉模式</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="settings-anti-fan">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <button id="generate-fan-reply" class="settings-action-btn" type="button">
+            <i class="fas fa-paper-plane"></i> 生成粉絲回覆
+          </button>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">一般用戶介面外觀</div>
+          <div class="settings-field">
+            <label for="user-bg-color">背景顏色</label>
+            <input type="color" id="user-bg-color" value="#0a0e14">
+          </div>
+          <div class="settings-field">
+            <label for="user-primary-color">主題色</label>
+            <input type="color" id="user-primary-color" value="#6c63ff">
+          </div>
+          <div class="settings-field">
+            <label for="user-text-color">文字顏色</label>
+            <input type="color" id="user-text-color" value="#e9efff">
+          </div>
+          <div class="settings-field">
+            <label for="user-card-color">卡片顏色</label>
+            <input type="color" id="user-card-color" value="#151e2d">
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="settings-group-title">一般用戶設定</div>
+          <div class="settings-field">
+            <label>從設定導入已訂閱藝人</label>
+            <select id="settings-subscribed-import">
+              <option value="">-- 選擇藝人加入 --</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label>已訂閱藝人</label>
+            <div id="subscribed-artists-list" class="subscribed-artists-list"></div>
+          </div>
+        </div>
+        <button class="settings-save-btn" id="save-settings-btn" type="button">儲存設定</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="bubbles.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>每日食譜</title>
+  <link rel="stylesheet" href="daily-recipe.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="recipe-app">
+    <header class="recipe-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>每日食譜</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="random-btn" aria-label="重新推薦">
+          <i class="fas fa-shuffle"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="recipe-main">
+      <section class="card profile-card">
+        <h2>你的偏好設定</h2>
+        <div class="field-grid">
+          <label>
+            飲食偏好
+            <select id="preference-select">
+              <option value="any">都可以</option>
+              <option value="meat">肉食系</option>
+              <option value="veggie">蔬食系</option>
+              <option value="seafood">海鮮系</option>
+            </select>
+          </label>
+          <label class="region-label">
+            地區
+            <div class="region-input-row">
+              <select id="region-select">
+                <option value="">請選擇...</option>
+                <option value="taiwan">台灣</option>
+                <option value="korea">韓式</option>
+                <option value="japan">日式</option>
+                <option value="western">西式</option>
+                <option value="south-east">東南亞</option>
+                <option value="custom">自訂地區</option>
+              </select>
+              <input type="text" id="custom-region-input" class="custom-region-input hidden" placeholder="輸入地區，如：泰國、印度...">
+            </div>
+          </label>
+          <label>
+            烹調時間
+            <select id="time-select">
+              <option value="quick">15 分鐘內</option>
+              <option value="normal">30 分鐘內</option>
+              <option value="slow">45 分鐘以上</option>
+            </select>
+          </label>
+          <label class="restrictions-label">
+            飲食禁忌 / 不喜歡的食物
+            <textarea id="restrictions-input" placeholder="例如：花生、海鮮過敏、不吃辣、香菜..." rows="2"></textarea>
+          </label>
+        </div>
+        <button id="recommend-btn" class="primary-btn" type="button">生成推薦</button>
+      </section>
+
+      <section class="card mount-card">
+        <h2>掛載世界書</h2>
+        <p class="mount-desc">可從世界書分頁掛載食譜資料，擴充地區與推薦內容。</p>
+        <div class="mount-row">
+          <select id="worldbook-category-select" aria-label="世界書分頁選擇">
+            <option value="keywords">關鍵字</option>
+            <option value="global">全域</option>
+            <option value="style">文風</option>
+            <option value="cot">思維鏈</option>
+            <option value="backend">後端</option>
+          </select>
+          <button id="mount-worldbook-btn" class="secondary-btn" type="button">掛載</button>
+        </div>
+        <p id="mount-status" class="mount-status">尚未掛載世界書資料</p>
+      </section>
+
+      <section class="card result-card">
+        <div class="result-head">
+          <div>
+            <h2 id="dish-name">尚未推薦</h2>
+            <p id="dish-meta">請先設定偏好後生成推薦</p>
+          </div>
+          <span id="dish-tag" class="dish-tag">--</span>
+        </div>
+
+        <p class="dish-desc" id="dish-desc">系統會根據個性、食物偏好與地區，推薦最適合你的餐點。</p>
+
+        <div class="tips" id="recipe-tips"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="daily-recipe.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('daily-recipe');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('daily-recipe', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>控制中心 - Settings</title>
+    <link rel="stylesheet" href="settings.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+</head>
+
+<body class="ios-settings">
+
+<nav class="nav-bar">
+    <button class="back-button" onclick="handleBack()" aria-label="返回桌面">
+        <i data-lucide="chevron-left"></i>
+        <span data-i18n="back">返回</span>
+    </button>
+    <h1 class="nav-title" data-i18n="controlCenter">控制中心</h1>
+    <div></div>
+</nav>
+
+<div class="scroll-container">
+
+
+<!-- 角色管理（chars）- 套用與 user 同款卡片佈局 -->
+<section class="group mask-management-scope char-management-scope" id="settings-char">
+    <details>
+        <summary class="group-summary">
+            <div class="summary-left">
+                <i data-lucide="bot"></i>
+                <span data-i18n="charManagement">角色管理 (char)</span>
+            </div>
+            <i data-lucide="chevron-right" class="arrow"></i>
+        </summary>
+        <div class="list-card">
+            <details class="nested-details">
+                <summary class="cell-link">
+                    <div class="summary-left">
+                        <span data-i18n="addChar">新增角色</span>
+                    </div>
+                </summary>
+                <div id="char-manager">
+                    <div class="ios-cell">
+                        <span class="cell-label" data-i18n="charList">角色清單</span>
+                        <div id="char-list" class="ios-list"></div>
+                    </div>
+
+                    <div class="mask-editor-container">
+                        <div class="avatar-section">
+                            <div id="charAvatarPreview" class="ios-avatar-wrapper">
+                                <i data-lucide="bot"></i>
+                            </div>
+                            <span class="ios-caption" data-i18n="setAvatar">設定頭貼</span>
+                        </div>
+
+                        <div class="ios-form-group">
+                            <div class="ios-cell">
+                                <label class="cell-label" for="char-name-input" data-i18n="charName">角色名稱</label>
+                                <input id="char-name-input" class="ios-input-minimal" placeholder="例如：AI 助理">
+                            </div>
+
+                            <div class="ios-cell">
+                                <label class="cell-label" for="char-avatar-input" data-i18n="charAvatarUrl">頭貼 URL</label>
+                                <input id="char-avatar-input" class="ios-input-minimal" placeholder="輸入圖片網址..." oninput="updateCharAvatarPreview(this.value)">
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label" for="char-personality-input" data-i18n="charPersonality">個性 / Persona</label>
+                                <textarea id="char-personality-input" class="ios-textarea-minimal" rows="2" placeholder="角色個性"></textarea>
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label" for="char-background-input" data-i18n="charBackground">背景 / Story</label>
+                                <textarea id="char-background-input" class="ios-textarea-minimal" rows="2" placeholder="背景描述"></textarea>
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label" for="char-worldbook-input" data-i18n="charWorldbook">WorldBook 參考 (可留空)</label>
+                                <textarea id="char-worldbook-input" class="ios-textarea-minimal" rows="2" placeholder="WorldBook 名稱或描述"></textarea>
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label" for="char-examples-input" data-i18n="charExamples">對話範例 / Examples</label>
+                                <textarea id="char-examples-input" class="ios-textarea-minimal" rows="4" data-i18n-placeholder="examplePlaceholder"></textarea>
+                                <p class="ios-caption" style="margin-top:4px;" data-i18n="exampleHint">提供對話範例可讓 AI 更準確地模仿角色的語氣和風格，但 AI 不會照抄範例內容。</p>
+                            </div>
+
+                            <div class="ios-cell">
+                                <label class="cell-label" for="char-sleep-start" data-i18n="charSleepStart">睡眠時間（開始）</label>
+                                <input id="char-sleep-start" class="ios-input-minimal" type="time" placeholder="例如：23:00">
+                            </div>
+
+                            <div class="ios-cell">
+                                <label class="cell-label" for="char-sleep-end" data-i18n="charSleepEnd">睡眠時間（結束）</label>
+                                <input id="char-sleep-end" class="ios-input-minimal" type="time" placeholder="例如：07:00">
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label">睡眠時間說明</label>
+                                <p class="ios-caption" style="margin-top:4px;">設定 AI 的睡眠時段，此時間會用於記憶向量化、雲端推送和總結等處理。睡眠期間會消耗 API 資源進行記憶整理。</p>
+                            </div>
+
+                            <div class="ios-cell-v">
+                                <label class="cell-label" for="char-memory-api-select">記憶處理 API</label>
+                                <select id="char-memory-api-select" class="ios-select">
+                                    <option value="">使用主要 API</option>
+                                </select>
+                                <p class="ios-caption" style="margin-top:4px;">若介意 API 消耗，可選擇其他 API 專門用於記憶向量化與總結。</p>
+                            </div>
+                        </div>
+
+                        <div style="padding: 16px; display: flex; justify-content: center; gap: 12px;">
+                            <button class="ios-btn primary" id="char-save-btn">保存 / 更新</button>
+                            <button class="ios-btn" id="char-cancel-btn">取消編輯</button>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </details>
+</section>
+
+<!-- 用戶管理（users） -->
+<section class="group user-management-scope" id="settings-user">
+    <details>
+        <summary class="group-summary">
+            <div class="summary-left">
+                <i data-lucide="user"></i>
+                <span>用戶管理 (user)</span>
+            </div>
+            <i data-lucide="chevron-right" class="arrow"></i>
+        </summary>
+        <div class="list-card" id="user-manager">
+            <div class="cell-v">
+                <div class="cell-label">用戶清單</div>
+                <div id="user-list" class="ios-list"></div>
+                <button class="ios-btn" id="user-add-btn">新增用戶</button>
+            </div>
+            <div class="ios-form-group">
+                <div class="ios-cell">
+                    <label class="cell-label" for="user-name-input">用戶名稱</label>
+                    <input id="user-name-input" class="ios-input-minimal" placeholder="User">
+                </div>
+                <div class="ios-cell">
+                    <label class="cell-label" for="user-avatar-input">頭貼 URL</label>
+                    <input id="user-avatar-input" class="ios-input-minimal" placeholder="https://...">
+                </div>
+                <div class="ios-cell-v">
+                    <label class="cell-label" for="user-personality-input">個性 / 備註 (可留空)</label>
+                    <textarea id="user-personality-input" class="ios-textarea-minimal" rows="2"></textarea>
+                </div>
+                <div class="ios-cell-v">
+                    <label class="cell-label" for="user-background-input">背景 (可留空)</label>
+                    <textarea id="user-background-input" class="ios-textarea-minimal" rows="2"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button class="ios-btn primary" id="user-save-btn">保存 / 更新</button>
+                    <button class="ios-btn" id="user-cancel-btn">取消編輯</button>
+                </div>
+            </div>
+        </div>
+    </details>
+</section>
+
+<!-- NPC 管理（npc） -->
+<section class="group" id="settings-npc">
+    <details>
+        <summary class="group-summary">
+            <div class="summary-left">
+                <i data-lucide="users"></i>
+                <span>NPC 管理</span>
+            </div>
+            <i data-lucide="chevron-right" class="arrow"></i>
+        </summary>
+        <div class="list-card" id="npc-manager">
+            <div class="cell-v">
+                <div class="cell-label">NPC 清單</div>
+                <div id="npc-list" class="ios-list"></div>
+                <button class="ios-btn" id="npc-add-btn">新增 NPC</button>
+            </div>
+            <div class="ios-form-group">
+                <div class="ios-cell">
+                    <label class="cell-label" for="npc-name-input">NPC 名稱</label>
+                    <input id="npc-name-input" class="ios-input-minimal" placeholder="NPC">
+                </div>
+                <div class="ios-cell">
+                    <label class="cell-label" for="npc-avatar-input">頭貼 URL</label>
+                    <input id="npc-avatar-input" class="ios-input-minimal" placeholder="https://...">
+                </div>
+                <div class="ios-cell-v">
+                    <label class="cell-label" for="npc-role-input">角色定位 / 身分</label>
+                    <textarea id="npc-role-input" class="ios-textarea-minimal" rows="2"></textarea>
+                </div>
+                <div class="ios-cell-v">
+                    <label class="cell-label" for="npc-notes-input">備註 (可留空)</label>
+                    <textarea id="npc-notes-input" class="ios-textarea-minimal" rows="2"></textarea>
+                </div>
+                <div class="btn-row">
+                    <button class="ios-btn primary" id="npc-save-btn">保存 / 更新</button>
+                    <button class="ios-btn" id="npc-cancel-btn">取消編輯</button>
+                </div>
+            </div>
+        </div>
+    </details>
+</section>
+
+    <!-- API 配置 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="cpu"></i>
+                    <span>API 配置管理</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+
+            <div class="list-card">
+
+                <div class="cell-v">
+                    <span class="cell-label">API 網址 (Base URL)</span>
+                    <input id="newApiUrl" class="ios-input"
+                           placeholder="https://api.openai.com/v1"
+                           oninput="localStorage.setItem('sx_new_api_url', this.value)">
+                </div>
+
+                <div class="cell-v">
+                    <span class="cell-label">API Key（可留空）</span>
+                    <input id="newApiKey" class="ios-input"
+                           placeholder="若不需要可不填"
+                           oninput="localStorage.setItem('sx_new_api_key', this.value)">
+                </div>
+
+                <div class="btn-row">
+                    <button class="ios-btn" onclick="handleApiActions('test')">測試連接</button>
+                    <button class="ios-btn" onclick="handleApiActions('fetchModels')">拉取模型</button>
+                </div>
+
+                <div class="cell-v">
+                    <span class="cell-label">選擇模型</span>
+                    <select id="newApiModel" class="ios-select">
+                        <option value="">請先拉取模型</option>
+                    </select>
+                </div>
+
+                <div class="cell-v">
+                    <button class="ios-btn primary" onclick="handleApiActions('save')">
+                        保存配置
+                    </button>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">NovaAI 影像 API (Base URL)</span>
+                    <input id="novaApiUrl" class="ios-input" placeholder="https://api.nova.ai/v1">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">NovaAI API Key</span>
+                    <input id="novaApiKey" class="ios-input" placeholder="輸入 NovaAI API Key">
+                </div>
+                <div class="cell-v">
+                    <button class="ios-btn primary" onclick="saveNovaApi()">
+                        保存 NovaAI 設定
+                    </button>
+                </div>
+
+                <div id="apiList"></div>
+
+            </div>
+        </details>
+    </section>
+
+    <!-- 語音服務設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="mic"></i>
+                    <span>語音服務設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;margin-bottom:4px;">STT 語音辨識服務 (Speech-to-Text)</span>
+                    <p class="ios-caption">將你說的話轉成文字。需提供相容 OpenAI Whisper 規格的 API 端點。</p>
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">STT API 網址</span>
+                    <input id="sttApiUrl" class="ios-input" placeholder="https://api.openai.com/v1/audio/transcriptions">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">STT API Key</span>
+                    <input id="sttApiKey" class="ios-input" type="password" placeholder="sk-...">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">STT 模型名稱</span>
+                    <input id="sttModel" class="ios-input" placeholder="whisper-1">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">STT 語言（可留空自動偵測）</span>
+                    <input id="sttLanguage" class="ios-input" placeholder="zh">
+                </div>
+                <div class="btn-row">
+                    <button class="ios-btn" id="stt-test-btn">錄音測試 STT</button>
+                    <button class="ios-btn primary" id="stt-save-btn">保存 STT 設定</button>
+                </div>
+                <p class="ios-caption" id="stt-test-status"></p>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;margin-bottom:4px;">TTS 語音合成服務 (Text-to-Speech)</span>
+                    <p class="ios-caption">將 AI 回覆的文字轉成語音播放。需提供相容 OpenAI TTS 規格的 API 端點。</p>
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">TTS API 網址</span>
+                    <input id="ttsApiUrl" class="ios-input" placeholder="https://api.openai.com/v1/audio/speech">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">TTS API Key</span>
+                    <input id="ttsApiKey" class="ios-input" type="password" placeholder="sk-...">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">TTS 模型名稱</span>
+                    <input id="ttsModel" class="ios-input" placeholder="tts-1">
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">TTS 語音角色 (Voice)</span>
+                    <select id="ttsVoice" class="ios-select">
+                        <option value="alloy">Alloy</option>
+                        <option value="echo">Echo</option>
+                        <option value="fable">Fable</option>
+                        <option value="onyx">Onyx</option>
+                        <option value="nova">Nova</option>
+                        <option value="shimmer">Shimmer</option>
+                    </select>
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">語速 (0.25 ~ 4.0)</span>
+                    <input id="ttsSpeed" type="range" min="0.25" max="4" step="0.25" value="1.0">
+                    <output id="tts-speed-output">1.0</output>
+                </div>
+                <div class="btn-row">
+                    <button class="ios-btn" id="tts-test-btn">測試 TTS 播放</button>
+                    <button class="ios-btn primary" id="tts-save-btn">保存 TTS 設定</button>
+                </div>
+                <p class="ios-caption" id="tts-test-status"></p>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;margin-bottom:4px;">第三方整合語音服務（可選）</span>
+                    <p class="ios-caption">若你使用 MiniMax、HuggingFace 或其他語音平台，可在此設定一個統一的端點。設定後將優先使用此服務。</p>
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">服務類型</span>
+                    <select id="voiceProvider" class="ios-select">
+                        <option value="">不使用（使用上方個別 STT/TTS 設定）</option>
+                        <option value="moss">MOSS Audio (OpenMOSS)</option>
+                        <option value="minimax">MiniMax 語音服務</option>
+                        <option value="huggingface">HuggingFace Inference API</option>
+                        <option value="custom">自訂第三方 API</option>
+                    </select>
+                </div>
+                <div id="third-party-voice-config" class="hidden">
+                    <div class="cell-v">
+                        <span class="cell-label">第三方 API 端點 (Base URL)</span>
+                        <input id="thirdPartyVoiceUrl" class="ios-input" placeholder="https://api.minimax.chat/v1">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">API Key</span>
+                        <input id="thirdPartyVoiceKey" class="ios-input" type="password" placeholder="輸入 API Key">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">Group ID（MiniMax 需要，其他可留空）</span>
+                        <input id="thirdPartyGroupId" class="ios-input" placeholder="MiniMax Group ID">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">STT 端點路徑</span>
+                        <input id="thirdPartySttPath" class="ios-input" placeholder="/audio/transcriptions">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">TTS 端點路徑</span>
+                        <input id="thirdPartyTtsPath" class="ios-input" placeholder="/text_to_speech">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">TTS 語音名稱（依平台而定）</span>
+                        <input id="thirdPartyVoiceName" class="ios-input" placeholder="male-qn-qingse">
+                    </div>
+                    <div class="cell-v">
+                        <span class="cell-label">請求格式</span>
+                        <select id="thirdPartyRequestFormat" class="ios-select">
+                            <option value="openai">OpenAI 相容格式</option>
+                            <option value="minimax">MiniMax 格式</option>
+                            <option value="huggingface">HuggingFace 格式</option>
+                            <option value="custom">自訂 JSON 格式</option>
+                        </select>
+                    </div>
+                    <div class="cell-v" id="custom-request-body-section">
+                        <span class="cell-label">自訂 TTS 請求 Body (JSON)</span>
+                        <textarea id="customTtsBody" class="ios-textarea" rows="3" placeholder='{"text": "{{TEXT}}", "voice": "default"}'></textarea>
+                        <p class="ios-caption">使用 {{TEXT}} 作為要轉語音的文字佔位符，{{VOICE}} 作為語音名稱佔位符</p>
+                    </div>
+                    <div class="cell-v" id="custom-response-section">
+                        <span class="cell-label">音訊回應格式</span>
+                        <select id="thirdPartyAudioFormat" class="ios-select">
+                            <option value="binary">直接回傳二進位音訊</option>
+                            <option value="json_base64">JSON 包含 Base64 音訊</option>
+                            <option value="json_url">JSON 包含音訊 URL</option>
+                        </select>
+                        <p class="ios-caption">選擇第三方 API 回傳音訊的方式</p>
+                    </div>
+                    <div class="cell-v hidden" id="audio-response-path-section">
+                        <span class="cell-label">音訊資料路徑 (JSON Path)</span>
+                        <input id="audioResponsePath" class="ios-input" placeholder="data.audio">
+                        <p class="ios-caption">例如：data.audio 或 audio_content</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="ios-btn" id="third-party-test-btn">測試連接</button>
+                        <button class="ios-btn primary" id="third-party-save-btn">保存設定</button>
+                    </div>
+                    <p class="ios-caption" id="third-party-test-status"></p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;margin-bottom:4px;">語音通話行為設定</span>
+                </div>
+                <div class="cell-v">
+                    <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <div class="cell-label">自動朗讀 AI 回覆</div>
+                            <p class="ios-caption">通話中 AI 回覆自動播放語音</p>
+                        </div>
+                        <label class="switch" style="position:relative;display:inline-block;width:44px;height:24px;">
+                            <input type="checkbox" id="voice-auto-tts" style="opacity:0;width:0;height:0;">
+                            <span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#555;border-radius:24px;transition:0.3s;"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="cell-v">
+                    <span class="cell-label">AI 回覆延遲（模擬思考，秒）</span>
+                    <input id="voice-think-delay" type="range" min="0" max="5" step="0.5" value="1.5">
+                    <output id="voice-think-delay-output">1.5</output>
+                </div>
+                <button class="ios-btn primary" id="voice-general-save-btn">保存通話設定</button>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">服務狀態</span>
+                    <div id="voice-service-status" style="margin-top:8px;">
+                        <p class="ios-caption" id="builtin-voice-status-indicator">瀏覽器內建語音：檢測中...</p>
+                        <p class="ios-caption" id="transformers-status-indicator">Transformers.js Whisper：檢測中...</p>
+                        <p class="ios-caption" id="voice-stt-status-indicator">STT：尚未設定</p>
+                        <p class="ios-caption" id="voice-tts-status-indicator">TTS：尚未設定</p>
+                        <p class="ios-caption" id="voice-call-ready-indicator" style="font-weight:600;">撥打電話功能：未就緒</p>
+                    </div>
+                </div>
+                
+                <div class="cell" style="margin-top:12px;">
+                    <span class="cell-label">使用 Transformers.js Whisper（本機運算）</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="use-transformers-stt">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">Whisper 模型選擇</span>
+                    <select id="transformers-model-select" style="margin-top:8px;">
+                        <option value="Xenova/whisper-tiny">Tiny（最快，約 39MB）</option>
+                        <option value="Xenova/whisper-small" selected>Small（平衡，約 150MB）</option>
+                        <option value="Xenova/whisper-base">Base（中等，約 75MB）</option>
+                        <option value="Xenova/whisper-medium">Medium（較準確，約 300MB）</option>
+                    </select>
+                    <p class="ios-caption" style="margin-top:8px;opacity:0.7;">首次使用需下載模型，建議在 WiFi 環境下進行</p>
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">語音辨識語言（STT 輸入）</span>
+                    <select id="stt-language-select" style="margin-top:8px;">
+                        <option value="zh-TW">繁體中文（台灣）</option>
+                        <option value="zh-CN">简体中文（中国）</option>
+                        <option value="zh">中文（自動）</option>
+                        <option value="ja">日本語</option>
+                        <option value="ko">한국어</option>
+                        <option value="en">English</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="it">Italiano</option>
+                        <option value="pt">Português</option>
+                        <option value="ru">Русский</option>
+                        <option value="ar">العربية</option>
+                        <option value="th">ไทย</option>
+                        <option value="vi">Tiếng Việt</option>
+                        <option value="auto">自動偵測</option>
+                    </select>
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">語音合成語言（TTS 輸出）</span>
+                    <select id="tts-language-select" style="margin-top:8px;">
+                        <option value="zh-TW">繁體中文（台灣）</option>
+                        <option value="zh-CN">简体中文（中国）</option>
+                        <option value="ja">日本語</option>
+                        <option value="ko">한국어</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="es-ES">Español</option>
+                        <option value="fr-FR">Français</option>
+                        <option value="de-DE">Deutsch</option>
+                        <option value="it-IT">Italiano</option>
+                        <option value="pt-BR">Português (BR)</option>
+                        <option value="ru-RU">Русский</option>
+                        <option value="ar-SA">العربية</option>
+                        <option value="th-TH">ไทย</option>
+                        <option value="vi-VN">Tiếng Việt</option>
+                    </select>
+                </div>
+                
+                <div class="cell" style="margin-top:12px;">
+                    <span class="cell-label">啟用自動翻譯（當 TTS 語言與系統語言不同時）</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="enable-translation" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">翻譯 API URL</span>
+                    <input type="text" id="translate-api-url" placeholder="例如：https://api.openai.com/v1/chat/completions" style="margin-top:8px;">
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">翻譯 API Key</span>
+                    <input type="password" id="translate-api-key" placeholder="輸入 API Key" style="margin-top:8px;">
+                </div>
+                
+                <div class="cell" style="margin-top:12px;">
+                    <span class="cell-label">優先使用瀏覽器內建語音</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="use-built-in-voice" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">內建 TTS 語音選擇</span>
+                    <select id="builtin-voice-select" style="margin-top:8px;">
+                        <option value="">自動選擇</option>
+                    </select>
+                    <button class="ios-btn" id="refresh-voices-btn" style="margin-top:8px;">重新載入語音列表</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 記憶設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="bookmark"></i>
+                    <span>記憶設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="ios-cell-v">
+                    <span class="cell-label">自動記憶輪數（10-20）</span>
+                    <input id="memory-interval" type="range" min="10" max="20" value="15" style="margin-top:8px;">
+                    <output id="memory-interval-value" style="margin-left:8px;">15</output>
+                    <p class="ios-caption" style="margin-top:4px;">每 N 輪對話後自動整理記憶</p>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- AI 睡眠設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="moon"></i>
+                    <span>AI 睡眠設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">睡眠時間設定</span>
+                    <p class="ios-caption">設定 AI 每天的睡眠時間，此時段會進行記憶整理、向量化與鞏固。建議設定在您不活躍的時段。</p>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">睡眠開始時間</span>
+                    <input id="ai-sleep-start" class="ios-input-minimal" type="time" value="23:00">
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">睡眠結束時間</span>
+                    <input id="ai-sleep-end" class="ios-input-minimal" type="time" value="07:00">
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用自動睡眠</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="ai-sleep-enabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="ios-caption" style="margin-top:4px;">到達睡眠時間自動執行記憶整理</p>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">睡眠時執行的任務</span>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">短期記憶 → 長期記憶轉換</span>
+                    <input type="checkbox" id="sleep-task-consolidate" checked>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">記憶向量化</span>
+                    <input type="checkbox" id="sleep-task-vectorize" checked>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">建立記憶聯想</span>
+                    <input type="checkbox" id="sleep-task-associate" checked>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">記憶衰變與歸檔</span>
+                    <input type="checkbox" id="sleep-task-decay" checked>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">睡眠狀態</span>
+                    <div id="ai-sleep-status" style="margin-top:12px;">
+                        <p class="ios-caption" id="ai-sleep-next-time">下次睡眠時間：計算中...</p>
+                        <p class="ios-caption" id="ai-sleep-last-time">上次睡眠：尚未執行</p>
+                        <p class="ios-caption" id="ai-sleep-count">總睡眠次數：0</p>
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top:12px;">
+                    <button class="ios-btn" id="ai-sleep-trigger-btn">立即執行睡眠</button>
+                    <button class="ios-btn primary" id="ai-sleep-save-btn">保存設定</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 背景連線設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="wifi"></i>
+                    <span>背景連線與問候</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">背景保持連線</span>
+                    <p class="ios-caption">當應用程式在背景時，定期向 API 發送 ping 以維持連線狀態。</p>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用背景連線</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="keepalive-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">後台訊息推送</span>
+                    <p class="ios-caption">允許應用程式在背景時發送通知訊息給您。</p>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用後台推送</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="background-push-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="permission-status-container" style="margin-top:12px;">
+                    <div class="cell-v">
+                        <span class="cell-label">系統權限狀態</span>
+                        <p class="ios-caption" id="permission-status-text">檢測中...</p>
+                        <button class="ios-btn" id="request-permission-btn" style="margin-top:8px;display:none;">請求權限</button>
+                    </div>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">設備類型</span>
+                    <p class="ios-caption" id="device-type-text">檢測中...</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">通知方式</span>
+                    <select id="notification-type" class="ios-select" style="margin-top:8px;">
+                        <option value="auto">自動選擇（推薦）</option>
+                        <option value="local">本地通知</option>
+                        <option value="push">推送通知（需伺服器支援）</option>
+                        <option value="none">僅記錄（不發送通知）</option>
+                    </select>
+                    <p class="ios-caption">選擇後台訊息的通知方式</p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label">Ping 間隔（分鐘）</span>
+                    <input id="keepalive-interval" type="range" min="1" max="60" value="5">
+                    <output id="keepalive-interval-value">5</output>
+                    <p class="ios-caption">每隔多久向 API 發送一次 ping（1-60 分鐘）</p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">聊天通知設定</span>
+                    <p class="ios-caption">當您離開應用程式一段時間後，AI 會根據角色個性主動發送通知。</p>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用聊天通知</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="chat-notification-enabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">閒置時間（分鐘）</span>
+                    <input id="chat-notification-idle" type="range" min="5" max="120" value="30">
+                    <output id="chat-notification-idle-value">30</output>
+                    <p class="ios-caption">離開應用程式多久後開始發送通知（5-120 分鐘）</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">每日通知上限</span>
+                    <input id="chat-notification-max" type="range" min="1" max="20" value="5">
+                    <output id="chat-notification-max-value">5</output>
+                    <p class="ios-caption">每天最多發送幾則通知</p>
+                </div>
+                <div class="cell" style="margin-top:12px;">
+                    <span class="cell-label">啟用勿擾時段</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="chat-notification-quiet-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">勿擾時段（開始）</span>
+                    <input id="chat-notification-quiet-start" type="range" min="0" max="23" value="23">
+                    <output id="chat-notification-quiet-start-value">23:00</output>
+                    <p class="ios-caption">此時段內不發送通知</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">勿擾時段（結束）</span>
+                    <input id="chat-notification-quiet-end" type="range" min="0" max="23" value="8">
+                    <output id="chat-notification-quiet-end-value">08:00</output>
+                    <p class="ios-caption">勿擾時段結束時間</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">通知風格</span>
+                    <select id="chat-notification-style" class="ios-select" style="margin-top:8px;">
+                        <option value="contextual">情境通知（根據對話內容）</option>
+                        <option value="greeting">問候通知（簡單問候）</option>
+                        <option value="random">隨機混合</option>
+                    </select>
+                    <p class="ios-caption">選擇 AI 生成通知的風格</p>
+                </div>
+                <div style="margin-top:12px;">
+                    <button class="ios-btn" id="test-chat-notification-btn">測試通知</button>
+                    <p class="ios-caption" style="margin-top:8px;">立即發送一則測試通知</p>
+                </div>
+
+                <div class="btn-row" style="margin-top:16px;">
+                    <button class="ios-btn primary" id="chat-notification-save-btn">保存聊天通知設定</button>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label">自訂提示詞（可選）</span>
+                    <textarea id="keepalive-custom-prompt" class="ios-textarea-minimal" rows="2" placeholder="例如：請用溫柔的語氣問候..."></textarea>
+                    <p class="ios-caption">額外的指示，會附加到預設提示詞後面</p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">狀態</span>
+                    <div id="keepalive-status-display" style="margin-top:8px;">
+                        <p class="ios-caption" id="keepalive-status-text">載入中...</p>
+                        <p class="ios-caption" id="keepalive-last-ping">上次 Ping：—</p>
+                        <p class="ios-caption" id="keepalive-last-greeting">上次問候：—</p>
+                        <p class="ios-caption" id="keepalive-pending-count">待處理訊息：0</p>
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top:12px;">
+                    <button class="ios-btn" id="keepalive-trigger-btn">立即發送問候</button>
+                    <button class="ios-btn primary" id="keepalive-save-btn">保存設定</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 記憶表格管理 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="table"></i>
+                    <span>記憶表格管理</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">自動生成設定</span>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用自動生成記憶表格</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="settings-auto-memory-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">每 N 輪對話自動生成</span>
+                    <input id="settings-auto-memory-rounds" type="number" min="5" max="100" value="20" style="width:80px;margin-top:8px;">
+                    <p class="ios-caption">建議設定 15-30 輪，避免記憶表格過於頻繁</p>
+                </div>
+                <div class="cell-v">
+                    <button class="ios-btn primary" id="settings-memory-save-btn">保存自動生成設定</button>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">已儲存的記憶表格</span>
+                    <div id="settings-memory-tables-list" class="memory-tables-list" style="margin-top:12px;">
+                        <p class="ios-caption">載入中...</p>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">匯出所有記憶表格</span>
+                    <p class="ios-caption">將所有記憶表格匯出為單一檔案，方便備份或遷移</p>
+                    <div style="display:flex;gap:8px;margin-top:12px;">
+                        <button class="ios-btn" id="settings-memory-export-html" style="flex:1;padding:8px 4px;font-size:13px;">HTML</button>
+                        <button class="ios-btn" id="settings-memory-export-txt" style="flex:1;padding:8px 4px;font-size:13px;">TXT</button>
+                        <button class="ios-btn" id="settings-memory-export-json" style="flex:1;padding:8px 4px;font-size:13px;">JSON</button>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">匯入記憶表格</span>
+                    <p class="ios-caption">從 JSON 檔案匯入記憶表格</p>
+                    <button class="ios-btn" id="settings-memory-import-btn" style="margin-top:12px;">選擇 JSON 檔案</button>
+                </div>
+                <input type="file" id="settings-memory-import-file" hidden accept=".json">
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600; color:#FF453A;">危險操作</span>
+                    <button class="ios-btn" id="settings-memory-clear-btn" style="margin-top:12px; color:#FF453A;">清除所有記憶表格</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 雲端備份 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="cloud"></i>
+                    <span>雲端備份</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div id="github-connected-section" class="cell-v hidden">
+                    <div class="github-profile-card">
+                        <img id="github-avatar" class="github-avatar" src="" alt="">
+                        <div class="github-profile-info">
+                            <span class="github-profile-name" id="github-connected-user">—</span>
+                            <span class="github-profile-repo" id="github-connected-repo">sxiphone-backup</span>
+                        </div>
+                        <span class="github-status-badge connected">已連接</span>
+                    </div>
+                    <div class="github-detail-list">
+                        <div class="github-detail-row">
+                            <span class="github-detail-label">帳號</span>
+                            <span class="github-detail-value" id="github-detail-username">—</span>
+                        </div>
+                        <div class="github-detail-row">
+                            <span class="github-detail-label">儲存庫</span>
+                            <a class="github-detail-value github-detail-link" id="github-detail-repo-link" href="#" target="_blank" rel="noopener">sxiphone-backup</a>
+                        </div>
+                        <div class="github-detail-row">
+                            <span class="github-detail-label">最後備份</span>
+                            <span class="github-detail-value" id="github-detail-last-sync">未知</span>
+                        </div>
+                        <div class="github-detail-row">
+                            <span class="github-detail-label">同步模式</span>
+                            <span class="github-detail-value" id="github-detail-mode">自動</span>
+                        </div>
+                    </div>
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn primary" id="github-sync-push" type="button">推送備份</button>
+                        <button class="ios-btn" id="github-sync-pull" type="button">拉取還原</button>
+                    </div>
+                    <p class="ios-caption" id="github-sync-status"></p>
+                    <div class="btn-row" style="margin-top:8px;">
+                        <button class="ios-btn" id="github-disconnect" type="button" style="color:#FF453A;">中斷連接</button>
+                    </div>
+                </div>
+                <div id="github-notconnected-section" class="cell-v">
+                    <span class="cell-label">GitHub 私密備份</span>
+                    <p class="ios-caption">使用 Personal Access Token (PAT) 連接 GitHub，自動建立私有備份儲存庫並跨裝置同步。</p>
+                    <label class="cell-label" for="github-pat">PAT Token</label>
+                    <input id="github-pat" class="ios-input" type="password" placeholder="貼上 GitHub PAT (repo 權限)">
+                    <label class="cell-label" for="github-repo">備份 Repo 名稱</label>
+                    <input id="github-repo" class="ios-input" type="text" placeholder="sxiphone-backup">
+                    <label class="cell-label" for="github-file">備份檔案路徑</label>
+                    <input id="github-file" class="ios-input" type="text" placeholder="backup/sxiphone.json">
+                    <div class="btn-row">
+                        <button class="ios-btn" id="github-save-token" type="button">儲存並連接</button>
+                    </div>
+                    <div class="btn-row" style="margin-top:8px;">
+                        <button class="ios-btn" id="github-backup" type="button">推送備份</button>
+                        <button class="ios-btn" id="github-restore" type="button">拉取還原</button>
+                    </div>
+                    <p class="ios-caption" id="github-status">尚未連線</p>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 外觀與視覺 -->
+        
+
+    <!-- 影片內容保存 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="bookmark"></i>
+                    <span>影片內容保存</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">已生成影片文字內容</span>
+                    <textarea id="biliGeneratedTitles" class="ios-textarea" rows="5" placeholder="尚未生成內容" readonly></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="ios-btn" onclick="loadBiliGeneratedTitles()">重新讀取</button>
+                    <button class="ios-btn" onclick="clearBiliGeneratedTitles()">清除</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 環境與地區 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="globe"></i>
+                    <span>環境與地區</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">介面語言</span>
+                    <select id="langSelect" class="ios-select">
+                        <option value="zh-Hant">繁體中文</option>
+                        <option value="zh-Hans">简体中文</option>
+                        <option value="en-US">English</option>
+                        <option value="ja-JP">日本語</option>
+                        <option value="ko-KR">한국어</option>
+                    </select>
+                </div>
+
+                <div class="cell-v">
+                    <span class="cell-label">所在地區</span>
+                    <input id="regionInput" class="ios-input">
+                </div>
+
+                <div class="cell-v">
+                    <button class="ios-btn primary" onclick="saveEnv()">儲存環境</button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- AI 環境感知 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="cloud-sun"></i>
+                    <span>AI 環境感知</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">讓 AI 感知現實環境</span>
+                    <p class="ios-caption">啟用後，AI 將能夠感知目前的時間、天氣和地點，讓對話更加貼近現實。</p>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用環境感知</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-awareness-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">地點設定</span>
+                    <p class="ios-caption">設定你的所在位置。「顯示名稱」會告訴 AI 你在哪裡（可以是虛構的），「實際地點」用於獲取天氣等真實資料。</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">顯示名稱（給 AI 看的）</span>
+                    <input id="env-location-display" class="ios-input" placeholder="例如：魔法森林、星之鎮、秘密基地">
+                    <p class="ios-caption">這個名稱會出現在 AI 對話中，可以是虛構或真實地點</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:8px;">
+                    <span class="cell-label">實際地點（獲取天氣用）</span>
+                    <input id="env-location-city" class="ios-input" placeholder="例如：台北、Tokyo、New York">
+                    <p class="ios-caption">用於獲取真實天氣資料，不會直接告訴 AI</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:8px;">
+                    <span class="cell-label">國家/地區</span>
+                    <input id="env-location-country" class="ios-input" placeholder="例如：台灣、Japan、USA">
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">使用虛構地點模式</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-use-fictional-location">
+                        <span class="slider"></span>
+                    </label>
+                    <p class="ios-caption">啟用後，AI 只會知道顯示名稱，不會知道實際地點</p>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">自動偵測時區</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-auto-timezone" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="cell-v" id="manual-timezone-section" style="margin-top:8px;display:none;">
+                    <span class="cell-label">手動設定時區</span>
+                    <select id="env-manual-timezone" class="ios-select">
+                        <option value="Asia/Taipei">台北 (UTC+8)</option>
+                        <option value="Asia/Tokyo">東京 (UTC+9)</option>
+                        <option value="Asia/Seoul">首爾 (UTC+9)</option>
+                        <option value="Asia/Shanghai">上海 (UTC+8)</option>
+                        <option value="Asia/Hong_Kong">香港 (UTC+8)</option>
+                        <option value="Asia/Singapore">新加坡 (UTC+8)</option>
+                        <option value="America/New_York">紐約 (UTC-5/-4)</option>
+                        <option value="America/Los_Angeles">洛杉磯 (UTC-8/-7)</option>
+                        <option value="America/Chicago">芝加哥 (UTC-6/-5)</option>
+                        <option value="Europe/London">倫敦 (UTC+0/+1)</option>
+                        <option value="Europe/Paris">巴黎 (UTC+1/+2)</option>
+                        <option value="Europe/Berlin">柏林 (UTC+1/+2)</option>
+                        <option value="Australia/Sydney">雪梨 (UTC+10/+11)</option>
+                        <option value="Pacific/Auckland">奧克蘭 (UTC+12/+13)</option>
+                    </select>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">天氣資訊</span>
+                    <p class="ios-caption">選擇天氣資料來源。免費方案有次數限制，建議使用付費 API 或自建服務。</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">天氣 API 來源</span>
+                    <select id="env-weather-provider" class="ios-select">
+                        <option value="">不獲取天氣</option>
+                        <option value="openweathermap">OpenWeatherMap</option>
+                        <option value="weatherapi">WeatherAPI.com</option>
+                        <option value="openmeteo">Open-Meteo（免費，無需 Key）</option>
+                        <option value="custom">自訂 API</option>
+                    </select>
+                </div>
+
+                <div id="weather-api-key-section" class="hidden" style="margin-top:12px;">
+                    <div class="cell-v">
+                        <span class="cell-label">天氣 API Key</span>
+                        <input id="env-weather-api-key" class="ios-input" type="password" placeholder="輸入 API Key">
+                    </div>
+                </div>
+
+                <div id="custom-weather-section" class="hidden" style="margin-top:12px;">
+                    <div class="cell-v">
+                        <span class="cell-label">自訂天氣 API URL</span>
+                        <input id="env-custom-weather-url" class="ios-input" placeholder="https://api.example.com/weather">
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">API Key（可選）</span>
+                        <input id="env-custom-weather-key" class="ios-input" type="password" placeholder="API Key">
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">回應格式</span>
+                        <select id="env-weather-response-format" class="ios-select">
+                            <option value="json">JSON</option>
+                            <option value="custom">自訂解析</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">環境資訊注入</span>
+                    <p class="ios-caption">選擇要注入到 AI 對話中的環境資訊類型。</p>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">注入時間資訊</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-inject-time" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">注入天氣資訊</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-inject-weather" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">注入地點資訊</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="env-inject-location" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">注入位置</span>
+                    <select id="env-inject-position" class="ios-select">
+                        <option value="system">系統提示詞</option>
+                        <option value="prefix">對話開頭</option>
+                        <option value="suffix">對話結尾</option>
+                    </select>
+                    <p class="ios-caption">選擇環境資訊在 AI 對話中的注入位置</p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">目前環境狀態</span>
+                    <div id="env-status-display" style="margin-top:12px;">
+                        <p class="ios-caption" id="env-current-time">時間：載入中...</p>
+                        <p class="ios-caption" id="env-current-timezone">時區：載入中...</p>
+                        <p class="ios-caption" id="env-current-weather">天氣：尚未獲取</p>
+                        <p class="ios-caption" id="env-current-location">地點：尚未設定</p>
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top:12px;">
+                    <button class="ios-btn" id="env-refresh-btn">重新獲取</button>
+                    <button class="ios-btn primary" id="env-save-btn">保存設定</button>
+                </div>
+                <p class="ios-caption" id="env-status-text" style="margin-top:8px;"></p>
+            </div>
+        </details>
+    </section>
+
+    <!-- 外部聊天記錄導入 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="import"></i>
+                    <span>外部聊天記錄導入</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">從其他應用程式導入對話</span>
+                    <p class="ios-caption">支援匯入 ChatGPT、Claude、Character.AI、SillyTavern 等平台的聊天記錄，AI 將自動分類並整理成記憶表格。</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">選擇匯入格式</span>
+                    <select id="import-format-select" class="ios-select" style="margin-top:8px;">
+                        <option value="auto">自動偵測格式</option>
+                        <optgroup label="主流平台">
+                            <option value="chatgpt">ChatGPT 匯出格式</option>
+                            <option value="claude">Claude 匯出格式</option>
+                            <option value="gemini">Gemini 匯出格式</option>
+                            <option value="characterai">Character.AI 匯出格式</option>
+                            <option value="sillytavern">SillyTavern 匯出格式</option>
+                            <option value="flat_ai">Flat.AI 匯出格式</option>
+                            <option value="mufy">Mufy 匯出格式</option>
+                            <option value="tavo">Tavo 匯出格式</option>
+                        </optgroup>
+                        <optgroup label="自訂網頁應用">
+                            <option value="sxiphone_like">SxiPhone 類似格式</option>
+                            <option value="webapp_json">網頁應用 JSON 格式</option>
+                            <option value="agregore">Agregore/Tauri 應用</option>
+                            <option value="custom_webapp">自訂網頁應用</option>
+                        </optgroup>
+                        <optgroup label="通用格式">
+                            <option value="generic">通用 JSON 格式</option>
+                            <option value="txt">純文字格式 (TXT)</option>
+                            <option value="csv">CSV 格式</option>
+                            <option value="markdown">Markdown 格式</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div id="custom-webapp-config" class="hidden" style="margin-top:12px;">
+                    <div class="cell-v">
+                        <span class="cell-label">自訂格式對應設定</span>
+                        <p class="ios-caption">指定 JSON 路徑來對應資料欄位</p>
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">聊天記錄路徑</span>
+                        <input id="custom-path-messages" class="ios-input" placeholder="例如: data.chat.history 或 messages">
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">角色設定路徑</span>
+                        <input id="custom-path-char" class="ios-input" placeholder="例如: data.character 或 charConfig">
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">世界書路徑</span>
+                        <input id="custom-path-worldbook" class="ios-input" placeholder="例如: data.worldbook 或 worldInfo">
+                    </div>
+                    <div class="cell-v" style="margin-top:8px;">
+                        <span class="cell-label">用戶設定路徑</span>
+                        <input id="custom-path-user" class="ios-input" placeholder="例如: data.user 或 userConfig">
+                    </div>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">匯入內容類型</span>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">匯入聊天記錄</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="import-include-chat" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">匯入角色設定</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="import-include-char" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">匯入世界書</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="import-include-worldbook" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">匯入用戶設定</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="import-include-user">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">AI 分類設定</span>
+                </div>
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用 AI 自動分類</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="import-ai-classify" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="cell-v" style="margin-top:8px;">
+                    <p class="ios-caption">AI 將分析對話內容，自動識別角色、用戶、話題分類，並生成記憶表格摘要。</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">匯入目標</span>
+                    <select id="import-target-select" class="ios-select" style="margin-top:8px;">
+                        <option value="memory">記憶表格</option>
+                        <option value="chat">當前聊天記錄</option>
+                        <option value="both">兩者都匯入</option>
+                    </select>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">角色名稱（可選）</span>
+                    <input id="import-char-name" class="ios-input" placeholder="留空則自動偵測">
+                </div>
+
+                <div class="btn-row" style="margin-top:16px;">
+                    <button class="ios-btn" id="import-external-preview-btn">
+                        <i data-lucide="eye"></i> 預覽
+                    </button>
+                    <button class="ios-btn primary" id="import-external-btn">
+                        <i data-lucide="upload"></i> 選擇檔案
+                    </button>
+                </div>
+                <input type="file" id="import-external-file" hidden accept=".json,.txt,.csv,.md">
+
+                <div id="import-preview-area" class="hidden" style="margin-top:16px;">
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin-bottom:16px;">
+                    <div class="cell-v">
+                        <span class="cell-label" style="font-weight:600;">預覽結果</span>
+                    </div>
+                    <div id="import-preview-content" style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;max-height:300px;overflow-y:auto;font-size:13px;">
+                    </div>
+                    <div id="import-preview-stats" style="margin-top:12px;font-size:13px;color:var(--ios-gray);"></div>
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn" id="import-cancel-preview-btn">取消</button>
+                        <button class="ios-btn primary" id="import-confirm-btn">確認匯入</button>
+                    </div>
+                </div>
+
+                <div id="import-progress-area" class="hidden" style="margin-top:16px;">
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin-bottom:16px;">
+                    <div class="cell-v">
+                        <span class="cell-label" style="font-weight:600;">匯入進度</span>
+                        <div id="import-progress-bar" style="margin-top:8px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+                            <div id="import-progress-fill" style="height:100%;width:0%;background:var(--ios-blue);transition:width 0.3s;"></div>
+                        </div>
+                        <p id="import-progress-text" class="ios-caption" style="margin-top:8px;">準備中...</p>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">支援的匯入格式說明</span>
+                    <div style="margin-top:12px;font-size:12px;color:var(--ios-gray);line-height:1.8;">
+                        <p><strong>ChatGPT：</strong>從 Settings → Export data 匯出的 conversations.json</p>
+                        <p><strong>Claude：</strong>從對話設定匯出的 JSON 檔案</p>
+                        <p><strong>Gemini：</strong>從 Google Takeout 或 Gemini 匯出的聊天記錄</p>
+                        <p><strong>Character.AI：</strong>使用第三方工具匯出的聊天記錄</p>
+                        <p><strong>SillyTavern：</strong>聊天記錄 JSON 檔案</p>
+                        <p><strong>Flat.AI：</strong>支援對話、角色、知識庫等完整匯入</p>
+                        <p><strong>Mufy：</strong>支援 chat_history、dialogue、角色設定等格式</p>
+                        <p><strong>Tavo：</strong>支援對話記錄、角色設定、世界書、用戶設定、使用統計等完整匯入</p>
+                        <p><strong>通用 JSON：</strong>包含 messages 陣列的 JSON 檔案</p>
+                        <p><strong>純文字：</strong>每行一句對話，或「角色: 內容」格式</p>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 加密角色卡導入 -->
+    <section class="group" id="settings-encrypted-card">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="key"></i>
+                    <span>加密角色卡導入</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">後端 API 設定</span>
+                    <p class="ios-caption">設定角色卡服務的後端 API 網址。此服務用於驗證與核發一次性解密金鑰。</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">API 網址</span>
+                    <input id="card-api-url" class="ios-input" placeholder="https://your-api.example.com">
+                </div>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="ios-btn" id="card-api-test-btn">測試連接</button>
+                    <button class="ios-btn primary" id="card-api-save-btn">保存設定</button>
+                </div>
+                <p class="ios-caption" id="card-api-status" style="margin-top:8px;"></p>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">導入加密角色卡</span>
+                    <p class="ios-caption">貼上創作者提供的加密代碼，申請一次性金鑰後即可導入角色卡。</p>
+                </div>
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">加密代碼</span>
+                    <textarea id="encrypted-code-input" class="ios-textarea" rows="3" placeholder="貼上加密代碼（Base64 格式）"></textarea>
+                </div>
+                <div class="btn-row" style="margin-top:12px;">
+                    <button class="ios-btn" id="request-key-btn">申請金鑰</button>
+                    <button class="ios-btn primary" id="import-encrypted-card-btn" disabled>確認導入</button>
+                </div>
+                <p class="ios-caption" id="encrypted-card-status" style="margin-top:8px;"></p>
+
+                <div id="encrypted-card-preview" class="hidden" style="margin-top:16px;">
+                    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin-bottom:16px;">
+                    <div class="cell-v">
+                        <span class="cell-label" style="font-weight:600;">角色卡預覽</span>
+                    </div>
+                    <div id="encrypted-card-preview-content" style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;">
+                        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                            <div id="preview-card-avatar" style="width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                                <i data-lucide="bot" style="color:var(--ios-gray);"></i>
+                            </div>
+                            <div>
+                                <div id="preview-card-name" style="font-weight:600;font-size:16px;">—</div>
+                                <div id="preview-card-creator" style="font-size:12px;color:var(--ios-gray);">創作者：—</div>
+                            </div>
+                        </div>
+                        <div id="preview-card-personality" style="font-size:13px;color:var(--ios-gray);margin-bottom:8px;"></div>
+                        <div id="preview-card-background" style="font-size:13px;color:var(--ios-gray);"></div>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">使用說明</span>
+                    <div style="margin-top:12px;font-size:12px;color:var(--ios-gray);line-height:1.8;">
+                        <p><strong>步驟 1：</strong>向創作者索取加密代碼</p>
+                        <p><strong>步驟 2：</strong>貼上加密代碼到上方輸入框</p>
+                        <p><strong>步驟 3：</strong>點擊「申請金鑰」按鈕</p>
+                        <p><strong>步驟 4：</strong>預覽角色卡資訊</p>
+                        <p><strong>步驟 5：</strong>確認無誤後點擊「確認導入」</p>
+                    </div>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
+                    <span class="cell-label">裝置 ID</span>
+                    <p class="ios-caption" id="device-id-display" style="margin-top:4px;font-family:monospace;font-size:11px;word-break:break-all;">載入中...</p>
+                    <p class="ios-caption" style="margin-top:4px;">此 ID 用於識別您的裝置，創作者可查看誰導入了角色卡。</p>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 顯示設定 -->
+    <section class="group" id="settings-display">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="maximize-2"></i>
+                    <span>顯示設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">全螢幕模式</span>
+                    <p class="ios-caption">切換全螢幕顯示以獲得更好的沉浸式體驗</p>
+                </div>
+                <div class="btn-row" style="margin-top:8px;">
+                    <button class="ios-btn primary" id="fullscreen-toggle-btn">
+                        <i data-lucide="maximize-2"></i> 切換全螢幕
+                    </button>
+                </div>
+                <div id="fullscreen-status" class="ios-caption" style="margin-top:8px;"></div>
+                
+                <div class="cell-v" style="margin-top:16px;">
+                    <span class="cell-label" style="font-weight:600;">iOS Safari 全螢幕提示</span>
+                    <p class="ios-caption">iOS Safari 不支援網頁全螢幕 API，請將網站加入主畫面以獲得全螢幕體驗。</p>
+                    <button class="ios-btn" id="ios-fullscreen-help-btn" style="margin-top:8px;">
+                        <i data-lucide="info"></i> 查看教學
+                    </button>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 外觀設定 -->
+    <section class="group" id="settings-appearance">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="palette"></i>
+                    <span>外觀設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <button class="cell-link" id="appearance-settings-btn" type="button">
+                    <div class="summary-left">
+                        <span>應用程式外觀設定</span>
+                    </div>
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </details>
+    </section>
+
+    <!-- 開發者資訊 -->
+    <section class="group" id="settings-developer-info">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="code-2"></i>
+                    <span>開發者資訊</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="developer-info-card">
+                    <div class="developer-info-content">
+                        <div class="developer-info-row">
+                            <span class="developer-info-label">應用程式版本</span>
+                            <span class="developer-info-value">v0.0.2</span>
+                        </div>
+                        <div class="developer-info-row">
+                            <span class="developer-info-label">版本狀態</span>
+                            <span class="developer-info-value status-beta">內測第二批</span>
+                        </div>
+                        <div class="developer-info-row">
+                            <span class="developer-info-label">開發者</span>
+                            <span class="developer-info-value">Levoglucose</span>
+                        </div>
+                    </div>
+                    <div class="developer-info-note">
+                        <p class="ios-caption">開發者是原神艾爾海森一途嫁夢女，嚴拒同、夢擔使用本小手機。請尊重開發者屬性</p>
+                    </div>
+                    <div class="developer-info-open-source">
+                        <i data-lucide="unlock"></i>
+                        <span>本應用程式為全開源、免付費網頁端應用程式</span>
+                    </div>
+                    <div class="developer-info-footer">
+                        <i data-lucide="github"></i>
+                        <span>聯絡請提交 GitHub Issue</span>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- JSON 備份 -->
+    <div class="backup-actions" style="padding:0 16px;margin-bottom:100px;">
+        <button class="ios-btn" id="exportBtn">
+            <i data-lucide="download"></i> 導出 JSON 備份
+        </button>
+        <button class="ios-btn" onclick="document.getElementById('importFile').click()">
+            <i data-lucide="upload"></i> 導入 JSON 備份
+        </button>
+        <input type="file" id="importFile" hidden accept=".json">
+    </div>
+
+</div> <!-- scroll-container -->
+</div> <!-- settingsModal -->
+
+<link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+<script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/character-card-crypto.js"></script>
+<script src="../scripts/firebase-card-config.js"></script>
+<script src="settings.js"></script>
+<script>
+    // 初始化 Lucide 圖標
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    // 外觀設定按鈕
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('settings');
+            var appearanceBtn = document.getElementById('appearance-settings-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('settings', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

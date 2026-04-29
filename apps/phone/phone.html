@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>電話</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="phone.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+    <div class="phone-app">
+        <header class="phone-header">
+            <div class="top-bar">
+                <button class="icon-btn" id="phone-close" aria-label="返回主畫面">返回</button>
+                <h1 class="header-title">電話</h1>
+                <div class="header-actions">
+                    <button class="icon-btn" id="appearance-btn" aria-label="外觀設定"><i class="fas fa-palette"></i></button>
+                    <button class="icon-btn" id="toggle-silent" aria-label="靜音模式" aria-pressed="false">🔔</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="phone-tabs">
+            <button class="phone-tab active" data-tab="keypad-tab">撥號</button>
+            <button class="phone-tab" data-tab="history-tab">通話紀錄</button>
+            <button class="phone-tab" data-tab="recordings-tab">錄音</button>
+        </div>
+
+        <main class="phone-main">
+            <section class="tab-panel active" id="keypad-tab">
+                <section class="call-display" aria-live="polite">
+                    <div id="dialed-number" class="dialed-number muted">輸入號碼</div>
+                </section>
+
+                <section class="keypad" id="keypad" aria-label="數字鍵盤">
+                    <button class="key" data-value="1"><span>1</span><small>&nbsp;</small></button>
+                    <button class="key" data-value="2"><span>2</span><small>ABC</small></button>
+                    <button class="key" data-value="3"><span>3</span><small>DEF</small></button>
+                    <button class="key" data-value="4"><span>4</span><small>GHI</small></button>
+                    <button class="key" data-value="5"><span>5</span><small>JKL</small></button>
+                    <button class="key" data-value="6"><span>6</span><small>MNO</small></button>
+                    <button class="key" data-value="7"><span>7</span><small>PQRS</small></button>
+                    <button class="key" data-value="8"><span>8</span><small>TUV</small></button>
+                    <button class="key" data-value="9"><span>9</span><small>WXYZ</small></button>
+                    <button class="key" data-value="*"><span>*</span><small>&nbsp;</small></button>
+                    <button class="key" data-value="0" data-alt="+"><span>0</span><small>+</small></button>
+                    <button class="key" data-value="#"><span>#</span><small>&nbsp;</small></button>
+                    <button class="key action" id="backspace" aria-label="刪除一一碼">⌫</button>
+                    <button class="key call" id="call-button" aria-label="撥出">📞</button>
+                    <button class="key action" id="hold-button" aria-label="插入暫停符號">暫停</button>
+                </section>
+            </section>
+
+            <section class="tab-panel" id="history-tab">
+                <ul class="history-list" id="history-list"></ul>
+            </section>
+
+            <section class="tab-panel" id="recordings-tab">
+                <div class="recordings-header">
+                    <h2>語音通話錄音</h2>
+                    <button class="clear-recordings-btn" id="clear-recordings">清除全部</button>
+                </div>
+                <ul class="recordings-list" id="recordings-list"></ul>
+            </section>
+        </main>
+    </div>
+
+    <script src="../scripts/shared-settings.js"></script>
+    <script src="../scripts/app-appearance-settings.js"></script>
+    <script src="phone.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('phone');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('phone', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

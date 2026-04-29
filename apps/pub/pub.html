@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
+    <title>酒館 - SillyTavern PoC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="pub.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+    <div class="tavern-app">
+        <header class="top-strip">
+            <button class="icon-btn" id="pub-back" aria-label="返回">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <h1 class="top-strip-title">SillyTavern</h1>
+            <div class="top-strip-actions">
+                <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <aside class="tool-panel" id="tool-panel">
+                <h3>角色庫</h3>
+                <div class="tool-card">
+                    <div class="tool-row">
+                        <button class="pill" id="new-character">新增角色</button>
+                        <button class="pill" id="delete-character">刪除目前角色</button>
+                    </div>
+                    <div class="character-list" id="character-list"></div>
+                    <div class="tool-row">
+                        <button class="pill" id="export-characters">匯出角色</button>
+                        <button class="pill" id="import-characters">匯入角色</button>
+                        <input type="file" id="character-file" accept="application/json" hidden>
+                    </div>
+                </div>
+
+                <h3>OpenAI Compatible API</h3>
+                <div class="tool-card">
+                    <label class="field-label" for="api-provider">Provider</label>
+                    <select id="api-provider" class="field-input">
+                        <option value="openai">OpenAI Compatible</option>
+                        <option value="openrouter">OpenRouter Compatible</option>
+                        <option value="custom">Custom Proxy</option>
+                    </select>
+
+                    <label class="field-label" for="connection-mode">Connection Mode</label>
+                    <select id="connection-mode" class="field-input">
+                        <option value="direct">Direct</option>
+                        <option value="proxy">Proxy</option>
+                    </select>
+
+                    <label class="field-label" for="proxy-endpoint">Proxy Endpoint（選填）</label>
+                    <input id="proxy-endpoint" class="field-input" type="url" placeholder="https://your-proxy.example.com/v1/chat/completions">
+
+                    <label class="field-label" for="api-base">Base URL</label>
+                    <input id="api-base" class="field-input" type="url" placeholder="https://api.openai.com/v1/chat/completions">
+
+                    <label class="field-label" for="api-key">API Key</label>
+                    <input id="api-key" class="field-input" type="password" placeholder="sk-...">
+
+                    <label class="field-label" for="model-name">Model</label>
+                    <input id="model-name" class="field-input" type="text" placeholder="gpt-4o-mini">
+
+                    <button class="pill" id="save-api-config">儲存 API 設定</button>
+                </div>
+
+                <h3>角色卡設定</h3>
+                <div class="tool-card">
+                    <label class="field-label" for="character-prompt">角色系統提示詞</label>
+                    <textarea id="character-prompt" rows="7" placeholder="例如：你是冷靜、精準、帶點幽默的 AI 助手..."></textarea>
+                    <button class="pill" id="save-character-prompt">儲存角色卡</button>
+                </div>
+
+                <h3>Generation</h3>
+                <div class="tool-card">
+                    <label class="field-label" for="gen-temperature">Temperature <span id="gen-temperature-val">0.8</span></label>
+                    <input id="gen-temperature" type="range" min="0" max="2" step="0.1" value="0.8">
+
+                    <label class="field-label" for="gen-max-tokens">Response Tokens <span id="gen-max-tokens-val">512</span></label>
+                    <input id="gen-max-tokens" type="range" min="64" max="2048" step="64" value="512">
+
+                    <label class="field-label" for="gen-max-context">Context Tokens <span id="gen-max-context-val">4096</span></label>
+                    <input id="gen-max-context" type="range" min="512" max="16384" step="128" value="4096">
+                </div>
+
+                <h3>World Book</h3>
+                <div class="tool-card">
+                    <label class="field-label" for="wb-keyword">關鍵字（逗號分隔）</label>
+                    <input id="wb-keyword" class="field-input" type="text" placeholder="例如：學園, 魔法, 失憶">
+                    <label class="field-label" for="wb-content">條目內容</label>
+                    <textarea id="wb-content" rows="5" placeholder="輸入此條目在命中關鍵字時注入的背景設定..."></textarea>
+                    <button class="pill" id="add-worldbook-entry">新增條目</button>
+                    <div class="worldbook-list" id="worldbook-list"></div>
+                </div>
+
+                <h3>訊息儲存</h3>
+                <div class="tool-card tool-row">
+                    <button class="pill" id="clear-chat">清空對話</button>
+                    <button class="pill" id="export-chat">匯出對話</button>
+                    <button class="pill" id="import-chat">匯入對話</button>
+                    <input type="file" id="chat-file" accept="application/json" hidden>
+                </div>
+            </aside>
+
+            <main class="chat-panel">
+                <div class="chat-header" id="chat-header">
+                    <button class="icon-btn mobile-only" id="toggle-settings" title="開關設定面板">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+                    <div class="avatar" id="char-avatar"></div>
+                    <div class="profile">
+                        <h3 id="char-name">Silly Assistant</h3>
+                        <p class="tags" id="char-tags">@default · chat</p>
+                    </div>
+                    <div class="status" id="model-status">
+                        <span class="pill accent" id="active-model">未設定模型</span>
+                        <span class="pill" id="conn-state">離線</span>
+                    </div>
+                </div>
+
+                <section class="chat-log" id="chat-log" aria-live="polite"></section>
+
+                <div class="composer">
+                    <div class="toolbar">
+                        <button class="icon-btn" title="重寫" id="regen-btn-icon"><i class="fa-solid fa-rotate"></i></button>
+                        <button class="icon-btn" title="新增角色" id="add-character"><i class="fa-solid fa-user-plus"></i></button>
+                    </div>
+                    <textarea id="composer-input" rows="3" placeholder="輸入訊息或場景指示..."></textarea>
+                    <div class="composer-actions">
+                        <button id="regen-btn" class="ghost">重寫</button>
+                        <button id="send-btn" class="accent">送出</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../scripts/shared-settings.js"></script>
+    <script src="../scripts/app-appearance-settings.js"></script>
+    <script src="pub.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('pub');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('pub', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

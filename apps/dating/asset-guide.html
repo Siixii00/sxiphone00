@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>素材導入指南</title>
+  <link rel="stylesheet" href="scene-editor.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="guide-container">
+    <div class="guide-header">
+      <button class="back-btn" onclick="history.back()">
+        <i data-lucide="arrow-left"></i>
+      </button>
+      <h1>素材導入指南</h1>
+    </div>
+
+    <div class="guide-content">
+      <section class="guide-section">
+        <h2><i data-lucide="info"></i> 關於素材使用</h2>
+        <p>為了尊重創作者的版權，我們不提供直接下載功能。但你可以從以下合法途徑獲取免費素材：</p>
+      </section>
+
+      <section class="guide-section">
+        <h2><i data-lucide="globe"></i> 推薦素材網站</h2>
+        <div class="resource-list">
+          <div class="resource-item">
+            <h3>OpenGameArt.org</h3>
+            <p>大量免費的2D遊戲素材，支援多種授權方式</p>
+            <a href="https://opengameart.org/art-search-advanced?field_art_type_tid%5B0%5D=9" target="_blank" class="resource-link">
+              <i data-lucide="external-link"></i>
+              前往網站
+            </a>
+            <div class="license-info">
+              <strong>常見授權：</strong>CC0, CC-BY, CC-BY-SA
+            </div>
+          </div>
+
+          <div class="resource-item">
+            <h3>itch.io</h3>
+            <p>獨立遊戲開發者分享的免費素材包</p>
+            <a href="https://itch.io/game-assets/free" target="_blank" class="resource-link">
+              <i data-lucide="external-link"></i>
+              前往網站
+            </a>
+          </div>
+
+          <div class="resource-item">
+            <h3>Kenney.nl</h3>
+            <p>高品質的CC0授權遊戲素材</p>
+            <a href="https://kenney.nl/assets" target="_blank" class="resource-link">
+              <i data-lucide="external-link"></i>
+              前往網站
+            </a>
+          </div>
+
+          <div class="resource-item">
+            <h3>Craftpix.net</h3>
+            <p>提供免費和付費的2D遊戲素材</p>
+            <a href="https://craftpix.net/freebies/" target="_blank" class="resource-link">
+              <i data-lucide="external-link"></i>
+              前往網站
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section">
+        <h2><i data-lucide="download"></i> 如何導入素材</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>下載素材</h3>
+              <p>從上述網站選擇你喜歡的素材，確認授權條款後下載</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>準備圖片</h3>
+              <p>確保圖片格式為 PNG、JPG 或 GIF，建議尺寸不超過 1024x1024</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>上傳到編輯器</h3>
+              <p>在場景編輯器中點擊「上傳背景」或「上傳物件」按鈕</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h3>開始創作</h3>
+              <p>將素材拖放到畫布上，調整位置和大小</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section">
+        <h2><i data-lucide="alert-circle"></i> 授權說明</h2>
+        <div class="license-types">
+          <div class="license-card">
+            <h3>CC0 (公有領域)</h3>
+            <p>可自由使用，無需署名</p>
+            <span class="license-badge green">最自由</span>
+          </div>
+
+          <div class="license-card">
+            <h3>CC-BY (署名)</h3>
+            <p>可自由使用，需註明作者</p>
+            <span class="license-badge blue">需署名</span>
+          </div>
+
+          <div class="license-card">
+            <h3>CC-BY-SA (署名-相同方式分享)</h3>
+            <p>可自由使用，需註明作者並以相同授權分享</p>
+            <span class="license-badge orange">有限制</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-section">
+        <h2><i data-lucide="lightbulb"></i> 創作建議</h2>
+        <ul class="tips-list">
+          <li>選擇風格統一的素材，讓場景更協調</li>
+          <li>注意素材的解析度，避免模糊</li>
+          <li>合理使用圖層，方便後續調整</li>
+          <li>定期儲存場景，避免資料遺失</li>
+          <li>可以混合使用內建素材和自訂素材</li>
+          <li>嘗試使用像素繪圖工具創作獨特角色</li>
+        </ul>
+      </section>
+
+      <section class="guide-section">
+        <h2><i data-lucide="book-open"></i> 進階技巧</h2>
+        <div class="advanced-tips">
+          <div class="tip-card">
+            <i data-lucide="layers"></i>
+            <h3>圖層管理</h3>
+            <p>使用多個圖層分離背景、物件和角色，方便獨立編輯</p>
+          </div>
+
+          <div class="tip-card">
+            <i data-lucide="palette"></i>
+            <h3>色彩搭配</h3>
+            <p>選擇和諧的色彩組合，營造特定氛圍</p>
+          </div>
+
+          <div class="tip-card">
+            <i data-lucide="grid-3x3"></i>
+            <h3>網格對齊</h3>
+            <p>開啟網格輔助線，讓物件排列更整齊</p>
+          </div>
+
+          <div class="tip-card">
+            <i data-lucide="save"></i>
+            <h3>版本管理</h3>
+            <p>定期匯出場景JSON檔案作為備份</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <style>
+    .guide-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    .guide-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .guide-header h1 {
+      color: #e91e63;
+      font-size: 32px;
+      margin: 0;
+    }
+
+    .guide-content {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .guide-section {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 25px;
+    }
+
+    .guide-section h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .guide-section p {
+      color: #aaa;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .resource-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .resource-item {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .resource-item h3 {
+      color: #e91e63;
+      margin-bottom: 10px;
+    }
+
+    .resource-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: rgba(233, 30, 99, 0.2);
+      border: 1px solid #e91e63;
+      border-radius: 6px;
+      color: white;
+      text-decoration: none;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+
+    .resource-link:hover {
+      background: rgba(233, 30, 99, 0.4);
+    }
+
+    .license-info {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(76, 175, 80, 0.1);
+      border-left: 3px solid #4caf50;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: #e91e63;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .license-types {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .license-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .license-card h3 {
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    .license-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .license-badge.green {
+      background: #4caf50;
+      color: white;
+    }
+
+    .license-badge.blue {
+      background: #2196f3;
+      color: white;
+    }
+
+    .license-badge.orange {
+      background: #ff9800;
+      color: white;
+    }
+
+    .tips-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .tips-list li {
+      padding: 12px;
+      margin-bottom: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid #e91e63;
+      color: #aaa;
+    }
+
+    .advanced-tips {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .tip-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .tip-card i {
+      width: 40px;
+      height: 40px;
+      color: #e91e63;
+      margin-bottom: 10px;
+    }
+
+    .tip-card h3 {
+      color: #fff;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .tip-card p {
+      color: #aaa;
+      font-size: 14px;
+      margin: 0;
+    }
+  </style>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

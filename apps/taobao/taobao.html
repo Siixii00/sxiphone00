@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>購物平台</title>
+  <link rel="stylesheet" href="taobao.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="shop-app">
+    <header class="shop-header">
+      <div class="shop-titlebar">
+        <button class="back-btn" aria-label="返回桌面" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h1 class="shop-title">Shopping</h1>
+        <div class="titlebar-actions">
+          <button class="circle-btn" id="search-toggle-btn" aria-label="搜尋">
+            <i class="fas fa-magnifying-glass"></i>
+          </button>
+          <button class="circle-btn" id="cart-btn" aria-label="購物車">
+            <i class="fas fa-cart-shopping"></i>
+            <span id="cart-count" class="cart-count">0</span>
+          </button>
+          <button class="circle-btn" id="settings-btn" aria-label="設定">
+            <i class="fas fa-gear"></i>
+          </button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>平台</label>
+          <select id="platform-select" class="filter-select">
+            <option value="all">全部</option>
+            <option value="amazon">Amazon</option>
+            <option value="coupang">酷彭</option>
+            <option value="mercari">Mercari</option>
+            <option value="pinduoduo">拼多多</option>
+            <option value="shopee">蝦皮</option>
+            <option value="taobao">淘寶</option>
+            <option value="xianyu">閒魚</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>分類</label>
+          <select id="category-select" class="filter-select">
+            <option value="推薦">推薦</option>
+            <option value="服飾">服飾</option>
+            <option value="3C">3C</option>
+            <option value="家電">家電</option>
+            <option value="美妝">美妝</option>
+            <option value="食品">食品</option>
+            <option value="書籍">書籍</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="shop-main">
+      <section class="product-section">
+        <div class="section-head">
+          <h2>商品列表 <span id="product-count"></span></h2>
+          <div class="section-actions">
+            <select id="sort-select" class="sort-select">
+              <option value="hot">熱門優先</option>
+              <option value="price-asc">價格低到高</option>
+              <option value="price-desc">價格高到低</option>
+              <option value="newest">最新上架</option>
+            </select>
+            <button id="clear-imported-btn" type="button" class="clear-btn">清除導入</button>
+          </div>
+        </div>
+        <div class="product-grid" id="product-grid"></div>
+      </section>
+    </main>
+
+    <aside class="cart-drawer hidden" id="cart-drawer">
+      <div class="drawer-head">
+        <h3>購物車</h3>
+        <button id="close-cart-btn" type="button"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div id="cart-list" class="cart-list"></div>
+      <div class="drawer-foot">
+        <div class="total-row">
+          <span>總價</span>
+          <strong id="cart-total">NT$ 0</strong>
+        </div>
+        <button id="checkout-btn" class="checkout-btn" type="button">立即結帳</button>
+      </div>
+    </aside>
+
+    <div class="import-modal hidden" id="product-detail-modal">
+      <div class="modal-backdrop" data-action="close-detail"></div>
+      <div class="modal-card product-detail-card">
+        <div class="modal-header">
+          <h3>商品詳情</h3>
+          <button class="modal-close" data-action="close-detail"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="product-detail-thumb" id="detail-thumb"></div>
+          <div class="product-detail-info">
+            <h2 id="detail-title"></h2>
+            <p class="detail-price" id="detail-price"></p>
+            <div class="detail-meta">
+              <span id="detail-platform"></span>
+              <span id="detail-category"></span>
+            </div>
+            <p class="detail-sold" id="detail-sold"></p>
+          </div>
+          <div class="product-detail-actions">
+            <button class="import-btn secondary" id="detail-add-cart" type="button">
+              <i class="fas fa-cart-plus"></i> 加入購物車
+            </button>
+            <button class="import-btn primary" id="detail-buy-now" type="button">
+              <i class="fas fa-bolt"></i> 立即購買
+            </button>
+          </div>
+          <div class="product-detail-external">
+            <a href="#" id="detail-external-link" target="_blank" class="external-link-btn">
+              <i class="fas fa-external-link-alt"></i>
+              <span id="detail-external-text">前往平台查看</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="import-modal">
+      <div class="modal-backdrop" data-action="close-modal"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-title">導入結果</h3>
+          <button class="modal-close" data-action="close-modal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer" id="modal-footer" hidden>
+          <button class="import-btn" data-action="close-modal">關閉</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="help-modal">
+      <div class="modal-backdrop" data-action="close-help"></div>
+      <div class="modal-card help-card">
+        <div class="modal-header">
+          <h3>如何導入商品</h3>
+          <button class="modal-close" data-action="close-help"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="help-section">
+            <h4><i class="fas fa-globe"></i> 支援平台</h4>
+            <div class="platform-list">
+              <div class="platform-item">
+                <span class="platform-icon amazon"></span>
+                <span>Amazon</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon coupang"></span>
+                <span>酷彭 Coupang</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon mercari"></span>
+                <span>Mercari</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon pinduoduo"></span>
+                <span>拼多多</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon shopee"></span>
+                <span>蝦皮 Shopee</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon taobao"></span>
+                <span>淘寶 / 天貓</span>
+              </div>
+              <div class="platform-item">
+                <span class="platform-icon xianyu"></span>
+                <span>閒魚</span>
+              </div>
+            </div>
+          </div>
+          <div class="help-section">
+            <h4><i class="fas fa-link"></i> 貼上網址</h4>
+            <p>直接貼上商品頁、購物車網址，系統會自動解析。</p>
+          </div>
+          <div class="help-section">
+            <h4><i class="fas fa-layer-group"></i> 批量導入</h4>
+            <p>格式：商品名稱,價格,平台,分類</p>
+            <code>範例商品,599,amazon,3C</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="budget-modal">
+      <div class="modal-backdrop" data-action="close-budget"></div>
+      <div class="modal-card budget-card">
+        <div class="modal-header">
+          <h3><i class="fas fa-calculator"></i> 支出規劃</h3>
+          <button class="modal-close" data-action="close-budget"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="budget-summary">
+            <div class="budget-item">
+              <span class="budget-label">本月預算</span>
+              <strong class="budget-value" id="budget-monthly">NT$ 30,000</strong>
+            </div>
+            <div class="budget-item">
+              <span class="budget-label">已花費</span>
+              <strong class="budget-value expense" id="budget-spent">NT$ 0</strong>
+            </div>
+            <div class="budget-item">
+              <span class="budget-label">剩餘預算</span>
+              <strong class="budget-value success" id="budget-remaining">NT$ 30,000</strong>
+            </div>
+          </div>
+          <div class="budget-progress">
+            <div class="budget-progress-bar" id="budget-progress-bar"></div>
+          </div>
+          <div class="budget-cart-total">
+            <span>購物車總價</span>
+            <strong id="budget-cart-total">NT$ 0</strong>
+          </div>
+          <div class="budget-advice" id="budget-advice"></div>
+          <div class="budget-actions">
+            <button class="import-btn secondary" data-action="close-budget">關閉</button>
+            <button class="import-btn primary" id="sync-to-kakaopay-btn" type="button">
+              <i class="fas fa-sync"></i> 同步到 KakaoPay
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="checkout-confirm-modal">
+      <div class="modal-backdrop" data-action="close-checkout"></div>
+      <div class="modal-card checkout-panel-card">
+        <div class="modal-header">
+          <h3><i class="fas fa-shopping-cart"></i> 結帳</h3>
+          <button class="modal-close" data-action="close-checkout"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body checkout-panel-body">
+          <div id="checkout-platform-list" class="checkout-platform-list"></div>
+          <div class="checkout-total-section">
+            <div class="checkout-total-row">
+              <span>商品總計</span>
+              <strong id="checkout-subtotal">NT$ 0</strong>
+            </div>
+            <div class="checkout-total-row">
+              <span>運費總計</span>
+              <strong id="checkout-shipping-total">NT$ 0</strong>
+            </div>
+            <div class="checkout-total-row grand-total">
+              <span>應付金額</span>
+              <strong id="checkout-grand-total">NT$ 0</strong>
+            </div>
+          </div>
+          <div class="char-checkout-advice" id="char-checkout-advice"></div>
+        </div>
+        <div class="modal-footer checkout-footer">
+          <button class="import-btn secondary" data-action="close-checkout">取消</button>
+          <button class="import-btn primary" id="confirm-checkout-btn" type="button">
+            <i class="fas fa-check"></i> 確認付款
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="search-modal">
+      <div class="modal-backdrop" data-action="close-search"></div>
+      <div class="modal-card search-card">
+        <div class="modal-header">
+          <h3><i class="fas fa-magnifying-glass"></i> 搜尋商品</h3>
+          <button class="modal-close" data-action="close-search"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="search-form">
+            <div class="form-row">
+              <label>關鍵字</label>
+              <input id="modal-search-input" type="text" placeholder="輸入商品名稱或關鍵字...">
+            </div>
+            <div class="form-row">
+              <label>平台</label>
+              <select id="modal-platform-select">
+                <option value="all">全部平台</option>
+                <option value="amazon">Amazon</option>
+                <option value="coupang">酷彭</option>
+                <option value="mercari">Mercari</option>
+                <option value="pinduoduo">拼多多</option>
+                <option value="shopee">蝦皮</option>
+                <option value="taobao">淘寶</option>
+                <option value="xianyu">閒魚</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>分類</label>
+              <select id="modal-category-select">
+                <option value="all">全部分類</option>
+                <option value="推薦">推薦</option>
+                <option value="服飾">服飾</option>
+                <option value="3C">3C</option>
+                <option value="家電">家電</option>
+                <option value="美妝">美妝</option>
+                <option value="食品">食品</option>
+                <option value="書籍">書籍</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-row half">
+              <div>
+                <label>最低價格</label>
+                <input id="modal-min-price" type="number" placeholder="NT$">
+              </div>
+              <div>
+                <label>最高價格</label>
+                <input id="modal-max-price" type="number" placeholder="NT$">
+              </div>
+            </div>
+            <div class="ai-recommend-section" id="ai-recommend-section" hidden>
+              <div class="ai-recommend-header">
+                <i class="fas fa-robot"></i>
+                <span>智能推薦</span>
+              </div>
+              <div class="recommend-source-select">
+                <label>推薦來源：</label>
+                <select id="recommend-source">
+                  <option value="both">綜合推薦</option>
+                  <option value="bigdata">大數據推薦</option>
+                  <option value="char">角色推薦</option>
+                </select>
+              </div>
+              <div class="ai-recommend-group" id="bigdata-recommend-group">
+                <div class="recommend-group-header">
+                  <i class="fas fa-chart-line"></i>
+                  <span>大數據推薦</span>
+                  <span class="recommend-count" id="bigdata-count">0 件</span>
+                </div>
+                <div class="ai-recommend-list" id="bigdata-recommend-list"></div>
+              </div>
+              <div class="ai-recommend-group" id="char-recommend-group" hidden>
+                <div class="recommend-group-header">
+                  <i class="fas fa-user"></i>
+                  <span id="char-recommend-name">角色推薦</span>
+                  <span class="recommend-count" id="char-count">0 件</span>
+                </div>
+                <div class="ai-recommend-list" id="char-recommend-list"></div>
+              </div>
+              <div class="ai-recommend-actions">
+                <button class="import-btn secondary" id="ai-recommend-refresh" type="button">
+                  <i class="fas fa-refresh"></i> 重新推薦
+                </button>
+                <button class="import-btn primary" id="ai-recommend-add" type="button">
+                  <i class="fas fa-plus"></i> 加入購物車
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="search-actions">
+            <button class="import-btn secondary" data-action="close-search">取消</button>
+            <button class="import-btn primary" id="modal-search-btn" type="button">
+              <i class="fas fa-magnifying-glass"></i> 搜尋
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="import-modal hidden" id="settings-modal">
+      <div class="modal-backdrop" data-action="close-settings"></div>
+      <div class="modal-card settings-card">
+        <div class="modal-header">
+          <h3><i class="fas fa-gear"></i> 設定</h3>
+          <button class="modal-close" data-action="close-settings"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="settings-section">
+            <h4><i class="fas fa-file-import"></i> 導入商品</h4>
+            <div class="import-tabs">
+              <button class="import-tab active" data-import-tab="url">貼上網址</button>
+              <button class="import-tab" data-import-tab="manual">手動輸入</button>
+              <button class="import-tab" data-import-tab="batch">批量導入</button>
+            </div>
+            
+            <div class="import-content" id="import-url">
+              <div class="platform-select-row">
+                <label>來源平台</label>
+                <select id="import-platform-select">
+                  <option value="auto">自動偵測</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="coupang">酷彭</option>
+                  <option value="mercari">Mercari</option>
+                  <option value="pinduoduo">拼多多</option>
+                  <option value="shopee">蝦皮</option>
+                  <option value="taobao">淘寶</option>
+                  <option value="xianyu">閒魚</option>
+                </select>
+              </div>
+              <div class="import-url-input">
+                <i class="fas fa-link"></i>
+                <input id="import-url-input" type="text" placeholder="貼上商品或購物車網址">
+              </div>
+              <div class="import-url-hint">
+                <span>支援：Amazon / 酷彭 / Mercari / 拼多多 / 蝦皮 / 淘寶 / 閒魚</span>
+              </div>
+              <button class="import-btn primary" id="import-url-btn" type="button">
+                <i class="fas fa-download"></i> 解析並導入
+              </button>
+            </div>
+            
+            <div class="import-content hidden" id="import-manual">
+              <div class="manual-form">
+                <div class="form-row">
+                  <label>商品名稱</label>
+                  <input id="manual-name" type="text" placeholder="輸入商品名稱">
+                </div>
+                <div class="form-row half">
+                  <div>
+                    <label>價格 (NT$)</label>
+                    <input id="manual-price" type="number" placeholder="輸入價格">
+                  </div>
+                  <div>
+                    <label>來源平台</label>
+                    <select id="manual-platform">
+                      <option value="amazon">Amazon</option>
+                      <option value="coupang">酷彭</option>
+                      <option value="mercari">Mercari</option>
+                      <option value="pinduoduo">拼多多</option>
+                      <option value="shopee">蝦皮</option>
+                      <option value="taobao">淘寶</option>
+                      <option value="xianyu">閒魚</option>
+                      <option value="other">其他</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row half">
+                  <div>
+                    <label>商品分類</label>
+                    <select id="manual-category">
+                      <option value="推薦">推薦</option>
+                      <option value="服飾">服飾</option>
+                      <option value="3C">3C</option>
+                      <option value="家電">家電</option>
+                      <option value="美妝">美妝</option>
+                      <option value="食品">食品</option>
+                      <option value="書籍">書籍</option>
+                      <option value="其他">其他</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>商品圖片</label>
+                    <div class="thumb-upload-small">
+                      <div class="thumb-preview-small" id="manual-thumb-preview">
+                        <i class="fas fa-image"></i>
+                      </div>
+                      <input type="file" id="manual-thumb-file" accept="image/*" hidden>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="import-btn primary" id="manual-add-btn" type="button">
+                <i class="fas fa-plus"></i> 新增商品
+              </button>
+            </div>
+            
+            <div class="import-content hidden" id="import-batch">
+              <div class="batch-hint">
+                <i class="fas fa-info-circle"></i>
+                <span>每行一個商品，格式：商品名：商品名稱,價格,平台,分類</span>
+              </div>
+              <textarea id="batch-textarea" placeholder="例如：
+範例商品A,599,amazon,3C
+範例上衣,259,shopee,服飾
+範例零食,188,taobao,食品"></textarea>
+              <button class="import-btn primary" id="batch-import-btn" type="button">
+                <i class="fas fa-layer-group"></i> 批量導入
+              </button>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h4><i class="fas fa-users"></i> 夥伴角色</h4>
+            <div class="char-companion-list" id="char-companion-list"></div>
+            <div class="form-row">
+              <label>選擇角色（可選 1-3 位）</label>
+              <div class="char-select-grid" id="char-select-grid"></div>
+            </div>
+            <div class="form-row">
+              <label>對話頻率</label>
+              <select id="advice-frequency" aria-label="對話頻率">
+                <option value="10000">頻繁 (10秒)</option>
+                <option value="20000">普通(20秒)</option>
+                <option value="30000">偶爾 (30秒)</option>
+                <option value="60000">稀少(1分鐘)</option>
+                <option value="0">關閉自動對話</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>成人內容設定</label>
+              <div class="adult-content-settings">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="show-adult-content">
+                  <span>顯示成人內容商品</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="allow-adult-recommend">
+                  <span>允許推薦成人商品</span>
+                </label>
+                <p class="setting-hint">開啟後成人商品以模糊遮罩顯示，不影響推薦功能</p>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>參考資料來源</label>
+              <div class="data-source-info">
+                <span class="source-badge"><i class="fas fa-book"></i> 世界書</span>
+                <span class="source-badge"><i class="fas fa-comments"></i> 聊天紀錄</span>
+                <span class="source-hint">（強烈建議開啟以過濾不適合的推薦）</span>
+              </div>
+            </div>
+            <div class="char-companion-advice" id="char-advice" hidden>
+              <div class="advice-bubble">
+                <div class="advice-text" id="advice-text"></div>
+                <div class="advice-time" id="advice-time"></div>
+              </div>
+            </div>
+            <div class="char-companion-actions">
+              <button class="advice-btn" id="get-advice-btn" type="button">
+                <i class="fas fa-lightbulb"></i> 詢問意見
+              </button>
+              <button class="advice-btn" id="budget-btn" type="button">
+                <i class="fas fa-calculator"></i> 支出規劃
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="import-modal hidden" id="persist-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card persist-card">
+      <div class="modal-header">
+        <h3><i class="fas fa-save"></i> 偵測到未保存資料</h3>
+      </div>
+      <div class="modal-body">
+        <p class="persist-hint">頁面即將刷新，偵測到未保存的項目：</p>
+        <div class="persist-list" id="persist-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="import-btn secondary" id="persist-discard-all" type="button">全部捨棄</button>
+        <button class="import-btn primary" id="persist-save-selected" type="button">保存選取</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="taobao.js"></script>
+</body>
+</html>

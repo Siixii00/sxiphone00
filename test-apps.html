@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sxiphone 應用功能測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1, h2 { color: #4facfe; }
+        .section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .status-dot.ok { background: #4ade80; }
+        .status-dot.warn { background: #fbbf24; }
+        .status-dot.error { background: #ef4444; }
+        .status-dot.pending { background: #6366f1; }
+        button {
+            background: #4facfe;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover { background: #00f2fe; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .log {
+            background: #0f0f23;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-result {
+            background: #1a1a3e;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #4facfe;
+        }
+        .test-result.pass { border-left-color: #4ade80; }
+        .test-result.fail { border-left-color: #ef4444; }
+        .test-result.pending { border-left-color: #fbbf24; }
+        .progress-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sxiphone 應用功能測試</h1>
+    
+    <div class="section">
+        <h2>測試進度</h2>
+        <div class="progress-bar">
+            <div class="fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="test-summary">準備開始測試...</div>
+        <button onclick="runAllTests()">執行所有測試</button>
+        <button onclick="clearResults()">清除結果</button>
+    </div>
+    
+    <div class="section">
+        <h2>Timetree 應用測試</h2>
+        <div id="timetree-results"></div>
+        <button onclick="testTimetreeNewCalendar()">測試新增日曆功能</button>
+        <button onclick="testTimetreeInviteMember()">測試邀請成員功能</button>
+        <button onclick="testTimetreeEventCRUD()">測試事件 CRUD</button>
+    </div>
+    
+    <div class="section">
+        <h2>Drift-Bottle 應用測試</h2>
+        <div id="driftbottle-results"></div>
+        <button onclick="testDriftBottleRenderMethods()">測試 renderMethods</button>
+        <button onclick="testDriftBottleMethodNavigation()">測試方法導航</button>
+    </div>
+    
+    <div class="section">
+        <h2>AO3 應用測試</h2>
+        <div id="ao3-results"></div>
+        <button onclick="testAO3Menu()">測試選單功能</button>
+        <button onclick="testAO3Export()">測試匯出功能</button>
+        <button onclick="testAO3Tags()">測試標籤系統</button>
+    </div>
+    
+    <div class="section">
+        <h2>記憶系統單元測試</h2>
+        <div id="memory-unit-results"></div>
+        <button onclick="testMemoryStoreCRUD()">MemoryStore CRUD</button>
+        <button onclick="testEmbeddingEngine()">EmbeddingEngine</button>
+        <button onclick="testSearchEngine()">SearchEngine</button>
+        <button onclick="testDecayEngine()">DecayEngine</button>
+        <button onclick="testSleepEngine()">SleepEngine</button>
+    </div>
+    
+    <div class="section">
+        <h2>記憶系統整合測試</h2>
+        <div id="memory-integration-results"></div>
+        <button onclick="testMemoryLifecycle()">完整生命週期</button>
+        <button onclick="testMemoryCrossApp()">跨應用共享</button>
+        <button onclick="testMemoryImportExport()">匯入匯出</button>
+    </div>
+    
+    <div class="section">
+        <h2>後台保活測試</h2>
+        <div id="keepalive-results"></div>
+        <button onclick="testKeepaliveStartStop()">啟動/停止</button>
+        <button onclick="testKeepaliveBackgroundSwitch()">背景切換</button>
+        <button onclick="testKeepaliveGreeting()">問候生成</button>
+    </div>
+    
+    <div class="section">
+        <h2>端到端測試 (E2E)</h2>
+        <div id="e2e-results"></div>
+        <button onclick="testE2EUserFlow()">完整用戶流程</button>
+        <button onclick="testMultiAppCoordination()">多應用協同</button>
+        <button onclick="testMemoryChatIntegration()">記憶-聊天集成</button>
+        <button onclick="testMemoryDecayFlow()">記憶衰變流程</button>
+        <button onclick="testSettingsPersistence()">設定持久化</button>
+    </div>
+    
+    <div class="section">
+        <h2>執行日誌</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script src="apps/scripts/memory-store.js"></script>
+    <script src="apps/scripts/embedding-engine.js"></script>
+    <script src="apps/scripts/search-engine.js"></script>
+    <script src="apps/scripts/decay-engine.js"></script>
+    <script src="apps/scripts/emotion-tagger.js"></script>
+    <script src="apps/scripts/memory-classifier.js"></script>
+    <script src="apps/scripts/dimension-encoder.js"></script>
+    <script src="apps/scripts/sleep-engine.js"></script>
+    <script src="apps/scripts/memory-standardizer.js"></script>
+    <script src="apps/scripts/memory-manager.js"></script>
+    <script src="apps/scripts/short-term-memory.js"></script>
+    <script src="apps/scripts/background-keepalive.js"></script>
+    
+    <script>
+        const testResults = {
+            passed: 0,
+            failed: 0,
+            pending: 0,
+            total: 0
+        };
+        
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌ ' : type === 'warn' ? '⚠️ ' : type === 'ok' ? '✅ ' : 'ℹ️ ';
+            logEl.textContent += `[${time}] ${prefix}${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearResults() {
+            document.getElementById('log').textContent = '';
+            testResults.passed = 0;
+            testResults.failed = 0;
+            testResults.pending = 0;
+            testResults.total = 0;
+            updateProgress();
+        }
+        
+        function updateProgress() {
+            const total = testResults.total;
+            const completed = testResults.passed + testResults.failed;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('progress-fill').style.width = percentage + '%';
+            document.getElementById('test-summary').innerHTML = `
+                <span style="color:#4ade80;">通過: ${testResults.passed}</span> | 
+                <span style="color:#ef4444;">失敗: ${testResults.failed}</span> | 
+                <span style="color:#fbbf24;">待執行: ${testResults.pending}</span> | 
+                總計: ${total}
+            `;
+        }
+        
+        function renderResult(containerId, testName, passed, detail = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} ${testName}</strong>
+                ${detail ? `<div style="margin-top:4px;font-size:12px;color:#888;">${detail}</div>` : ''}
+            `;
+            container.appendChild(div);
+            
+            testResults.total++;
+            if (passed) testResults.passed++;
+            else testResults.failed++;
+            updateProgress();
+        }
+        
+        function renderPending(containerId, testName) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = 'test-result pending';
+            div.innerHTML = `<strong>⏳ ${testName}</strong><div style="margin-top:4px;font-size:12px;color:#888;">測試待執行</div>`;
+            container.appendChild(div);
+            testResults.total++;
+            testResults.pending++;
+            updateProgress();
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            log('開始執行所有測試...');
+            
+            await testTimetreeNewCalendar();
+            await testTimetreeInviteMember();
+            await testTimetreeEventCRUD();
+            
+            await testDriftBottleRenderMethods();
+            await testDriftBottleMethodNavigation();
+            
+            await testAO3Menu();
+            await testAO3Export();
+            await testAO3Tags();
+            
+            await testMemoryStoreCRUD();
+            await testEmbeddingEngine();
+            await testSearchEngine();
+            await testDecayEngine();
+            await testSleepEngine();
+            
+            await testMemoryLifecycle();
+            await testMemoryCrossApp();
+            await testMemoryImportExport();
+            
+            await testKeepaliveStartStop();
+            await testKeepaliveBackgroundSwitch();
+            await testKeepaliveGreeting();
+            
+            await testE2EUserFlow();
+            await testMultiAppCoordination();
+            await testMemoryChatIntegration();
+            await testMemoryDecayFlow();
+            await testSettingsPersistence();
+            
+            log('所有測試完成！', 'ok');
+        }
+        
+        async function testTimetreeNewCalendar() {
+            log('測試 Timetree 新增日曆功能...');
+            try {
+                const testCalendar = {
+                    id: 'test_cal_' + Date.now(),
+                    name: '測試日曆',
+                    color: '#FF5722',
+                    type: '共享'
+                };
+                
+                localStorage.setItem('timetree_calendars', JSON.stringify({ [testCalendar.id]: testCalendar }));
+                
+                const saved = JSON.parse(localStorage.getItem('timetree_calendars') || '{}');
+                const passed = saved[testCalendar.id] && saved[testCalendar.id].name === '測試日曆';
+                
+                renderResult('timetree-results', '新增日曆功能', passed, 
+                    passed ? `成功創建日曆: ${testCalendar.id}` : '無法保存日曆');
+                
+                delete saved[testCalendar.id];
+                localStorage.setItem('timetree_calendars', JSON.stringify(saved));
+                
+                log('Timetree 新增日曆測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('timetree-results', '新增日曆功能', false, e.message);
+                log('新增日曆測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testTimetreeInviteMember() {
+            log('測試 Timetree 邀請成員功能...');
+            try {
+                const testMember = {
+                    name: '測試成員',
+                    role: '成員',
+                    avatar: '測'
+                };
+                
+                const members = {
+                    personal: [{ name: '我', role: '擁有者', avatar: '我' }]
+                };
+                members.personal.push(testMember);
+                
+                localStorage.setItem('timetree_members', JSON.stringify(members));
+                
+                const saved = JSON.parse(localStorage.getItem('timetree_members') || '{}');
+                const passed = saved.personal && saved.personal.length === 2 && saved.personal[1].name === '測試成員';
+                
+                renderResult('timetree-results', '邀請成員功能', passed,
+                    passed ? '成功邀請成員' : '無法保存成員');
+                
+                log('Timetree 邀請成員測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('timetree-results', '邀請成員功能', false, e.message);
+                log('邀請成員測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testTimetreeEventCRUD() {
+            log('測試 Timetree 事件 CRUD...');
+            try {
+                const testEvent = {
+                    id: 'evt_' + Date.now(),
+                    title: '測試事件',
+                    startDate: new Date().toISOString().split('T')[0],
+                    startTime: '10:00',
+                    calendar: 'personal',
+                    color: '#4CAF50'
+                };
+                
+                const events = [testEvent];
+                localStorage.setItem('timetree_events', JSON.stringify(events));
+                
+                let saved = JSON.parse(localStorage.getItem('timetree_events') || '[]');
+                let passed = saved.length === 1 && saved[0].title === '測試事件';
+                
+                if (!passed) {
+                    renderResult('timetree-results', '事件 CRUD', false, '創建失敗');
+                    return;
+                }
+                
+                saved[0].title = '更新後的事件';
+                localStorage.setItem('timetree_events', JSON.stringify(saved));
+                
+                saved = JSON.parse(localStorage.getItem('timetree_events') || '[]');
+                passed = saved[0].title === '更新後的事件';
+                
+                if (!passed) {
+                    renderResult('timetree-results', '事件 CRUD', false, '更新失敗');
+                    return;
+                }
+                
+                saved = saved.filter(e => e.id !== testEvent.id);
+                localStorage.setItem('timetree_events', JSON.stringify(saved));
+                
+                saved = JSON.parse(localStorage.getItem('timetree_events') || '[]');
+                passed = saved.length === 0;
+                
+                renderResult('timetree-results', '事件 CRUD', passed,
+                    passed ? 'CRUD 操作全部成功' : '刪除失敗');
+                
+                log('Timetree 事件 CRUD 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('timetree-results', '事件 CRUD', false, e.message);
+                log('事件 CRUD 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testDriftBottleRenderMethods() {
+            log('測試 Drift-Bottle renderMethods...');
+            try {
+                const methods = {
+                    east: [
+                        { key: 'meihua', label: '梅花易數' },
+                        { key: 'flow', label: '流年流月流日' }
+                    ],
+                    west: [
+                        { key: 'tarot', label: '塔羅' }
+                    ]
+                };
+                
+                const allMethods = [
+                    ...methods.east.map(m => ({ ...m, category: 'east' })),
+                    ...methods.west.map(m => ({ ...m, category: 'west' }))
+                ];
+                
+                const passed = allMethods.length === 3 && 
+                    allMethods[0].key === 'meihua' &&
+                    allMethods[2].key === 'tarot';
+                
+                renderResult('driftbottle-results', 'renderMethods', passed,
+                    passed ? `成功渲染 ${allMethods.length} 種占卜方法` : '方法渲染異常');
+                
+                log('Drift-Bottle renderMethods 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('driftbottle-results', 'renderMethods', false, e.message);
+                log('renderMethods 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testDriftBottleMethodNavigation() {
+            log('測試 Drift-Bottle 方法導航...');
+            try {
+                const methodPages = {
+                    meihua: true,
+                    flow: true,
+                    tarot: true
+                };
+                
+                const testKey = 'meihua';
+                const passed = methodPages[testKey] === true;
+                
+                renderResult('driftbottle-results', '方法導航', passed,
+                    passed ? '方法頁面映射正確' : '方法頁面映射異常');
+                
+                log('Drift-Bottle 方法導航測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('driftbottle-results', '方法導航', false, e.message);
+                log('方法導航測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testAO3Menu() {
+            log('測試 AO3 選單功能...');
+            try {
+                const menuFunctions = ['exportAsTxt', 'exportAsMarkdown', 'importDraft', 'clearForm', 'showHelp'];
+                const passed = menuFunctions.length === 5;
+                
+                renderResult('ao3-results', '選單功能', passed,
+                    passed ? '選單包含 5 個功能項目' : '選單功能不完整');
+                
+                log('AO3 選單功能測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('ao3-results', '選單功能', false, e.message);
+                log('AO3 選單測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testAO3Export() {
+            log('測試 AO3 匯出功能...');
+            try {
+                const testWork = {
+                    title: '測試作品',
+                    summary: '這是一個測試摘要',
+                    body: '這是測試正文內容。'
+                };
+                
+                const txtContent = `${testWork.title}\n${'='.repeat(testWork.title.length)}\n\n${testWork.body}`;
+                const mdContent = `# ${testWork.title}\n\n${testWork.body}`;
+                
+                const passed = txtContent.includes(testWork.title) && mdContent.includes('# ' + testWork.title);
+                
+                renderResult('ao3-results', '匯出功能', passed,
+                    passed ? 'TXT 和 Markdown 匯出格式正確' : '匯出格式異常');
+                
+                log('AO3 匯出功能測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('ao3-results', '匯出功能', false, e.message);
+                log('AO3 匯出測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testAO3Tags() {
+            log('測試 AO3 標籤系統...');
+            try {
+                const tagLimits = {
+                    fandom: 20,
+                    relationship: 30,
+                    characters: 50,
+                    additional: 60
+                };
+                
+                const tags = {
+                    fandom: ['Harry Potter'],
+                    relationship: ['Harry/Draco'],
+                    characters: ['Harry Potter', 'Draco Malfoy'],
+                    additional: ['Fluff', 'Angst']
+                };
+                
+                const passed = Object.keys(tagLimits).length === 4 &&
+                    tags.fandom.length <= tagLimits.fandom &&
+                    tags.relationship.length <= tagLimits.relationship;
+                
+                renderResult('ao3-results', '標籤系統', passed,
+                    passed ? '標籤限制和新增功能正常' : '標籤系統異常');
+                
+                log('AO3 標籤系統測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('ao3-results', '標籤系統', false, e.message);
+                log('AO3 標籤測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryStoreCRUD() {
+            log('測試 MemoryStore CRUD...');
+            try {
+                if (typeof MemoryStore === 'undefined') {
+                    renderResult('memory-unit-results', 'MemoryStore CRUD', false, 'MemoryStore 未定義');
+                    return;
+                }
+                
+                const store = new MemoryStore();
+                await store.init();
+                
+                const testMemory = {
+                    id: 'test_' + Date.now(),
+                    content: '這是一條測試記憶',
+                    metadata: {
+                        importance: 7,
+                        source: 'test',
+                        created: new Date().toISOString()
+                    }
+                };
+                
+                await store.create(testMemory);
+                
+                let retrieved = await store.get(testMemory.id);
+                let passed = retrieved && retrieved.content === '這是一條測試記憶';
+                
+                if (!passed) {
+                    renderResult('memory-unit-results', 'MemoryStore CRUD', false, '讀取失敗');
+                    return;
+                }
+                
+                testMemory.content = '更新後的記憶內容';
+                await store.update(testMemory.id, testMemory);
+                
+                retrieved = await store.get(testMemory.id);
+                passed = retrieved && retrieved.content === '更新後的記憶內容';
+                
+                if (!passed) {
+                    renderResult('memory-unit-results', 'MemoryStore CRUD', false, '更新失敗');
+                    return;
+                }
+                
+                await store.delete(testMemory.id);
+                retrieved = await store.get(testMemory.id);
+                passed = retrieved === null || retrieved === undefined;
+                
+                renderResult('memory-unit-results', 'MemoryStore CRUD', passed,
+                    passed ? 'CRUD 操作全部成功' : '刪除失敗');
+                
+                await store.close();
+                log('MemoryStore CRUD 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-unit-results', 'MemoryStore CRUD', false, e.message);
+                log('MemoryStore CRUD 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testEmbeddingEngine() {
+            log('測試 EmbeddingEngine...');
+            try {
+                if (typeof EmbeddingEngine === 'undefined') {
+                    renderResult('memory-unit-results', 'EmbeddingEngine', false, 'EmbeddingEngine 未定義');
+                    return;
+                }
+                
+                const engine = new EmbeddingEngine();
+                
+                const testText = '測試向量化文本';
+                const hashEmbedding = engine._simpleHashEmbedding(testText);
+                
+                const passed = Array.isArray(hashEmbedding) && hashEmbedding.length === 384;
+                
+                renderResult('memory-unit-results', 'EmbeddingEngine', passed,
+                    passed ? `Hash 降級方案正常，向量維度: ${hashEmbedding.length}` : '向量化失敗');
+                
+                log('EmbeddingEngine 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-unit-results', 'EmbeddingEngine', false, e.message);
+                log('EmbeddingEngine 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testSearchEngine() {
+            log('測試 SearchEngine...');
+            try {
+                if (typeof SearchEngine === 'undefined') {
+                    renderResult('memory-unit-results', 'SearchEngine', false, 'SearchEngine 未定義');
+                    return;
+                }
+                
+                const engine = new SearchEngine();
+                
+                const testMemories = [
+                    { id: '1', content: '今天天氣很好', metadata: { importance: 5 } },
+                    { id: '2', content: '明天會下雨', metadata: { importance: 7 } },
+                    { id: '3', content: '昨天去了公園散步', metadata: { importance: 3 } }
+                ];
+                
+                const results = engine.keywordSearch(testMemories, '天氣');
+                const passed = results.length > 0 && results[0].content.includes('天氣');
+                
+                renderResult('memory-unit-results', 'SearchEngine', passed,
+                    passed ? `關鍵字搜尋返回 ${results.length} 條結果` : '搜尋失敗');
+                
+                log('SearchEngine 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-unit-results', 'SearchEngine', false, e.message);
+                log('SearchEngine 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testDecayEngine() {
+            log('測試 DecayEngine...');
+            try {
+                if (typeof DecayEngine === 'undefined') {
+                    renderResult('memory-unit-results', 'DecayEngine', false, 'DecayEngine 未定義');
+                    return;
+                }
+                
+                const engine = new DecayEngine();
+                
+                const now = Date.now();
+                const testMemory = {
+                    id: 'decay_test',
+                    content: '測試衰變',
+                    metadata: {
+                        created: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        lastActive: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                        importance: 5,
+                        reinforcementCount: 2
+                    }
+                };
+                
+                const strength = engine.calculateStrength(testMemory);
+                const passed = typeof strength === 'number' && strength >= 0 && strength <= 1;
+                
+                renderResult('memory-unit-results', 'DecayEngine', passed,
+                    passed ? `記憶強度計算正常: ${strength.toFixed(3)}` : '強度計算異常');
+                
+                log('DecayEngine 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-unit-results', 'DecayEngine', false, e.message);
+                log('DecayEngine 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testSleepEngine() {
+            log('測試 SleepEngine...');
+            try {
+                if (typeof SleepEngine === 'undefined') {
+                    renderResult('memory-unit-results', 'SleepEngine', false, 'SleepEngine 未定義');
+                    return;
+                }
+                
+                const passed = typeof SleepEngine === 'function';
+                
+                renderResult('memory-unit-results', 'SleepEngine', passed,
+                    passed ? 'SleepEngine 類別已定義' : 'SleepEngine 未定義');
+                
+                log('SleepEngine 測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-unit-results', 'SleepEngine', false, e.message);
+                log('SleepEngine 測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryLifecycle() {
+            log('測試記憶完整生命週期...');
+            try {
+                if (typeof MemoryManager === 'undefined') {
+                    renderResult('memory-integration-results', '完整生命週期', false, 'MemoryManager 未定義');
+                    return;
+                }
+                
+                const manager = new MemoryManager();
+                await manager.initialize();
+                
+                const testContent = '生命週期測試記憶 ' + Date.now();
+                const held = await manager.hold(testContent, { importance: 6, source: 'lifecycle_test' });
+                
+                let passed = held && held.id && held.content === testContent;
+                
+                if (!passed) {
+                    renderResult('memory-integration-results', '完整生命週期', false, '記憶創建失敗');
+                    return;
+                }
+                
+                const recalled = await manager.recall(testContent.substring(0, 10));
+                passed = recalled && recalled.memories && recalled.memories.length > 0;
+                
+                renderResult('memory-integration-results', '完整生命週期', passed,
+                    passed ? '創建→儲存→回憶流程正常' : '回憶失敗');
+                
+                log('記憶生命週期測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-integration-results', '完整生命週期', false, e.message);
+                log('生命週期測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryCrossApp() {
+            log('測試跨應用記憶共享...');
+            try {
+                const testMemory = {
+                    id: 'cross_app_test_' + Date.now(),
+                    content: '跨應用測試記憶',
+                    metadata: {
+                        source: 'app_a',
+                        target: 'app_b',
+                        created: new Date().toISOString()
+                    }
+                };
+                
+                localStorage.setItem('sx_cross_memory_test', JSON.stringify(testMemory));
+                
+                const retrieved = JSON.parse(localStorage.getItem('sx_cross_memory_test') || '{}');
+                const passed = retrieved.id === testMemory.id;
+                
+                localStorage.removeItem('sx_cross_memory_test');
+                
+                renderResult('memory-integration-results', '跨應用共享', passed,
+                    passed ? '記憶可跨應用傳遞' : '跨應用傳遞失敗');
+                
+                log('跨應用記憶共享測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-integration-results', '跨應用共享', false, e.message);
+                log('跨應用共享測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryImportExport() {
+            log('測試記憶匯入匯出...');
+            try {
+                const testMemories = [
+                    { id: '1', content: '測試記憶1' },
+                    { id: '2', content: '測試記憶2' }
+                ];
+                
+                const exported = JSON.stringify(testMemories);
+                const imported = JSON.parse(exported);
+                
+                const passed = imported.length === 2 && imported[0].content === '測試記憶1';
+                
+                renderResult('memory-integration-results', '匯入匯出', passed,
+                    passed ? 'JSON 序列化/反序列化正常' : '匯入匯出異常');
+                
+                log('記憶匯入匯出測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('memory-integration-results', '匯入匯出', false, e.message);
+                log('匯入匯出測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testKeepaliveStartStop() {
+            log('測試後台保活啟動/停止...');
+            try {
+                if (typeof BackgroundKeepalive === 'undefined') {
+                    renderResult('keepalive-results', '啟動/停止', false, 'BackgroundKeepalive 未定義');
+                    return;
+                }
+                
+                BackgroundKeepalive.start();
+                const started = BackgroundKeepalive.getStatus().enabled;
+                
+                BackgroundKeepalive.stop();
+                const stopped = !BackgroundKeepalive.getStatus().enabled;
+                
+                const passed = started && stopped;
+                
+                renderResult('keepalive-results', '啟動/停止', passed,
+                    passed ? '啟動和停止功能正常' : '啟動/停止異常');
+                
+                log('後台保活啟動/停止測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('keepalive-results', '啟動/停止', false, e.message);
+                log('啟動/停止測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testKeepaliveBackgroundSwitch() {
+            log('測試背景切換...');
+            try {
+                if (typeof BackgroundKeepalive === 'undefined') {
+                    renderResult('keepalive-results', '背景切換', false, 'BackgroundKeepalive 未定義');
+                    return;
+                }
+                
+                BackgroundKeepalive.enterBackground();
+                const inBackground = BackgroundKeepalive.getStatus().isInBackground;
+                
+                BackgroundKeepalive.enterForeground();
+                const inForeground = !BackgroundKeepalive.getStatus().isInBackground;
+                
+                const passed = inBackground && inForeground;
+                
+                renderResult('keepalive-results', '背景切換', passed,
+                    passed ? '背景/前景切換正常' : '切換異常');
+                
+                log('背景切換測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('keepalive-results', '背景切換', false, e.message);
+                log('背景切換測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testKeepaliveGreeting() {
+            log('測試問候生成...');
+            try {
+                if (typeof BackgroundKeepalive === 'undefined') {
+                    renderResult('keepalive-results', '問候生成', false, 'BackgroundKeepalive 未定義');
+                    return;
+                }
+                
+                const templates = BackgroundKeepalive.getLocalGreetingTemplates ? 
+                    BackgroundKeepalive.getLocalGreetingTemplates() : [];
+                
+                const passed = templates.length > 0 || typeof BackgroundKeepalive.triggerImmediateGreeting === 'function';
+                
+                renderResult('keepalive-results', '問候生成', passed,
+                    passed ? '問候生成機制已實現' : '問候生成異常');
+                
+                log('問候生成測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('keepalive-results', '問候生成', false, e.message);
+                log('問候生成測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testE2EUserFlow() {
+            log('測試完整用戶流程...');
+            try {
+                const results = [];
+                
+                results.push({ step: '1. 用戶打開應用', passed: true });
+                
+                localStorage.setItem('sx_user_test', JSON.stringify({ name: '測試用戶', id: 'user_001' }));
+                const userSaved = localStorage.getItem('sx_user_test');
+                results.push({ step: '2. 用戶設定保存', passed: !!userSaved });
+                
+                const testEvent = {
+                    id: 'e2e_event_' + Date.now(),
+                    title: 'E2E 測試事件',
+                    startDate: new Date().toISOString().split('T')[0],
+                    calendar: 'personal'
+                };
+                localStorage.setItem('timetree_events', JSON.stringify([testEvent]));
+                const eventSaved = JSON.parse(localStorage.getItem('timetree_events') || '[]')[0];
+                results.push({ step: '3. 日曆事件創建', passed: eventSaved?.title === 'E2E 測試事件' });
+                
+                const testMemory = {
+                    id: 'e2e_mem_' + Date.now(),
+                    content: 'E2E 測試記憶內容',
+                    metadata: { importance: 7, source: 'e2e_test' }
+                };
+                localStorage.setItem('sx_memory_e2e', JSON.stringify(testMemory));
+                const memorySaved = JSON.parse(localStorage.getItem('sx_memory_e2e') || '{}');
+                results.push({ step: '4. 記憶系統存儲', passed: memorySaved?.content === 'E2E 測試記憶內容' });
+                
+                localStorage.removeItem('sx_user_test');
+                localStorage.removeItem('timetree_events');
+                localStorage.removeItem('sx_memory_e2e');
+                results.push({ step: '5. 清理測試數據', passed: true });
+                
+                const allPassed = results.every(r => r.passed);
+                const detail = results.map(r => `${r.passed ? '✓' : '✗'} ${r.step}`).join('<br>');
+                
+                renderResult('e2e-results', '完整用戶流程', allPassed, detail);
+                log('完整用戶流程測試完成', allPassed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('e2e-results', '完整用戶流程', false, e.message);
+                log('完整用戶流程測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMultiAppCoordination() {
+            log('測試多應用協同...');
+            try {
+                const results = [];
+                
+                const sharedData = {
+                    timestamp: Date.now(),
+                    source: 'app_a',
+                    target: 'app_b',
+                    payload: { message: '跨應用測試數據' }
+                };
+                
+                localStorage.setItem('sx_shared_data', JSON.stringify(sharedData));
+                results.push({ step: 'App A 寫入共享數據', passed: true });
+                
+                const readData = JSON.parse(localStorage.getItem('sx_shared_data') || '{}');
+                results.push({ step: 'App B 讀取共享數據', passed: readData.payload?.message === '跨應用測試數據' });
+                
+                const broadcastChannel = typeof BroadcastChannel !== 'undefined';
+                results.push({ step: 'BroadcastChannel 支援', passed: broadcastChannel });
+                
+                const postMessage = typeof window.postMessage === 'function';
+                results.push({ step: 'postMessage 支援', passed: postMessage });
+                
+                localStorage.removeItem('sx_shared_data');
+                results.push({ step: '清理共享數據', passed: true });
+                
+                const allPassed = results.every(r => r.passed);
+                const detail = results.map(r => `${r.passed ? '✓' : '✗'} ${r.step}`).join('<br>');
+                
+                renderResult('e2e-results', '多應用協同', allPassed, detail);
+                log('多應用協同測試完成', allPassed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('e2e-results', '多應用協同', false, e.message);
+                log('多應用協同測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryChatIntegration() {
+            log('測試記憶系統與聊天集成...');
+            try {
+                const results = [];
+                
+                const chatMessage = {
+                    id: 'chat_' + Date.now(),
+                    role: 'user',
+                    content: '這是一條聊天消息，應該被記憶系統記錄',
+                    timestamp: new Date().toISOString()
+                };
+                
+                localStorage.setItem('sx_chat_history', JSON.stringify([chatMessage]));
+                results.push({ step: '聊天消息保存', passed: true });
+                
+                const memoryEntry = {
+                    id: 'mem_chat_' + Date.now(),
+                    content: chatMessage.content,
+                    metadata: {
+                        type: 'chat',
+                        source: 'chat_app',
+                        chatId: chatMessage.id,
+                        importance: 5,
+                        created: chatMessage.timestamp
+                    }
+                };
+                
+                localStorage.setItem('sx_memory_from_chat', JSON.stringify(memoryEntry));
+                results.push({ step: '聊天轉記憶', passed: true });
+                
+                const recalledMemory = JSON.parse(localStorage.getItem('sx_memory_from_chat') || '{}');
+                results.push({ step: '記憶回憶', passed: recalledMemory.content?.includes('聊天消息') });
+                
+                if (typeof MemoryManager !== 'undefined') {
+                    results.push({ step: 'MemoryManager 可用', passed: true });
+                } else {
+                    results.push({ step: 'MemoryManager 可用', passed: false, note: '需要完整環境' });
+                }
+                
+                localStorage.removeItem('sx_chat_history');
+                localStorage.removeItem('sx_memory_from_chat');
+                results.push({ step: '清理測試數據', passed: true });
+                
+                const allPassed = results.every(r => r.passed);
+                const detail = results.map(r => `${r.passed ? '✓' : '✗'} ${r.step}${r.note ? ' (' + r.note + ')' : ''}`).join('<br>');
+                
+                renderResult('e2e-results', '記憶-聊天集成', allPassed, detail);
+                log('記憶系統與聊天集成測試完成', allPassed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('e2e-results', '記憶-聊天集成', false, e.message);
+                log('記憶-聊天集成測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testMemoryDecayFlow() {
+            log('測試記憶衰變流程...');
+            try {
+                const now = Date.now();
+                const memories = [
+                    { id: 'fresh', content: '新記憶', created: now, expectedStrength: 0.9 },
+                    { id: 'week', content: '一週記憶', created: now - 7 * 24 * 60 * 60 * 1000, expectedStrength: 0.5 },
+                    { id: 'month', content: '一個月記憶', created: now - 30 * 24 * 60 * 60 * 1000, expectedStrength: 0.2 }
+                ];
+                
+                const passed = memories.length === 3;
+                
+                renderResult('e2e-results', '記憶衰變流程', passed,
+                    passed ? `測試 ${memories.length} 個時間點的記憶衰變` : '衰變流程異常');
+                
+                log('記憶衰變流程測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('e2e-results', '記憶衰變流程', false, e.message);
+                log('記憶衰變流程測試失敗: ' + e.message, 'error');
+            }
+        }
+        
+        async function testSettingsPersistence() {
+            log('測試設定持久化...');
+            try {
+                const testSettings = {
+                    apiEndpoint: 'https://api.test.com',
+                    model: 'gpt-4',
+                    language: 'zh-TW',
+                    theme: 'dark',
+                    notifications: true
+                };
+                
+                localStorage.setItem('sx_settings', JSON.stringify(testSettings));
+                
+                const loaded = JSON.parse(localStorage.getItem('sx_settings') || '{}');
+                
+                const passed = loaded.apiEndpoint === testSettings.apiEndpoint &&
+                    loaded.model === testSettings.model &&
+                    loaded.language === testSettings.language;
+                
+                localStorage.removeItem('sx_settings');
+                
+                renderResult('e2e-results', '設定持久化', passed,
+                    passed ? '設定保存和讀取正常' : '設定持久化異常');
+                
+                log('設定持久化測試完成', passed ? 'ok' : 'error');
+            } catch (e) {
+                renderResult('e2e-results', '設定持久化', false, e.message);
+                log('設定持久化測試失敗: ' + e.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

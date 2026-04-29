@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, viewport-fit=cover, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>支付條碼</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="payment-code.css">
+</head>
+<body>
+  <div class="payment-code-app">
+    <div class="code-header">
+      <div class="balance-info">
+        <span class="balance-label">KakaoPay 餘額</span>
+        <span class="balance-value" id="balanceDisplay">NT$0</span>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" aria-label="重新整理">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+
+    <div class="code-container">
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="barcode">
+          <i class="fa-solid fa-barcode"></i>
+          <span>條碼</span>
+        </button>
+        <button class="code-tab" data-tab="qrcode">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>QR碼</span>
+        </button>
+      </div>
+
+      <div class="code-display">
+        <div class="code-panel active" id="barcode-panel">
+          <div class="barcode-wrapper">
+            <svg id="barcodeSvg"></svg>
+          </div>
+          <p class="code-number" id="barcodeNumber"></p>
+        </div>
+        <div class="code-panel" id="qrcode-panel">
+          <div class="qrcode-wrapper">
+            <canvas id="qrcodeCanvas"></canvas>
+          </div>
+          <p class="code-number" id="qrcodeNumber"></p>
+        </div>
+      </div>
+
+      <div class="code-timer">
+        <div class="timer-bar">
+          <div class="timer-fill" id="timerFill"></div>
+        </div>
+        <span class="timer-text">條碼將在 <span id="timerCount">60</span> 秒後更新</span>
+      </div>
+    </div>
+
+    <div class="code-info">
+      <p><i class="fa-solid fa-info-circle"></i> 出示此條碼給店家掃描即可付款</p>
+    </div>
+  </div>
+
+  <script src="payment-code.js"></script>
+</body>
+</html>
