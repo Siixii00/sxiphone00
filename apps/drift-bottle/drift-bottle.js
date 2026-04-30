@@ -657,6 +657,239 @@ const thothCourtMeanings = {
   }
 };
 
+const rwsMajorMeanings = {
+  0: {
+    name: '愚者',
+    nameEn: 'The Fool',
+    upright: '新開始、自由、冒險、純真、自發性、潛力無限',
+    reversed: '魯莽、不負責任、逃避現實、缺乏方向、幼稚'
+  },
+  1: {
+    name: '魔術師',
+    nameEn: 'The Magician',
+    upright: '意志力、創造力、技能展現、資源運用、自信、新機會',
+    reversed: '操控、欺騙、才能誤用、缺乏專注、詐欺'
+  },
+  2: {
+    name: '女祭司',
+    nameEn: 'The High Priestess',
+    upright: '直覺、神秘、潛意識智慧、內在知識、靈性連結、等待',
+    reversed: '隱藏真相、表面化、忽略直覺、情緒壓抑、秘密'
+  },
+  3: {
+    name: '皇后',
+    nameEn: 'The Empress',
+    upright: '豐盛、母性、創造力、自然、養育、感官享受、美麗',
+    reversed: '依賴、過度保護、創意阻塞、缺乏成長、情感空虛'
+  },
+  4: {
+    name: '皇帝',
+    nameEn: 'The Emperor',
+    upright: '權威、結構、控制、領導、穩定、秩序、父性',
+    reversed: '專制、僵化、控制欲、缺乏彈性、濫用權力'
+  },
+  5: {
+    name: '教皇',
+    nameEn: 'The Hierophant',
+    upright: '傳統、精神教導、信仰、儀式、神聖智慧、婚姻、群體',
+    reversed: '教條主義、盲從、打破傳統、精神危機、叛逆'
+  },
+  6: {
+    name: '戀人',
+    nameEn: 'The Lovers',
+    upright: '愛情、選擇、和諧、價值觀、關係、吸引力、結合',
+    reversed: '不和諧、失衡、錯誤選擇、價值衝突、誘惑、分離'
+  },
+  7: {
+    name: '戰車',
+    nameEn: 'The Chariot',
+    upright: '意志力、決心、勝利、控制、方向明確、行動、成功',
+    reversed: '失控、缺乏方向、挫折、內在衝突、侵略性'
+  },
+  8: {
+    name: '力量',
+    nameEn: 'Strength',
+    upright: '力量、勇氣、耐心、慈悲、內在力量、自信、堅持',
+    reversed: '軟弱、缺乏自信、自我懷疑、失控、缺乏勇氣'
+  },
+  9: {
+    name: '隱者',
+    nameEn: 'The Hermit',
+    upright: '內省、智慧、指引、孤獨、尋找真理、沉思、導師',
+    reversed: '孤立、封閉、逃避、缺乏指引、孤獨、退縮'
+  },
+  10: {
+    name: '命運之輪',
+    nameEn: 'Wheel of Fortune',
+    upright: '命運、轉變、週期、機會、循環、業力、好運',
+    reversed: '厄運、抗拒改變、失控、惡性循環、壞運氣'
+  },
+  11: {
+    name: '正義',
+    nameEn: 'Justice',
+    upright: '公正、真理、因果、平衡、判斷、法律、責任',
+    reversed: '不公正、失衡、逃避責任、判斷錯誤、不誠實'
+  },
+  12: {
+    name: '倒吊人',
+    nameEn: 'The Hanged Man',
+    upright: '犧牲、等待、新視角、放下、懸置、順其自然、轉變',
+    reversed: '拖延、徒勞、抗拒改變、僵持、無謂犧牲'
+  },
+  13: {
+    name: '死神',
+    nameEn: 'Death',
+    upright: '結束、轉變、重生、轉化、放下過去、新階段',
+    reversed: '抗拒改變、停滯、恐懼、無法放手、延遲結束'
+  },
+  14: {
+    name: '節制',
+    nameEn: 'Temperance',
+    upright: '平衡、調和、耐心、中庸、融合、療癒、和諧',
+    reversed: '失衡、極端、缺乏耐心、不協調、過度'
+  },
+  15: {
+    name: '惡魔',
+    nameEn: 'The Devil',
+    upright: '束縛、慾望、物質執著、陰影、誘惑、癮、限制',
+    reversed: '解放、面對陰影、打破束縛、覺察、自由'
+  },
+  16: {
+    name: '高塔',
+    nameEn: 'The Tower',
+    upright: '崩塌、突變、啟示、解放、劇變、真相揭露',
+    reversed: '抗拒改變、延遲崩潰、內在轉化、逃避災難'
+  },
+  17: {
+    name: '星星',
+    nameEn: 'The Star',
+    upright: '希望、靈感、平靜、更新、療癒、信心、指引',
+    reversed: '絕望、失去信心、幻滅、缺乏連結、斷裂'
+  },
+  18: {
+    name: '月亮',
+    nameEn: 'The Moon',
+    upright: '幻覺、潛意識、恐懼、直覺、夢境、迷惑、不確定',
+    reversed: '清晰、走出迷惘、面對恐懼、釋放、真相'
+  },
+  19: {
+    name: '太陽',
+    nameEn: 'The Sun',
+    upright: '喜悅、成功、活力、樂觀、光明、幸福、顯現',
+    reversed: '暫時陰霾、過度樂觀、缺乏熱情、延遲成功'
+  },
+  20: {
+    name: '審判',
+    nameEn: 'Judgement',
+    upright: '重生、覺醒、審判、召喚、反思、決定、赦免',
+    reversed: '抗拒轉變、無法放下、自我設限、自我懷疑'
+  },
+  21: {
+    name: '世界',
+    nameEn: 'The World',
+    upright: '完成、整合、成就、圓滿、宇宙意識、成功、旅程結束',
+    reversed: '未完成、缺乏整合、延遲完成、缺乏閉合'
+  }
+};
+
+const rwsMinorMeanings = {
+  wands: {
+    name: '權杖',
+    nameEn: 'Wands',
+    element: '火',
+    cards: {
+      1: { upright: '新開始、創造力、靈感、機會、成長潛力', reversed: '延遲、缺乏方向、能量阻塞、錯失機會' },
+      2: { upright: '計劃、選擇、等待、決策、未來願景', reversed: '優柔寡斷、受阻、缺乏計劃、恐懼未知' },
+      3: { upright: '合作、成長、擴張、成功、遠見', reversed: '驕傲、自負、過度擴張、缺乏遠見' },
+      4: { upright: '穩定、慶祝、和諧、完成、家庭幸福', reversed: '過度安逸、停滯、缺乏進展、不穩定' },
+      5: { upright: '衝突、競爭、挑戰、鬥爭、不同意見', reversed: '和解、避免衝突、內在鬥爭、妥協' },
+      6: { upright: '勝利、成功、進展、自信、公眾認可', reversed: '驕傲、失敗、自大、缺乏認可' },
+      7: { upright: '勇氣、堅持、防衛、面對挑戰、競爭', reversed: '退縮、缺乏信心、猶豫、被壓倒' },
+      8: { upright: '迅速、行動、快速進展、變化、旅行', reversed: '延遲、阻礙、缺乏行動、挫折' },
+      9: { upright: '力量、決心、韌性、不屈不撓、堅持', reversed: '軟弱、放棄、缺乏堅持、疲憊' },
+      10: { upright: '負擔、責任、壓力、力量耗盡、過度勞累', reversed: '釋放負擔、卸下責任、逃避、委派' }
+    }
+  },
+  cups: {
+    name: '聖杯',
+    nameEn: 'Cups',
+    element: '水',
+    cards: {
+      1: { upright: '新感情、靈感、直覺、情感開始、愛情', reversed: '情感阻塞、壓抑、缺乏靈感、情感空虛' },
+      2: { upright: '愛情、和諧、連結、伴侶關係、合作', reversed: '不和諧、分離、情感失衡、斷裂' },
+      3: { upright: '歡慶、友誼、情感滿足、豐盛、社群', reversed: '過度享樂、放縱、缺乏深度、孤立' },
+      4: { upright: '穩定、舒適、情感滿足、冥想', reversed: '厭倦、不滿足、情感麻木、錯失機會' },
+      5: { upright: '悲傷、失落、痛苦、情感挫折、後悔', reversed: '恢復、接受、走出悲傷、釋放' },
+      6: { upright: '愉悅、滿足、美好回憶、和諧、懷舊', reversed: '沉溺過去、不切實際、幻滅、無法前進' },
+      7: { upright: '幻象、迷惑、選擇困難、想像、可能性', reversed: '清醒、面對現實、做出選擇、清晰' },
+      8: { upright: '失望、放棄、情感枯竭、離開、尋求', reversed: '重新開始、恢復希望、走出低谷、回歸' },
+      9: { upright: '幸福、願望實現、情感滿足、感恩', reversed: '不滿足、貪婪、情感空虛、物質主義' },
+      10: { upright: '圓滿、情感豐盛、和諧家庭、幸福', reversed: '情感失落、不滿、關係破裂、家庭問題' }
+    }
+  },
+  swords: {
+    name: '寶劍',
+    nameEn: 'Swords',
+    element: '風',
+    cards: {
+      1: { upright: '清晰、真理、心智突破、決斷、新想法', reversed: '混亂、誤解、思維阻塞、錯誤決定' },
+      2: { upright: '和平、平衡、選擇、心靈和諧、僵局', reversed: '衝突、不和諧、優柔寡斷、混亂' },
+      3: { upright: '悲傷、痛苦、心碎、失去、分離', reversed: '療癒、釋放、走出痛苦、恢復' },
+      4: { upright: '休息、和平、恢復、休戰、沉思', reversed: '不安、焦慮、無法放鬆、疲憊' },
+      5: { upright: '失敗、衝突、挫折、損失、背叛', reversed: '和解、恢復、接受失敗、前進' },
+      6: { upright: '理性、成功、智慧運用、過渡、旅行', reversed: '缺乏邏輯、計劃失敗、短視、阻礙' },
+      7: { upright: '策略、欺騙、機智、逃脫、秘密行動', reversed: '被發現、後悔、暴露、坦白' },
+      8: { upright: '阻礙、限制、困境、束縛、受害者心態', reversed: '突破、釋放、找到出路、自由' },
+      9: { upright: '痛苦、絕望、折磨、噩夢、焦慮', reversed: '希望、解脫、走出黑暗、恢復' },
+      10: { upright: '毀滅、結束、崩潰、痛苦的結束', reversed: '重生、恢復、避免災難、轉機' }
+    }
+  },
+  pentacles: {
+    name: '金幣',
+    nameEn: 'Pentacles',
+    element: '土',
+    cards: {
+      1: { upright: '新財富、機會、物質開始、豐盛、顯現', reversed: '物質缺乏、錯失機會、貧乏、損失' },
+      2: { upright: '變化、適應、靈活、平衡、多任務', reversed: '不穩定、失衡、無法適應、過度負擔' },
+      3: { upright: '工作、技能、創作、實現、合作、學習', reversed: '缺乏技能、工作失敗、不滿、缺乏團隊' },
+      4: { upright: '權力、穩定、物質安全、控制、保守', reversed: '貪婪、控制欲、物質執著、不分享' },
+      5: { upright: '困難、貧乏、挑戰、物質損失、孤立', reversed: '改善、希望、克服困難、恢復' },
+      6: { upright: '成功、物質豐盛、收穫、慷慨、分享', reversed: '自私、貪婪、不願分享、債務' },
+      7: { upright: '耐心、投資、評估、長期規劃、等待', reversed: '不耐煩、缺乏遠見、投資失敗' },
+      8: { upright: '謹慎、技能、專注、學習、工匠精神', reversed: '粗心、缺乏專注、倉促、缺乏技能' },
+      9: { upright: '收穫、成果、物質成功、獨立、豐盛', reversed: '不滿足、貪婪、缺乏成果、過度工作' },
+      10: { upright: '財富、圓滿、物質成就、家族、遺產', reversed: '物質損失、家庭問題、遺產糾紛、不穩定' }
+    }
+  }
+};
+
+const rwsCourtMeanings = {
+  wands: {
+    page: { upright: '新機會、創意靈感、年輕熱情、訊息、探索', reversed: '缺乏方向、幼稚、延遲、壞消息' },
+    knight: { upright: '行動、追求、冒險、熱情追求、勇敢', reversed: '衝動、魯莽、不穩定、不切實際' },
+    queen: { upright: '自信、魅力、熱情、創造力、決心', reversed: '專制、嫉妒、控制欲、自私' },
+    king: { upright: '領導、權威、遠見、事業成功、企業家', reversed: '專橫、獨斷、過度控制、傲慢' }
+  },
+  cups: {
+    page: { upright: '情感訊息、新關係、直覺、溫柔、創意', reversed: '情緒化、不成熟、缺乏方向、不切實際' },
+    knight: { upright: '浪漫追求、魅力、情感行動、理想主義', reversed: '不切實際、情緒不穩、逃避、失望' },
+    queen: { upright: '直覺、情感智慧、養育、同理心、慈悲', reversed: '情緒依賴、過度敏感、封閉、不安全感' },
+    king: { upright: '情感成熟、外交、和諧、藝術性、平衡', reversed: '虛偽、情感操控、不和諧、情緒化' }
+  },
+  swords: {
+    page: { upright: '新想法、清晰訊息、分析、學習、好奇心', reversed: '淺薄、八卦、缺乏深度、間諜' },
+    knight: { upright: '快速行動、果斷、智力追求、勇敢', reversed: '衝動、魯莽、缺乏思考、無情' },
+    queen: { upright: '清晰、理性、獨立思考、直率、公正', reversed: '冷酷、過度批判、情感疏離、殘忍' },
+    king: { upright: '權威、理性領導、正義、原則、智慧', reversed: '專制、僵化、過度理性、操控' }
+  },
+  pentacles: {
+    page: { upright: '新機會、學習、實踐、物質訊息、勤奮', reversed: '缺乏野心、懶惰、浪費、壞消息' },
+    knight: { upright: '勤奮、實踐、追求目標、行動、可靠', reversed: '無聊、缺乏動力、停滯、懶惰' },
+    queen: { upright: '務實、物質智慧、豐盛、養育、安全', reversed: '過度物質、工作狂、缺乏靈性、嫉妒' },
+    king: { upright: '成功、財富、事業成就、穩固、富足', reversed: '物質執著、保守、缺乏彈性、貪婪' }
+  }
+};
+
 const marseilleMajorMeanings = {
   0: {
     name: '愚者',
@@ -1012,13 +1245,69 @@ function getThothCardMeaning(card) {
   return null;
 }
 
+function getRwsCardMeaning(card) {
+  if (!card) return null;
+  
+  if (card.type === 'major') {
+    const num = card.number;
+    const meaning = rwsMajorMeanings[num];
+    if (!meaning) return null;
+    return {
+      upright: meaning.upright,
+      reversed: meaning.reversed
+    };
+  }
+  
+  if (card.type === 'minor' && card.suit) {
+    const suitKey = card.suit === 'wands' ? 'wands' 
+                  : card.suit === 'cups' ? 'cups'
+                  : card.suit === 'swords' ? 'swords'
+                  : card.suit === 'pentacles' ? 'pentacles' : null;
+    if (!suitKey) return null;
+    const suitMeanings = rwsMinorMeanings[suitKey];
+    if (!suitMeanings) return null;
+    const cardMeaning = suitMeanings.cards[card.number];
+    if (!cardMeaning) return null;
+    return {
+      upright: cardMeaning.upright,
+      reversed: cardMeaning.reversed,
+      element: suitMeanings.element
+    };
+  }
+  
+  if (card.type === 'court' && card.suit) {
+    const suitKey = card.suit === 'wands' ? 'wands' 
+                  : card.suit === 'cups' ? 'cups'
+                  : card.suit === 'swords' ? 'swords'
+                  : card.suit === 'pentacles' ? 'pentacles' : null;
+    if (!suitKey) return null;
+    const suitCourts = rwsCourtMeanings[suitKey];
+    if (!suitCourts) return null;
+    const courtKey = card.court === '侍從' ? 'page' 
+                   : card.court === '騎士' ? 'knight'
+                   : card.court === '皇后' ? 'queen'
+                   : card.court === '國王' ? 'king' : null;
+    if (!courtKey) return null;
+    const courtMeaning = suitCourts[courtKey];
+    if (!courtMeaning) return null;
+    return {
+      upright: courtMeaning.upright,
+      reversed: courtMeaning.reversed
+    };
+  }
+  
+  return null;
+}
+
 function getDeckCardMeaning(card, deckType) {
+  if (deckType === 'rws') return getRwsCardMeaning(card);
   if (deckType === 'thoth') return getThothCardMeaning(card);
   if (deckType === 'marseille') return getMarseilleCardMeaning(card);
   return null;
 }
 
 function getDeckCardImageUrl(card, deckType) {
+  if (deckType === 'rws') return getRwsCardImageUrl(card);
   if (deckType === 'thoth') return getThothCardImageUrl(card);
   if (deckType === 'marseille') return getMarseilleCardImageUrl(card);
   return null;
@@ -1253,6 +1542,141 @@ function getMarseilleCardImageUrl(card) {
   return null;
 }
 
+const rwsCardImages = {
+  baseUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/',
+  major: {
+    0: '9/90/RWS_Tarot_00_Fool.jpg/250px-RWS_Tarot_00_Fool.jpg',
+    1: 'd/de/RWS_Tarot_01_Magician.jpg/250px-RWS_Tarot_01_Magician.jpg',
+    2: '8/88/RWS_Tarot_02_High_Priestess.jpg/250px-RWS_Tarot_02_High_Priestess.jpg',
+    3: 'd/d2/RWS_Tarot_03_Empress.jpg/250px-RWS_Tarot_03_Empress.jpg',
+    4: 'f/f5/RWS_Tarot_04_Emperor.jpg/250px-RWS_Tarot_04_Emperor.jpg',
+    5: '8/8d/RWS_Tarot_05_Hierophant.jpg/250px-RWS_Tarot_05_Hierophant.jpg',
+    6: '3/33/RWS_Tarot_06_Lovers.jpg/250px-RWS_Tarot_06_Lovers.jpg',
+    7: '9/9b/RWS_Tarot_07_Chariot.jpg/250px-RWS_Tarot_07_Chariot.jpg',
+    8: 'f/f5/RWS_Tarot_08_Strength.jpg/250px-RWS_Tarot_08_Strength.jpg',
+    9: '4/4d/RWS_Tarot_09_Hermit.jpg/250px-RWS_Tarot_09_Hermit.jpg',
+    10: '3/33/RWS_Tarot_10_Wheel_of_Fortune.jpg/250px-RWS_Tarot_10_Wheel_of_Fortune.jpg',
+    11: 'e/e0/RWS_Tarot_11_Justice.jpg/250px-RWS_Tarot_11_Justice.jpg',
+    12: '2/2b/RWS_Tarot_12_Hanged_Man.jpg/250px-RWS_Tarot_12_Hanged_Man.jpg',
+    13: 'd/d7/RWS_Tarot_13_Death.jpg/250px-RWS_Tarot_13_Death.jpg',
+    14: 'f/f8/RWS_Tarot_14_Temperance.jpg/250px-RWS_Tarot_14_Temperance.jpg',
+    15: '5/55/RWS_Tarot_15_Devil.jpg/250px-RWS_Tarot_15_Devil.jpg',
+    16: '5/53/RWS_Tarot_16_Tower.jpg/250px-RWS_Tarot_16_Tower.jpg',
+    17: 'd/db/RWS_Tarot_17_Star.jpg/250px-RWS_Tarot_17_Star.jpg',
+    18: '7/7f/RWS_Tarot_18_Moon.jpg/250px-RWS_Tarot_18_Moon.jpg',
+    19: '1/17/RWS_Tarot_19_Sun.jpg/250px-RWS_Tarot_19_Sun.jpg',
+    20: 'd/dd/RWS_Tarot_20_Judgement.jpg/250px-RWS_Tarot_20_Judgement.jpg',
+    21: 'f/ff/RWS_Tarot_21_World.jpg/250px-RWS_Tarot_21_World.jpg'
+  },
+  suits: {
+    wands: {
+      1: 'b/bd/RWS_Tarot_Wands_01.jpg/250px-RWS_Tarot_Wands_01.jpg',
+      2: '2/2c/RWS_Tarot_Wands_02.jpg/250px-RWS_Tarot_Wands_02.jpg',
+      3: 'e/e8/RWS_Tarot_Wands_03.jpg/250px-RWS_Tarot_Wands_03.jpg',
+      4: 'd/df/RWS_Tarot_Wands_04.jpg/250px-RWS_Tarot_Wands_04.jpg',
+      5: 'c/c8/RWS_Tarot_Wands_05.jpg/250px-RWS_Tarot_Wands_05.jpg',
+      6: 'a/a5/RWS_Tarot_Wands_06.jpg/250px-RWS_Tarot_Wands_06.jpg',
+      7: 'a/a8/RWS_Tarot_Wands_07.jpg/250px-RWS_Tarot_Wands_07.jpg',
+      8: 'd/d9/RWS_Tarot_Wands_08.jpg/250px-RWS_Tarot_Wands_08.jpg',
+      9: 'b/b7/RWS_Tarot_Wands_09.jpg/250px-RWS_Tarot_Wands_09.jpg',
+      10: 'c/c0/RWS_Tarot_Wands_10.jpg/250px-RWS_Tarot_Wands_10.jpg',
+      page: 'c/c4/RWS_Tarot_Wands_Page.jpg/250px-RWS_Tarot_Wands_Page.jpg',
+      knight: '2/26/RWS_Tarot_Wands_Knight.jpg/250px-RWS_Tarot_Wands_Knight.jpg',
+      queen: 'f/f2/RWS_Tarot_Wands_Queen.jpg/250px-RWS_Tarot_Wands_Queen.jpg',
+      king: 'd/d5/RWS_Tarot_Wands_King.jpg/250px-RWS_Tarot_Wands_King.jpg'
+    },
+    cups: {
+      1: 'a/ae/RWS_Tarot_Cups_01.jpg/250px-RWS_Tarot_Cups_01.jpg',
+      2: 'd/d3/RWS_Tarot_Cups_02.jpg/250px-RWS_Tarot_Cups_02.jpg',
+      3: 'c/cb/RWS_Tarot_Cups_03.jpg/250px-RWS_Tarot_Cups_03.jpg',
+      4: '6/6b/RWS_Tarot_Cups_04.jpg/250px-RWS_Tarot_Cups_04.jpg',
+      5: 'a/a7/RWS_Tarot_Cups_05.jpg/250px-RWS_Tarot_Cups_05.jpg',
+      6: '3/3a/RWS_Tarot_Cups_06.jpg/250px-RWS_Tarot_Cups_06.jpg',
+      7: 'c/c5/RWS_Tarot_Cups_07.jpg/250px-RWS_Tarot_Cups_07.jpg',
+      8: '7/70/RWS_Tarot_Cups_08.jpg/250px-RWS_Tarot_Cups_08.jpg',
+      9: 'b/bb/RWS_Tarot_Cups_09.jpg/250px-RWS_Tarot_Cups_09.jpg',
+      10: '7/73/RWS_Tarot_Cups_10.jpg/250px-RWS_Tarot_Cups_10.jpg',
+      page: 'b/bd/RWS_Tarot_Cups_Page.jpg/250px-RWS_Tarot_Cups_Page.jpg',
+      knight: '5/55/RWS_Tarot_Cups_Knight.jpg/250px-RWS_Tarot_Cups_Knight.jpg',
+      queen: 'd/d2/RWS_Tarot_Cups_Queen.jpg/250px-RWS_Tarot_Cups_Queen.jpg',
+      king: 'c/c7/RWS_Tarot_Cups_King.jpg/250px-RWS_Tarot_Cups_King.jpg'
+    },
+    swords: {
+      1: 'a/af/RWS_Tarot_Swords_01.jpg/250px-RWS_Tarot_Swords_01.jpg',
+      2: 'c/c7/RWS_Tarot_Swords_02.jpg/250px-RWS_Tarot_Swords_02.jpg',
+      3: '2/2c/RWS_Tarot_Swords_03.jpg/250px-RWS_Tarot_Swords_03.jpg',
+      4: 'e/e8/RWS_Tarot_Swords_04.jpg/250px-RWS_Tarot_Swords_04.jpg',
+      5: 'd/df/RWS_Tarot_Swords_05.jpg/250px-RWS_Tarot_Swords_05.jpg',
+      6: 'c/c3/RWS_Tarot_Swords_06.jpg/250px-RWS_Tarot_Swords_06.jpg',
+      7: 'a/a8/RWS_Tarot_Swords_07.jpg/250px-RWS_Tarot_Swords_07.jpg',
+      8: '4/4c/RWS_Tarot_Swords_08.jpg/250px-RWS_Tarot_Swords_08.jpg',
+      9: 'b/ba/RWS_Tarot_Swords_09.jpg/250px-RWS_Tarot_Swords_09.jpg',
+      10: '9/9d/RWS_Tarot_Swords_10.jpg/250px-RWS_Tarot_Swords_10.jpg',
+      page: 'b/bd/RWS_Tarot_Swords_Page.jpg/250px-RWS_Tarot_Swords_Page.jpg',
+      knight: '2/26/RWS_Tarot_Swords_Knight.jpg/250px-RWS_Tarot_Swords_Knight.jpg',
+      queen: 'f/f2/RWS_Tarot_Swords_Queen.jpg/250px-RWS_Tarot_Swords_Queen.jpg',
+      king: 'd/d5/RWS_Tarot_Swords_King.jpg/250px-RWS_Tarot_Swords_King.jpg'
+    },
+    pentacles: {
+      1: '4/4a/RWS_Tarot_Pentacles_01.jpg/250px-RWS_Tarot_Pentacles_01.jpg',
+      2: 'd/d6/RWS_Tarot_Pentacles_02.jpg/250px-RWS_Tarot_Pentacles_02.jpg',
+      3: 'c/c8/RWS_Tarot_Pentacles_03.jpg/250px-RWS_Tarot_Pentacles_03.jpg',
+      4: '2/2c/RWS_Tarot_Pentacles_04.jpg/250px-RWS_Tarot_Pentacles_04.jpg',
+      5: 'e/e8/RWS_Tarot_Pentacles_05.jpg/250px-RWS_Tarot_Pentacles_05.jpg',
+      6: 'd/df/RWS_Tarot_Pentacles_06.jpg/250px-RWS_Tarot_Pentacles_06.jpg',
+      7: 'a/a8/RWS_Tarot_Pentacles_07.jpg/250px-RWS_Tarot_Pentacles_07.jpg',
+      8: '4/4c/RWS_Tarot_Pentacles_08.jpg/250px-RWS_Tarot_Pentacles_08.jpg',
+      9: 'b/ba/RWS_Tarot_Pentacles_09.jpg/250px-RWS_Tarot_Pentacles_09.jpg',
+      10: '9/9d/RWS_Tarot_Pentacles_10.jpg/250px-RWS_Tarot_Pentacles_10.jpg',
+      page: 'b/bd/RWS_Tarot_Pentacles_Page.jpg/250px-RWS_Tarot_Pentacles_Page.jpg',
+      knight: '5/55/RWS_Tarot_Pentacles_Knight.jpg/250px-RWS_Tarot_Pentacles_Knight.jpg',
+      queen: 'd/d2/RWS_Tarot_Pentacles_Queen.jpg/250px-RWS_Tarot_Pentacles_Queen.jpg',
+      king: 'c/c7/RWS_Tarot_Pentacles_King.jpg/250px-RWS_Tarot_Pentacles_King.jpg'
+    }
+  }
+};
+
+function getRwsCardImageUrl(card) {
+  if (!card) return null;
+  
+  if (card.type === 'major') {
+    const path = rwsCardImages.major[card.number];
+    if (path) return rwsCardImages.baseUrl + path;
+  }
+  
+  if (card.type === 'minor' && card.suit) {
+    const suitKey = card.suit === 'wands' ? 'wands' 
+                  : card.suit === 'cups' ? 'cups'
+                  : card.suit === 'swords' ? 'swords'
+                  : card.suit === 'pentacles' ? 'pentacles' : null;
+    if (suitKey) {
+      const suitImages = rwsCardImages.suits[suitKey];
+      if (suitImages && suitImages[card.number]) {
+        return rwsCardImages.baseUrl + suitImages[card.number];
+      }
+    }
+  }
+  
+  if (card.type === 'court' && card.suit) {
+    const suitKey = card.suit === 'wands' ? 'wands' 
+                  : card.suit === 'cups' ? 'cups'
+                  : card.suit === 'swords' ? 'swords'
+                  : card.suit === 'pentacles' ? 'pentacles' : null;
+    if (suitKey) {
+      const suitImages = rwsCardImages.suits[suitKey];
+      const courtKey = card.court === '侍從' ? 'page' 
+                   : card.court === '騎士' ? 'knight'
+                   : card.court === '皇后' ? 'queen'
+                   : card.court === '國王' ? 'king' : null;
+      if (suitImages && courtKey && suitImages[courtKey]) {
+        return rwsCardImages.baseUrl + suitImages[courtKey];
+      }
+    }
+  }
+  
+  return null;
+}
+
 function getThothCardImageUrl(card) {
   return null;
 }
@@ -1325,7 +1749,8 @@ let tarotGameState = {
   selectedCards: [],
   cardBack: 'default',
   customCardBack: null,
-  showReversed: true
+  showReversed: true,
+  shuffleSpeed: 'normal'
 };
 
 const timeBranchMap = {
@@ -2183,6 +2608,16 @@ function initTarotGame() {
   
   const deck = generateFullDeck(deckType);
   
+  // 讀取洗牌速度設定
+  const savedShuffleSpeed = localStorage.getItem('tarot-shuffle-speed') || 'normal';
+  const animationSpeedSelect = document.getElementById('animation-speed');
+  const shuffleSpeed = animationSpeedSelect?.value || savedShuffleSpeed;
+  
+  // 同步設定選項
+  if (animationSpeedSelect && animationSpeedSelect.value !== shuffleSpeed) {
+    animationSpeedSelect.value = shuffleSpeed;
+  }
+  
   tarotGameState = {
     phase: 'setup',
     deckType: deckType,
@@ -2196,7 +2631,8 @@ function initTarotGame() {
     selectedCards: [],
     cardBack: localStorage.getItem('tarot-card-back') || 'default',
     customCardBack: localStorage.getItem('tarot-custom-back') || null,
-    showReversed: localStorage.getItem('tarot-show-reversed') !== 'false'
+    showReversed: localStorage.getItem('tarot-show-reversed') !== 'false',
+    shuffleSpeed: shuffleSpeed
   };
   
   const gameArea = document.getElementById('tarot-game-area');
@@ -2364,13 +2800,19 @@ async function animateClockwiseShuffle() {
   const centerY = 100;
   const radius = 80;
   
+  // 根據設定調整動畫速度
+  const speedMultiplier = tarotGameState.shuffleSpeed === 'fast' ? 0.5 
+                        : tarotGameState.shuffleSpeed === 'slow' ? 1.5 
+                        : 1;
+  const baseDuration = 400;
+  const duration = baseDuration * speedMultiplier;
+  
   for (let round = 0; round < 2; round++) {
     for (let i = 0; i < cardCount; i++) {
       const card = cards[i];
       const startAngle = parseFloat(card.style.transform.replace(/rotate\(([^)]+)\)/, '$1')) || 0;
       const endAngle = startAngle + 360;
       
-      const duration = 400;
       const startTime = performance.now();
       
       await new Promise(resolve => {
@@ -2658,7 +3100,7 @@ function revealAllCards() {
 function showRevealedCards() {
   const slots = document.querySelectorAll('.spread-slot');
   const deckType = tarotGameState.deckType;
-  const useCustomImages = deckType === 'thoth' || deckType === 'marseille';
+  const useCustomImages = deckType === 'rws' || deckType === 'thoth' || deckType === 'marseille';
   
   slots.forEach((slot, idx) => {
     const card = tarotGameState.spreadCards[idx];
@@ -2739,7 +3181,7 @@ function renderResultSpread() {
   const spreadType = tarotSpreadSelect?.value || 'single';
   const config = spreadConfigs[spreadType];
   const deckType = tarotGameState.deckType;
-  const useCustomImages = deckType === 'thoth' || deckType === 'marseille';
+  const useCustomImages = deckType === 'rws' || deckType === 'thoth' || deckType === 'marseille';
   
   tarotGameState.spreadCards.forEach((card, idx) => {
     if (!card) return;
@@ -3187,6 +3629,19 @@ function bindEvents() {
     tarotGameState.showReversed = showReversedSelect.value === 'yes';
     localStorage.setItem('tarot-show-reversed', showReversedSelect.value);
   });
+  
+  const animationSpeedSelect = document.getElementById('animation-speed');
+  animationSpeedSelect?.addEventListener('change', () => {
+    tarotGameState.shuffleSpeed = animationSpeedSelect.value;
+    localStorage.setItem('tarot-shuffle-speed', animationSpeedSelect.value);
+  });
+  
+  // 同步載入已保存的動畫速度設定
+  const savedShuffleSpeed = localStorage.getItem('tarot-shuffle-speed');
+  if (savedShuffleSpeed && animationSpeedSelect) {
+    animationSpeedSelect.value = savedShuffleSpeed;
+    tarotGameState.shuffleSpeed = savedShuffleSpeed;
+  }
   
   const savedCardBack = localStorage.getItem('tarot-card-back');
   if (savedCardBack) {
