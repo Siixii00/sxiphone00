@@ -1079,6 +1079,17 @@ textarea { resize: vertical; min-height: 90px; margin-bottom: 8px; }
   border-radius: 4px;
 }
 
+.card-meaning-detail {
+  font-size: 0.9em;
+  color: var(--fortune-muted);
+  line-height: 1.6;
+  margin-top: 0.3em;
+  padding: 0.6em 0.8em;
+  background: rgba(139, 123, 255, 0.08);
+  border-left: 3px solid var(--fortune-primary);
+  border-radius: 0 6px 6px 0;
+}
+
 .hidden {
   display: none !important;
 }

@@ -1,4 +1,5 @@
 import { trigrams, hexagrams } from './iching-data.js';
+import tarotWaiteData from './tarot_waite.json';
 
 const homeView = document.getElementById('fortune-home');
 const introOverlay = document.getElementById('drift-intro');
@@ -659,211 +660,131 @@ const thothCourtMeanings = {
   }
 };
 
-const rwsMajorMeanings = {
-  0: {
-    name: '愚者',
-    nameEn: 'The Fool',
-    upright: '新開始、自由、冒險、純真、自發性、潛力無限',
-    reversed: '魯莽、不負責任、逃避現實、缺乏方向、幼稚'
-  },
-  1: {
-    name: '魔術師',
-    nameEn: 'The Magician',
-    upright: '意志力、創造力、技能展現、資源運用、自信、新機會',
-    reversed: '操控、欺騙、才能誤用、缺乏專注、詐欺'
-  },
-  2: {
-    name: '女祭司',
-    nameEn: 'The High Priestess',
-    upright: '直覺、神秘、潛意識智慧、內在知識、靈性連結、等待',
-    reversed: '隱藏真相、表面化、忽略直覺、情緒壓抑、秘密'
-  },
-  3: {
-    name: '皇后',
-    nameEn: 'The Empress',
-    upright: '豐盛、母性、創造力、自然、養育、感官享受、美麗',
-    reversed: '依賴、過度保護、創意阻塞、缺乏成長、情感空虛'
-  },
-  4: {
-    name: '皇帝',
-    nameEn: 'The Emperor',
-    upright: '權威、結構、控制、領導、穩定、秩序、父性',
-    reversed: '專制、僵化、控制欲、缺乏彈性、濫用權力'
-  },
-  5: {
-    name: '教皇',
-    nameEn: 'The Hierophant',
-    upright: '傳統、精神教導、信仰、儀式、神聖智慧、婚姻、群體',
-    reversed: '教條主義、盲從、打破傳統、精神危機、叛逆'
-  },
-  6: {
-    name: '戀人',
-    nameEn: 'The Lovers',
-    upright: '愛情、選擇、和諧、價值觀、關係、吸引力、結合',
-    reversed: '不和諧、失衡、錯誤選擇、價值衝突、誘惑、分離'
-  },
-  7: {
-    name: '戰車',
-    nameEn: 'The Chariot',
-    upright: '意志力、決心、勝利、控制、方向明確、行動、成功',
-    reversed: '失控、缺乏方向、挫折、內在衝突、侵略性'
-  },
-  8: {
-    name: '力量',
-    nameEn: 'Strength',
-    upright: '力量、勇氣、耐心、慈悲、內在力量、自信、堅持',
-    reversed: '軟弱、缺乏自信、自我懷疑、失控、缺乏勇氣'
-  },
-  9: {
-    name: '隱者',
-    nameEn: 'The Hermit',
-    upright: '內省、智慧、指引、孤獨、尋找真理、沉思、導師',
-    reversed: '孤立、封閉、逃避、缺乏指引、孤獨、退縮'
-  },
-  10: {
-    name: '命運之輪',
-    nameEn: 'Wheel of Fortune',
-    upright: '命運、轉變、週期、機會、循環、業力、好運',
-    reversed: '厄運、抗拒改變、失控、惡性循環、壞運氣'
-  },
-  11: {
-    name: '正義',
-    nameEn: 'Justice',
-    upright: '公正、真理、因果、平衡、判斷、法律、責任',
-    reversed: '不公正、失衡、逃避責任、判斷錯誤、不誠實'
-  },
-  12: {
-    name: '倒吊人',
-    nameEn: 'The Hanged Man',
-    upright: '犧牲、等待、新視角、放下、懸置、順其自然、轉變',
-    reversed: '拖延、徒勞、抗拒改變、僵持、無謂犧牲'
-  },
-  13: {
-    name: '死神',
-    nameEn: 'Death',
-    upright: '結束、轉變、重生、轉化、放下過去、新階段',
-    reversed: '抗拒改變、停滯、恐懼、無法放手、延遲結束'
-  },
-  14: {
-    name: '節制',
-    nameEn: 'Temperance',
-    upright: '平衡、調和、耐心、中庸、融合、療癒、和諧',
-    reversed: '失衡、極端、缺乏耐心、不協調、過度'
-  },
-  15: {
-    name: '惡魔',
-    nameEn: 'The Devil',
-    upright: '束縛、慾望、物質執著、陰影、誘惑、癮、限制',
-    reversed: '解放、面對陰影、打破束縛、覺察、自由'
-  },
-  16: {
-    name: '高塔',
-    nameEn: 'The Tower',
-    upright: '崩塌、突變、啟示、解放、劇變、真相揭露',
-    reversed: '抗拒改變、延遲崩潰、內在轉化、逃避災難'
-  },
-  17: {
-    name: '星星',
-    nameEn: 'The Star',
-    upright: '希望、靈感、平靜、更新、療癒、信心、指引',
-    reversed: '絕望、失去信心、幻滅、缺乏連結、斷裂'
-  },
-  18: {
-    name: '月亮',
-    nameEn: 'The Moon',
-    upright: '幻覺、潛意識、恐懼、直覺、夢境、迷惑、不確定',
-    reversed: '清晰、走出迷惘、面對恐懼、釋放、真相'
-  },
-  19: {
-    name: '太陽',
-    nameEn: 'The Sun',
-    upright: '喜悅、成功、活力、樂觀、光明、幸福、顯現',
-    reversed: '暫時陰霾、過度樂觀、缺乏熱情、延遲成功'
-  },
-  20: {
-    name: '審判',
-    nameEn: 'Judgement',
-    upright: '重生、覺醒、審判、召喚、反思、決定、赦免',
-    reversed: '抗拒轉變、無法放下、自我設限、自我懷疑'
-  },
-  21: {
-    name: '世界',
-    nameEn: 'The World',
-    upright: '完成、整合、成就、圓滿、宇宙意識、成功、旅程結束',
-    reversed: '未完成、缺乏整合、延遲完成、缺乏閉合'
-  }
-};
+const rwsMajorMeanings = {};
+tarotWaiteData.tarot.major_arcana.forEach(card => {
+  rwsMajorMeanings[card.id] = {
+    name: card.name,
+    nameEn: card.name_en,
+    upright: card.upright.keywords.join('、'),
+    uprightMeaning: card.upright.meaning,
+    reversed: card.reversed.keywords.join('、'),
+    reversedMeaning: card.reversed.meaning
+  };
+});
 
 const rwsMinorMeanings = {
   wands: {
     name: '權杖',
     nameEn: 'Wands',
     element: '火',
-    cards: {
-      1: { upright: '新開始、創造力、靈感、機會、成長潛力', reversed: '延遲、缺乏方向、能量阻塞、錯失機會' },
-      2: { upright: '計劃、選擇、等待、決策、未來願景', reversed: '優柔寡斷、受阻、缺乏計劃、恐懼未知' },
-      3: { upright: '合作、成長、擴張、成功、遠見', reversed: '驕傲、自負、過度擴張、缺乏遠見' },
-      4: { upright: '穩定、慶祝、和諧、完成、家庭幸福', reversed: '過度安逸、停滯、缺乏進展、不穩定' },
-      5: { upright: '衝突、競爭、挑戰、鬥爭、不同意見', reversed: '和解、避免衝突、內在鬥爭、妥協' },
-      6: { upright: '勝利、成功、進展、自信、公眾認可', reversed: '驕傲、失敗、自大、缺乏認可' },
-      7: { upright: '勇氣、堅持、防衛、面對挑戰、競爭', reversed: '退縮、缺乏信心、猶豫、被壓倒' },
-      8: { upright: '迅速、行動、快速進展、變化、旅行', reversed: '延遲、阻礙、缺乏行動、挫折' },
-      9: { upright: '力量、決心、韌性、不屈不撓、堅持', reversed: '軟弱、放棄、缺乏堅持、疲憊' },
-      10: { upright: '負擔、責任、壓力、力量耗盡、過度勞累', reversed: '釋放負擔、卸下責任、逃避、委派' }
-    }
+    cards: {}
   },
   cups: {
     name: '聖杯',
     nameEn: 'Cups',
     element: '水',
-    cards: {
-      1: { upright: '新感情、靈感、直覺、情感開始、愛情', reversed: '情感阻塞、壓抑、缺乏靈感、情感空虛' },
-      2: { upright: '愛情、和諧、連結、伴侶關係、合作', reversed: '不和諧、分離、情感失衡、斷裂' },
-      3: { upright: '歡慶、友誼、情感滿足、豐盛、社群', reversed: '過度享樂、放縱、缺乏深度、孤立' },
-      4: { upright: '穩定、舒適、情感滿足、冥想', reversed: '厭倦、不滿足、情感麻木、錯失機會' },
-      5: { upright: '悲傷、失落、痛苦、情感挫折、後悔', reversed: '恢復、接受、走出悲傷、釋放' },
-      6: { upright: '愉悅、滿足、美好回憶、和諧、懷舊', reversed: '沉溺過去、不切實際、幻滅、無法前進' },
-      7: { upright: '幻象、迷惑、選擇困難、想像、可能性', reversed: '清醒、面對現實、做出選擇、清晰' },
-      8: { upright: '失望、放棄、情感枯竭、離開、尋求', reversed: '重新開始、恢復希望、走出低谷、回歸' },
-      9: { upright: '幸福、願望實現、情感滿足、感恩', reversed: '不滿足、貪婪、情感空虛、物質主義' },
-      10: { upright: '圓滿、情感豐盛、和諧家庭、幸福', reversed: '情感失落、不滿、關係破裂、家庭問題' }
-    }
+    cards: {}
   },
   swords: {
     name: '寶劍',
     nameEn: 'Swords',
     element: '風',
-    cards: {
-      1: { upright: '清晰、真理、心智突破、決斷、新想法', reversed: '混亂、誤解、思維阻塞、錯誤決定' },
-      2: { upright: '和平、平衡、選擇、心靈和諧、僵局', reversed: '衝突、不和諧、優柔寡斷、混亂' },
-      3: { upright: '悲傷、痛苦、心碎、失去、分離', reversed: '療癒、釋放、走出痛苦、恢復' },
-      4: { upright: '休息、和平、恢復、休戰、沉思', reversed: '不安、焦慮、無法放鬆、疲憊' },
-      5: { upright: '失敗、衝突、挫折、損失、背叛', reversed: '和解、恢復、接受失敗、前進' },
-      6: { upright: '理性、成功、智慧運用、過渡、旅行', reversed: '缺乏邏輯、計劃失敗、短視、阻礙' },
-      7: { upright: '策略、欺騙、機智、逃脫、秘密行動', reversed: '被發現、後悔、暴露、坦白' },
-      8: { upright: '阻礙、限制、困境、束縛、受害者心態', reversed: '突破、釋放、找到出路、自由' },
-      9: { upright: '痛苦、絕望、折磨、噩夢、焦慮', reversed: '希望、解脫、走出黑暗、恢復' },
-      10: { upright: '毀滅、結束、崩潰、痛苦的結束', reversed: '重生、恢復、避免災難、轉機' }
-    }
+    cards: {}
   },
   pentacles: {
-    name: '金幣',
+    name: '錢幣',
     nameEn: 'Pentacles',
     element: '土',
-    cards: {
-      1: { upright: '新財富、機會、物質開始、豐盛、顯現', reversed: '物質缺乏、錯失機會、貧乏、損失' },
-      2: { upright: '變化、適應、靈活、平衡、多任務', reversed: '不穩定、失衡、無法適應、過度負擔' },
-      3: { upright: '工作、技能、創作、實現、合作、學習', reversed: '缺乏技能、工作失敗、不滿、缺乏團隊' },
-      4: { upright: '權力、穩定、物質安全、控制、保守', reversed: '貪婪、控制欲、物質執著、不分享' },
-      5: { upright: '困難、貧乏、挑戰、物質損失、孤立', reversed: '改善、希望、克服困難、恢復' },
-      6: { upright: '成功、物質豐盛、收穫、慷慨、分享', reversed: '自私、貪婪、不願分享、債務' },
-      7: { upright: '耐心、投資、評估、長期規劃、等待', reversed: '不耐煩、缺乏遠見、投資失敗' },
-      8: { upright: '謹慎、技能、專注、學習、工匠精神', reversed: '粗心、缺乏專注、倉促、缺乏技能' },
-      9: { upright: '收穫、成果、物質成功、獨立、豐盛', reversed: '不滿足、貪婪、缺乏成果、過度工作' },
-      10: { upright: '財富、圓滿、物質成就、家族、遺產', reversed: '物質損失、家庭問題、遺產糾紛、不穩定' }
-    }
+    cards: {}
   }
 };
+
+const rwsCourtMeanings = {
+  wands: {},
+  cups: {},
+  swords: {},
+  pentacles: {}
+};
+
+tarotWaiteData.tarot.minor_arcana.wands.forEach(card => {
+  if (card.id.includes('page') || card.id.includes('knight') || card.id.includes('queen') || card.id.includes('king')) {
+    const courtKey = card.id.split('_')[1];
+    rwsCourtMeanings.wands[courtKey] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  } else {
+    const num = parseInt(card.id.split('_')[1]);
+    rwsMinorMeanings.wands.cards[num] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  }
+});
+
+tarotWaiteData.tarot.minor_arcana.cups.forEach(card => {
+  if (card.id.includes('page') || card.id.includes('knight') || card.id.includes('queen') || card.id.includes('king')) {
+    const courtKey = card.id.split('_')[1];
+    rwsCourtMeanings.cups[courtKey] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  } else {
+    const num = parseInt(card.id.split('_')[1]);
+    rwsMinorMeanings.cups.cards[num] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  }
+});
+
+tarotWaiteData.tarot.minor_arcana.swords.forEach(card => {
+  if (card.id.includes('page') || card.id.includes('knight') || card.id.includes('queen') || card.id.includes('king')) {
+    const courtKey = card.id.split('_')[1];
+    rwsCourtMeanings.swords[courtKey] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  } else {
+    const num = parseInt(card.id.split('_')[1]);
+    rwsMinorMeanings.swords.cards[num] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  }
+});
+
+tarotWaiteData.tarot.minor_arcana.pentacles.forEach(card => {
+  if (card.id.includes('page') || card.id.includes('knight') || card.id.includes('queen') || card.id.includes('king')) {
+    const courtKey = card.id.split('_')[1];
+    rwsCourtMeanings.pentacles[courtKey] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  } else {
+    const num = parseInt(card.id.split('_')[1]);
+    rwsMinorMeanings.pentacles.cards[num] = {
+      upright: card.upright.keywords.join('、'),
+      uprightMeaning: card.upright.meaning,
+      reversed: card.reversed.keywords.join('、'),
+      reversedMeaning: card.reversed.meaning
+    };
+  }
+});
 
 const rwsCourtMeanings = {
   wands: {
@@ -1256,7 +1177,9 @@ function getRwsCardMeaning(card) {
     if (!meaning) return null;
     return {
       upright: meaning.upright,
-      reversed: meaning.reversed
+      uprightMeaning: meaning.uprightMeaning,
+      reversed: meaning.reversed,
+      reversedMeaning: meaning.reversedMeaning
     };
   }
   
@@ -1272,7 +1195,9 @@ function getRwsCardMeaning(card) {
     if (!cardMeaning) return null;
     return {
       upright: cardMeaning.upright,
+      uprightMeaning: cardMeaning.uprightMeaning,
       reversed: cardMeaning.reversed,
+      reversedMeaning: cardMeaning.reversedMeaning,
       element: suitMeanings.element
     };
   }
@@ -1294,7 +1219,9 @@ function getRwsCardMeaning(card) {
     if (!courtMeaning) return null;
     return {
       upright: courtMeaning.upright,
-      reversed: courtMeaning.reversed
+      uprightMeaning: courtMeaning.uprightMeaning,
+      reversed: courtMeaning.reversed,
+      reversedMeaning: courtMeaning.reversedMeaning
     };
   }
   
@@ -3415,7 +3342,7 @@ function generateLocalReading(question, cardDescriptions, config, deckConfig) {
   const cards = tarotGameState.spreadCards.filter(c => c);
   const mainCard = cards[0];
   const deckType = tarotGameState.deckType;
-  const hasCustomMeaning = deckType === 'thoth' || deckType === 'marseille';
+  const hasCustomMeaning = deckType === 'thoth' || deckType === 'marseille' || deckType === 'rws';
   
   let mainMeaning = '';
   let cardDetails = '';
@@ -3425,10 +3352,16 @@ function generateLocalReading(question, cardDescriptions, config, deckConfig) {
     if (deckMeaning) {
       const orientation = mainCard.reversed ? '逆位' : '正位';
       mainMeaning = mainCard.reversed ? deckMeaning.reversed : deckMeaning.upright;
+      const mainMeaningText = mainCard.reversed ? deckMeaning.reversedMeaning : deckMeaning.uprightMeaning;
       cardDetails = `<p><strong>${mainCard.name}（${orientation}）</strong>：${mainMeaning}</p>`;
+      if (mainMeaningText) {
+        cardDetails += `<p class="card-meaning-detail">${mainMeaningText}</p>`;
+      }
       if (deckMeaning.note) {
-        const noteLabel = deckType === 'thoth' ? '托特註記' : '馬賽註記';
-        cardDetails += `<p class="thoth-note"><em>${noteLabel}：${deckMeaning.note}</em></p>`;
+        const noteLabel = deckType === 'thoth' ? '托特註記' : deckType === 'marseille' ? '馬賽註記' : '';
+        if (noteLabel) {
+          cardDetails += `<p class="thoth-note"><em>${noteLabel}：${deckMeaning.note}</em></p>`;
+        }
       }
     }
   }
@@ -3451,8 +3384,12 @@ function generateLocalReading(question, cardDescriptions, config, deckConfig) {
       if (deckMeaning) {
         const orientation = card.reversed ? '逆位' : '正位';
         const meaning = card.reversed ? deckMeaning.reversed : deckMeaning.upright;
+        const meaningText = card.reversed ? deckMeaning.reversedMeaning : deckMeaning.uprightMeaning;
         const position = config.slots[tarotGameState.spreadCards.indexOf(card)]?.label || `位置${idx + 1}`;
         detailSection += `<p><strong>【${position}】${card.name}（${orientation}）</strong>：${meaning}</p>`;
+        if (meaningText) {
+          detailSection += `<p class="card-meaning-detail">${meaningText}</p>`;
+        }
       }
     });
   }
