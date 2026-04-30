@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@cloudflare/vite-plugin-cloudflare": "^0.1.0",
     "canvas": "^3.2.3",
     "vite": "^8.0.5",
     "wrangler": "^4.86.0"
