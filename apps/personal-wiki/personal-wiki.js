@@ -48,30 +48,6 @@ const i18n = {
         conversations: '對話記錄',
         npcRelations: 'NPC 關係',
         worldView: '世界觀',
-
-function getApiConfig() {
-    if (typeof SxSettings !== 'undefined' && SxSettings.getActiveApiWithFallback) {
-        const api = SxSettings.getActiveApiWithFallback();
-        if (api) {
-            return {
-                endpoint: api.url,
-                key: api.key,
-                model: api.model || 'gpt-4o'
-            };
-        }
-    }
-    const configs = JSON.parse(localStorage.getItem('api_configs') || '[]');
-    if (configs.length > 0) {
-        const idx = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
-        const api = configs[idx] || configs[0];
-        return {
-            endpoint: api.url,
-            key: api.key,
-            model: api.model || 'gpt-4o'
-        };
-    }
-    return null;
-}
         dailyLife: '日常生活',
         memoryGraph: '記憶圖譜',
         editEntry: '編輯條目',
@@ -493,6 +469,30 @@ function getApiConfig() {
         openAppearanceSettings: '외관 설정 열기'
     }
 };
+
+function getApiConfig() {
+    if (typeof SxSettings !== 'undefined' && SxSettings.getActiveApiWithFallback) {
+        const api = SxSettings.getActiveApiWithFallback();
+        if (api) {
+            return {
+                endpoint: api.url,
+                key: api.key,
+                model: api.model || 'gpt-4o'
+            };
+        }
+    }
+    const configs = JSON.parse(localStorage.getItem('api_configs') || '[]');
+    if (configs.length > 0) {
+        const idx = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+        const api = configs[idx] || configs[0];
+        return {
+            endpoint: api.url,
+            key: api.key,
+            model: api.model || 'gpt-4o'
+        };
+    }
+    return null;
+}
 
 function getCurrentLang() {
     const rawLang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';

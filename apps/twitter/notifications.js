@@ -1,5 +1,9 @@
-const NOTIFICATIONS_KEY = 'sx_twitter_notifications';
-const PENDING_REACTIONS_KEY = 'sx_twitter_pending_reactions';
+if (typeof window.NOTIFICATIONS_KEY === 'undefined') {
+  window.NOTIFICATIONS_KEY = 'sx_twitter_notifications';
+  window.PENDING_REACTIONS_KEY = 'sx_twitter_pending_reactions';
+}
+const NOTIFICATIONS_KEY = window.NOTIFICATIONS_KEY;
+const PENDING_REACTIONS_KEY = window.PENDING_REACTIONS_KEY;
 
 function getNotifications() {
   const raw = localStorage.getItem(NOTIFICATIONS_KEY);
