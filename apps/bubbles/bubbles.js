@@ -257,7 +257,15 @@ async function callAIAPI(messages) {
     return null;
   }
 
-  const targetUrl = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+  const apiType = config.type || 'openai';
+  
+  // OpenAI 相容格式或自訂端點
+  let targetUrl;
+  if (apiType === 'custom') {
+    targetUrl = config.url;
+  } else {
+    targetUrl = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+  }
   
   try {
     const response = await fetch(targetUrl, {

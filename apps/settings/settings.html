@@ -224,7 +224,19 @@
             <div class="list-card">
 
                 <div class="cell-v">
-                    <span class="cell-label">API 網址 (Base URL)</span>
+                    <span class="cell-label">API 類型</span>
+                    <select id="newApiType" class="ios-select" onchange="toggleApiUrlHint()">
+                        <option value="openai">OpenAI 相容格式（OpenRouter、DeepSeek、Claude 等）</option>
+                        <option value="custom">自訂端點（完整 URL）</option>
+                    </select>
+                </div>
+
+                <div id="apiUrlHint" class="cell-v" style="background:rgba(255,200,0,0.1);padding:8px;border-radius:8px;margin:4px 0;">
+                    <span style="font-size:12px;color:#aaa;">OpenAI 相容格式：輸入 Base URL（如 https://openrouter.ai/api/v1），系統會自動加上 /chat/completions</span>
+                </div>
+
+                <div class="cell-v">
+                    <span class="cell-label">API 網址</span>
                     <input id="newApiUrl" class="ios-input"
                            placeholder="https://api.openai.com/v1"
                            oninput="localStorage.setItem('sx_new_api_url', this.value)">

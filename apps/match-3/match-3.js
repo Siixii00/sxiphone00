@@ -897,6 +897,7 @@ const generateCharComment = async (context) => {
     return generateFallbackComment(context);
   }
 
+  const apiType = config.type || 'openai';
   const char = getCharData();
   const charName = char?.name || '角色';
   const charPersonality = char?.personality || '';
@@ -947,32 +948,62 @@ const generateCharComment = async (context) => {
 輸出 JSON 格式。`;
 
   try {
-    const endpoint = config.url.endsWith('/chat/completions')
-      ? config.url
-      : `${config.url.replace(/\/$/, '')}/chat/completions`;
+    let content = '';
+    
+    // Gemini 原生 API 格式
+    if (apiType === 'gemini') {
+      const model = config.model || 'gemini-1.5-flash';
+      const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
+      
+      const geminiPayload = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.9 },
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+      
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiPayload)
+      });
+      
+      if (!response.ok) return generateFallbackComment(context);
+      const data = await response.json();
+      if (data.error) return generateFallbackComment(context);
+      content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      // OpenAI 相容格式或自訂端點
+      let endpoint;
+      if (apiType === 'custom') {
+        endpoint = config.url;
+      } else {
+        endpoint = config.url.endsWith('/chat/completions')
+          ? config.url
+          : `${config.url.replace(/\/$/, '')}/chat/completions`;
+      }
 
-    const headers = { 'Content-Type': 'application/json' };
-    if (config.key) {
-      headers.Authorization = `Bearer ${config.key}`;
-    }
+      const headers = { 'Content-Type': 'application/json' };
+      if (config.key) {
+        headers.Authorization = `Bearer ${config.key}`;
+      }
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model: config.model || 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
-        ],
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: config.model || 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: prompt }
+          ],
         temperature: 0.9
-      })
-    });
-
-    if (!response.ok) return generateFallbackComment(context);
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
+        })
+      });
+      
+      if (!response.ok) return generateFallbackComment(context);
+      const data = await response.json();
+      content = data.choices?.[0]?.message?.content || '';
+    }
 
     let parsed = null;
     try {

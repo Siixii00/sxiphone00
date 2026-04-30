@@ -199,9 +199,17 @@ async function callAIAPI(messages, temperature = 0.85) {
     throw new Error('尚未設定 API');
   }
 
-  const endpoint = config.url.endsWith('/chat/completions')
-    ? config.url
-    : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  const apiType = config.type || 'openai';
+  
+  // OpenAI 相容格式或自訂端點
+  let endpoint;
+  if (apiType === 'custom') {
+    endpoint = config.url;
+  } else {
+    endpoint = config.url.endsWith('/chat/completions')
+      ? config.url
+      : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  }
 
   const headers = { 'Content-Type': 'application/json' };
   if (config.key) {

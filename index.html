@@ -80,7 +80,21 @@
     <link rel="icon" type="image/png" sizes="16x16" href="apps/screenshots/icon-48x48.png">
     <link rel="shortcut icon" href="apps/screenshots/icon-192x192.png">
     
+    <style>
+        html, body {
+            background: #0b0c12 !important;
+        }
+        #phone-container {
+            background: #0b0c12 !important;
+        }
+        .splash-screen {
+            background: radial-gradient(circle at 20% 20%, rgba(120, 70, 200, 0.45), transparent 40%),
+                        radial-gradient(circle at 80% 30%, rgba(70, 45, 150, 0.35), transparent 45%),
+                        linear-gradient(135deg, #12051f 0%, #1a0a2e 40%, #2b0f3f 100%) !important;
+        }
+    </style>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="dock.css">
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -105,6 +119,7 @@
     <script src="apps/scripts/background-keepalive.js"></script>
     <script src="apps/scripts/sx-notification.js"></script>
     <script src="apps/scripts/chat-notification-engine.js"></script>
+    <script src="dock.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@200;400;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
@@ -377,6 +392,10 @@
                     <div class="icon-box" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"><span class="material-symbols-rounded">book</span></div>
                     <span class="app-label">Wiki</span>
                 </div>
+            </div>
+
+            <div class="home-dock" id="home-dock">
+                <div class="dock-apps" id="dock-apps"></div>
             </div>
         </div>
 

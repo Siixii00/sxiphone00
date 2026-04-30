@@ -1,7 +1,4 @@
-// sxiphone Service Worker
-// 用于支持 PWA 安装、离线功能和推送通知
-
-const CACHE_NAME = 'sxiphone-v7';
+const CACHE_NAME = 'sxiphone-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,23 +6,16 @@ const STATIC_ASSETS = [
   '/style.css',
   '/main.js',
   '/sw.js',
-  '/apps/screenshots/current.png',
   '/apps/screenshots/icon-192x192.png',
-  '/apps/screenshots/icon-152x152.png',
-  '/apps/screenshots/icon-120x120.png',
-  '/apps/screenshots/icon-96x96.png',
-  '/apps/screenshots/icon-72x72.png',
-  '/apps/screenshots/icon-48x48.png',
   '/apps/screenshots/apple-touch-icon.png'
 ];
 
 const CACHE_STRATEGIES = {
   networkFirst: ['/api/', '/chat'],
-  cacheFirst: ['/apps/screenshots/', '/fonts/', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
-  staleWhileRevalidate: ['/style.css', '/main.js', '/apps/']
+  cacheFirst: ['https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
+  staleWhileRevalidate: ['/style.css', '/main.js', '/apps/scripts/']
 };
 
-// 安装事件
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
   event.waitUntil(
@@ -44,7 +34,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 激活事件
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
   event.waitUntil(
@@ -52,7 +41,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME)
+            .filter((name) => name.startsWith('sxiphone-') && name !== CACHE_NAME)
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);
               return caches.delete(name);
@@ -66,7 +55,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 判断请求类型
 function getCacheStrategy(url) {
   const urlStr = url.toString();
   
@@ -85,7 +73,6 @@ function getCacheStrategy(url) {
   return 'networkFirst';
 }
 
-// Stale-While-Revalidate 策略
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
@@ -100,17 +87,14 @@ async function staleWhileRevalidate(request) {
   return cachedResponse || fetchPromise;
 }
 
-// 请求拦截 - 智能缓存策略
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 只处理 GET 请求
   if (request.method !== 'GET') {
     return;
   }
 
-  // 跨域请求使用 cacheFirst 或 networkFirst
   if (url.origin !== location.origin) {
     const strategy = getCacheStrategy(url);
     if (strategy === 'cacheFirst') {
@@ -135,7 +119,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 导航请求 - 网络优先
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -155,7 +138,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 静态资源 - 缓存优先
   const isStaticAsset = STATIC_ASSETS.some(asset => {
     const normalizedAsset = asset.startsWith('/') ? asset : '/' + asset;
     return url.pathname === normalizedAsset;
@@ -182,24 +164,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 其他请求 - Stale-While-Revalidate
   event.respondWith(staleWhileRevalidate(request));
 });
 
-// 消息处理
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
   
-  // 處理顯示通知的請求
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     const { title, options } = event.data;
     self.showNotification(title, options);
   }
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((name) => caches.delete(name))
+        );
+      }).then(() => {
+        console.log('[SW] All caches cleared');
+      })
+    );
+  }
 });
 
-// 推送事件處理
 self.addEventListener('push', (event) => {
   console.log('[SW] Push received:', event);
   
@@ -237,7 +227,6 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// 通知點擊處理
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event);
   
@@ -246,7 +235,6 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data || {};
   const action = event.action;
   
-  // 如果有自定義動作
   if (action && data.actions) {
     const actionData = data.actions.find(a => a.action === action);
     if (actionData?.url) {
@@ -257,14 +245,11 @@ self.addEventListener('notificationclick', (event) => {
     }
   }
   
-  // 點擊通知後打開應用
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // 如果已經有打開的窗口，聚焦它
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            // 發送消息給頁面處理
             client.postMessage({
               type: 'NOTIFICATION_CLICKED',
               data: data
@@ -272,7 +257,6 @@ self.addEventListener('notificationclick', (event) => {
             return client.focus();
           }
         }
-        // 否則打開新窗口
         if (clients.openWindow) {
           const url = data.url || '/';
           return clients.openWindow(url);
@@ -281,13 +265,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// 通知關閉處理
 self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notification closed:', event);
   
   const data = event.notification.data || {};
   
-  // 通知頁面通知已關閉
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
@@ -301,15 +283,11 @@ self.addEventListener('notificationclose', (event) => {
   );
 });
 
-// 後台同步處理（可選）
 self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync:', event.tag);
   
   if (event.tag === 'sync-notifications') {
-    event.waitUntil(
-      // 這裡可以添加同步邏輯
-      Promise.resolve()
-    );
+    event.waitUntil(Promise.resolve());
   }
 });
 

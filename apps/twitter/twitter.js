@@ -274,9 +274,60 @@ async function callAIAPI(messages, temperature = 0.85) {
     throw new Error('尚未設定 API');
   }
 
-  const endpoint = config.url.endsWith('/chat/completions')
-    ? config.url
-    : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  const apiType = config.type || 'openai';
+  
+  // Gemini 原生 API 格式
+  if (apiType === 'gemini') {
+    const model = config.model || 'gemini-1.5-flash';
+    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
+    
+    const contents = [];
+    let systemInstruction = '';
+    
+    for (const msg of messages) {
+      if (msg.role === 'system') {
+        systemInstruction = msg.content;
+      } else {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
+    }
+    
+    const geminiPayload = {
+      contents,
+      generationConfig: { temperature, maxOutputTokens: 2048 }
+    };
+    
+    if (systemInstruction) {
+      geminiPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
+    
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiPayload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Gemini API 錯誤 (${response.status})`);
+    }
+    
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+  
+  // OpenAI 相容格式或自訂端點
+  let endpoint;
+  if (apiType === 'custom') {
+    endpoint = config.url;
+  } else {
+    endpoint = config.url.endsWith('/chat/completions')
+      ? config.url
+      : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  }
 
   const headers = { 'Content-Type': 'application/json' };
   if (config.key) {
@@ -1166,10 +1217,28 @@ window.addEventListener('message', (event) => {
 bindEvents();
 userTweets = loadUserTweets();
 renderTweets();
-startNotificationSystem();
 
 const PENDING_REACTIONS_KEY = 'sx_twitter_pending_reactions';
 const NOTIFICATIONS_KEY = 'sx_twitter_notifications';
+
+let notificationInterval = null;
+
+function startNotificationSystem() {
+  if (notificationInterval) return;
+  notificationInterval = setInterval(processPendingReactions, 10000);
+  processPendingReactions();
+}
+
+function stopNotificationSystem() {
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = null;
+  }
+}
+
+window.addEventListener('pagehide', stopNotificationSystem);
+
+startNotificationSystem();
 
 function getPendingReactions() {
   const raw = localStorage.getItem(PENDING_REACTIONS_KEY);
@@ -1302,23 +1371,6 @@ function executeReaction(reaction) {
       break;
   }
 }
-
-let notificationInterval = null;
-
-function startNotificationSystem() {
-  if (notificationInterval) return;
-  notificationInterval = setInterval(processPendingReactions, 10000);
-  processPendingReactions();
-}
-
-function stopNotificationSystem() {
-  if (notificationInterval) {
-    clearInterval(notificationInterval);
-    notificationInterval = null;
-  }
-}
-
-window.addEventListener('pagehide', stopNotificationSystem);
 
 function updateNotificationBadge() {
   const raw = localStorage.getItem(NOTIFICATIONS_KEY);

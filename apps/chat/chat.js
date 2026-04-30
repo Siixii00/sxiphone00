@@ -10,6 +10,18 @@ const UserEnv = {
     }
 };
 
+function buildApiHeaders(config) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
+    
+    if (config.url && config.url.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
+        headers['X-Title'] = 'SX iPhone App';
+    }
+    
+    return headers;
+}
+
 function getActiveConfig() {
     const charName = localStorage.getItem('sx_char_name');
     const charAvatar = localStorage.getItem('sx_char_avatar');
@@ -3619,37 +3631,71 @@ ${lastCharContent || '（尚未有對話）'}
             const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
             const config = apis[validIndex] || apis[0];
             
-            if (!config || !config.url) {
+            const apiType = config?.type || 'openai';
+            
+            // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+            if (!config || (!config.url && apiType !== 'gemini')) {
                 innerVoiceContent.innerHTML = '<div class="inner-voice-empty">請先設定 API</div>';
                 innerVoiceLoading.classList.remove('active');
                 return;
             }
             
-            let targetUrl = config.url.endsWith('/chat/completions') 
-                ? config.url 
-                : config.url.replace(/\/$/, '') + '/chat/completions';
+            // Gemini 需要 key 檢查
+            if (apiType === 'gemini' && !config.key) {
+                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">Gemini API 需要 API Key</div>';
+                innerVoiceLoading.classList.remove('active');
+                return;
+            }
+            let innerVoiceText;
             
-            const response = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': config.key ? `Bearer ${config.key}` : ''
-                },
-                body: JSON.stringify({
-                    model: config.model || 'gpt-3.5-turbo',
-                    messages: payload,
-                    temperature: 0.9,
-                    max_tokens: 800
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (data.error) {
-                throw new Error(data.error.message);
+            // Gemini 原生 API 格式
+            if (apiType === 'gemini') {
+                const model = config.model || 'gemini-1.5-flash';
+                const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
+                
+                const contents = [{
+                    role: 'user',
+                    parts: [{ text: `你是一位擅長描寫角色內心戲的作家。請用細膩的筆觸，以第一人稱視角描寫角色的內心獨白。\n\n${prompt}` }]
+                }];
+                
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents, generationConfig: { temperature: 0.9, maxOutputTokens: 800 } })
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                innerVoiceText = data.candidates?.[0]?.content?.parts?.[0]?.text || '生成失敗';
+            } else {
+                // OpenAI 相容格式或自訂端點
+                let targetUrl;
+                if (apiType === 'custom') {
+                    targetUrl = config.url;
+                } else {
+                    targetUrl = config.url.endsWith('/chat/completions') 
+                        ? config.url 
+                        : config.url.replace(/\/$/, '') + '/chat/completions';
+                }
+                
+                const headers = buildApiHeaders(config);
+                
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        model: config.model || 'gpt-3.5-turbo',
+                        messages: payload,
+                        temperature: 0.9,
+                        max_tokens: 800
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                innerVoiceText = data.choices?.[0]?.message?.content || '生成失敗';
             }
             
-            const innerVoiceText = data.choices?.[0]?.message?.content || '生成失敗';
             innerVoiceContent.innerHTML = `<div class="inner-voice-text">${innerVoiceText}</div>`;
             
             const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
@@ -4467,41 +4513,97 @@ ${lastCharContent || '（尚未有對話）'}
         const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
         const config = apis[validIndex] || apis[0];
         
-        if (!config || !config.url) {
+        const apiType = config?.type || 'openai';
+        
+        // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+        if (!config || (!config.url && apiType !== 'gemini')) {
             addTranscript('char', '(未設定 API)');
             return;
         }
+        
+        // Gemini 需要 key 檢查
+        if (apiType === 'gemini' && !config.key) {
+            addTranscript('char', '(Gemini API 需要 API Key)');
+            return;
+        }
+        const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+        const activeChar = currentChars[0] || {};
+        const charName = activeChar.name || 'AI 助理';
+        const systemPrompt = await ChatEngine.assembleSystemPrompt(text);
+
+        const payload = [
+            { role: 'system', content: systemPrompt },
+            ...ChatEngine.getHistorySlice()
+        ];
 
         try {
-            const targetUrl = config.url.endsWith('/chat/completions') 
-                ? config.url 
-                : config.url.replace(/\/$/, '') + '/chat/completions';
+            let reply;
+            
+            // Gemini 原生 API 格式
+            if (apiType === 'gemini') {
+                const model = config.model || 'gemini-1.5-flash';
+                const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
+                
+                // 轉換為 Gemini 格式
+                const contents = [];
+                let systemInstruction = '';
+                
+                for (const msg of payload) {
+                    if (msg.role === 'system') {
+                        systemInstruction = msg.content;
+                    } else {
+                        contents.push({
+                            role: msg.role === 'assistant' ? 'model' : 'user',
+                            parts: [{ text: msg.content }]
+                        });
+                    }
+                }
+                
+                const geminiPayload = {
+                    contents,
+                    generationConfig: { temperature: 0.8, maxOutputTokens: 4096 }
+                };
+                
+                if (systemInstruction) {
+                    geminiPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+                }
+                
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(geminiPayload)
+                });
+                
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '...';
+            } else {
+                // OpenAI 相容格式或自訂端點
+                let targetUrl;
+                if (apiType === 'custom') {
+                    targetUrl = config.url;
+                } else {
+                    targetUrl = config.url.endsWith('/chat/completions') 
+                        ? config.url 
+                        : config.url.replace(/\/$/, '') + '/chat/completions';
+                }
 
-            const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
-            const activeChar = currentChars[0] || {};
-            const charName = activeChar.name || 'AI 助理';
-            const systemPrompt = await ChatEngine.assembleSystemPrompt(text);
+                const headers = buildApiHeaders(config);
 
-            const payload = [
-                { role: 'system', content: systemPrompt },
-                ...ChatEngine.getHistorySlice()
-            ];
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        model: config.model || 'gpt-3.5-turbo',
+                        messages: payload,
+                        temperature: 0.8
+                    })
+                });
 
-            const response = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': config.key ? `Bearer ${config.key}` : ''
-                },
-                body: JSON.stringify({
-                    model: config.model || 'gpt-3.5-turbo',
-                    messages: payload,
-                    temperature: 0.8
-                })
-            });
-
-            const data = await response.json();
-            const reply = data.choices?.[0]?.message?.content || '...';
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+                reply = data.choices?.[0]?.message?.content || '...';
+            }
             
             history.push({ role: 'assistant', content: reply });
             localStorage.setItem('sx_chat_history', JSON.stringify(history));
@@ -6403,22 +6505,91 @@ async function callAIAPI(payload) {
         config = apis[validIndex] || apis[0];
     }
     
-    if (!config || !config.url) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
-
-    let targetUrl = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+    const apiType = config?.type || 'openai';
+    
+    // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+    if (!config || (!config.url && apiType !== 'gemini')) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
+    
+    // Gemini 需要 key 檢查
+    if (apiType === 'gemini' && !config.key) return "（錯誤：Gemini API 需要 API Key）";
+    
     try {
+        // Gemini 原生 API 格式
+        if (apiType === 'gemini') {
+            const model = config.model || 'gemini-1.5-flash';
+            const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
+            
+            // 將 OpenAI 格式的 messages 轉換為 Gemini 格式
+            const contents = [];
+            let systemInstruction = '';
+            
+            for (const msg of payload) {
+                if (msg.role === 'system') {
+                    systemInstruction = msg.content;
+                } else {
+                    contents.push({
+                        role: msg.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: msg.content }]
+                    });
+                }
+            }
+            
+            const geminiPayload = {
+                contents,
+                generationConfig: {
+                    temperature: 0.8,
+                    maxOutputTokens: 4096
+                }
+            };
+            
+            if (systemInstruction) {
+                geminiPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+            
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(geminiPayload)
+            });
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error.message || JSON.stringify(data.error));
+            }
+            
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 回應格式異常）";
+        }
+        
+        // 自訂端點格式（完整 URL，不添加任何路徑）
+        let targetUrl;
+        if (apiType === 'custom') {
+            targetUrl = config.url;
+        } else {
+            // OpenAI 相容格式（OpenRouter、DeepSeek、Claude 等）
+            targetUrl = config.url.endsWith('/chat/completions') 
+                ? config.url 
+                : config.url.replace(/\/$/, '') + '/chat/completions';
+        }
+        
+        const headers = buildApiHeaders(config);
+        
         const response = await fetch(targetUrl, {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": config.key ? `Bearer ${config.key}` : undefined
-            },
-            body: JSON.stringify({ model: config.model || "gpt-3.5-turbo", messages: payload, temperature: 0.8 })
+            headers,
+            body: JSON.stringify({ 
+                model: config.model || "gpt-3.5-turbo", 
+                messages: payload, 
+                temperature: 0.8 
+            })
         });
+        
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        return data.choices[0].message.content;
-    } catch (err) { return `（連線失敗：${err.message}）`; }
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        return data.choices?.[0]?.message?.content || "（API 回應格式異常）";
+    } catch (err) { 
+        return `（連線失敗：${err.message}）`; 
+    }
 }
 
 // --- 8. 訊息渲染 ---

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@500;700&family=Cormorant+Garamond:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="drift-bottle.css">
+  <link rel="stylesheet" href="meihua-animation.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
 </head>
@@ -212,6 +213,24 @@
           <button class="fortune-btn" id="meihua-cast-btn" type="button">起卦占卜</button>
           <p class="result-note" id="meihua-cast-note">可直接使用時間起卦，或切換數字起卦。</p>
         </div>
+        <section class="card">
+          <div class="meihua-hexagram-display">
+            <div class="hexagram-container" id="meihua-base-hexagram">
+              <div class="hexagram-label">本卦</div>
+              <div class="hexagram-gua" id="meihua-base-gua"></div>
+              <div class="hexagram-name" id="meihua-base-name">-</div>
+            </div>
+            <div class="hexagram-arrow">
+              <span id="meihua-moving-indicator">動爻</span>
+              <i class="fas fa-arrow-right"></i>
+            </div>
+            <div class="hexagram-container" id="meihua-changed-hexagram">
+              <div class="hexagram-label">變卦</div>
+              <div class="hexagram-gua" id="meihua-changed-gua"></div>
+              <div class="hexagram-name" id="meihua-changed-name">-</div>
+            </div>
+          </div>
+        </section>
         <section class="card"><p class="result-main" id="r-meihua">尚未起卦</p></section>
         <section class="card"><pre class="result-detail" id="r-meihua-detail">尚未起卦</pre></section>
       </div>
@@ -409,11 +428,11 @@
                 <option value="no">否</option>
               </select>
             </label>
-            <label>動畫速度
+            <label>洗牌動畫速度
               <select id="animation-speed">
-                <option value="slow">慢速</option>
+                <option value="slow">慢速（1.5x）</option>
                 <option value="normal" selected>正常</option>
-                <option value="fast">快速</option>
+                <option value="fast">兩倍速</option>
               </select>
             </label>
           </div>

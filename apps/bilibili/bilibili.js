@@ -620,6 +620,41 @@ function generateThumbnail() {
   return randomPick(patterns);
 }
 
+function convertBilibiliUrl(url) {
+  if (!url) return '';
+  
+  const bvMatch = url.match(/bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/i);
+  if (bvMatch) {
+    return `https://player.bilibili.com/player.html?bvid=${bvMatch[1]}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+  }
+  
+  const shortBvMatch = url.match(/b23\.tv\/(BV[a-zA-Z0-9]+)/i);
+  if (shortBvMatch) {
+    return `https://player.bilibili.com/player.html?bvid=${shortBvMatch[1]}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+  }
+  
+  const avMatch = url.match(/bilibili\.com\/video\/av(\d+)/i);
+  if (avMatch) {
+    return `https://player.bilibili.com/player.html?aid=${avMatch[1]}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+  }
+  
+  const shortAvMatch = url.match(/b23\.tv\/av(\d+)/i);
+  if (shortAvMatch) {
+    return `https://player.bilibili.com/player.html?aid=${shortAvMatch[1]}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+  }
+  
+  const shortIdMatch = url.match(/b23\.tv\/([a-zA-Z0-9]+)/i);
+  if (shortIdMatch) {
+    const id = shortIdMatch[1];
+    if (id.startsWith('BV')) {
+      return `https://player.bilibili.com/player.html?bvid=${id}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+    }
+    return `https://player.bilibili.com/player.html?bvid=${id}&page=1&danmaku=0&high_quality=1&autoplay=1`;
+  }
+  
+  return url;
+}
+
 function generateFreshFeed(tab) {
   return [];
 }
@@ -898,7 +933,8 @@ function openPlayerPage({ title, url } = {}) {
   homeView?.setAttribute('hidden', '');
   playerPage?.removeAttribute('hidden');
   if (playerTitle) playerTitle.textContent = title || '影片標題';
-  if (playerFrame) playerFrame.src = url || '';
+  const convertedUrl = convertBilibiliUrl(url || '');
+  if (playerFrame) playerFrame.src = convertedUrl;
   
   renderCharWatchSelect();
   renderNPCs();
@@ -1210,10 +1246,12 @@ function bind() {
     if (!card) return;
     const title = card.querySelector('.video-title')?.textContent || '影片標題';
     const url = card.dataset.url || '';
-    openModal();
-    modal.dataset.pendingTitle = title;
+    
     if (url) {
-      modalUrlInput.value = url;
+      openPlayerPage({ title, url });
+    } else {
+      openModal();
+      modal.dataset.pendingTitle = title;
     }
   });
 
@@ -1506,9 +1544,17 @@ async function callAIAPI(messages, temperature = 0.85) {
     throw new Error('尚未設定 API');
   }
 
-  const endpoint = config.url.endsWith('/chat/completions')
-    ? config.url
-    : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  const apiType = config.type || 'openai';
+  
+  // OpenAI 相容格式或自訂端點
+  let endpoint;
+  if (apiType === 'custom') {
+    endpoint = config.url;
+  } else {
+    endpoint = config.url.endsWith('/chat/completions')
+      ? config.url
+      : `${config.url.replace(/\/$/, '')}/chat/completions`;
+  }
 
   const headers = { 'Content-Type': 'application/json' };
   if (config.key) {

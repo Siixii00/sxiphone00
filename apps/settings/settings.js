@@ -802,6 +802,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         return decoder.decode(uint8Array);
     };
 
+    // 檢測是否為函式字串（可能污染備份的代碼）
+    const isFunctionString = (value) => {
+        if (typeof value !== 'string' || !value.trim()) return false;
+        const trimmed = value.trim();
+        
+        // 檢測各種函式定義模式
+        const functionPatterns = [
+            /^\s*\([^)]*\)\s*=>/,                    // 箭頭函式: () => ...
+            /^\s*async\s*\([^)]*\)\s*=>/,           // async 箭頭函式: async () => ...
+            /^\s*async\s+function\s*[\w]*\s*\(/,    // async function
+            /^\s*function\s*[\w]*\s*\(/,            // function name() 或 function()
+            /^\s*class\s+[\w]+\s*[\{]/,             // class 定義
+            /^\s*class\s+[\w]+\s+extends\s+/,       // class extends
+            /^\s*export\s+(function|class|async)/,  // export function/class
+            /^\s*import\s+/,                         // import 語句
+            /^\s*const\s+[\w]+\s*=\s*\([^)]*\)\s*=>/, // const x = () =>
+            /^\s*let\s+[\w]+\s*=\s*\([^)]*\)\s*=>/,   // let x = () =>
+            /^\s*var\s+[\w]+\s*=\s*function/,         // var x = function
+        ];
+        
+        return functionPatterns.some(pattern => pattern.test(trimmed));
+    };
+
+    // 檢測是否為 localStorage 原生方法名稱（這些 key 不應存在）
+    const isNativeMethodKey = (key) => {
+        const nativeMethods = ['setItem', 'getItem', 'removeItem', 'clear', 'key', 'length'];
+        return nativeMethods.includes(key);
+    };
+
     const collectAllStorageData = async () => {
         const data = {
             localStorage: {},
@@ -811,13 +840,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (!key) continue;
+            // 只備份 sx_、api_、sxiphone 相關的 key
             if (!(key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone'))) continue;
+            // 排除原生方法名稱的 key（這些是污染）
+            if (isNativeMethodKey(key)) {
+                console.warn('[GitHub 備份] 排除原生方法 key:', key);
+                continue;
+            }
             try {
                 const value = localStorage.getItem(key);
                 if (value === null) continue;
                 // 過濾掉被污染的函式字串
-                if (typeof value === 'string' && /^\s*\(.*\)\s*=>\s*\{/.test(value)) continue;
-                if (typeof value === 'string' && /^function\s*\(/.test(value)) continue;
+                if (isFunctionString(value)) {
+                    console.warn('[GitHub 備份] 排除函式字串 key:', key);
+                    continue;
+                }
                 data.localStorage[key] = value;
             } catch (e) {
                 console.warn('無法讀取 localStorage:', key);
@@ -828,6 +865,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 await localforage.iterate((value, key) => {
                     if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
+                        // 也檢查 localforage 資料是否為函式字串
+                        if (typeof value === 'string' && isFunctionString(value)) {
+                            console.warn('[GitHub 備份] 排除 localforage 函式字串 key:', key);
+                            return;
+                        }
                         data.localforage[key] = value;
                     }
                 });
@@ -1005,26 +1047,119 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (statusEl) statusEl.textContent = '正在解析備份...';
             const jsonStr = decodeFromBase64(fileData.content);
 
+            // 檢測是否為函式字串（可能污染備份的代碼）
+            const isFunctionStringRestore = (value) => {
+                if (typeof value !== 'string' || !value.trim()) return false;
+                const trimmed = value.trim();
+                
+                const functionPatterns = [
+                    /^\s*\([^)]*\)\s*=>/,                    // 箭頭函式: () => ...
+                    /^\s*async\s*\([^)]*\)\s*=>/,           // async 箭頭函式: async () => ...
+                    /^\s*async\s+function\s*[\w]*\s*\(/,    // async function
+                    /^\s*function\s*[\w]*\s*\(/,            // function name() 或 function()
+                    /^\s*class\s+[\w]+\s*[\{]/,             // class 定義
+                    /^\s*class\s+[\w]+\s+extends\s+/,       // class extends
+                    /^\s*export\s+(function|class|async)/,  // export function/class
+                    /^\s*import\s+/,                         // import 語句
+                    /^\s*const\s+[\w]+\s*=\s*\([^)]*\)\s*=>/, // const x = () =>
+                    /^\s*let\s+[\w]+\s*=\s*\([^)]*\)\s*=>/,   // let x = () =>
+                    /^\s*var\s+[\w]+\s*=\s*function/,         // var x = function
+                ];
+                
+                return functionPatterns.some(pattern => pattern.test(trimmed));
+            };
+
+            // 檢測是否為 localStorage 原生方法名稱
+            const isNativeMethodKeyRestore = (key) => {
+                const nativeMethods = ['setItem', 'getItem', 'removeItem', 'clear', 'key', 'length'];
+                return nativeMethods.includes(key);
+            };
+
             const sanitizeBackup = (str) => {
                 try {
                     const obj = JSON.parse(str);
+                    
+                    // 清理 localStorage 資料
                     if (obj?.data?.localStorage) {
                         const ls = obj.data.localStorage;
+                        const keysToRemove = [];
+                        
                         Object.keys(ls).forEach(key => {
                             const val = ls[key];
-                            if (typeof val === 'string' && (
-                                /^\s*\(.*\)\s*=>\s*\{/.test(val) ||
-                                /^function\s*\(/.test(val)
-                            )) {
-                                delete ls[key];
-                                console.warn('[GitHub 還原] 已移除污染 key:', key);
+                            
+                            // 檢查是否為原生方法 key
+                            if (isNativeMethodKeyRestore(key)) {
+                                keysToRemove.push(key);
+                                console.warn('[GitHub 還原] 移除原生方法 key:', key);
+                                return;
+                            }
+                            
+                            // 檢查是否為函式字串
+                            if (typeof val === 'string' && isFunctionStringRestore(val)) {
+                                keysToRemove.push(key);
+                                console.warn('[GitHub 還原] 移除函式字串 key:', key, '內容預覽:', val.substring(0, 50) + '...');
+                                return;
                             }
                         });
+                        
+                        keysToRemove.forEach(key => delete ls[key]);
                     }
+                    
+                    // 清理 localforage 資料
+                    if (obj?.data?.localforage) {
+                        const lf = obj.data.localforage;
+                        const keysToRemove = [];
+                        
+                        Object.keys(lf).forEach(key => {
+                            const val = lf[key];
+                            
+                            if (isNativeMethodKeyRestore(key)) {
+                                keysToRemove.push(key);
+                                console.warn('[GitHub 還原] 移除 localforage 原生方法 key:', key);
+                                return;
+                            }
+                            
+                            if (typeof val === 'string' && isFunctionStringRestore(val)) {
+                                keysToRemove.push(key);
+                                console.warn('[GitHub 還原] 移除 localforage 函式字串 key:', key);
+                                return;
+                            }
+                        });
+                        
+                        keysToRemove.forEach(key => delete lf[key]);
+                    }
+                    
                     return obj;
                 } catch (e) {
-                    const cleaned = str.replace(/"(setItem|removeItem|getItem|clear|key)":\s*"[^"\\]*(?:\\.[^"\\]*)*"/g, '"__removed__": null');
-                    return JSON.parse(cleaned);
+                    console.error('[GitHub 還原] JSON 解析失敗，嘗試清理:', e.message);
+                    
+                    // 嘗試更安全的清理方式：移除包含函式的 key
+                    try {
+                        // 找出所有可能是函式的值並替換為 null
+                        const cleaned = str
+                            // 移除包含函式定義的 key-value 對
+                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*\(.*?\)\s*=>/g, '"$1": null, "__func_removed__$1": true')
+                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*function\s*\(/g, '"$1": null, "__func_removed__$1": true')
+                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*async\s+function/g, '"$1": null, "__func_removed__$1": true')
+                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*async\s*\([^)]*\)\s*=>/g, '"$1": null, "__func_removed__$1": true');
+                        
+                        const obj = JSON.parse(cleaned);
+                        
+                        // 移除標記的 key
+                        if (obj?.data?.localStorage) {
+                            Object.keys(obj.data.localStorage).forEach(key => {
+                                if (key.startsWith('__func_removed__')) {
+                                    delete obj.data.localStorage[key];
+                                }
+                            });
+                        }
+                        
+                        console.warn('[GitHub 還原] 已嘗試清理損壞的備份資料');
+                        return obj;
+                    } catch (e2) {
+                        console.error('[GitHub 還原] 清理失敗:', e2.message);
+                        throw new Error('備份檔案已損壞，無法還原。請嘗試重新備份或聯繫支援。');
+                    }
                 }
             };
 
@@ -1822,10 +1957,22 @@ function renderApis() {
         container.innerHTML = '<p style="text-align:center;color:gray;padding:20px;">尚未添加 API</p>';
         return;
     }
+    
+    const getTypeLabel = (type) => {
+        switch(type) {
+            case 'gemini': return '<span style="background:#4285f4;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">Gemini</span>';
+            case 'custom': return '<span style="background:#ff9800;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">自訂</span>';
+            default: return '<span style="background:#10a37f;color:white;padding:2px 6px;border-radius:4px;font-size:10px;">OpenAI</span>';
+        }
+    };
+    
     container.innerHTML = apis.map((api, i) => `
         <div class="list-card" style="margin:10px;padding:12px;border-radius:12px;border:${i === activeApiIndex ? '2px solid #007AFF' : '1px solid #333'}">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="color:white;font-weight:600;">${api.name}</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="color:white;font-weight:600;">${api.name}</span>
+                    ${getTypeLabel(api.type)}
+                </div>
                 <button onclick="setActiveApi(${i})" style="color:${i === activeApiIndex ? '#34C759' : '#007AFF'};background:none;border:none;cursor:pointer;">
                     ${i === activeApiIndex ? '● 使用中' : '啟用'}
                 </button>
@@ -1839,61 +1986,106 @@ function renderApis() {
 }
 
 // --- 4. 修改後的 API 操作函式 ---
-window.handleApiActions = async function(action) {
-    const urlInput = document.getElementById('newApiUrl');
-    const keyInput = document.getElementById('newApiKey');
-    const modelSelect = document.getElementById('newApiModel');
-    const url = urlInput.value.trim().replace(/\/$/, '');
-    const key = keyInput.value.trim();
+    // 切換 API 類型提示
+    window.toggleApiUrlHint = function() {
+        const typeSelect = document.getElementById('newApiType');
+        const hintEl = document.getElementById('apiUrlHint');
+        const urlInput = document.getElementById('newApiUrl');
+        
+        if (!typeSelect || !hintEl || !urlInput) return;
+        
+        const type = typeSelect.value;
+        
+        if (type === 'openai') {
+            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">OpenAI 相容格式：輸入 Base URL（如 https://openrouter.ai/api/v1），系統會自動加上 /chat/completions</span>';
+            urlInput.placeholder = 'https://api.openai.com/v1';
+        } else if (type === 'custom') {
+            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">自訂端點：輸入完整的 API URL，系統不會自動添加任何路徑</span>';
+            urlInput.placeholder = 'https://your-api.com/your-endpoint';
+        }
+    };
 
-    if (!url) return alert("請輸入 API 網址");
+    window.handleApiActions = async function(action) {
+        const urlInput = document.getElementById('newApiUrl');
+        const keyInput = document.getElementById('newApiKey');
+        const modelSelect = document.getElementById('newApiModel');
+        const typeSelect = document.getElementById('newApiType');
+        
+        const type = typeSelect?.value || 'openai';
+        let url = urlInput.value.trim().replace(/\/$/, '');
+        const key = keyInput.value.trim();
 
-    if (action === 'fetchModels' || action === 'test') {
-        try {
-            const headers = { 'Content-Type': 'application/json' };
-            if (key) headers['Authorization'] = `Bearer ${key}`;
-            console.log('[API] 請求:', `${url}/models`);
-            const res = await fetch(`${url}/models`, { method: 'GET', headers });
-            console.log('[API] 狀態:', res.status, res.statusText);
-            if (!res.ok) {
-                const errText = await res.text().catch(() => '');
-                throw new Error(`連線失敗 (${res.status}): ${errText.slice(0, 100)}`);
-            }
-            const data = await res.json();
-            console.log('[API] 回應:', data);
-            
-            if (action === 'fetchModels') {
-                const list = data.data || data.models || (Array.isArray(data) ? data : []);
-                if (!list.length) {
-                    throw new Error("未找到模型，回應格式可能不支援");
+        if (!url) return alert("請輸入 API 網址");
+
+        if (action === 'fetchModels' || action === 'test') {
+            try {
+                // OpenAI 相容格式的處理
+                const headers = { 'Content-Type': 'application/json' };
+                if (key) headers['Authorization'] = `Bearer ${key}`;
+                
+                // OpenRouter 需要額外的 headers
+                if (url && url.includes('openrouter.ai')) {
+                    headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
+                    headers['X-Title'] = 'SX iPhone App';
                 }
-                modelSelect.innerHTML = list.map(m => `<option value="${m.id || m.name || m}">${m.id || m.name || m}</option>`).join('');
-                alert(`✅ 成功拉取 ${list.length} 個模型！`);
-            } else alert("✅ 連接測試成功！");
-        } catch (err) {
-            console.error('[API] 錯誤:', err);
-            alert(`❌ 錯誤: ${err.message}\n\n可能原因:\n1. CORS 被攔截\n2. API 不支援 /models\n3. 網址格式錯誤`);
+                
+                // 自訂端點可能不支援 /models
+                let modelsUrl = type === 'custom' ? url : `${url}/models`;
+                
+                console.log('[API] 請求:', modelsUrl);
+                const res = await fetch(modelsUrl, { method: 'GET', headers });
+                console.log('[API] 狀態:', res.status, res.statusText);
+                
+                if (!res.ok) {
+                    const errText = await res.text().catch(() => '');
+                    throw new Error(`連線失敗 (${res.status}): ${errText.slice(0, 100)}`);
+                }
+                const data = await res.json();
+                console.log('[API] 回應:', data);
+                
+                if (action === 'fetchModels') {
+                    const list = data.data || data.models || (Array.isArray(data) ? data : []);
+                    if (!list.length) {
+                        throw new Error("未找到模型，回應格式可能不支援");
+                    }
+                    modelSelect.innerHTML = list.map(m => `<option value="${m.id || m.name || m}">${m.id || m.name || m}</option>`).join('');
+                    alert(`✅ 成功拉取 ${list.length} 個模型！`);
+                } else alert("✅ 連接測試成功！");
+            } catch (err) {
+                console.error('[API] 錯誤:', err);
+                alert(`❌ 錯誤: ${err.message}\n\n可能原因:\n1. CORS 被攔截\n2. API 不支援 /models\n3. 網址格式錯誤\n4. API Key 不正確`);
+            }
         }
-    }
 
-    if (action === 'save') {
-        if (!modelSelect.value) return alert("請選擇模型");
-        try {
-            const host = new URL(url).hostname;
-            apis.push({ name: host, url, key, model: modelSelect.value });
-            await saveAll();
-            localStorage.removeItem('sx_new_api_url');
-            localStorage.removeItem('sx_new_api_key');
-            urlInput.value = '';
-            keyInput.value = '';
-            modelSelect.innerHTML = '<option value="">請先拉取模型</option>';
-            renderApis();
-            alert("✅ 配置已成功保存");
-        } catch (e) {
-            alert("網址格式錯誤");
+        if (action === 'save') {
+            if (!modelSelect.value && type !== 'custom') return alert("請選擇模型");
+            try {
+                let host;
+                if (type === 'gemini') {
+                    host = 'Gemini API';
+                } else {
+                    host = new URL(url).hostname;
+                }
+                apis.push({ 
+                    name: host, 
+                    url, 
+                    key, 
+                    model: modelSelect.value || 'custom',
+                    type: type  // 新增 type 欄位標記 API 類型
+                });
+                await saveAll();
+                localStorage.removeItem('sx_new_api_url');
+                localStorage.removeItem('sx_new_api_key');
+                urlInput.value = '';
+                keyInput.value = '';
+                modelSelect.innerHTML = '<option value="">請先拉取模型</option>';
+                renderApis();
+                alert("✅ 配置已成功保存");
+            } catch (e) {
+                alert("網址格式錯誤");
+            }
         }
     }
-}
 
 // --- 5. 刪除與切換 ---
 window.deleteApi = async function(i) {

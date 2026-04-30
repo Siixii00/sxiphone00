@@ -1,5 +1,5 @@
 const DB_NAME = 'sx_memory_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 class MemoryStore {
   constructor() {
@@ -47,6 +47,7 @@ class MemoryStore {
       memoriesStore.createIndex('created', 'metadata.created', { unique: false });
       memoriesStore.createIndex('region', 'region.primary', { unique: false });
       memoriesStore.createIndex('consolidated', 'metadata.consolidated', { unique: false });
+      memoriesStore.createIndex('hash', 'hash', { unique: false });
       console.log('[MemoryStore] memories store 創建完成');
     }
 
@@ -171,6 +172,14 @@ class MemoryStore {
       throw new Error('資料庫未初始化');
     }
 
+    const contentHash = this._djb2Hash(memory.content || '');
+    
+    const existing = await this._findByHash(contentHash);
+    if (existing) {
+      console.log(`[MemoryStore] 發現重複記憶，強化現有記憶: ${existing.id}`);
+      return this._reinforceExisting(existing, memory);
+    }
+
     const now = new Date().toISOString();
     const fullMemory = {
       id: memory.id || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -189,14 +198,12 @@ class MemoryStore {
         consolidated: memory.metadata?.consolidated || false,
         consolidatedAt: memory.metadata?.consolidatedAt || null
       },
-      emotion: memory.emotion || { valence: 0.5, arousal: 0.5, modelValence: null },
+      emotion: memory.emotion || { valence: 0.5, arousal: 0.5 },
       tags: memory.tags || [],
       domain: memory.domain || [],
-      hash: memory.hash || this._djb2Hash(memory.content || ''),
+      hash: contentHash,
       score: memory.score || 0,
-      dimensions: memory.dimensions || null,
-      region: memory.region || null,
-      standardized: memory.standardized || null
+      region: memory.region || null
     };
 
     return new Promise((resolve, reject) => {
@@ -211,6 +218,70 @@ class MemoryStore {
 
       request.onerror = (event) => {
         console.error('[MemoryStore] 創建記憶失敗:', event.target.error);
+        reject(event.target.error);
+      };
+    });
+  }
+
+  async _findByHash(hash) {
+    if (!this.db) return null;
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction('memories', 'readonly');
+      const store = transaction.objectStore('memories');
+      const index = store.index('hash');
+      const request = index.get(hash);
+
+      request.onsuccess = () => {
+        resolve(request.result || null);
+      };
+
+      request.onerror = (event) => {
+        console.error('[MemoryStore] 查找 hash 失敗:', event.target.error);
+        reject(event.target.error);
+      };
+    });
+  }
+
+  async _reinforceExisting(existing, newMemory) {
+    const updated = { ...existing };
+    
+    updated.metadata = {
+      ...updated.metadata,
+      activationCount: (updated.metadata?.activationCount || 1) + 1,
+      lastActive: new Date().toISOString(),
+      importance: Math.max(updated.metadata?.importance || 5, newMemory.metadata?.importance || 5),
+      reinforcementCount: (updated.metadata?.reinforcementCount || 0) + 1,
+      lastReinforced: new Date().toISOString()
+    };
+    
+    if (newMemory.tags && newMemory.tags.length > 0) {
+      updated.tags = [...new Set([...(updated.tags || []), ...newMemory.tags])];
+    }
+    
+    if (newMemory.domain && newMemory.domain.length > 0) {
+      updated.domain = [...new Set([...(updated.domain || []), ...newMemory.domain])];
+    }
+    
+    if (newMemory.emotion) {
+      updated.emotion = {
+        valence: (updated.emotion?.valence || 0.5) * 0.7 + (newMemory.emotion.valence || 0.5) * 0.3,
+        arousal: Math.max(updated.emotion?.arousal || 0.5, newMemory.emotion.arousal || 0.5)
+      };
+    }
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction('memories', 'readwrite');
+      const store = transaction.objectStore('memories');
+      const request = store.put(updated);
+
+      request.onsuccess = () => {
+        console.log(`[MemoryStore] 記憶強化成功: ${updated.id}`);
+        resolve(updated);
+      };
+
+      request.onerror = (event) => {
+        console.error('[MemoryStore] 強化記憶失敗:', event.target.error);
         reject(event.target.error);
       };
     });
@@ -279,14 +350,8 @@ class MemoryStore {
     if (updates.score !== undefined) {
       updated.score = updates.score;
     }
-    if (updates.dimensions !== undefined) {
-      updated.dimensions = updates.dimensions;
-    }
     if (updates.region !== undefined) {
       updated.region = updates.region;
-    }
-    if (updates.standardized !== undefined) {
-      updated.standardized = updates.standardized;
     }
 
     return new Promise((resolve, reject) => {
@@ -430,12 +495,12 @@ class MemoryStore {
     if (!this.db) {
       throw new Error('資料庫未初始化');
     }
-    if (!embedding || !Array.isArray(embedding)) {
+    if (!embedding) {
       throw new Error('無效的嵌入向量');
     }
 
     const allMemories = await this.getAll();
-    const memoriesWithEmbedding = allMemories.filter(m => m.embedding && Array.isArray(m.embedding));
+    const memoriesWithEmbedding = allMemories.filter(m => m.embedding);
 
     if (memoriesWithEmbedding.length === 0) {
       console.log('[MemoryStore] 沒有帶有嵌入向量的記憶');
@@ -486,14 +551,18 @@ class MemoryStore {
 
   _djb2Hash(str) {
     let hash = 5381;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    const normalized = str.trim().toLowerCase();
+    for (let i = 0; i < normalized.length; i++) {
+      hash = ((hash << 5) + hash) + normalized.charCodeAt(i);
     }
     return Math.abs(hash).toString(36);
   }
 
   _cosineSimilarity(vecA, vecB) {
-    if (!vecA || !vecB || vecA.length !== vecB.length) {
+    const a = this._isCompressed(vecA) ? this._decompressVector(vecA) : vecA;
+    const b = this._isCompressed(vecB) ? this._decompressVector(vecB) : vecB;
+    
+    if (!a || !b || a.length !== b.length) {
       return 0;
     }
 
@@ -501,10 +570,10 @@ class MemoryStore {
     let normA = 0;
     let normB = 0;
 
-    for (let i = 0; i < vecA.length; i++) {
-      dotProduct += vecA[i] * vecB[i];
-      normA += vecA[i] * vecA[i];
-      normB += vecB[i] * vecB[i];
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
     }
 
     if (normA === 0 || normB === 0) {
@@ -512,6 +581,27 @@ class MemoryStore {
     }
 
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+  }
+
+  _isCompressed(vector) {
+    return vector && typeof vector === 'object' && vector.__compressed === true;
+  }
+
+  _decompressVector(compressed) {
+    if (!compressed || !compressed.__compressed) {
+      return compressed;
+    }
+    
+    const { data, min, max, originalLength } = compressed;
+    const range = max - min || 1;
+    
+    const decompressed = new Float32Array(originalLength);
+    for (let i = 0; i < originalLength; i++) {
+      const normalized = (data[i] + 127) / 254;
+      decompressed[i] = normalized * range + min;
+    }
+    
+    return Array.from(decompressed);
   }
 }
 

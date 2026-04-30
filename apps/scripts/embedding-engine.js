@@ -7,6 +7,7 @@ class EmbeddingEngine {
     this.isLoading = false;
     this.cache = new Map();
     this.memoryStore = options.memoryStore || null;
+    this.useCompression = options.useCompression !== false;
     
     this.apiConfig = {
       enabled: options.apiEnabled || false,
@@ -116,10 +117,15 @@ class EmbeddingEngine {
       throw new Error('無效的輸入文本');
     }
 
-    const cacheKey = this._hashText(text);
+    const normalizedText = text.trim().toLowerCase();
+    const cacheKey = this._hashText(normalizedText);
+    
     if (this.cache.has(cacheKey)) {
       console.log('[EmbeddingEngine] 使用緩存嵌入');
-      return this.cache.get(cacheKey);
+      const cached = this.cache.get(cacheKey);
+      return this.useCompression && this._isCompressed(cached) 
+        ? this._decompressVector(cached) 
+        : cached;
     }
 
     if (this.memoryStore) {
@@ -127,8 +133,11 @@ class EmbeddingEngine {
         const cachedEmbedding = await this.memoryStore.getEmbedding(cacheKey);
         if (cachedEmbedding && cachedEmbedding.vector) {
           console.log('[EmbeddingEngine] 使用 IndexedDB 緩存嵌入');
+          const vector = this._isCompressed(cachedEmbedding.vector)
+            ? this._decompressVector(cachedEmbedding.vector)
+            : cachedEmbedding.vector;
           this.cache.set(cacheKey, cachedEmbedding.vector);
-          return cachedEmbedding.vector;
+          return vector;
         }
       } catch (e) {
         console.warn('[EmbeddingEngine] 讀取 IndexedDB 緩存失敗:', e);
@@ -148,23 +157,25 @@ class EmbeddingEngine {
       const output = await this.pipeline(text, { pooling: 'mean', normalize: true });
       const vector = Array.from(output.data);
 
-      this.cache.set(cacheKey, vector);
+      const vectorToStore = this.useCompression ? this._compressVector(vector) : vector;
+      this.cache.set(cacheKey, vectorToStore);
 
       if (this.memoryStore) {
         try {
           await this.memoryStore.addEmbedding({
             id: cacheKey,
-            vector,
+            vector: vectorToStore,
             text: text.slice(0, 200),
             createdAt: new Date().toISOString(),
-            model: this.model
+            model: this.model,
+            compressed: this.useCompression
           });
         } catch (e) {
           console.warn('[EmbeddingEngine] 保存嵌入到 IndexedDB 失敗:', e);
         }
       }
 
-      console.log(`[EmbeddingEngine] 嵌入生成完成，維度: ${vector.length}`);
+      console.log(`[EmbeddingEngine] 嵌入生成完成，維度: ${vector.length}${this.useCompression ? ' (已壓縮)' : ''}`);
       return vector;
     } catch (error) {
       console.error('[EmbeddingEngine] 嵌入生成失敗:', error);
@@ -220,21 +231,6 @@ class EmbeddingEngine {
       return data.data[0].embedding;
     }
 
-    if (provider === 'gemini') {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model || 'text-embedding-004'}:embedContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: { parts: [{ text }] } })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 錯誤: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.embedding.values;
-    }
-
     if (provider === 'custom' && url) {
       const response = await fetch(url, {
         method: 'POST',
@@ -256,8 +252,56 @@ class EmbeddingEngine {
     throw new Error(`不支持的 API 提供者: ${provider}`);
   }
 
+  _compressVector(vector) {
+    if (!Array.isArray(vector) || vector.length === 0) {
+      return vector;
+    }
+    
+    const min = Math.min(...vector);
+    const max = Math.max(...vector);
+    const range = max - min || 1;
+    
+    const compressed = new Int8Array(vector.length);
+    for (let i = 0; i < vector.length; i++) {
+      const normalized = (vector[i] - min) / range;
+      compressed[i] = Math.round(normalized * 254 - 127);
+    }
+    
+    return {
+      __compressed: true,
+      data: Array.from(compressed),
+      min,
+      max,
+      originalLength: vector.length
+    };
+  }
+
+  _decompressVector(compressed) {
+    if (!compressed || !compressed.__compressed) {
+      return compressed;
+    }
+    
+    const { data, min, max, originalLength } = compressed;
+    const range = max - min || 1;
+    
+    const decompressed = new Float32Array(originalLength);
+    for (let i = 0; i < originalLength; i++) {
+      const normalized = (data[i] + 127) / 254;
+      decompressed[i] = normalized * range + min;
+    }
+    
+    return Array.from(decompressed);
+  }
+
+  _isCompressed(vector) {
+    return vector && typeof vector === 'object' && vector.__compressed === true;
+  }
+
   cosineSimilarity(vecA, vecB) {
-    if (!vecA || !vecB || vecA.length !== vecB.length) {
+    const a = this._isCompressed(vecA) ? this._decompressVector(vecA) : vecA;
+    const b = this._isCompressed(vecB) ? this._decompressVector(vecB) : vecB;
+    
+    if (!a || !b || a.length !== b.length) {
       return 0;
     }
 
@@ -265,10 +309,10 @@ class EmbeddingEngine {
     let normA = 0;
     let normB = 0;
 
-    for (let i = 0; i < vecA.length; i++) {
-      dotProduct += vecA[i] * vecB[i];
-      normA += vecA[i] * vecA[i];
-      normB += vecB[i] * vecB[i];
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
     }
 
     if (normA === 0 || normB === 0) {
@@ -279,13 +323,16 @@ class EmbeddingEngine {
   }
 
   euclideanDistance(vecA, vecB) {
-    if (!vecA || !vecB || vecA.length !== vecB.length) {
+    const a = this._isCompressed(vecA) ? this._decompressVector(vecA) : vecA;
+    const b = this._isCompressed(vecB) ? this._decompressVector(vecB) : vecB;
+    
+    if (!a || !b || a.length !== b.length) {
       return Infinity;
     }
 
     let sum = 0;
-    for (let i = 0; i < vecA.length; i++) {
-      const diff = vecA[i] - vecB[i];
+    for (let i = 0; i < a.length; i++) {
+      const diff = a[i] - b[i];
       sum += diff * diff;
     }
 
@@ -328,7 +375,8 @@ class EmbeddingEngine {
       dimensions: this.dimensions,
       cacheSize: this.cache.size,
       apiEnabled: this.apiConfig.enabled,
-      apiProvider: this.apiConfig.provider
+      apiProvider: this.apiConfig.provider,
+      useCompression: this.useCompression
     };
   }
 

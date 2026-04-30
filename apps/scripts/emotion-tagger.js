@@ -249,26 +249,6 @@ class EmotionTagger {
       return this._parseLLMResponse(content);
     }
 
-    if (provider === 'gemini') {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-pro'}:generateContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-          }]
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 錯誤: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      return this._parseLLMResponse(content);
-    }
-
     throw new Error(`不支持的 API 提供者: ${provider}`);
   }
 

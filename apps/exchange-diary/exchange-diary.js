@@ -787,6 +787,7 @@
     let apiUrl = '';
     let apiKey = '';
     let modelName = '';
+    let apiType = 'openai';
     
     if (typeof window.SettingsReader !== 'undefined' && window.SettingsReader.getActiveApiWithFallback) {
       const api = window.SettingsReader.getActiveApiWithFallback();
@@ -794,7 +795,8 @@
         apiUrl = api.url || '';
         apiKey = api.key || '';
         modelName = api.model || '';
-        console.log('[ExchangeDiary] 使用統一 API:', api.name || '未命名', '模型:', modelName);
+        apiType = api.type || 'openai';
+        console.log('[ExchangeDiary] 使用統一 API:', api.name || '未命名', '模型:', modelName, '類型:', apiType);
       }
     }
     
@@ -827,37 +829,73 @@
     const systemPrompt = buildSystemPrompt(npcName, fullPersonality, userName, sourceType);
     const userMessage = buildUserMessage(userEntry, userName);
     
-    const endpoint = apiUrl.endsWith('/chat/completions') 
-      ? apiUrl 
-      : apiUrl.replace(/\/$/, '') + '/chat/completions';
+    let content = '';
     
-    console.log('[ExchangeDiary] 呼叫 API:', endpoint, '模型:', modelName || 'default');
-    
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: modelName || 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        temperature: 0.85,
-        max_tokens: 500
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[ExchangeDiary] API 錯誤:', response.status, errorText);
-      throw new Error(`API 請求失敗: ${response.status}`);
+    // Gemini 原生 API 格式
+    if (apiType === 'gemini') {
+      const model = modelName || 'gemini-1.5-flash';
+      const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
+      
+      console.log('[ExchangeDiary] 呼叫 Gemini API, 模型:', model);
+      
+      const geminiPayload = {
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 500 },
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+      
+      const geminiRes = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiPayload)
+      });
+      
+      if (!geminiRes.ok) {
+        const errorText = await geminiRes.text();
+        console.error('[ExchangeDiary] Gemini API 錯誤:', geminiRes.status, errorText);
+        throw new Error('Gemini API 請求失敗: ' + geminiRes.status);
+      }
+      
+      const geminiData = await geminiRes.json();
+      if (geminiData.error) throw new Error(geminiData.error.message || JSON.stringify(geminiData.error));
+      content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    } else {
+      // OpenAI 相容格式或自訂端點
+      let endpoint;
+      if (apiType === 'custom') {
+        endpoint = apiUrl;
+      } else {
+        endpoint = apiUrl.endsWith('/chat/completions') ? apiUrl : apiUrl.replace(/\/$/, '') + '/chat/completions';
+      }
+      
+      console.log('[ExchangeDiary] 呼叫 API:', endpoint, '模型:', modelName || 'default');
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          model: modelName || 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.85,
+          max_tokens: 500
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ExchangeDiary] API 錯誤:', response.status, errorText);
+        throw new Error('API 請求失敗: ' + response.status);
+      }
+      
+      const data = await response.json();
+      content = data?.choices?.[0]?.message?.content?.trim();
     }
-    
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content?.trim();
     
     if (!content) {
       console.log('[ExchangeDiary] API 回應為空，使用靜態回應');
