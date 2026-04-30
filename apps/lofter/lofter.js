@@ -36,7 +36,7 @@ const postData = {
   latest: []
 };
 
-const hotTags = ['#?�人??, '#?��?補�?', '#????�新', '#角色?�白', '#世�?觀?��?', '#AU?��?', '#?��?活�?'];
+const hotTags = ['#同人文', '#原作補完', '#連載更新', '#角色獨白', '#世界觀考據', '#AU創作', '#接龍活動'];
 let currentTab = 'recommend';
 let currentTag = hotTags[0];
 let currentView = 'list';
@@ -52,15 +52,15 @@ const CP_BODYTYPES_KEY = 'sx_lofter_cp_bodytypes';
 const GENERATED_POSTS_KEY = 'sx_lofter_generated_posts';
 
 const AUTHOR_NAMES = [
-  '夜�?�?, '路人??, '?��??�戶', '潛水??, '路人�?,
-  '小透�?', '?��?群眾', '佛系?�年', '鹹�?一�?, '?��??�人',
-  '社�??�常', '?�工�?, '?��?�?, '碼農一??, '設�?師阿',
-  '?�端�?, '後端�?, '?��?�?, '?��???, '測試??,
-  '實�??��???, '?�員工張??, '?��??��???, '?��??��?', '樓�?小陳',
-  '?��??��?網�?', '路�???, '?�便?��?', '純路�?, '?��?群眾',
-  '?��?群眾', '路人�?, '?��??��?', '不想?��?', '?�便?�啥',
-  '?�戶12345', 'id已隱??, '神�?�?, '路人�?, '?�客',
-  '路人??, '路人�?, '路人�?, '路人�?, '路人�?
+  '夜貓子', '路人甲', '匿名用戶', '潛水員', '路人乙',
+  '小透明', '吃瓜群眾', '佛系青年', '鹹魚一條', '摸魚達人',
+  '社畜日常', '打工人', '搬磚人', '碼農一號', '設計師阿',
+  '前端仔', '後端佬', '產品汪', '運營喵', '測試猿',
+  '實習生小王', '老員工張叔', '新來的小李', '隔壁老王', '樓下小陳',
+  '某不知名網友', '路過的', '隨便看看', '純路人', '吃瓜群眾',
+  '圍觀群眾', '路人丙', '匿名發言', '不想取名', '隨便叫啥',
+  '用戶12345', 'id已隱藏', '神秘人', '路人丁', '過客',
+  '路人戊', '路人己', '路人庚', '路人辛', '路人壬'
 ];
 
 function getRandomAuthorName() {
@@ -88,202 +88,202 @@ async function initPostData() {
 
 const worldSettings = [
   {
-    title: 'ABO 設�?',
-    desc: 'Alpha/Beta/Omega 三種第�??�別，基?�信?��??��??�本?��??��?社�??��??��?記、發?��??��?結�?機制??,
-    tags: ['#ABO', '#世�?觀']
+    title: 'ABO 設定',
+    desc: 'Alpha/Beta/Omega 三種第二性別，基於信息素與生理本能的階級社會。包含標記、發情期、成結等機制。',
+    tags: ['#ABO', '#世界觀']
   },
   {
-    title: '?�兵?��?',
-    desc: '?��?極端?�銳?�哨?��?精�??��?強大?�嚮導。�??�精神�??�精神�??�、�??��?設�???,
-    tags: ['#?�兵?��?', '#世�?觀']
+    title: '哨兵嚮導',
+    desc: '感官極端敏銳的哨兵與精神力量強大的嚮導。包含精神體、精神圖景、結合等設定。',
+    tags: ['#哨兵嚮導', '#世界觀']
   },
   {
-    title: '?�利波特',
-    desc: '?��??�現�?��敦之�??��?法�??�。�??�華?�學?�制?��??�、�?統歧視�?黑�?法防禦�?,
-    tags: ['#HP', '#魔�??��?']
+    title: '哈利波特',
+    desc: '隱藏在現代倫敦之下的魔法世界。霍格華茲學院制、魔杖、血統歧視與黑魔法防禦。',
+    tags: ['#HP', '#魔法校園']
   },
   {
-    title: '?��?高中?��?',
-    desc: '?�春?�昧?�校?��?活。學?��??�度?�社?�活?�、�??�祭?��??��??��?,
-    tags: ['#?��?', '#?�春']
+    title: '日式高中校園',
+    desc: '青春曖昧的校園生活。學長姐制度、社團活動、文化祭、屋頂告白。',
+    tags: ['#校園', '#青春']
   },
   {
-    title: '美�?大學?�活',
-    desc: '?��??��?妹�??��??�派對、校?��??�賽事、宿?��?活�??��??�索??,
-    tags: ['#大學', '#美�?']
+    title: '美國大學生活',
+    desc: '兄弟會姊妹會文化、派對、校園運動賽事、宿舍生活與獨立探索。',
+    tags: ['#大學', '#美式']
   },
   {
-    title: '辦公室職??,
-    desc: '權�?等�??��?止�??��?辦公室。�?下�??��??�茶水�??�卦?��??��?秘�??�?��?,
-    tags: ['#?�場', '#辦公�?]
+    title: '辦公室職場',
+    desc: '權力等級與禁止戀愛的辦公室。上下級關係、茶水間八卦、加班與秘密戀情。',
+    tags: ['#職場', '#辦公室']
   },
   {
-    title: '?��? Idol',
-    desc: '?��??�臺?��??��??�。練習�??�度?��??��?令、宿?��?活�?私�?飯困?��?,
-    tags: ['#K-Pop', '#?��?']
+    title: '韓國 Idol',
+    desc: '華麗舞臺背後的殘酷。練習生制度、戀愛禁令、宿舍生活與私生飯困擾。',
+    tags: ['#K-Pop', '#偶像']
   },
   {
-    title: '?�代?�滾樂�?',
-    desc: '?�逆�?夢想?�音樂�??�。地下Live House?�巡迴�?程、�??��??��?絆�??�盾??,
-    tags: ['#樂�?', '#?�滾']
+    title: '現代搖滾樂團',
+    desc: '叛逆與夢想的音樂世界。地下Live House、巡迴旅程、成員間的羈絆與矛盾。',
+    tags: ['#樂團', '#搖滾']
   },
   {
-    title: '歐洲中�?紀宮廷',
-    desc: '繁�?縟�?下�?權�?鬥爭?�貴?��?級、政治聯姻、�??��?謀?��?士精神�?,
-    tags: ['#中�?紀', '#宮廷']
+    title: '歐洲中世紀宮廷',
+    desc: '繁文縟節下的權力鬥爭。貴族等級、政治聯姻、舞會密謀與騎士精神。',
+    tags: ['#中世紀', '#宮廷']
   },
   {
-    title: '?��?伴侶設�?',
-    desc: '每個人?��??�就註�??��??��?美�??��??�。色?�模式、�?字�?記、傷?�共享、倒�??��?表現形�???,
+    title: '靈魂伴侶設定',
+    desc: '每個人出生時就註定有一個完美的另一半。色盲模式、文字標記、傷痕共享、倒計時等表現形式。',
     tags: ['#Soulmate', '#宿命']
   },
   {
-    title: '?��???,
-    desc: '?��??�肺?��??�長?�花?��??�咳?��??�花??��唯?��??��??�能治�?，�??��?移除但失?��??��?,
-    tags: ['#?��???, '#?��?']
+    title: '花吐症',
+    desc: '單戀時肺部會生長出花朵，隨咳嗽吐出花瓣。唯有對方的愛能治癒，或手術移除但失去愛意。',
+    tags: ['#花吐症', '#虐心']
   },
   {
-    title: '賽�?龐�?',
-    desc: '高�??�但�??��??��?世�??�義體改?�、�?經�?��?��?業�?層�?底層?�兵?��?級�?立�?,
-    tags: ['#賽�?龐�?', '#科幻']
+    title: '賽博龐克',
+    desc: '高科技但腐敗的未來世界。義體改造、神經連接、企業高層與底層傭兵的階級對立。',
+    tags: ['#賽博龐克', '#科幻']
   },
   {
-    title: '?��?�?,
-    desc: '被�??��?秘副?��?必�??��??��?規�??�能?��??��?存�??��??�信任�?依賴??,
-    tags: ['#?��?�?, '#?��?']
+    title: '無限流',
+    desc: '被拉入神秘副本，必須遵守特定規則才能生存。生存壓力下的信任與依賴。',
+    tags: ['#無限流', '#生存']
   },
   {
-    title: '?�島求�?',
-    desc: '?��?毀滅�??��??��??�困?�人?�帶?�物資匱乏、�?度�?賴、在絕�?中建立�?小�??��?,
-    tags: ['#?��?', '#求�?']
+    title: '荒島求生',
+    desc: '文明毀滅後的世界或受困無人地帶。物資匱乏、高度依賴、在絕望中建立小小樂園。',
+    tags: ['#末世', '#求生']
   }
 ];
 
 const interactionTropes = [
   {
-    title: '?��?,
-    desc: '多年後�?次相?��?彼此?��?了卻?��?變�?,
-    tags: ['#?��?, '#?��?']
+    title: '重逢',
+    desc: '多年後再次相遇，彼此都變了卻又沒變。',
+    tags: ['#重逢', '#情感']
   },
   {
-    title: '誤�?�??',
-    desc: '一?�以來�?誤�?終於�??，�?似�?太遲了�?,
-    tags: ['#誤�?', '#?��?']
+    title: '誤會解開',
+    desc: '一直以來的誤會終於解開，但似乎太遲了。',
+    tags: ['#誤會', '#虐心']
   },
   {
-    title: '?�中',
-    desc: '下雨天�??��?，改變�??�個人?�命?��?,
-    tags: ['#??, '#浪漫']
+    title: '雨中',
+    desc: '下雨天的偶遇，改變了兩個人的命運。',
+    tags: ['#雨', '#浪漫']
   },
   {
-    title: '?�白',
-    desc: '終於鼓起?�氣說出心�???,
-    tags: ['#?�白', '#??]
+    title: '告白',
+    desc: '終於鼓起勇氣說出心意。',
+    tags: ['#告白', '#甜']
   },
   {
-    title: '?�離',
-    desc: '不�?不�??��?但�?定�??��???,
-    tags: ['#?�離', '#約�?']
+    title: '分離',
+    desc: '不得不分開，但約定會再見。',
+    tags: ['#分離', '#約定']
   },
   {
     title: '守護',
-    desc: '默�?守護?�身?��?不�??�報??,
-    tags: ['#守護', '#?��?']
+    desc: '默默守護在身邊，不求回報。',
+    tags: ['#守護', '#暗戀']
   },
   {
-    title: '?�憶',
-    desc: '?�憶起�??��?點�?滴滴??,
-    tags: ['#?�憶', '#?�去']
+    title: '回憶',
+    desc: '回憶起過去的點點滴滴。',
+    tags: ['#回憶', '#過去']
   },
   {
-    title: '契�??��?',
-    desc: '?�利?�被迫�??��?侶�?夫妻?��?居�?活、公?��??��??��??��??��??��?程�?,
-    tags: ['#?�戲?��?', '#契�?']
+    title: '契約關係',
+    desc: '因利益被迫假扮情侶或夫妻。同居生活、公眾演出，日久生情的甜蜜過程。',
+    tags: ['#假戲真做', '#契約']
   },
   {
-    title: '死�???,
-    desc: '?�方?�於完全對�??��??�。�??�相對�?張�??�被迫�?作�??�糾結、隱?��??��??��?,
-    tags: ['#宿敵', '#對�?']
+    title: '死對頭',
+    desc: '雙方處於完全對立的立場。針鋒相對的張力、被迫合作時的糾結、隱藏的吸引力。',
+    tags: ['#宿敵', '#對立']
   },
   {
-    title: '?��?平凡?�怪物',
-    desc: '?�人類�?AI?�吸血鬼、�??�人?�人魚�?試�??�解人�??��??�跨?�種?��??��?礙�?笨�?溫�???,
-    tags: ['#?�人�?, '#跨物�?]
+    title: '嚮往平凡的怪物',
+    desc: '非人類（AI、吸血鬼、外星人、人魚）試圖理解人類情感。跨物種的溝通障礙與笨拙溫情。',
+    tags: ['#非人類', '#跨物種']
   },
   {
-    title: '身�?互�?',
-    desc: '?��?外�?詛�?交�??��?/身�??��??�代?��??��?活�??�現?��??��?密�??��???,
-    tags: ['#身�?互�?', '#?��?']
+    title: '身體互換',
+    desc: '因意外或詛咒交換靈魂/身體。必須代替對方生活，發現隱藏的秘密與傷痛。',
+    tags: ['#身體互換', '#靈魂']
   },
   {
-    title: '?��?一張�?',
-    desc: '?��?客滿?��??�避???，只?��??�房?��?張�??�誰?�地?��??�是?�在一起�??��??��??�硬?��?夜翻身入?��?,
-    tags: ['#被迫近�???, '#一張�?']
+    title: '只有一張床',
+    desc: '旅店客滿或受困避難所，只剩一個房間一張床。誰睡地板？還是擠在一起？背對背的僵硬到半夜翻身入懷。',
+    tags: ['#被迫近距離', '#一張床']
   },
   {
-    title: '?��?空�??�困',
-    desc: '?�梯?��??�躲?�敵人�?�???�狹窄巷弄。�??��?貼�??��??��??�吸?��?跳�?體溫??,
-    tags: ['#被迫近�???, '#密�?空�?']
+    title: '狹小空間受困',
+    desc: '電梯故障、躲避敵人的衣櫃、狹窄巷弄。必須緊貼對方，感受呼吸、心跳與體溫。',
+    tags: ['#被迫近距離', '#密閉空間']
   },
   {
-    title: '?��?',
-    desc: '?�風?��??�、�??�冰?��?水。為了�?存�??��??�傳?��?溫�?從�?存本?��??�為?�張?��?,
-    tags: ['#被迫近�???, '#?��?']
+    title: '取暖',
+    desc: '暴風雪受困、掉入冰冷湖水。為了生存必須緊擁傳遞體溫，從生存本能轉化為性張力。',
+    tags: ['#被迫近距離', '#生存']
   },
   {
-    title: '誰�??��???,
-    desc: '一?��??��?來�??��??��?平�??�淡，�??�傷??��?�暴?��?極度心疼?��?紮傷???細膩?��??�欲??,
-    tags: ['#?�顧', '#保護�?]
+    title: '誰弄傷你的',
+    desc: '一方受傷回來，另一方雖平時冷淡，看到傷口瞬間暴怒或極度心疼。包紮傷口的細膩與佔有欲。',
+    tags: ['#照顧', '#保護欲']
   },
   {
-    title: '?�弱?�顧',
-    desc: '?��??�、�?識模糊�?平�?強勢?��??��?得�?小孩一�??賴。餵?�、擦汗、�?夢�??��??��??��??��?,
-    tags: ['#?�顧', '#?�弱']
+    title: '病弱照顧',
+    desc: '發高燒、意識模糊，平時強勢的角色變得像小孩一樣依賴。餵藥、擦汗、半夢半醒間的真情流露。',
+    tags: ['#照顧', '#脆弱']
   },
   {
-    title: '?�夢?��???,
-    desc: '深�??�創?��??�。另一?�給予�??�、摸?�、�??��??��?展現?�給對方?��?軟面??,
-    tags: ['#?�顧', '#安撫']
+    title: '噩夢與安撫',
+    desc: '深夜因創傷驚醒。另一方給予擁抱、摸頭、輕聲安慰，展現只給對方的柔軟面。',
+    tags: ['#照顧', '#安撫']
   },
   {
-    title: '?��??��?言',
-    desc: '微醺?�大?�。平?��??�說?�話?��??��??�親?��??�全?��??�。�?天�?來�??�尷尬�???,
-    tags: ['#失控', '#?�白']
+    title: '酒後吐真言',
+    desc: '微醺或大醉。平時不敢說的話、不敢做的親暱行為全都爆發。隔天醒來後的尷尬期。',
+    tags: ['#失控', '#告白']
   },
   {
-    title: '?��???詛�?',
-    desc: '被迫必�?說�?話�??��??�進�?親�??��??�能�?��?��??�。拼?��??��??�終失?��??��??��?,
-    tags: ['#失控', '#魔�?']
+    title: '真言劑/詛咒',
+    desc: '被迫必須說真話，或必須進行親密舉動才能解除的詛咒。拼命忍耐但最終失敗的掙扎感。',
+    tags: ['#失控', '#魔法']
   },
   {
-    title: '??��「噢?��??�刻',
-    desc: '好�??�死對頭?��??�平?�瞬?��?如陽?��??�頭一笑�?，�??��?識到：「�?了�??��?上�?了。�?,
-    tags: ['#失控', '#覺�?']
+    title: '那個「噢」的時刻',
+    desc: '好友或死對頭在某個平凡瞬間（如陽光下回頭一笑），突然意識到：「糟了，我愛上他了。」',
+    tags: ['#失控', '#覺醒']
   },
   {
-    title: '?��??��?�?,
-    desc: '?��?箭、鋼?�、�??�、寫字。�??��??��??�姿?��??��?覆�??��??��?，耳�??��??��?導�?,
-    tags: ['#?��?張�?', '#?�學']
+    title: '手把手教學',
+    desc: '教射箭、鋼琴、撞球、寫字。從背後環繞的姿勢，手掌覆蓋在手背上，耳邊的低聲指導。',
+    tags: ['#肢體張力', '#教學']
   },
   {
-    title: '?��?�?��',
-    desc: '?�席�???��??��?幫�??��??�帶?�翻?��??�撥?��??��?髮。極近�??��??��?交�?，呼?�交?��?,
-    tags: ['#?��?張�?', '#親�?']
+    title: '整理衣物',
+    desc: '出席正式場合前，幫對方打領帶、翻領子、撥開額前碎髮。極近距離的眼神交織，呼吸交錯。',
+    tags: ['#肢體張力', '#親密']
   },
   {
-    title: '身�?�?體�?�?,
-    desc: '?��??��??�東西、衣?�太?�寬大。�??��??��?後方幫�??�東西�??��??�穿?�另一?�寬大�?襯衫??,
-    tags: ['#?��?張�?', '#體�?�?]
+    title: '身高差/體型差',
+    desc: '拿不到高處東西、衣服太過寬大。高的一方從後方幫忙拿東西，或一方穿著另一方寬大的襯衫。',
+    tags: ['#肢體張力', '#體型差']
   },
   {
-    title: '?��??��?',
-    desc: '?�個人?�覺得�??��??�歡?�己，都?��??�試?�。刻?�避?��??��??��?他人?��??�微小�?妒�?,
-    tags: ['#?�潮洶湧', '#?��?']
+    title: '雙向暗戀',
+    desc: '兩個人都覺得對方不喜歡自己，都在瘋狂試探。刻意避開的眼神、對他人接近的微小嫉妒。',
+    tags: ['#暗潮洶湧', '#暗戀']
   },
   {
-    title: '秘�??��?',
-    desc: '?�人?��?裝�?不�??�敵對�?私�?下卻?�深?�聯繫。�?子�?下�??�腳?�只?�兩人�??��??��?,
-    tags: ['#?�潮洶湧', '#秘�?']
+    title: '秘密盟友',
+    desc: '眾人面前裝作不熟或敵對，私底下卻有深厚聯繫。桌子底下的勾腳、只有兩人懂的暗號。',
+    tags: ['#暗潮洶湧', '#秘密']
   }
 ];
 
@@ -319,7 +319,7 @@ async function getStorageItem(key) {
       const value = await localforage.getItem(key);
       if (value !== null) return value;
     } catch (e) {
-      console.warn('[Lofter] localforage 讀?�失?��?使用 localStorage:', e);
+      console.warn('[Lofter] localforage 讀取失敗，使用 localStorage:', e);
     }
   }
   try {
@@ -335,13 +335,13 @@ async function setStorageItem(key, value) {
     try {
       await localforage.setItem(key, value);
     } catch (e) {
-      console.warn('[Lofter] localforage 寫入失�?:', e);
+      console.warn('[Lofter] localforage 寫入失敗:', e);
     }
   }
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn('[Lofter] localStorage 寫入失�?:', e);
+    console.warn('[Lofter] localStorage 寫入失敗:', e);
   }
 }
 
@@ -427,7 +427,7 @@ async function renderFeed() {
             <div class="author">${escapeHTML(post.author)}</div>
             <div class="meta">${escapeHTML(post.category)} · ${escapeHTML(post.time)}</div>
           </div>
-          <button class="more-btn" type="button" aria-label="?��??��?"><i class="fas fa-ellipsis"></i></button>
+          <button class="more-btn" type="button" aria-label="更多選項"><i class="fas fa-ellipsis"></i></button>
         </header>
         <div class="post-full-content">${escapeHTML(post.fullContent || post.excerpt || post.text)}</div>
         <div class="post-tags">${post.tags.map(tag => `<span class="post-tag">${escapeHTML(tag)}</span>`).join('')}</div>
@@ -436,7 +436,7 @@ async function renderFeed() {
             <i class="far fa-heart"></i><span>${post.likes}</span>
           </button>
           <button class="action" type="button"><i class="far fa-comment"></i><span>${post.comments}</span></button>
-          <button class="action follow-action ${isFollowed ? 'is-followed' : ''}" type="button"><i class="${isFollowed ? 'fas' : 'far'} fa-star"></i><span>${isFollowed ? '已追�? : '追蹤'}</span></button>
+          <button class="action follow-action ${isFollowed ? 'is-followed' : ''}" type="button"><i class="${isFollowed ? 'fas' : 'far'} fa-star"></i><span>${isFollowed ? '已追蹤' : '追蹤'}</span></button>
           <button class="action bookmark-action ${isBookmarked ? 'bookmarked' : ''}" type="button"><i class="${isBookmarked ? 'fas' : 'far'} fa-bookmark"></i></button>
         </footer>
       </div>
@@ -453,7 +453,7 @@ function togglePostExpand(headerEl) {
 window.togglePostExpand = togglePostExpand;
 
 function buildPostHTML(post, index) {
-  const followLabel = post.isFollowed ? '已追�? : '追蹤';
+  const followLabel = post.isFollowed ? '已追蹤' : '追蹤';
   return `
     <article class="post-card post-card-compact" data-index="${index}">
       <div class="post-card-header" onclick="togglePostExpand(this)">
@@ -472,7 +472,7 @@ function buildPostHTML(post, index) {
             <div class="author">${escapeHTML(post.author)}</div>
             <div class="meta">${escapeHTML(post.category)} · ${escapeHTML(post.time)}</div>
           </div>
-          <button class="more-btn" type="button" aria-label="?��??��?"><i class="fas fa-ellipsis"></i></button>
+          <button class="more-btn" type="button" aria-label="更多選項"><i class="fas fa-ellipsis"></i></button>
         </header>
         <div class="post-full-content">${escapeHTML(post.fullContent || post.excerpt || post.text)}</div>
         <div class="post-tags">${post.tags.map(tag => `<span class="post-tag">${escapeHTML(tag)}</span>`).join('')}</div>
@@ -515,12 +515,12 @@ function updateViewToggleUI() {
     viewToggleBtn.dataset.view = 'waterfall';
     viewToggleBtn.classList.add('is-waterfall');
     viewToggleBtn.setAttribute('aria-pressed', 'true');
-    viewToggleBtn.innerHTML = '<i class="fas fa-list"></i><span>?�表�?/span>';
+    viewToggleBtn.innerHTML = '<i class="fas fa-list"></i><span>列表流</span>';
   } else {
     viewToggleBtn.dataset.view = 'list';
     viewToggleBtn.classList.remove('is-waterfall');
     viewToggleBtn.setAttribute('aria-pressed', 'false');
-    viewToggleBtn.innerHTML = '<i class="fas fa-grip"></i><span>?��?�?/span>';
+    viewToggleBtn.innerHTML = '<i class="fas fa-grip"></i><span>瀑布流</span>';
   }
 }
 
@@ -596,16 +596,16 @@ function bindFollowEvents(container) {
     const card = event.target.closest('.post-card');
     if (!card) return;
     
-    const title = card.querySelector('.post-title')?.textContent || '?�命?��?�?;
-    const author = card.querySelector('.author')?.textContent || '?��?作�?;
+    const title = card.querySelector('.post-title')?.textContent || '未命名文章';
+    const author = card.querySelector('.author')?.textContent || '匿名作者';
     const fullContent = card.querySelector('.post-full-content')?.textContent || '';
-    const category = card.querySelector('.meta')?.textContent?.split('·')[0]?.trim() || '?�人??;
+    const category = card.querySelector('.meta')?.textContent?.split('·')[0]?.trim() || '同人文';
     
     const list = loadListFromStorage(FOLLOW_POST_KEY);
     const exists = list.find(item => item.title === title && item.author === author);
     
     if (exists) {
-      // 已追蹤�??��?追蹤
+      // 已追蹤，取消追蹤
       const index = list.findIndex(item => item.title === title && item.author === author);
       if (index >= 0) {
         list.splice(index, 1);
@@ -615,19 +615,19 @@ function bindFollowEvents(container) {
         followBtn.querySelector('span').textContent = '追蹤';
       }
     } else {
-      // ?��?追蹤
+      // 新增追蹤
       list.unshift({ 
         title, 
         author, 
-        time: '?��?', 
-        status: '???�?,
+        time: '剛剛', 
+        status: '連載中',
         fullContent,
         category
       });
       localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
       followBtn.classList.add('is-followed');
       followBtn.querySelector('i').className = 'fas fa-star';
-      followBtn.querySelector('span').textContent = '已追�?;
+      followBtn.querySelector('span').textContent = '已追蹤';
     }
     
     renderFollowFeed();
@@ -639,17 +639,17 @@ async function callAIAPI(payload) {
   const activeIndex = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
   const config = apis[activeIndex] || apis[0];
   if (!config || !config.url) {
-    throw new Error('?�設�?API，�??�設定�??��?�?);
+    throw new Error('未設定 API，請至設定頁面配置');
   }
   
   const apiType = config.type || 'openai';
   
-  // Gemini ?��? API ?��?
+  // Gemini 原生 API 格式
   if (apiType === 'gemini') {
     const model = config.model || 'gemini-1.5-flash';
     const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
     
-    console.log('[Lofter] 調用 Gemini API, 模�?:', model);
+    console.log('[Lofter] 調用 Gemini API, 模型:', model);
     
     const contents = [];
     let systemInstruction = '';
@@ -682,7 +682,7 @@ async function callAIAPI(payload) {
     
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error('Gemini API ?�誤: ' + response.status + ' - ' + errorText);
+      throw new Error('Gemini API 錯誤: ' + response.status + ' - ' + errorText);
     }
     
     const data = await response.json();
@@ -690,7 +690,8 @@ async function callAIAPI(payload) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   
-  // OpenAI ?�容?��??�自訂端�?  let targetUrl;
+  // OpenAI 相容格式或自訂端點
+  let targetUrl;
   if (apiType === 'custom') {
     targetUrl = config.url;
   } else {
@@ -705,7 +706,7 @@ async function callAIAPI(payload) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-        reject(new Error(`請�??��? (${timeoutMs / 1000}�?`));
+        reject(new Error(`請求逾時 (${timeoutMs / 1000}秒)`));
       }, timeoutMs);
 
       fetch(url, { ...options, signal: controller.signal })
@@ -727,7 +728,7 @@ async function callAIAPI(payload) {
   while (retryCount < maxRetries) {
     try {
       const timeoutMs = 120000 + (retryCount * 60000);
-      console.log(`[Lofter] ?�試?��? (�?${retryCount + 1} �?，逾�?: ${timeoutMs / 1000}秒`);
+      console.log(`[Lofter] 嘗試生成 (第 ${retryCount + 1} 次)，逾時: ${timeoutMs / 1000}秒`);
 
       const response = await fetchWithTimeout(targetUrl, {
         method: 'POST',
@@ -752,59 +753,61 @@ async function callAIAPI(payload) {
           try {
             errorDetail = await response.text();
           } catch {
-            errorDetail = '?��?讀?�錯誤內�?;
+            errorDetail = '無法讀取錯誤內容';
           }
         }
-        const errorMsg = `API 請�?失�?
-?�?�碼: ${response.status} ${response.statusText}
+        const errorMsg = `API 請求失敗
+狀態碼: ${response.status} ${response.statusText}
 URL: ${targetUrl}
-?�誤詳�?: ${errorDetail}`;
-        console.error('[Lofter] API ?�誤:', errorMsg);
+錯誤詳情: ${errorDetail}`;
+        console.error('[Lofter] API 錯誤:', errorMsg);
         throw new Error(errorMsg);
       }
       
       const data = await response.json();
       if (data.error) {
-        const errorMsg = `API ?�傳?�錯�??�誤類�?: ${data.error.type || '?�知'}
-?�誤訊息: ${data.error.message || JSON.stringify(data.error)}`;
-        console.error('[Lofter] API ?�傳?�誤:', errorMsg);
+        const errorMsg = `API 回傳錯錯誤
+錯誤類型: ${data.error.type || '未知'}
+錯誤訊息: ${data.error.message || JSON.stringify(data.error)}`;
+        console.error('[Lofter] API 回傳錯誤:', errorMsg);
         throw new Error(errorMsg);
       }
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        const errorMsg = `API ?��??��??�誤
-?��??�容: ${JSON.stringify(data, null, 2)}`;
-        console.error('[Lofter] API ?��??��??�誤:', errorMsg);
+        const errorMsg = `API 回應格式錯誤
+回應內容: ${JSON.stringify(data, null, 2)}`;
+        console.error('[Lofter] API 回應格式錯誤:', errorMsg);
         throw new Error(errorMsg);
       }
       
-      console.log('[Lofter] ?��??��?');
+      console.log('[Lofter] 生成成功');
       return data.choices[0].message.content;
 
     } catch (err) {
       lastError = err;
       retryCount++;
-      console.warn(`[Lofter] �?${retryCount} 次�?試失??`, err.message);
+      console.warn(`[Lofter] 第 ${retryCount} 次嘗試失敗:`, err.message);
       
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        const errorMsg = `網路請�?失�?
-?�誤類�?: 網路?�誤
+        const errorMsg = `網路請求失敗
+錯誤類型: 網路錯誤
 URL: ${targetUrl}
-?�能?��?: 
-1. API URL 不正�?2. CORS 跨�??��?
-3. 網路????�常
-4. API 伺�??�無?��?
-?��??�誤: ${err.message}`;
-        console.error('[Lofter] 網路?�誤:', errorMsg);
+可能原因: 
+1. API URL 不正確
+2. CORS 跨域問題
+3. 網路連線異常
+4. API 伺服器無回應
+原始錯誤: ${err.message}`;
+        console.error('[Lofter] 網路錯誤:', errorMsg);
       }
       
       if (retryCount < maxRetries) {
-        console.log(`[Lofter] 等�? 2 秒�??�試...`);
+        console.log(`[Lofter] 等待 2 秒後重試...`);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
   }
 
-  throw new Error(`${lastError?.message || '?�知?�誤'}（已?�試 ${maxRetries} 次�?`);
+  throw new Error(`${lastError?.message || '未知錯誤'}（已嘗試 ${maxRetries} 次）`);
 }
 
 function getWorldbookData() {
@@ -859,13 +862,13 @@ function getCotDataForPrompt() {
     const list = JSON.parse(raw);
     if (!Array.isArray(list) || list.length === 0) return '';
     
-    let cotContent = '\n# ?�考�??��?以�??�容?��?你思考�??��??��??��?章中?��??��??��?\n';
+    let cotContent = '\n# 思考參考（以下內容僅供你思考參考，嚴禁在文章中提及或引用）\n';
     list.slice(0, 5).forEach(item => {
       if (item && item.content) {
         cotContent += `${item.content.slice(0, 500)}\n`;
       }
     });
-    cotContent += '\n**?��??��?：以上思考內容�?供�??�解?��??��?，�?對�??�在?��?中出?�任何相?�內容�??��???*\n';
+    cotContent += '\n**重要提醒：以上思考內容僅供你理解創作方向，絕對不可在文章中出現任何相關內容或提及。**\n';
     
     return cotContent;
   } catch (e) {
@@ -879,7 +882,7 @@ function getCharacterData(name) {
     const charName = localStorage.getItem('sx_char_name');
     if (name === charName || !name) {
       return {
-        name: charName || 'AI ?��?',
+        name: charName || 'AI 助理',
         personality: localStorage.getItem('sx_char_personality') || '',
         background: localStorage.getItem('sx_char_background') || '',
         avatar: localStorage.getItem('sx_char_avatar') || ''
@@ -895,7 +898,7 @@ function getCharacterData(name) {
     const charName = localStorage.getItem('sx_char_name');
     if (name === charName || !name) {
       return {
-        name: charName || 'AI ?��?',
+        name: charName || 'AI 助理',
         personality: localStorage.getItem('sx_char_personality') || '',
         background: localStorage.getItem('sx_char_background') || '',
         avatar: localStorage.getItem('sx_char_avatar') || ''
@@ -927,7 +930,7 @@ function getChatHistory(limit = 20) {
 }
 
 function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
-  const [topName, bottomName] = cp.split(' ? ');
+  const [topName, bottomName] = cp.split(' × ');
   const topChar = getCharacterData(topName);
   const bottomChar = getCharacterData(bottomName);
   const user = getUserData();
@@ -941,7 +944,7 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
     try {
       const memory = JSON.parse(memoryRaw);
       if (Array.isArray(memory) && memory.length > 0) {
-        memoryContext = '\n# 記憶?��?\n';
+        memoryContext = '\n# 記憶摘要\n';
         memory.slice(0, 5).forEach(m => {
           if (m.summary || m.content) {
             memoryContext += `- ${m.summary || m.content}\n`;
@@ -953,7 +956,7 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
 
   let worldbookContext = '';
   if (Object.keys(worldbook).length > 0) {
-    worldbookContext = '\n# ?�考�??��??��??��??�考�?請勿?��?章中?�接引用?��??�這�??�容）\n';
+    worldbookContext = '\n# 參考資料（僅供創作參考，請勿在文章中直接引用或提及這些內容）\n';
     for (const [cat, entries] of Object.entries(worldbook)) {
       if (entries && entries.length > 0) {
         entries.slice(0, 8).forEach(e => {
@@ -963,92 +966,92 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
         });
       }
     }
-    worldbookContext += '\n注�?：以上�??��?供�??�解角色?��??��?，�?將其?�然?�入?��?中�?不�??��?章中?��??��??�書?�、「設定」�?詞�??�\n';
+    worldbookContext += '\n注意：以上資料僅供你理解角色與世界觀，請將其自然融入故事中，不要在文章中提及「世界書」、「設定」等詞彙。\n';
   }
 
-  let characterContext = '\n# 角色設�?\n';
+  let characterContext = '\n# 角色設定\n';
   if (topChar) {
-    characterContext += `\n## ${topName}（攻?��?\n- ?�別: ${topGender || '?��?�?}\n- ?�格: ${topChar.personality || '?�知'}\n- ?�景: ${topChar.background || '?�知'}\n`;
+    characterContext += `\n## ${topName}（攻方）\n- 性別: ${topGender || '未指定'}\n- 性格: ${topChar.personality || '未知'}\n- 背景: ${topChar.background || '未知'}\n`;
     if (topChar.worldBook) {
-      characterContext += `- 世�??��??? ${topChar.worldBook}\n`;
+      characterContext += `- 世界書參考: ${topChar.worldBook}\n`;
     }
   } else {
-    characterContext += `\n## ${topName}（攻?��?\n- ?�別: ${topGender || '?��?�?}\n- 請根?��??��?稱推測性格?��??�\n`;
+    characterContext += `\n## ${topName}（攻方）\n- 性別: ${topGender || '未指定'}\n- 請根據角色名稱推測性格與背景\n`;
   }
   if (bottomChar) {
-    characterContext += `\n## ${bottomName}（�??��?\n- ?�別: ${bottomGender || '?��?�?}\n- ?�格: ${bottomChar.personality || '?�知'}\n- ?�景: ${bottomChar.background || '?�知'}\n`;
+    characterContext += `\n## ${bottomName}（受方）\n- 性別: ${bottomGender || '未指定'}\n- 性格: ${bottomChar.personality || '未知'}\n- 背景: ${bottomChar.background || '未知'}\n`;
     if (bottomChar.worldBook) {
-      characterContext += `- 世�??��??? ${bottomChar.worldBook}\n`;
+      characterContext += `- 世界書參考: ${bottomChar.worldBook}\n`;
     }
   } else {
-    characterContext += `\n## ${bottomName}（�??��?\n- ?�別: ${bottomGender || '?��?�?}\n- 請根?��??��?稱推測性格?��??�\n`;
+    characterContext += `\n## ${bottomName}（受方）\n- 性別: ${bottomGender || '未指定'}\n- 請根據角色名稱推測性格與背景\n`;
   }
 
   let bodytypeContext = '';
   const hasBodytypeSetting = topBodytype || bottomBodytype || bodytypeNote || topGender || bottomGender;
   
   if (hasBodytypeSetting) {
-    bodytypeContext = '\n# 角色體�??�性別設�?（�?要�?\n';
-    bodytypeContext += '- ?�設角色體�??�勻稱�??��?不是骨�??��??��?身�?\n';
-    bodytypeContext += '- 請根?�以下設定�?寫�??��??��?不�?將�??��?度瘦?��?弱�?\n';
-    bodytypeContext += '- 請嚴?�遵守�??�性別設�?，避?�混淆男女性�??�\n\n';
+    bodytypeContext = '\n# 角色體型與性別設定（重要）\n';
+    bodytypeContext += '- 預設角色體型為勻稱有肉，不是骨感或過瘦的身材\n';
+    bodytypeContext += '- 請根據以下設定描寫角色體型，不要將角色過度瘦化或弱化\n';
+    bodytypeContext += '- 請嚴格遵守角色性別設定，避免混淆男女性角色\n\n';
     
     if (topGender) {
-      bodytypeContext += `- ${topName}（攻?��??�別: ${topGender}\n`;
+      bodytypeContext += `- ${topName}（攻方）性別: ${topGender}\n`;
     }
     
     if (topBodytype) {
-      bodytypeContext += `- ${topName}（攻?��?體�?: ${topBodytype}\n`;
-      if (topBodytype.includes('骨�?') || topBodytype.includes('?��?')) {
-        bodytypeContext += `  - 注�?：此?��??��??��?但�??�保�??�康?��??��??�度?��??�寫\n`;
+      bodytypeContext += `- ${topName}（攻方）體型: ${topBodytype}\n`;
+      if (topBodytype.includes('骨感') || topBodytype.includes('瘦削')) {
+        bodytypeContext += `  - 注意：此為較瘦體型，但仍需保持健康感，避免過度病態描寫\n`;
       }
-      if (topBodytype === '?�潤?��?') {
-        bodytypeContext += `  - ?�潤?��?體�??�徵：�?不到?�骨?��??�腰窩、�??��??�、�?子�??��??�\n`;
+      if (topBodytype === '圓潤柔軟') {
+        bodytypeContext += `  - 圓潤柔軟體型特徵：看不到鎖骨、沒有腰窩、有手臂肉、肚子肉、小腹\n`;
       }
     } else {
-      bodytypeContext += `- ${topName}（攻?��?體�?: ?�稱?��?（�?認�?\n`;
+      bodytypeContext += `- ${topName}（攻方）體型: 勻稱有肉（默認）\n`;
     }
     
     if (bottomGender) {
-      bodytypeContext += `- ${bottomName}（�??��??�別: ${bottomGender}\n`;
+      bodytypeContext += `- ${bottomName}（受方）性別: ${bottomGender}\n`;
     }
     
     if (bottomBodytype) {
-      bodytypeContext += `- ${bottomName}（�??��?體�?: ${bottomBodytype}\n`;
-      if (bottomBodytype.includes('骨�?') || bottomBodytype.includes('?��?')) {
-        bodytypeContext += `  - 注�?：此?��??��??��?但�??�保�??�康?��??��??�度?��??�寫\n`;
+      bodytypeContext += `- ${bottomName}（受方）體型: ${bottomBodytype}\n`;
+      if (bottomBodytype.includes('骨感') || bottomBodytype.includes('瘦削')) {
+        bodytypeContext += `  - 注意：此為較瘦體型，但仍需保持健康感，避免過度病態描寫\n`;
       }
-      if (bottomBodytype === '?�潤?��?') {
-        bodytypeContext += `  - ?�潤?��?體�??�徵：�?不到?�骨?��??�腰窩、�??��??�、�?子�??��??�\n`;
+      if (bottomBodytype === '圓潤柔軟') {
+        bodytypeContext += `  - 圓潤柔軟體型特徵：看不到鎖骨、沒有腰窩、有手臂肉、肚子肉、小腹\n`;
       }
     } else {
-      bodytypeContext += `- ${bottomName}（�??��?體�?: ?�稱?��?（�?認�?\n`;
+      bodytypeContext += `- ${bottomName}（受方）體型: 勻稱有肉（默認）\n`;
     }
     
     if (bodytypeNote) {
-      bodytypeContext += `- 體�??�註: ${bodytypeNote}\n`;
+      bodytypeContext += `- 體型備註: ${bodytypeNote}\n`;
     }
-    bodytypeContext += '\n請嚴?�遵守以上�??��??�別設�??��??�寫?�\n';
+    bodytypeContext += '\n請嚴格遵守以上體型與性別設定進行描寫。\n';
   } else {
-    bodytypeContext = '\n# 角色體�??�性別設�?（�?要�?\n';
-    bodytypeContext += '- ?��?角色?�為?�稱?��??�正常�??��?不是骨�??��??��?身�?\n';
-    bodytypeContext += '- 請勿將�??��?寫�??�於骨�??�瘦弱�?弱�?任�?一?�\n';
-    bodytypeContext += '- 女性�??��??�自?��??��??��??��?不是紙�?人身?�\n';
-    bodytypeContext += '- ?�性�??��??�適度�??��??��??��?不是?�度?�弱?�身?�\n';
-    bodytypeContext += '- 請根?��??��?稱判?�性別，並?��?寫�?保�?一?�\n';
+    bodytypeContext = '\n# 角色體型與性別設定（重要）\n';
+    bodytypeContext += '- 兩位角色皆為勻稱有肉的正常體型，不是骨感或過瘦的身材\n';
+    bodytypeContext += '- 請勿將角色描寫成過於骨感、瘦弱或弱化任何一方\n';
+    bodytypeContext += '- 女性角色應有自然的曲線與肉感，不是紙片人身材\n';
+    bodytypeContext += '- 男性角色應有適度的肌肉與體格，不是過度瘦弱的身材\n';
+    bodytypeContext += '- 請根據角色名稱判斷性別，並在描寫時保持一致\n';
   }
 
   let npcContext = '';
   if (npcs && npcs.length > 0) {
     npcContext = '\n# NPC 角色\n';
     npcs.forEach(npc => {
-      npcContext += `\n## ${npc.name}\n- ??User ?��?�? ${npc.relationship || '好�?'}\n- 互�??�質: ?��??��?不�??��??��??�昧\n`;
+      npcContext += `\n## ${npc.name}\n- 與 User 的關係: ${npc.relationship || '好友'}\n- 互動性質: 友情向，不涉及愛情或曖昧\n`;
     });
   }
 
   let historyContext = '';
   if (chatHistory.length > 0) {
-    historyContext = '\n# 近�?對話紀?��??��??��??��??��?\n';
+    historyContext = '\n# 近期對話紀錄（可作為互動參考）\n';
     chatHistory.forEach(msg => {
       const role = msg.role === 'user' ? user.name : (msg.role === 'assistant' ? '角色' : msg.role);
       historyContext += `${role}: ${msg.content.slice(0, 150)}\n`;
@@ -1057,12 +1060,12 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
 
   let worldSettingList = '';
   if (worldSettings && worldSettings.length > 0) {
-    worldSettingList = '\n# 世�?觀設�?\n' + worldSettings.map(s => `- ${s.title}: ${s.desc}`).join('\n');
+    worldSettingList = '\n# 世界觀設定\n' + worldSettings.map(s => `- ${s.title}: ${s.desc}`).join('\n');
   }
 
   let interactionList = '';
   if (interactions && interactions.length > 0) {
-    interactionList = '\n# 互�?梗\n' + interactions.map(i => `- ${i.title}: ${i.desc}`).join('\n');
+    interactionList = '\n# 互動梗\n' + interactions.map(i => `- ${i.title}: ${i.desc}`).join('\n');
   }
 
   const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
@@ -1072,47 +1075,55 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
   let wordCountRequirement = '';
   
   if (contentLength === 'short') {
-    lengthInstruction = '?�是一篇短篇�?人�?，�?精簡但�??�地?�述?��???;
-    wordCountRequirement = '**字數�?1000 字左??*';
+    lengthInstruction = '這是一篇短篇同人文，請精簡但完整地敘述故事。';
+    wordCountRequirement = '**字數約 1000 字左右**';
   } else if (contentLength === 'medium') {
-    lengthInstruction = '?�是一篇長篇�?人�?，�?詳細?�寫?�景?��?話�?心�?活�???;
-    wordCountRequirement = '**字數必�? 2000-5000 �?*';
+    lengthInstruction = '這是一篇長篇同人文，請詳細描寫場景、對話與心理活動。';
+    wordCountRequirement = '**字數必須 2000-5000 字**';
   } else if (contentLength === 'series') {
-    lengthInstruction = '?�是一?��??系�??��?篇�?請為後�??��??��?伏�?，�?事�??�延續性�?;
-    wordCountRequirement = '**字數�?1500-2000 字�?作為????�第一�?*';
+    lengthInstruction = '這是一個連載系列的開篇，請為後續發展埋下伏筆，故事要有延續性。';
+    wordCountRequirement = '**字數約 1500-2000 字，作為連載的第一章**';
   }
   
   let r18Instruction = '';
   if (isR18) {
     r18Instruction = `
-# ?�人?�容?��?要�?（R18，�??�執行�?
-**?�是一篇�?人�??�人?��?，�?必�??�含以�??�容�?*
+# 成人內容創作要求（R18，必須執行）
+**這是一篇成人向同人創作，你必須包含以下內容：**
 
-## 必�??�含?��?�?1. **完整?�性�??�景**：�??��?從�??�到結�??��??��?程�?不能跳�??�模糊帶??2. **?��?細�?**：觸?�、溫度、聲?�、氣?�、�?覺�?細膩?�寫
-3. **身�??��?**：�??��??��?顫�??��??�、出汗、�??��?繃�?
-4. **心�?活�?**：�??�在親�??��?中�??��?波�??�內心想�?5. **對話?��???*：親密�?程中?��?話、呻?�、�?求�?
+## 必須包含的描寫
+1. **完整的性愛場景**：必須有從前戲到結束的完整過程，不能跳過或模糊帶過
+2. **感官細節**：觸感、溫度、聲音、氣味、視覺的細膩描寫
+3. **身體反應**：生理反應如顫抖、喘息、出汗、肌肉緊繃等
+4. **心理活動**：角色在親密過程中的情感波動和內心想法
+5. **對話與互動**：親密過程中的對話、呻吟、請求等
 
-## ?�寫要�?
-- 使用?��??�露骨�?不�?俗�?詞�?
-- 每個性�??�景?��? 500 字以�?- 必�??�至少�??��??��??��??�景
-- ?�寫要符?��??�性格，�??�人?��??��?- ?�含安全?��??��?如使?��??��?等�?
+## 描寫要求
+- 使用具體、露骨但不低俗的詞彙
+- 每個性愛場景至少 500 字以上
+- 必須有至少一個完整的性愛場景
+- 描寫要符合角色性格，保持人物一致性
+- 包含安全性行為（如使用保險套等）
 
-## 禁止事�?
-- 禁止使用?�然後�???..?��?模�?跳�?
-- 禁止?��?寫親?��??�抱就�???- 禁止?�「春宵�??�」�??��?帶�?
-- 必�?實�??�寫?��??��??�細節`;
+## 禁止事項
+- 禁止使用「然後他們...」等模糊跳過
+- 禁止只描寫親吻和擁抱就結束
+- 禁止用「春宵一刻」等成語帶過
+- 必須實際描寫性愛過程的細節`;
   }
 
   let npcInstruction = '';
   if (npcs && npcs.length > 0) {
     npcInstruction = `
-# NPC 互�??��?
-- NPC ??User ?�好?��???User ?�良好�??��?互�?
-- NPC 不�?介入 CP 之�??��??��?係�?不�??��??��??��??��?互�?
-- NPC ?�以作為?��??�、助?�者、�??��?經歷事件?�夥�?- NPC ??CP 角色?��??��??�然，符?��??��?係`;
+# NPC 互動指引
+- NPC 是 User 的好友，與 User 有良好的友情互動
+- NPC 不會介入 CP 之間的愛情關係，不會有曖昧或愛情向的互動
+- NPC 可以作為旁觀者、助攻者、或共同經歷事件的夥伴
+- NPC 與 CP 角色的互動要自然，符合友情關係`;
   }
 
-  return `你是一位�?業�??�人?��?家�??�長?��?角色設�??��??��??��?符�?人物?�格?��?人�??��??��?以�?設�??��?一篇�?人�???${cotContent}
+  return `你是一位專業的同人文作家，擅長根據角色設定和世界觀創作符合人物性格的同人文。請根據以下設定創作一篇同人文。
+${cotContent}
 ${characterContext}
 ${bodytypeContext}
 ${npcContext}
@@ -1124,58 +1135,62 @@ ${historyContext}
 ${r18Instruction}
 ${npcInstruction}
 
-# 使用??- ?�稱: ${user.name}
-- ?�格: ${user.personality || '?�知'}
-- ?�景: ${user.background || '?�知'}
+# 使用者
+- 名稱: ${user.name}
+- 性格: ${user.personality || '未知'}
+- 背景: ${user.background || '未知'}
 
-# CP ?��?
-${topName} ? ${bottomName}
+# CP 配對
+${topName} × ${bottomName}
 
-# ?��?要�?
-- ?�風: ${style}
-${styleRef ? `- ?�考�?�? ${styleRef}` : ''}
+# 創作要求
+- 文風: ${style}
+${styleRef ? `- 參考文風: ${styleRef}` : ''}
 - ${lengthInstruction}
 
-# 輸出規�?（�?常�?要�?
-1. 使用 ${lang} ?�寫
-2. 保�?角色?�格一?��??�格符�?角色設�?
-3. ?�然?�入世�?觀設�?，�?世�?觀細�?豐�??��?
+# 輸出規範（非常重要）
+1. 使用 ${lang} 撰寫
+2. 保持角色性格一致，嚴格符合角色設定
+3. 自然融入世界觀設定，讓世界觀細節豐富故事
 4. ${wordCountRequirement}
-5. ?�含標�??�正??6. ?�要�?完整?�場?��?寫、�?話、�??�活??7. ?��?要�?起承轉�?，�??�只?��?�?8. 角色互�?要自?��?符�? CP ?��?
-9. **?�格禁止?��?章中?��??��??�任�?COT?�思維?�、思考�??��??�容**
-10. **禁止?��?章中?��?任�?設�?資�?來�?，�??��?不�??��?世�??�、設定�??��??��??��?**
-11. **禁止使用?�根?�設定」、「�?世�??��?述」�??��?述�??�?�設定都?�自?��??��?事中**
+5. 包含標題、正文
+6. 需要有完整的場景描寫、對話、心理活動
+7. 情節要有起承轉合，不能只是片段
+8. 角色互動要自然，符合 CP 關係
+9. **嚴格禁止在文章中提及或引用任何 COT、思維鏈、思考參考的內容**
+10. **禁止在文章中提及任何設定資料來源，包括但不限於：世界書、設定檔、參考資料等**
+11. **禁止使用「根據設定」、「如世界書所述」等元敘述，所有設定都應自然融入故事中**
 
-請直?�輸?��?人�??�容，格式�?下�?
-?��?題�?..
-?�正?��?..`;
+請直接輸出同人文內容，格式如下：
+【標題】...
+【正文】...`;
 }
 
 async function generateFanfic(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
   const prompt = buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
   const payload = [
-    { role: 'system', content: '你是一位�?業�??�人?��?家�??�長?��?角色設�??��??��??��?符�?人物?�格?��?人�??? },
+    { role: 'system', content: '你是一位專業的同人文作家，擅長根據角色設定和世界觀創作符合人物性格的同人文。' },
     { role: 'user', content: prompt }
   ];
   return await callAIAPI(payload);
 }
 
 function parseGeneratedContent(text) {
-  const titleMatch = text.match(/?��?題�?[^\n]+)/);
-  const contentMatch = text.match(/?�正?��?[\s\S]*)/);
-  const title = titleMatch ? titleMatch[1].trim() : '?��?�?;
+  const titleMatch = text.match(/【標題】([^\n]+)/);
+  const contentMatch = text.match(/【正文】([\s\S]*)/);
+  const title = titleMatch ? titleMatch[1].trim() : '無標題';
   let content = contentMatch ? contentMatch[1].trim() : text;
   
   content = content
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\[??��[^\]]*\][\s\S]*?(?=\n\n|\n?�|$)/gi, '')
-    .replace(/?��?[ABＡＢ]（[^）]+）[�?][\s\S]*?(?=\n\n|\n?��?|\n?�|$)/gi, '')
-    .replace(/?��?[ABＡＢ][�?][\s\S]*?(?=\n\n|\n?��?|\n?�|$)/gi, '')
-    .replace(/（�?學�?[�?][\s\S]*?(?=\n\n|\n（|\n?�|$)/gi, '')
-    .replace(/（�??��?[�?][\s\S]*?(?=\n\n|\n（|\n?�|$)/gi, '')
-    .replace(/?�輯?��?令[�?][\s\S]*?(?=\n\n|\n-|\n?�|$)/gi, '')
-    .replace(/^\s*[-?�·]\s*[^\n]*?(?:?�總|語氣|侵略?�|中性|?��?|?��?|?�喻|?�人|信息素|?��?|記憶|衰退|水漬|?�面|污�?)[^\n]*$/gim, '')
+    .replace(/\[監控[^\]]*\][\s\S]*?(?=\n\n|\n【|$)/gi, '')
+    .replace(/教授[ABＡＢ]（[^）]+）[：:][\s\S]*?(?=\n\n|\n教授|\n【|$)/gi, '')
+    .replace(/教授[ABＡＢ][：:][\s\S]*?(?=\n\n|\n教授|\n【|$)/gi, '')
+    .replace(/（美學）[：:][\s\S]*?(?=\n\n|\n（|\n【|$)/gi, '')
+    .replace(/（心理）[：:][\s\S]*?(?=\n\n|\n（|\n【|$)/gi, '')
+    .replace(/邏輯與禁令[：:][\s\S]*?(?=\n\n|\n-|\n【|$)/gi, '')
+    .replace(/^\s*[-•·]\s*[^\n]*?(?:霸總|語氣|侵略性|中性|物理|動詞|明喻|擬人|信息素|腺體|記憶|衰退|水漬|鏡面|污染)[^\n]*$/gim, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   
@@ -1183,11 +1198,11 @@ function parseGeneratedContent(text) {
   const contentLength = getCurrentContentLength();
   
   if (contentLength === 'short' && wordCount < 800) {
-    console.warn(`?��??��?人�?字數不足 800 字�??��? ${wordCount} 字�?`);
+    console.warn(`生成的同人文字數不足 800 字（目前 ${wordCount} 字）`);
   } else if (contentLength === 'medium' && wordCount < 1500) {
-    console.warn(`?��??��?人�?字數不足 1500 字�??��? ${wordCount} 字�?`);
+    console.warn(`生成的同人文字數不足 1500 字（目前 ${wordCount} 字）`);
   } else if (contentLength === 'series' && wordCount < 1000) {
-    console.warn(`?��??��?人�?字數不足 1000 字�??��? ${wordCount} 字�?`);
+    console.warn(`生成的同人文字數不足 1000 字（目前 ${wordCount} 字）`);
   }
   
   return {
@@ -1201,30 +1216,30 @@ let isGenerating = false;
 
 async function handleGenerateFanfic() {
   if (isGenerating) {
-    alert('�?��?��?中�?請�???..');
+    alert('正在生成中，請稍候...');
     return;
   }
 
   const selectedCpList = getSelectedCpList();
-  console.log('[Lofter] ?��???CP:', selectedCpList);
+  console.log('[Lofter] 選擇的 CP:', selectedCpList);
   
   if (selectedCpList.length === 0) {
-    alert('請�??��??��?一�?CP');
+    alert('請先選擇至少一組 CP');
     return;
   }
 
   const selectedWorldSettings = getSelectedWorldSettings();
   const selectedInteractions = getSelectedInteractions();
-  console.log('[Lofter] ?��??��??��?:', selectedWorldSettings);
-  console.log('[Lofter] ?��??��??��?:', selectedInteractions);
+  console.log('[Lofter] 選擇的世界觀:', selectedWorldSettings);
+  console.log('[Lofter] 選擇的互動梗:', selectedInteractions);
   
   if (selectedWorldSettings.length === 0 && selectedInteractions.length === 0) {
-    alert('請�??��??��?一?��??��??��??��?');
+    alert('請先選擇至少一個世界觀或互動梗');
     return;
   }
 
   const selectedNpcs = getSelectedNpcs();
-  console.log('[Lofter] ?��???NPC:', selectedNpcs);
+  console.log('[Lofter] 選擇的 NPC:', selectedNpcs);
 
   const style = likesStyleSelect?.value || '細膩';
   let styleRef = likesStyleRef?.value.trim();
@@ -1253,20 +1268,20 @@ async function handleGenerateFanfic() {
   isGenerating = true;
   if (likesGenerateBtn) {
     likesGenerateBtn.disabled = true;
-    likesGenerateBtn.textContent = '?��?�?..';
+    likesGenerateBtn.textContent = '生成中...';
   }
   
   const publishBtn = document.querySelector('.publish-btn');
   if (publishBtn) {
     publishBtn.disabled = true;
     publishBtn.classList.add('generating');
-    publishBtn.innerHTML = '<i class="fas fa-pen-nib"></i><span>?��?�?..</span>';
+    publishBtn.innerHTML = '<i class="fas fa-pen-nib"></i><span>生成中...</span>';
   }
 
   try {
     const generatedPosts = [];
     const contentLength = getCurrentContentLength();
-    const lengthLabel = contentLength === 'short' ? '?��?' : (contentLength === 'medium' ? '?��?' : '???');
+    const lengthLabel = contentLength === 'short' ? '短篇' : (contentLength === 'medium' ? '長篇' : '連載');
     
     for (const cp of selectedCpList) {
       const cpBodytypeData = getCpBodytypes(cp);
@@ -1283,22 +1298,22 @@ async function handleGenerateFanfic() {
       selectedWorldSettings.slice(0, 2).forEach(s => tags.push(`#${s.title}`));
       selectedInteractions.slice(0, 2).forEach(i => tags.push(`#${i.title}`));
       if (isR18) {
-        tags.push('#車�?');
+        tags.push('#車文');
       }
       if (selectedNpcs.length > 0) {
-        tags.push('#多人互�?');
+        tags.push('#多人互動');
       }
 
       const post = {
         author: getRandomAuthorName(),
-        category: `?�人??· ${cp} · ${style} · ${lengthLabel}${isR18 ? ' · R18' : ''}`,
+        category: `同人文 · ${cp} · ${style} · ${lengthLabel}${isR18 ? ' · R18' : ''}`,
         title: parsed.title,
-        summary: isR18 ? `?��? 車�? - ${parsed.content.slice(0, 70)}` : parsed.content.slice(0, 100),
+        summary: isR18 ? `⚠️ 車文 - ${parsed.content.slice(0, 70)}` : parsed.content.slice(0, 100),
         text: parsed.content.slice(0, 200) + '...',
         excerpt: parsed.content.slice(0, 300),
         fullContent: parsed.content,
         tags,
-        time: '?��?',
+        time: '剛剛',
         likes: 0,
         comments: 0,
         shares: 0,
@@ -1321,30 +1336,30 @@ async function handleGenerateFanfic() {
     updatePageView();
     renderFeed();
     
-    const cpNames = selectedCpList.join('??);
-    alert(`??已為 ${cpNames} ?��? ${generatedPosts.length} 篇�?人�?`);
+    const cpNames = selectedCpList.join('、');
+    alert(`✅ 已為 ${cpNames} 生成 ${generatedPosts.length} 篇同人文`);
   } catch (err) {
-    console.error('[Lofter] ?��?失�?完整?�誤:', err);
-    const errorInfo = `???��?失�?
+    console.error('[Lofter] 生成失敗完整錯誤:', err);
+    const errorInfo = `❌ 生成失敗
 
 ${err.message}
 
-請檢??
-1. API URL ?�否�?��
-2. API Key ?�否?��?
-3. 模�??�稱?�否?�援
-4. 網路????�否�?��`;
+請檢查:
+1. API URL 是否正確
+2. API Key 是否有效
+3. 模型名稱是否支援
+4. 網路連線是否正常`;
     alert(errorInfo);
   } finally {
     isGenerating = false;
     if (likesGenerateBtn) {
       likesGenerateBtn.disabled = false;
-      likesGenerateBtn.textContent = '?��??�人??;
+      likesGenerateBtn.textContent = '生成同人文';
     }
     if (publishBtn) {
       publishBtn.disabled = false;
       publishBtn.classList.remove('generating');
-      publishBtn.innerHTML = '<i class="fas fa-pen-nib"></i><span>?��?</span>';
+      publishBtn.innerHTML = '<i class="fas fa-pen-nib"></i><span>發佈</span>';
     }
   }
 }
@@ -1357,19 +1372,19 @@ function renderFollowFeed() {
   if (!followFeedEl) return;
   const list = loadListFromStorage(FOLLOW_POST_KEY);
   if (list.length === 0) {
-    followFeedEl.innerHTML = '<div class="empty-state"><i class="far fa-star"></i><p>尚未追蹤任�??��?</p><p class="empty-hint">?��?章中點�??�追蹤」�??�即?�追�?/p></div>';
+    followFeedEl.innerHTML = '<div class="empty-state"><i class="far fa-star"></i><p>尚未追蹤任何文章</p><p class="empty-hint">在文章中點擊「追蹤」按鈕即可追蹤</p></div>';
     return;
   }
   
   const generated = list.map((item, index) => ({
     author: item.author,
-    category: item.category || `追蹤�?· ${item.status}`,
+    category: item.category || `追蹤中 · ${item.status}`,
     title: item.title,
-    summary: item.fullContent ? item.fullContent.slice(0, 100) + '...' : 'AI 續寫已�??��?點�??��??��?一篇�???,
-    text: item.fullContent || 'AI 續寫已�??��?點�??��??��?一篇�???,
-    excerpt: item.fullContent || '追蹤此�??��?，系統�?依�??��??�設定自?�延伸�??��?,
+    summary: item.fullContent ? item.fullContent.slice(0, 100) + '...' : 'AI 續寫已準備，點擊可生成下一篇章。',
+    text: item.fullContent || 'AI 續寫已準備，點擊可生成下一篇章。',
+    excerpt: item.fullContent || '追蹤此作品後，系統會依據文筆與設定自動延伸續集。',
     fullContent: item.fullContent || '',
-    tags: ['#???', '#追蹤�?],
+    tags: ['#連載', '#追蹤中'],
     time: item.time,
     likes: 0,
     comments: 0,
@@ -1433,7 +1448,7 @@ function renderNpcCheckboxList() {
   const allNpcs = [...npcPool, ...characters.filter(c => c.isNpc)];
   
   if (allNpcs.length === 0) {
-    npcList.innerHTML = '<div class="npc-empty">尚無 NPC 資�?，�??�到設�??�面?��? NPC</div>';
+    npcList.innerHTML = '<div class="npc-empty">尚無 NPC 資料，請先到設定頁面新增 NPC</div>';
     return;
   }
   
@@ -1446,7 +1461,7 @@ function renderNpcCheckboxList() {
       <div class="cp-checkbox-item ${isSelected ? 'selected' : ''}" data-npc-index="${index}">
         <input type="checkbox" id="npc-${index}" ${isSelected ? 'checked' : ''}>
         <label for="npc-${index}">${escapeHTML(npc.name)}</label>
-        <span class="npc-relationship">好�?</span>
+        <span class="npc-relationship">好友</span>
       </div>
     `;
   }).join('');
@@ -1591,7 +1606,7 @@ function saveNpcSelection() {
     if (allNpcs[index]) {
       selected.push({
         name: allNpcs[index].name,
-        relationship: '好�?'
+        relationship: '好友'
       });
     }
   });
@@ -1689,10 +1704,10 @@ function bindIdeaEvents() {
   ideaGenerateBtn?.addEventListener('click', () => {
     const selected = Array.from(ideaGridEl?.querySelectorAll('.idea-card.selected') || []);
     if (selected.length === 0) {
-      alert('請�??��??��?一?��??��??��?人�?');
+      alert('請先選擇至少一個梗再生成同人文');
       return;
     }
-    alert(`已選??${selected.length} ?��?，可?�於?��??�人?��?稿。`);
+    alert(`已選擇 ${selected.length} 個梗，可用於生成同人文草稿。`);
   });
 }
 
@@ -1762,7 +1777,7 @@ function renderWorldbookCheckboxList() {
   });
   
   if (allEntries.length === 0) {
-    worldbookCheckboxList.innerHTML = '<div class="cp-empty">尚無世�??��??��?請�??��??�書?�面?��?</div>';
+    worldbookCheckboxList.innerHTML = '<div class="cp-empty">尚無世界書條目，請先到世界書頁面新增</div>';
     return;
   }
   
@@ -1839,14 +1854,14 @@ function loadWorldbookEntries() {
 
   if (!worldbookListEl) return;
   if (entries.length === 0) {
-    worldbookListEl.innerHTML = '<div class="worldbook-item"><div class="worldbook-title">尚未建�?世�??��???/div><div class="worldbook-meta">請�??�設定�?建�?世�??�內�?/div></div>';
+    worldbookListEl.innerHTML = '<div class="worldbook-item"><div class="worldbook-title">尚未建立世界書條目</div><div class="worldbook-meta">請先到設定頁建立世界書內容</div></div>';
     return;
   }
 
   worldbookListEl.innerHTML = entries.slice(0, 4).map(entry => `
     <div class="worldbook-item">
       <div class="worldbook-title">${escapeHTML(entry.title)}</div>
-      <div class="worldbook-meta">${escapeHTML(entry.triggers.join('??) || '尚未設�??�鍵�?)}</div>
+      <div class="worldbook-meta">${escapeHTML(entry.triggers.join('、') || '尚未設定關鍵字')}</div>
     </div>
   `).join('');
 }
@@ -1865,7 +1880,7 @@ function getWorldbookStyleSample() {
   const entries = loadListFromStorage('sx_worldbook_style');
   if (!entries.length) return null;
   const pick = entries[Math.floor(Math.random() * entries.length)];
-  const title = pick?.title || '世�??��?�?;
+  const title = pick?.title || '世界書文風';
   const content = pick?.content || '';
   return {
     title,
@@ -1878,12 +1893,12 @@ function loadWorldbookStyleOptions() {
   if (!worldbookStyleSelect) return;
   
   if (entries.length === 0) {
-    worldbookStyleSelect.innerHTML = '<option value="">尚無世�??��?風�???/option>';
+    worldbookStyleSelect.innerHTML = '<option value="">尚無世界書文風條目</option>';
     return;
   }
   
   worldbookStyleSelect.innerHTML = entries.map((entry, index) => 
-    `<option value="${index}">${escapeHTML(entry.title || '?�命?��?�?)}</option>`
+    `<option value="${index}">${escapeHTML(entry.title || '未命名文風')}</option>`
   ).join('');
 }
 
@@ -1915,7 +1930,7 @@ function renderSelectOptions(selectEl, list, placeholder) {
   if (!selectEl) return;
   const options = [`<option value="">${placeholder}</option>`];
   list.forEach((item, index) => {
-    const label = item?.name || item?.title || item?.id || `?�目 ${index + 1}`;
+    const label = item?.name || item?.title || item?.id || `項目 ${index + 1}`;
     options.push(`<option value="${escapeHTML(String(label))}">${escapeHTML(String(label))}</option>`);
   });
   selectEl.innerHTML = options.join('');
@@ -1926,7 +1941,7 @@ function renderCpCheckboxList() {
   const list = loadListFromStorage(CP_FOLLOW_KEY);
   
   if (list.length === 0) {
-    likesCpCheckboxList.innerHTML = '<div class="cp-empty">尚未設�??�注 CP，�??�到?�發?�」�??�設�?/div>';
+    likesCpCheckboxList.innerHTML = '<div class="cp-empty">尚未設定關注 CP，請先到「發現」頁面設定</div>';
     return;
   }
   
@@ -1934,7 +1949,7 @@ function renderCpCheckboxList() {
   const selectedSet = new Set(selectedCp);
   
   likesCpCheckboxList.innerHTML = list.map((item, index) => {
-    const cpName = `${item.top} ? ${item.bottom}`;
+    const cpName = `${item.top} × ${item.bottom}`;
     const isSelected = selectedSet.has(cpName);
     return `
       <div class="cp-checkbox-item ${isSelected ? 'selected' : ''}" data-cp="${escapeHTML(cpName)}">
@@ -2115,24 +2130,24 @@ function renderCpList() {
   if (!cpListEl) return;
   const list = loadListFromStorage(CP_FOLLOW_KEY);
   if (list.length === 0) {
-    cpListEl.innerHTML = '<div class="cp-item">尚未設�??�注 CP</div>';
+    cpListEl.innerHTML = '<div class="cp-item">尚未設定關注 CP</div>';
     return;
   }
   cpListEl.innerHTML = list.map((item, index) => {
-    const cpName = `${item.top} ? ${item.bottom}`;
+    const cpName = `${item.top} × ${item.bottom}`;
     const bodytypeData = getCpBodytypes(cpName);
     let infoText = '';
     if (bodytypeData) {
       const parts = [];
-      if (bodytypeData.topGender) parts.push(`??${bodytypeData.topGender}`);
-      if (bodytypeData.bottomGender) parts.push(`??${bodytypeData.bottomGender}`);
-      if (bodytypeData.topBodytype) parts.push(`?��???${bodytypeData.topBodytype}`);
-      if (bodytypeData.bottomBodytype) parts.push(`?��???${bodytypeData.bottomBodytype}`);
-      if (parts.length > 0) infoText = ` <small>(${parts.join('??)})</small>`;
+      if (bodytypeData.topGender) parts.push(`攻:${bodytypeData.topGender}`);
+      if (bodytypeData.bottomGender) parts.push(`受:${bodytypeData.bottomGender}`);
+      if (bodytypeData.topBodytype) parts.push(`攻體型:${bodytypeData.topBodytype}`);
+      if (bodytypeData.bottomBodytype) parts.push(`受體型:${bodytypeData.bottomBodytype}`);
+      if (parts.length > 0) infoText = ` <small>(${parts.join('、')})</small>`;
     }
     return `
     <div class="cp-item">
-      <span>${escapeHTML(item.top)} ? ${escapeHTML(item.bottom)}${infoText}</span>
+      <span>${escapeHTML(item.top)} × ${escapeHTML(item.bottom)}${infoText}</span>
       <button type="button" data-remove-index="${index}">移除</button>
     </div>
   `}).join('');
@@ -2143,7 +2158,7 @@ function bindCpEvents() {
     const topName = cpTopSelect?.value || '';
     const bottomName = cpBottomSelect?.value || '';
     if (!topName || !bottomName) {
-      alert('請�??��??�方?��??��???);
+      alert('請先選擇攻方與受方角色');
       return;
     }
     
@@ -2159,7 +2174,7 @@ function bindCpEvents() {
     const bottomBodytype = discoverBottomBodytype?.value || '';
     const bodytypeNote = discoverBodytypeNote?.value?.trim() || '';
     
-    const cpName = `${topName} ? ${bottomName}`;
+    const cpName = `${topName} × ${bottomName}`;
     
     saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
     
@@ -2215,8 +2230,8 @@ const cpPool = [
   ...loadListFromStorage('sx_characters'),
   ...loadListFromStorage('sx_npcs')
 ];
-renderSelectOptions(cpTopSelect, cpPool, '?��??�方角色');
-renderSelectOptions(cpBottomSelect, cpPool, '?��??�方角色');
+renderSelectOptions(cpTopSelect, cpPool, '選擇攻方角色');
+renderSelectOptions(cpBottomSelect, cpPool, '選擇受方角色');
 renderCpList();
 renderCpCheckboxList();
 loadWorldbookStyleOptions();
@@ -2266,7 +2281,7 @@ const publishBtn = document.querySelector('.publish-btn');
 publishBtn?.addEventListener('click', async () => {
   const selectedCpList = getSelectedCpList();
   if (selectedCpList.length === 0) {
-    alert('請�??�「�?歡」�??�選?��??��???CP');
+    alert('請先到「喜歡」頁面選擇要生成的 CP');
     currentPage = 'likes';
     updatePageView();
     return;
@@ -2295,7 +2310,7 @@ publishBtn?.addEventListener('click', async () => {
   }
   
   if (selectedIdeas.length === 0) {
-    alert('?��??��?梗�?，�??�「�?歡」�??��??�選??);
+    alert('無法選擇梗題，請到「喜歡」頁面手動選擇');
     currentPage = 'likes';
     updatePageView();
     return;
@@ -2320,7 +2335,7 @@ profileSaveBtn?.addEventListener('click', () => {
     if (profileAuthorEl) {
       profileAuthorEl.textContent = nickname;
     }
-    alert('已儲存暱�?);
+    alert('已儲存暱稱');
   }
 });
 
@@ -2332,17 +2347,17 @@ if (savedNickname && profileNicknameInput) {
   profileNicknameInput.value = savedNickname;
 }
 
-// ??��資�??��?事件
+// 監聽資料還原事件
 window.addEventListener('sxiphone-data-restored', (event) => {
-  console.log('[Lofter] ?�到資�??��??�知，刷??UI...');
+  console.log('[Lofter] 收到資料還原通知，刷新 UI...');
   
   const cpPool = [
     ...loadListFromStorage('sx_users'),
     ...loadListFromStorage('sx_characters'),
     ...loadListFromStorage('sx_npcs')
   ];
-  renderSelectOptions(cpTopSelect, cpPool, '?��??�方角色');
-  renderSelectOptions(cpBottomSelect, cpPool, '?��??�方角色');
+  renderSelectOptions(cpTopSelect, cpPool, '選擇攻方角色');
+  renderSelectOptions(cpBottomSelect, cpPool, '選擇受方角色');
   renderCpList();
   renderCpCheckboxList();
   loadWorldbookEntries();

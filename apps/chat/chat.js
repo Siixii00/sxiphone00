@@ -28,13 +28,13 @@ function getActiveConfig() {
     const charPersonality = localStorage.getItem('sx_char_personality');
     const charBackground = localStorage.getItem('sx_char_background');
     
-    if (charName && charName !== '?�設?�戶') {
-        console.log('[getActiveConfig] �?localStorage 讀?��???', charName, 'personality:', charPersonality?.slice(0, 30));
+    if (charName && charName !== '預設用戶') {
+        console.log('[getActiveConfig] 從 localStorage 讀取角色:', charName, 'personality:', charPersonality?.slice(0, 30));
         return {
             name: charName,
             avatar: charAvatar || "",
-            personality: charPersonality || "一?��??��??��?",
-            background: charBackground || "??,
+            personality: charPersonality || "一個友善的助手",
+            background: charBackground || "無",
             worldBook: ""
         };
     }
@@ -47,13 +47,13 @@ function getActiveConfig() {
             const characters = JSON.parse(charactersRaw);
             if (Array.isArray(characters) && characters.length > 0) {
                 const firstChar = characters[0];
-                if (firstChar && firstChar.name && firstChar.name !== '?�設?�戶') {
+                if (firstChar && firstChar.name && firstChar.name !== '預設用戶') {
                     activeChar = firstChar;
-                    console.log('[getActiveConfig] �?sx_characters 讀?��???', activeChar.name, 'personality:', activeChar.personality?.slice(0, 30));
+                    console.log('[getActiveConfig] 從 sx_characters 讀取角色:', activeChar.name, 'personality:', activeChar.personality?.slice(0, 30));
                 }
             }
         } catch (e) {
-            console.warn('�?? sx_characters 失�?:', e);
+            console.warn('解析 sx_characters 失敗:', e);
         }
     }
     
@@ -64,50 +64,50 @@ function getActiveConfig() {
                 const masks = JSON.parse(masksRaw);
                 if (Array.isArray(masks) && masks.length > 0 && masks[0]?.name) {
                     activeChar = masks[0];
-                    console.log('[getActiveConfig] �?sx_masks 讀?��???', activeChar.name);
+                    console.log('[getActiveConfig] 從 sx_masks 讀取角色:', activeChar.name);
                 }
             } catch (e) {
-                console.warn('�?? sx_masks 失�?:', e);
+                console.warn('解析 sx_masks 失敗:', e);
             }
         }
     }
     
     if (!activeChar) {
-        console.log('[getActiveConfig] ?�找?��??�設定�?使用?�設??);
+        console.log('[getActiveConfig] 未找到角色設定，使用預設值');
     }
     
     return {
-        name: activeChar?.name || "AI ?��?",
+        name: activeChar?.name || "AI 助理",
         avatar: activeChar?.avatar || "",
-        personality: activeChar?.personality || "一?��??��??��?",
-        background: activeChar?.background || "??,
+        personality: activeChar?.personality || "一個友善的助手",
+        background: activeChar?.background || "無",
         worldBook: activeChar?.worldBook || activeChar?.worldbook || ""
     };
 }
 
-// --- 2. 讀?��??�書資�? (?�架�? ---
+// --- 2. 讀取世界書資料 (新架構) ---
 function getWorldbookData() {
     const worldbookData = {};
     
-    // 讀?�新?��?類�?�?
+    // 讀取新的分類文件
     const newCategories = [
         { key: 'sx_worldbook_theater', cat: 'theater' },
         { key: 'sx_worldbook_conditional', cat: 'conditional' },
         { key: 'sx_worldbook_core', cat: 'core' }
     ];
     
-    // ?��?保�??��??�容??
+    // 同時保留舊的兼容性
     const legacyCategories = ['cot', 'style', 'global', 'keywords', 'backend'];
     
-    // 讀?�新?��?
+    // 讀取新架構
     newCategories.forEach(({ key, cat }) => {
         const data = localStorage.getItem(key);
         if (data) {
             try {
                 worldbookData[cat] = JSON.parse(data);
-                console.log(`[Worldbook] 載入?�架�? ${cat}`);
+                console.log(`[Worldbook] 載入新架構: ${cat}`);
             } catch (e) {
-                console.warn(`�??世�???${cat} 失�?:`, e);
+                console.warn(`解析世界書 ${cat} 失敗:`, e);
                 worldbookData[cat] = {};
             }
         } else {
@@ -115,7 +115,7 @@ function getWorldbookData() {
         }
     });
     
-    // 讀?��??��?（�?後兼容�?
+    // 讀取舊架構（向後兼容）
     legacyCategories.forEach(cat => {
         const key = `sx_worldbook_${cat}`;
         const data = localStorage.getItem(key);
@@ -123,7 +123,7 @@ function getWorldbookData() {
             try {
                 worldbookData[key] = JSON.parse(data);
             } catch (e) {
-                console.warn(`�??世�???${cat} 失�?:`, e);
+                console.warn(`解析世界書 ${cat} 失敗:`, e);
                 worldbookData[key] = [];
             }
         } else {
@@ -131,13 +131,13 @@ function getWorldbookData() {
         }
     });
     
-    // 讀?��?止�?
+    // 讀取禁止詞
     const forbiddenData = localStorage.getItem('sx_detected_forbidden');
     if (forbiddenData) {
         try {
             worldbookData.sx_detected_forbidden = JSON.parse(forbiddenData);
         } catch (e) {
-            console.warn('�??禁止詞失??', e);
+            console.warn('解析禁止詞失敗:', e);
             worldbookData.sx_detected_forbidden = [];
         }
     } else {
@@ -154,7 +154,7 @@ function getWorldbookIndex() {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) return parsed;
         } catch (e) {
-            console.warn('�??世�??�索引失??', e);
+            console.warn('解析世界書索引失敗:', e);
         }
     }
     return [];
@@ -167,7 +167,7 @@ function loadChatSessions() {
             const parsed = JSON.parse(raw);
             return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
-            console.warn('�???�天室�?表失??, e);
+            console.warn('解析聊天室列表失敗', e);
         }
     }
     return [];
@@ -184,7 +184,7 @@ const saveChatData = () => {
         const activeId = getActiveChatId();
         if (activeId) localStorage.setItem('sx_chat_active', activeId);
         
-        // 保�??�戶設�???localStorage
+        // 保存用戶設定到 localStorage
         const userNameInput = document.getElementById('set-user-name');
         const userBgInput = document.getElementById('set-user-background');
         if (userNameInput && userNameInput.value.trim()) {
@@ -194,9 +194,9 @@ const saveChatData = () => {
             localStorage.setItem('sx_user_background', userBgInput.value);
         }
         
-        console.log("?�天?��?已�?存至 localStorage");
+        console.log("聊天數據已保存至 localStorage");
     } catch (e) {
-        console.error("保�??�天?��?失�?:", e);
+        console.error("保存聊天數據失敗:", e);
     }
 };
 
@@ -220,9 +220,9 @@ const saveToPersistentStorage = async () => {
                 userPersonality,
                 userBackground
             });
-            console.log("?�天?��?已�?存至 IndexedDB");
+            console.log("聊天數據已保存至 IndexedDB");
         } catch (e) {
-            console.error("IndexedDB 保�?失�?:", e);
+            console.error("IndexedDB 保存失敗:", e);
         }
     }
 };
@@ -236,19 +236,19 @@ window.addEventListener('pageshow', async (event) => {
         try {
             const persistedData = await localforage.getItem('sx_app_persisted_data');
             if (persistedData) {
-                // ?��??�戶資�?
+                // 還原用戶資料
                 if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
                 if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
                 if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
                 if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
                 
-                // ?��??�天 sessions (iOS localStorage ?�援)
+                // 還原聊天 sessions (iOS localStorage 備援)
                 if (persistedData.sx_chat_sessions) {
                     const existingSessions = localStorage.getItem('sx_chat_sessions');
-                    // ?��???localStorage 沒�?資�??��?�?localforage ?��?
+                    // 只有當 localStorage 沒有資料時才從 localforage 還原
                     if (!existingSessions) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedData.sx_chat_sessions));
-                        console.log('[Chat] �?localforage ?�復?�天 sessions:', persistedData.sx_chat_sessions.length, '??);
+                        console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
                     }
                 }
                 if (persistedData.sx_chat_active) {
@@ -259,7 +259,7 @@ window.addEventListener('pageshow', async (event) => {
                 }
             }
         } catch (e) {
-            console.warn('[Chat] �?localforage ?�復?�戶資�?失�?:', e);
+            console.warn('[Chat] 從 localforage 恢復用戶資料失敗:', e);
         }
     }
     
@@ -267,8 +267,8 @@ window.addEventListener('pageshow', async (event) => {
     userConfig = getUserConfig();
     
     let displayName = localStorage.getItem('sx_char_name');
-    if (!displayName || displayName === '?�設?�戶') {
-        displayName = charConfig.name || "AI ?��?";
+    if (!displayName || displayName === '預設用戶') {
+        displayName = charConfig.name || "AI 助理";
     }
     
     const nameEl = document.getElementById('display-name');
@@ -300,9 +300,9 @@ window.addEventListener('pageshow', async (event) => {
         renderHistory();
     }
     
-    console.log('[Chat] pageshow - ?�新載入角色設�?:', displayName);
-    console.log('[Chat] pageshow - ?�新載入?�戶設�?:', userConfig.name, userConfig.avatar ? '?�頭�? : '?�頭�?);
-    console.log('[Chat] pageshow - ?��?模�?:', savedMode);
+    console.log('[Chat] pageshow - 重新載入角色設定:', displayName);
+    console.log('[Chat] pageshow - 重新載入用戶設定:', userConfig.name, userConfig.avatar ? '有頭貼' : '無頭貼');
+    console.log('[Chat] pageshow - 生成模式:', savedMode);
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -346,11 +346,11 @@ window.addEventListener('message', (event) => {
         }
     }
     
-    // ?��?外送�???
+    // 處理外送訂單
     if (data.type === 'DELIVERY_ORDER' && data.order) {
-        console.log('[Chat] ?�到外送�???', data.order);
+        console.log('[Chat] 收到外送訂單:', data.order);
         const order = data.order;
-        const orderText = data.message || `[外送�??�]\n?��?�?{order.timeStr}\n餐廳�?{order.stores}\n?��?�?{order.items.map(i => `${i.name} x${i.qty}`).join('??)}\n?��?：NT$${order.total}\n?��?�?{order.address}${order.note ? '\n?�註�? + order.note : ''}`;
+        const orderText = data.message || `[外送訂單]\n時間：${order.timeStr}\n餐廳：${order.stores}\n品項：${order.items.map(i => `${i.name} x${i.qty}`).join('、')}\n金額：NT$${order.total}\n地址：${order.address}${order.note ? '\n備註：' + order.note : ''}`;
         
         addMessage(orderText, 'user', false, true);
         
@@ -372,26 +372,26 @@ window.addEventListener('message', (event) => {
         localStorage.setItem('sx_food_history', JSON.stringify(foodHistory));
     }
     
-    // ??�� settings ?�新
+    // 監聽 settings 更新
     if (data.type === 'settingsUpdated') {
-        console.log('[Chat] ?�到 settings ?�新，�??��??�用?��???);
+        console.log('[Chat] 收到 settings 更新，重新載入用戶資料');
         userConfig = getUserConfig();
         initUserUI();
         
-        // ?�新對話中�??�戶?�稱標籤
+        // 更新對話中的用戶名稱標籤
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = userConfig.name || 'User');
     }
     
     if (data.type === 'CHARACTER_UPDATED' && data.payload) {
-        console.log('[Chat] ?�到角色?�新:', data.payload);
+        console.log('[Chat] 收到角色更新:', data.payload);
         
         const payload = data.payload;
         charConfig = {
-            name: payload.name || localStorage.getItem('sx_char_name') || "AI ?��?",
+            name: payload.name || localStorage.getItem('sx_char_name') || "AI 助理",
             avatar: payload.avatar || localStorage.getItem('sx_char_avatar') || "",
-            personality: payload.personality || localStorage.getItem('sx_char_personality') || "一?��??��??��?",
-            background: payload.background || localStorage.getItem('sx_char_background') || "??,
+            personality: payload.personality || localStorage.getItem('sx_char_personality') || "一個友善的助手",
+            background: payload.background || localStorage.getItem('sx_char_background') || "無",
             worldBook: ""
         };
         
@@ -409,11 +409,11 @@ window.addEventListener('message', (event) => {
         if (charBackInput) charBackInput.value = charConfig.background || "";
         if (charNameInput) charNameInput.value = charConfig.name || "";
         
-        console.log('[Chat] UI 已更?�為:', charConfig.name);
+        console.log('[Chat] UI 已更新為:', charConfig.name);
     }
     
     if (data.type === 'USER_SETTINGS_UPDATED' && data.payload) {
-        console.log('[Chat] ?�到?�戶?�新:', data.payload);
+        console.log('[Chat] 收到用戶更新:', data.payload);
         
         const payload = data.payload;
         
@@ -425,14 +425,14 @@ window.addEventListener('message', (event) => {
         userConfig = getUserConfig();
         initUserUI();
         
-        // ?�新?��??�覽
+        // 更新頭像預覽
         const userAvatarPreview = document.getElementById('preview-user-avatar');
         if (userAvatarPreview && userConfig.avatar) {
             userAvatarPreview.src = userConfig.avatar;
             userAvatarPreview.style.background = '';
         }
         
-        // ?�新?�景?��?輸入�?
+        // 更新背景故事輸入框
         const userBgInput = document.getElementById('set-user-background');
         if (userBgInput) {
             userBgInput.value = userConfig.background || '';
@@ -441,48 +441,48 @@ window.addEventListener('message', (event) => {
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = userConfig.name || 'User');
         
-        console.log('[Chat] ?�戶 UI 已更?�為:', userConfig.name, userConfig.avatar ? '?�頭�? : '?�頭�?);
+        console.log('[Chat] 用戶 UI 已更新為:', userConfig.name, userConfig.avatar ? '有頭貼' : '無頭貼');
     }
     
-    // ?��?語�?變更
+    // 處理語言變更
     if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
-        console.log('[Chat] ?�到語�?變更訊息:', data.lang);
+        console.log('[Chat] 收到語言變更訊息:', data.lang);
         localStorage.setItem('sxiphone_lang', data.lang);
-        // ?�新 html lang 屬�?
+        // 更新 html lang 屬性
         if (document.documentElement) {
             document.documentElement.lang = data.lang;
         }
-        // 觸發 UI ?�新（�??��??�話�?
+        // 觸發 UI 更新（如果有的話）
         if (typeof applyLanguageToUI === 'function') {
             applyLanguageToUI();
         }
-        // 觸發語�??�新?�調
+        // 觸發語言更新回調
         if (typeof window.SxLanguage !== 'undefined' && typeof window.SxLanguage.triggerUpdate === 'function') {
             window.SxLanguage.triggerUpdate(data.lang);
         }
     }
     
-    // ?��?街�?廳�?�?
+    // 處理街機廳邀請
     if (data.type === 'ARCADE_INVITE' && data.payload) {
-        console.log('[Chat] ?�到街�?廳�?�?', data.payload);
+        console.log('[Chat] 收到街機廳邀請:', data.payload);
         handleArcadeInvite(data.payload);
     }
     
-    // ?��??�戶?�起?��?機廳?�請�?角色決�??�否?��?�?
+    // 處理用戶發起的街機廳邀請（角色決定是否接受）
     if (data.type === 'ARCADE_INVITE_FROM_USER' && data.payload) {
-        console.log('[Chat] ?�到?�戶?�起?��?機廳?��?', data.payload);
+        console.log('[Chat] 收到用戶發起的街機廳邀請:', data.payload);
         handleArcadeInviteFromUser(data.payload);
     }
     
-    // ?��?街�?廳大?�貼對話
+    // 處理街機廳大頭貼對話
     if (data.type === 'ARCADE_AVATAR_CLICK' && data.payload) {
-        console.log('[Chat] ?�到街�?廳大?�貼對話:', data.payload);
+        console.log('[Chat] 收到街機廳大頭貼對話:', data.payload);
         handleArcadeAvatarDialogue(data.payload);
     }
     
-    // ?��?街�?�?AI 對話請�?
+    // 處理街機廳 AI 對話請求
     if (data.type === 'ARCADE_REQUEST_DIALOGUE' && data.requestId) {
-        console.log('[Chat] ?�到街�?�?AI 對話請�?:', data.requestId);
+        console.log('[Chat] 收到街機廳 AI 對話請求:', data.requestId);
         handleArcadeRequestDialogue(data);
     }
 });
@@ -498,14 +498,14 @@ function migrateLegacyHistory() {
             const newId = `chat_${Date.now()}`;
             sessions.push({
                 id: newId,
-                title: 'AI ?��?',
+                title: 'AI 助理',
                 history: legacyHistory
             });
             saveChatSessions(sessions);
             localStorage.setItem('sx_chat_active', newId);
         }
     } catch (e) {
-        console.warn('?�移?��?天�??�失??, e);
+        console.warn('遷移舊聊天紀錄失敗', e);
     }
 }
 
@@ -536,7 +536,7 @@ function saveActiveSession(updatedSession) {
     saveChatSessions(sessions);
 }
 
-// --- 3. 渲�?世�??�選?�到?��?�?---
+// --- 3. 渲染世界書選項到側邊欄 ---
 function renderWorldbookOptions() {
     const container = document.getElementById('worldbook-mount-list');
     const dropdownToggle = document.getElementById('wb-dropdown-toggle');
@@ -545,11 +545,11 @@ function renderWorldbookOptions() {
     const worldbookData = getWorldbookData();
     const mounts = getWorldbookMounts();
     const categories = [
-        { key: 'global', label: '?��?設�?', icon: 'globe', defaultChecked: true },
-        { key: 'cot', label: '?�維??, icon: 'brain', defaultChecked: false },
-        { key: 'style', label: '?�風設�?', icon: 'brush', defaultChecked: false },
-        { key: 'keywords', label: '?�鍵�?, icon: 'tags', defaultChecked: false },
-        { key: 'backend', label: '後端設�?', icon: 'cog', defaultChecked: false }
+        { key: 'global', label: '全域設定', icon: 'globe', defaultChecked: true },
+        { key: 'cot', label: '思維鏈', icon: 'brain', defaultChecked: false },
+        { key: 'style', label: '文風設定', icon: 'brush', defaultChecked: false },
+        { key: 'keywords', label: '關鍵字', icon: 'tags', defaultChecked: false },
+        { key: 'backend', label: '後端設定', icon: 'cog', defaultChecked: false }
     ];
     
     const mountMap = new Map(mounts.map(m => [m.name, m]));
@@ -563,9 +563,9 @@ function renderWorldbookOptions() {
                 <div class="wb-controls">
                     <span>位置:</span>
                     <select class="wb-pos-selector">
-                        <option value="top" ${position === 'top' ? 'selected' : ''}>??(Top)</option>
-                        <option value="mid" ${position === 'mid' ? 'selected' : ''}>�?(Mid)</option>
-                        <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>�?(Bottom)</option>
+                        <option value="top" ${position === 'top' ? 'selected' : ''}>前 (Top)</option>
+                        <option value="mid" ${position === 'mid' ? 'selected' : ''}>中 (Mid)</option>
+                        <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>後 (Bottom)</option>
                     </select>
                 </div>
             </div>
@@ -575,28 +575,28 @@ function renderWorldbookOptions() {
     // 清空容器
     container.innerHTML = '';
 
-    // 添�??�用常�?庫�??�設�?
-    container.insertAdjacentHTML('beforeend', makeMountRow('?�用常�?�?, 'mid', true));
+    // 添加通用常識庫（預設）
+    container.insertAdjacentHTML('beforeend', makeMountRow('通用常識庫', 'mid', true));
 
-    // 顯示?��? - ?�接�?worldbookData 讀?��??��?不�?�?worldbookIndex
+    // 顯示分類 - 直接從 worldbookData 讀取條目，不依賴 worldbookIndex
     let hasAnyEntries = false;
     
     categories.forEach(cat => {
         const catKey = `sx_worldbook_${cat.key}`;
         const entries = worldbookData[catKey];
         
-        // ?�接檢查 entries ?�否?��??�陣?��??�內�?
+        // 直接檢查 entries 是否為有效陣列且有內容
         if (!entries || !Array.isArray(entries) || entries.length === 0) return;
         
         hasAnyEntries = true;
         
-        // 添�??��?標�?
+        // 添加分類標題
         container.insertAdjacentHTML('beforeend', `
             <div class="wb-mount-category">${cat.label}</div>
         `);
 
-        // ?�接�?entries 讀?��???
-        // global ?��??�設?�選，其他�?類�?設�??�選
+        // 直接從 entries 讀取條目
+        // global 分類預設勾選，其他分類預設不勾選
         entries.forEach(entry => {
             if (entry && entry.title) {
                 container.insertAdjacentHTML('beforeend', makeMountRow(entry.title, 'mid', cat.defaultChecked));
@@ -604,26 +604,26 @@ function renderWorldbookOptions() {
         });
     });
     
-    // 如�?沒�?任�?條目，顯示�?示�???
+    // 如果沒有任何條目，顯示提示訊息
     if (!hasAnyEntries) {
         container.insertAdjacentHTML('beforeend', `
             <div class="wb-mount-empty-hint" style="padding: 12px; color: #888; font-size: 12px; text-align: center;">
-                尚無世�??��???br>
-                <small>請�??�「�??�書?��??��?式新增內�?/small>
+                尚無世界書條目<br>
+                <small>請先到「世界書」應用程式新增內容</small>
             </div>
         `);
     }
 
     if (dropdownToggle) {
         const selectedCount = container.querySelectorAll('.wb-enable:checked').length;
-        dropdownToggle.innerHTML = `已選??${selectedCount} ?��??�書 <i class="fas fa-chevron-down"></i>`;
+        dropdownToggle.innerHTML = `已選擇 ${selectedCount} 個世界書 <i class="fas fa-chevron-down"></i>`;
     }
 
-    // 綁�?事件
+    // 綁定事件
     bindWorldbookEvents();
 }
 
-// --- 4. 綁�?世�??��?�?---
+// --- 4. 綁定世界書事件 ---
 function bindWorldbookEvents() {
     const saveBtn = document.getElementById('save-worldbook-mounts');
     if (saveBtn) {
@@ -660,13 +660,13 @@ function bindWorldbookEvents() {
             if (!event.target.classList.contains('wb-enable')) return;
             const selectedCount = dropdownMenu.querySelectorAll('.wb-enable:checked').length;
             if (dropdownToggle) {
-                dropdownToggle.innerHTML = `已選??${selectedCount} ?��??�書 <i class="fas fa-chevron-down"></i>`;
+                dropdownToggle.innerHTML = `已選擇 ${selectedCount} 個世界書 <i class="fas fa-chevron-down"></i>`;
             }
         });
     }
 }
 
-// --- 5. 保�?世�??��?載設�?---
+// --- 5. 保存世界書掛載設定 ---
 function saveWorldbookMounts() {
     const items = document.querySelectorAll('.wb-mount-item');
     const mounts = [];
@@ -685,42 +685,42 @@ function saveWorldbookMounts() {
         }
     });
     
-    // 保�???localStorage
+    // 保存到 localStorage
     localStorage.setItem('sx_worldbook_mounts', JSON.stringify(mounts));
-    alert('世�??��?載設定已保�?');
+    alert('世界書掛載設定已保存');
 }
 
-// --- 6. 讀?�已保�??��??�書?��?設�? ---
+// --- 6. 讀取已保存的世界書掛載設定 ---
 function getWorldbookMounts() {
     const data = localStorage.getItem('sx_worldbook_mounts');
     if (data) {
         try {
             return JSON.parse(data);
         } catch (e) {
-            console.warn('�??世�??��?載設定失??', e);
+            console.warn('解析世界書掛載設定失敗:', e);
             return [];
         }
     }
     return [];
 }
 
-// --- 1. ?��??�新?��??�核�?---
+// --- 1. 數據更新與讀取核心 ---
 
 /**
- * ?��?修正：統一?�新角色設�??�函�?
- * �?��?�隨?�偵測」並?��???localStorage ?��?�?
+ * 核心修正：統一更新角色設定的函式
+ * 解決「隨時偵測」並儲存到 localStorage 的問題
  */
 function updateActiveMask(field, value) {
     let masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     if (masks.length === 0) {
-        masks.push({ name: "AI ?��?", avatar: "", personality: "", background: "", worldBook: "" });
+        masks.push({ name: "AI 助理", avatar: "", personality: "", background: "", worldBook: "" });
     }
     masks[0][field] = value;
     localStorage.setItem('sx_masks', JSON.stringify(masks));
     
     let characters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
     if (characters.length === 0) {
-        characters.push({ name: "AI ?��?", avatar: "", personality: "", background: "", worldBook: "" });
+        characters.push({ name: "AI 助理", avatar: "", personality: "", background: "", worldBook: "" });
     }
     characters[0][field] = value;
     localStorage.setItem('sx_characters', JSON.stringify(characters));
@@ -736,12 +736,12 @@ function updateActiveMask(field, value) {
     }
 }
 
-// --- 1. ?��??��?載入 ---
+// --- 1. 基礎數據載入 ---
 let charConfig = getActiveConfig();
 let userConfig = getUserConfig();
-let iosTempData = {}; // iOS ?��?
+let iosTempData = {}; // iOS 暫存
 
-// --- 2. ?�?��???---
+// --- 2. 狀態變數 ---
 let longClickTimer;
 let menuHideTimer;
 let currentTargetMsg = null;
@@ -812,7 +812,7 @@ function loadCharMemoryForDiary(charName) {
         }
         return charMessages.slice(-30);
     } catch (e) {
-        console.warn('[diary] ?��?載入角色記憶:', e);
+        console.warn('[diary] 無法載入角色記憶:', e);
         return [];
     }
 }
@@ -839,8 +839,8 @@ function generateDiaryContent(history, charName, userName) {
 function generateDiaryFromPersonality(charName, userName, personality, background, memory, chatHistory) {
     const sentences = [];
     
-    const personalityParts = personality.split(/[�??�。�?;\s]+/).filter(p => p.trim());
-    const bgParts = background.split(/[�??�。�?;\s]+/).filter(p => p.trim());
+    const personalityParts = personality.split(/[，,、。；;\s]+/).filter(p => p.trim());
+    const bgParts = background.split(/[，,、。；;\s]+/).filter(p => p.trim());
     
     let msgCount = 0;
     let userMsgCount = 0;
@@ -852,11 +852,11 @@ function generateDiaryFromPersonality(charName, userName, personality, backgroun
             if (msg.role === 'user') {
                 userMsgCount++;
                 const content = msg.content.toLowerCase();
-                if (/?��?|快�?|?��?|高�?/.test(content)) emotions.push('?��?');
-                if (/???|?��?|?�|???/.test(content)) emotions.push('???');
-                if (/累|?��?|好累/.test(content)) emotions.push('?��?');
-                if (/?�氣|?�怒|?�大/.test(content)) emotions.push('?�氣');
-                if (/?�念|?�念/.test(content)) emotions.push('?�念');
+                if (/開心|快樂|哈哈|高興/.test(content)) emotions.push('開心');
+                if (/難過|傷心|哭|難過/.test(content)) emotions.push('難過');
+                if (/累|疲憊|好累/.test(content)) emotions.push('疲憊');
+                if (/生氣|憤怒|火大/.test(content)) emotions.push('生氣');
+                if (/想念|思念/.test(content)) emotions.push('想念');
                 
                 const words = msg.content.slice(0, 20);
                 if (words.length > 5) {
@@ -870,54 +870,54 @@ function generateDiaryFromPersonality(charName, userName, personality, backgroun
     if (personalityParts.length > 0) {
         const randomTrait = personalityParts[Math.floor(Math.random() * personalityParts.length)];
         if (msgCount > 0) {
-            sentences.push(`以�?${randomTrait}?�個性�?今天??{userName}?��?話�??�印象深?�。`);
+            sentences.push(`以我${randomTrait}的個性，今天和${userName}的對話讓我印象深刻。`);
         } else {
-            sentences.push(`以�?${randomTrait}?�個性�?今天?��?很特?�。`);
+            sentences.push(`以我${randomTrait}的個性，今天過得很特別。`);
         }
     } else if (bgParts.length > 0) {
         const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
         if (msgCount > 0) {
-            sentences.push(`${randomBg}?��?，�?天�?${userName}?��??��??��?很�??�觸?�`);
+            sentences.push(`${randomBg}的我，今天和${userName}的互動讓我有很多感觸。`);
         } else {
-            sentences.push(`${randomBg}?��?，�?天�?得�?不錯?�`);
+            sentences.push(`${randomBg}的我，今天過得還不錯。`);
         }
     } else {
         if (msgCount > 0) {
-            sentences.push(`今天??{userName}?��?很�?，總??${msgCount} ?��??�。`);
+            sentences.push(`今天和${userName}聊了很多，總共 ${msgCount} 則訊息。`);
         } else {
-            sentences.push(`今天沒�??�別?��??�發?�。`);
+            sentences.push(`今天沒有特別的事情發生。`);
         }
     }
     
     if (emotions.length > 0) {
         const uniqueEmotions = [...new Set(emotions)].slice(0, 2);
-        sentences.push(`?�覺今天?�別${uniqueEmotions.join('??)}?�`);
+        sentences.push(`感覺今天特別${uniqueEmotions.join('和')}。`);
     }
     
     if (topics.length > 0 && Math.random() > 0.5) {
         const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-        sentences.push(`你說?��?{randomTopic}...?��??�印象深?�。`);
+        sentences.push(`你說的「${randomTopic}...」讓我印象深刻。`);
     }
     
     if (memory && memory.length > 0 && Math.random() > 0.6) {
         const recentMsg = memory[memory.length - 1];
         if (recentMsg && recentMsg.content) {
             const recentKeywords = recentMsg.content.slice(0, 15);
-            sentences.push(`之�??�們�??��?{recentKeywords}...?��?今天?��??�想起�?了。`);
+            sentences.push(`之前我們聊過「${recentKeywords}...」，今天又讓我想起來了。`);
         }
     }
     
     if (bgParts.length > 0 && Math.random() > 0.6) {
         const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
-        sentences.push(`?�為${randomBg}?��?係�??�特?��??��?你�?每�?次�?話。`);
+        sentences.push(`因為${randomBg}的關係，我特別珍惜和你的每一次對話。`);
     }
     
     if (sentences.length < 3) {
-        sentences.push(`希�??�天也能繼�??�樣?��?話。`);
+        sentences.push(`希望明天也能繼續這樣的對話。`);
     }
     
     sentences.push('');
-    sentences.push(`?��?${charName}`);
+    sentences.push(`—— ${charName}`);
     
     return sentences.join('\n');
 }
@@ -991,7 +991,7 @@ function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userN
     const budget = Number(ledger?.budget) > 0 ? Number(ledger.budget) : 30000;
     const transactions = Array.isArray(ledger?.transactions) ? ledger.transactions : [];
     const txType = direction === 'user_to_char' ? 'expense' : 'income';
-    const flowLabel = flowType === 'envelope' ? '紅�?' : (flowType === 'request' ? '?�款' : '轉帳');
+    const flowLabel = flowType === 'envelope' ? '紅包' : (flowType === 'request' ? '收款' : '轉帳');
     const pairLabel = direction === 'user_to_char'
         ? `${userName} -> ${charName}`
         : `${charName} -> ${userName}`;
@@ -999,9 +999,9 @@ function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userN
     transactions.unshift({
         id: `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
         type: txType,
-        category: '?��?',
+        category: '其他',
         amount: Number(amount),
-        note: `${flowLabel}�?{pairLabel}${note ? `�?{note}` : ''}`,
+        note: `${flowLabel}｜${pairLabel}${note ? `｜${note}` : ''}`,
         date: getTodayYMD(),
         createdAt: Date.now(),
         source: 'chat-transfer',
@@ -1012,10 +1012,10 @@ function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userN
     localStorage.setItem(KAKAOPAY_LEDGER_KEY, JSON.stringify({ budget, transactions }));
 }
 
-// --- 3. ?��??�能：�??��??�儲存�? UI ?�步 ---
+// --- 3. 核心功能：角色資料儲存與 UI 同步 ---
 
 /**
- * ?��? AI 角色設�?並�?�?UI
+ * 儲存 AI 角色設定並同步 UI
  */
 function saveCharSettings(newName) {
     if (!newName) return;
@@ -1067,11 +1067,11 @@ function saveCharSettings(newName) {
         window.renderChatListFromStorage();
     }
 
-    console.log("AI 角色資�?已更?�並?�步 UI:", newName);
+    console.log("AI 角色資料已更新並同步 UI:", newName);
 }
 
 /**
- * ?��??�戶資�?並�?�?UI
+ * 儲存用戶資料並同步 UI
  */
 function saveUserSettings(newUserName) {
     if (!newUserName) return;
@@ -1094,11 +1094,11 @@ function saveUserSettings(newUserName) {
         payload: { name: newUserName }
     }, '*');
 
-    console.log("?�戶資�?已更?�並?�步 UI:", newUserName);
+    console.log("用戶資料已更新並同步 UI:", newUserName);
 }
 
 /**
- * ?��??�戶完整資�?（�?稱、�??��?�?
+ * 儲存用戶完整資料（名稱、背景等）
  */
 function saveUserFullSettings(newUserName, newUserBg) {
     if (newUserName) {
@@ -1114,11 +1114,11 @@ function saveUserFullSettings(newUserName, newUserBg) {
         userConfig.background = newUserBg;
     }
     
-    console.log("?�戶完整資�?已更??);
+    console.log("用戶完整資料已更新");
 }
 
 /**
- * ?��??��??�戶?�置?�工?�函�?
+ * 獲取當前用戶配置的工具函式
  */
 function getUserConfig() {
     let name = localStorage.getItem('sx_user_name');
@@ -1126,8 +1126,8 @@ function getUserConfig() {
     let personality = localStorage.getItem('sx_user_personality');
     let background = localStorage.getItem('sx_user_background');
     
-    // 檢查?�否?�任何�?位缺失�?如�?缺失?��?試�? sx_users 補�?
-    const hasMissingFields = !name || name === '?�設?�戶' || !avatar || !personality || !background;
+    // 檢查是否有任何欄位缺失，如果缺失則嘗試從 sx_users 補充
+    const hasMissingFields = !name || name === '預設用戶' || !avatar || !personality || !background;
     
     if (hasMissingFields) {
         const usersRaw = localStorage.getItem('sx_users');
@@ -1135,22 +1135,22 @@ function getUserConfig() {
             try {
                 const users = JSON.parse(usersRaw);
                 if (Array.isArray(users) && users.length > 0) {
-                    // ?�試?�到?��??�用??
+                    // 嘗試找到匹配的用戶
                     let matchedUser = null;
                     
-                    // 如�??��?字�??�試?�到?��??�用??
-                    if (name && name !== '?�設?�戶') {
+                    // 如果有名字，嘗試找到匹配的用戶
+                    if (name && name !== '預設用戶') {
                         matchedUser = users.find(u => u.name === name);
                     }
                     
-                    // 如�?沒找?�匹?��?，使?�第一?�用??
+                    // 如果沒找到匹配的，使用第一個用戶
                     if (!matchedUser) {
                         matchedUser = users[0];
                     }
                     
                     if (matchedUser) {
-                        // ?��??�缺失�?欄�?
-                        if (!name || name === '?�設?�戶') {
+                        // 只補充缺失的欄位
+                        if (!name || name === '預設用戶') {
                             name = matchedUser.name || 'User';
                         }
                         if (!avatar) {
@@ -1162,11 +1162,11 @@ function getUserConfig() {
                         if (!background) {
                             background = matchedUser.background || '';
                         }
-                        console.log('[getUserConfig] �?sx_users 補�??�戶資�?:', matchedUser.name);
+                        console.log('[getUserConfig] 從 sx_users 補充用戶資料:', matchedUser.name);
                     }
                 }
             } catch (e) {
-                console.warn('[getUserConfig] �?? sx_users 失�?:', e);
+                console.warn('[getUserConfig] 解析 sx_users 失敗:', e);
             }
         }
     }
@@ -1241,7 +1241,7 @@ function initUserUI() {
     const userLabels = document.querySelectorAll('.mine .user-name');
     userLabels.forEach(label => label.innerText = user.name || 'User');
 
-    console.log("?�戶 UI ?��??��???", user.name, user.avatar ? '?�頭�? : '?�頭�?);
+    console.log("用戶 UI 初始化完成:", user.name, user.avatar ? '有頭貼' : '無頭貼');
 }
 
 function updateUserToList() {
@@ -1270,11 +1270,11 @@ function updateUserToList() {
         
         saveToPersistentStorage();
     } catch (e) {
-        console.warn('[Chat] ?�新 users ?�表失�?:', e);
+        console.warn('[Chat] 更新 users 列表失敗:', e);
     }
 }
 
-// --- ?��?檢查事件設�? ---
+// --- 手機檢查事件設定 ---
 const PHONE_CHECK_KEY = 'sx_phone_check_enabled';
 const PASSKEY_CONTROL_KEY = 'sx_passkey_control_enabled';
 const PHONE_CHECK_MIN_DELAY_KEY = 'sx_phone_check_min_delay';
@@ -1293,7 +1293,7 @@ function initPhoneCheckToggle() {
     if (!toggle) return;
     const enabled = localStorage.getItem(PHONE_CHECK_KEY) === '1';
     toggle.checked = enabled;
-    if (status) status.textContent = enabled ? '已�?許隨機觸?? : '?��??��??�觸??;
+    if (status) status.textContent = enabled ? '已允許隨機觸發' : '關閉時不會觸發';
     
     if (minDelayInput) minDelayInput.value = localStorage.getItem(PHONE_CHECK_MIN_DELAY_KEY) || 5;
     if (maxDelayInput) maxDelayInput.value = localStorage.getItem(PHONE_CHECK_MAX_DELAY_KEY) || 60;
@@ -1315,7 +1315,7 @@ function initPhoneCheckToggle() {
         localStorage.setItem(PHONE_CHECK_MIN_DURATION_KEY, settings.minDuration);
         localStorage.setItem(PHONE_CHECK_MAX_DURATION_KEY, settings.maxDuration);
         
-        if (status) status.textContent = settings.enabled ? '已�?許隨機觸?? : '?��??��??�觸??;
+        if (status) status.textContent = settings.enabled ? '已允許隨機觸發' : '關閉時不會觸發';
         
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ 
@@ -1357,11 +1357,11 @@ function initPasskeyControlToggle() {
     if (!toggle) return;
     const enabled = localStorage.getItem(PASSKEY_CONTROL_KEY) === '1';
     toggle.checked = enabled;
-    if (status) status.textContent = enabled ? '已�???NSFW ?��?交接' : '?��??��??�自?�交??;
+    if (status) status.textContent = enabled ? '已啟用 NSFW 自動交接' : '關閉時不會自動交接';
     toggle.addEventListener('change', () => {
         const isOn = toggle.checked;
         localStorage.setItem(PASSKEY_CONTROL_KEY, isOn ? '1' : '0');
-        if (status) status.textContent = isOn ? '已�???NSFW ?��?交接' : '?��??��??�自?�交??;
+        if (status) status.textContent = isOn ? '已啟用 NSFW 自動交接' : '關閉時不會自動交接';
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'PASSKEY_CONTROL_TOGGLE', enabled: isOn }, '*');
         }
@@ -1379,10 +1379,10 @@ function checkNsfwTopic(text) {
     if (!text) return false;
     const lowered = text.toLowerCase();
     const keywords = [
-        'nsfw', '?�人', '18�?, '18+', '??, '?��?', '?��?', '�?, '裸露', '?�衣', '?�褲',
-        '??, '�?, '乳房', '私�?', '?�部', '?��?', '?��?', '龜頭', '高潮', '射精',
-        '?�慰', '??��', '?�交', '?��?', '調�?', 'SM', '?��?', '?�玩??, 'a??, 'av',
-        '欲�?', '?��?', '床�?', '??, '??, '約炮', '?�房', '??, '親熱'
+        'nsfw', '成人', '18禁', '18+', '性', '性愛', '色情', '裸', '裸露', '內衣', '內褲',
+        '胸', '乳', '乳房', '私處', '陰部', '陰道', '陰莖', '龜頭', '高潮', '射精',
+        '自慰', '口交', '肛交', '性虐', '調教', 'SM', '捆綁', '性玩具', 'a片', 'av',
+        '欲望', '做愛', '床上', '摸', '舔', '約炮', '開房', '啪', '親熱'
     ];
     return keywords.some(word => word && lowered.includes(word.toLowerCase()));
 }
@@ -1401,8 +1401,8 @@ function triggerPasskeyControlHandoff(reason, payload = {}) {
     }
 }
 /**
- * 補�?義�?檢查角色?�否被�?�?
- * ?�輯：檢??localStorage 中�?封�??��?，若?�滿 1 小�??��??�輸??
+ * 補定義：檢查角色是否被拉黑
+ * 邏輯：檢查 localStorage 中的封鎖時間，若未滿 1 小時則禁用輸入
  */
 function checkBlockStatus() {
     const blockKey = `block_${charConfig.name}`;
@@ -1416,37 +1416,37 @@ function checkBlockStatus() {
         const timeLeft = parseInt(blockTime) - now;
 
         if (timeLeft > 0) {
-            // ?�在封�??��???
+            // 還在封鎖時間內
             const minutes = Math.ceil(timeLeft / (1000 * 60));
-            console.log(`角色已被?��?，剩�?${minutes} ?��?`);
+            console.log(`角色已被拉黑，剩餘 ${minutes} 分鐘`);
             
             if (msgInput) {
                 msgInput.disabled = true;
-                msgInput.placeholder = `角色已被?��? (?��? ${minutes} ?��?)`;
+                msgInput.placeholder = `角色已被拉黑 (剩餘 ${minutes} 分鐘)`;
             }
             if (sendBtn) sendBtn.style.opacity = '0.5';
             if (genBtn) genBtn.style.opacity = '0.5';
             
-            return true; // 已被封�?
+            return true; // 已被封鎖
         } else {
-            // 封�??��?已�?，�??��???
+            // 封鎖時間已過，清除記錄
             localStorage.removeItem(blockKey);
         }
     }
 
-    // ?�復�?��?�??
+    // 恢復正常狀態
     if (msgInput) {
         msgInput.disabled = false;
         msgInput.placeholder = "輸入訊息...";
     }
     return false;
 }
-// --- 2. DOMContentLoaded ?��???(?��??��??? ---
+// --- 2. DOMContentLoaded 初始化 (整合去重版) ---
 document.addEventListener('DOMContentLoaded', () => {
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
-    // A. ?��?必�???DOM ?��?
+    // A. 抓取必要的 DOM 元素
     const nameEl = document.getElementById('display-name');
     const chatTitleEl = document.getElementById('chat-detail-title');
     const charPersInput = document.getElementById('set-personality');
@@ -1454,7 +1454,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const charNameInput = document.getElementById('set-name');
     const sendBtnTrigger = document.getElementById('send-trigger');
     const genBtnTrigger = document.getElementById('generate-trigger');
-    const blockBtn = document.getElementById('block-char'); // ?��??��?
+    const blockBtn = document.getElementById('block-char'); // 拉黑按鈕
     const deleteChatBtn = document.getElementById('delete-chat');
     const clearChatBtn = document.getElementById('clear-chat');
     const clearMemoryBtn = document.getElementById('clear-memory');
@@ -1473,21 +1473,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderPresetOptions = () => {
         if (charPresetSelect) {
             const chars = loadCharPresets();
-            charPresetSelect.innerHTML = '<option value="">?��?角色</option>' + chars.map((char, index) => `
-                <option value="${index}">${char.name || '?�命?��???}</option>
+            charPresetSelect.innerHTML = '<option value="">選擇角色</option>' + chars.map((char, index) => `
+                <option value="${index}">${char.name || '未命名角色'}</option>
             `).join('');
         }
         if (userPresetSelect) {
             const users = loadUserPresets();
-            userPresetSelect.innerHTML = '<option value="">?��??�戶</option>' + users.map((user, index) => `
-                <option value="${index}">${user.name || '?�命?�用??}</option>
+            userPresetSelect.innerHTML = '<option value="">選擇用戶</option>' + users.map((user, index) => `
+                <option value="${index}">${user.name || '未命名用戶'}</option>
             `).join('');
         }
     };
 
     const applyCharPreset = (preset) => {
         if (!preset) return;
-        const charName = preset.name || 'AI ?��?';
+        const charName = preset.name || 'AI 助理';
         
         if (charNameInput) charNameInput.value = charName;
         if (charPersInput) charPersInput.value = preset.personality || '';
@@ -1507,8 +1507,8 @@ document.addEventListener('DOMContentLoaded', () => {
         charConfig = {
             name: charName,
             avatar: preset.avatar || '',
-            personality: preset.personality || '一?��??��??��?',
-            background: preset.background || '??,
+            personality: preset.personality || '一個友善的助手',
+            background: preset.background || '無',
             worldBook: preset.worldBook || ''
         };
         
@@ -1526,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         renderChatListFromStorage();
-        console.log('[Chat] 已�??��??��?�?', charName);
+        console.log('[Chat] 已套用角色預設:', charName);
     };
 
     const applyUserPreset = (preset) => {
@@ -1563,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = userName);
         
-        console.log('[Chat] 已�??�用?��?�?', userName, preset.avatar ? '?�頭�? : '?�頭�?);
+        console.log('[Chat] 已套用用戶預設:', userName, preset.avatar ? '有頭貼' : '無頭貼');
     };
 
     charPresetSelect?.addEventListener('change', () => {
@@ -1662,7 +1662,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[renderFriendsList] uniqueFriends size:', uniqueFriends.size);
         
         if (uniqueFriends.size === 0) {
-            friendsPanel.innerHTML = '<div class="tab-placeholder">尚未?��?好�?</div>';
+            friendsPanel.innerHTML = '<div class="tab-placeholder">尚未新增好友</div>';
             return;
         }
         
@@ -1681,7 +1681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="friend-avatar" style="${avatarStyle}"></div>
                 <div class="friend-info">
                     <div class="friend-name">${name}</div>
-                    <div class="friend-preview">${friend.personality ? friend.personality.slice(0, 30) + '...' : '點�??��??�天'}</div>
+                    <div class="friend-preview">${friend.personality ? friend.personality.slice(0, 30) + '...' : '點擊開始聊天'}</div>
                 </div>
             `;
             friendsList.appendChild(item);
@@ -1713,8 +1713,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderHistory();
                 } else {
                     let charName = localStorage.getItem('sx_char_name');
-                    if (!charName || charName === '?�設?�戶') {
-                        charName = charConfig.name || 'AI ?��?';
+                    if (!charName || charName === '預設用戶') {
+                        charName = charConfig.name || 'AI 助理';
                     }
                     const charAvatar = localStorage.getItem('sx_char_avatar') || '';
                     const charPersonality = localStorage.getItem('sx_char_personality') || '';
@@ -1804,9 +1804,9 @@ document.addEventListener('DOMContentLoaded', () => {
         sessions.forEach(session => {
             const history = session.history || [];
             const lastMsg = history[history.length - 1];
-            const preview = lastMsg?.content ? lastMsg.content.slice(0, 20) : '點�??��?對話';
+            const preview = lastMsg?.content ? lastMsg.content.slice(0, 20) : '點擊開始對話';
             
-            const sessionCharName = session.charName || localStorage.getItem('sx_char_name') || charConfig.name || 'AI ?��?';
+            const sessionCharName = session.charName || localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
             const sessionCharAvatar = session.charAvatar || localStorage.getItem('sx_char_avatar') || '';
             
             const item = document.createElement('div');
@@ -1823,28 +1823,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="chat-name">${sessionCharName}</div>
                     <div class="chat-preview">${preview}</div>
                 </div>
-                <div class="chat-meta">?��?</div>
+                <div class="chat-meta">剛剛</div>
             `;
             chatListView.appendChild(item);
         });
         
         if (sessions.length === 0) {
             let charName = localStorage.getItem('sx_char_name');
-            if (!charName || charName === '?�設?�戶') {
-                charName = charConfig.name || 'AI ?��?';
+            if (!charName || charName === '預設用戶') {
+                charName = charConfig.name || 'AI 助理';
             }
             const charAvatar = localStorage.getItem('sx_char_avatar') || '';
             const avatarStyle = charAvatar 
                 ? `background-image: url('${charAvatar}'); background-size: cover; background-position: center;` 
                 : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
             
-            // 修復: ?��?位符添�??��? ID 標�?，表示這是空�??��?位符，�??�刪??
+            // 修復: 為占位符添加特殊 ID 標記，表示這是空狀態佔位符，不可刪除
             chatListView.innerHTML = `
                 <div class="chat-list-item chat-list-placeholder" data-chat-id="__placeholder__" style="justify-content: center; color: #888;">
                     <div class="chat-avatar" style="${avatarStyle}"></div>
                     <div class="chat-info" style="text-align: center;">
                         <div class="chat-name">${charName}</div>
-                        <div class="chat-preview">點�??��?對話</div>
+                        <div class="chat-preview">點擊開始對話</div>
                     </div>
                 </div>
             `;
@@ -1879,8 +1879,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = sessions.find(s => s.id === item.dataset.chatId);
         
         let sessionCharName = target?.charName || localStorage.getItem('sx_char_name');
-        if (!sessionCharName || sessionCharName === '?�設?�戶') {
-            sessionCharName = charConfig.name || 'AI ?��?';
+        if (!sessionCharName || sessionCharName === '預設用戶') {
+            sessionCharName = charConfig.name || 'AI 助理';
         }
         
         if (target) {
@@ -1918,10 +1918,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = event.target.closest('.chat-list-item');
         if (!item) return;
         
-        // 修復: 檢查?�否?��?位符?�目，�?位符不顯示刪?�選??
+        // 修復: 檢查是否為佔位符項目，佔位符不顯示刪除選項
         const chatId = item.dataset.chatId;
         if (chatId === '__placeholder__') {
-            console.log('[Chat] 佔�?符�??��??�援?�鍵?�單');
+            console.log('[Chat] 佔位符項目不支援右鍵選單');
             return;
         }
         
@@ -1934,7 +1934,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = event.target.closest('.chat-list-item');
         if (!item) return;
         
-        // 修復: 檢查?�否?��?位符?�目
+        // 修復: 檢查是否為佔位符項目
         const chatId = item.dataset.chatId;
         if (chatId === '__placeholder__') {
             return;
@@ -1954,7 +1954,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chatHideBtn?.addEventListener('click', () => {
         if (!selectedChatItem) {
-            console.warn('[Chat] ?��?失�?: ?�選?�任何�?天�???);
+            console.warn('[Chat] 隱藏失敗: 未選擇任何聊天項目');
             hideChatActions();
             return;
         }
@@ -1963,31 +1963,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     chatDeleteBtn?.addEventListener('click', () => {
-        // 修復: 添�?診斷?��??�錯誤�?�?
-        console.log('[Chat] ?�除?��?點�?, selectedChatItem:', selectedChatItem);
+        // 修復: 添加診斷日誌和錯誤提示
+        console.log('[Chat] 刪除按鈕點擊, selectedChatItem:', selectedChatItem);
         
         if (!selectedChatItem) {
-            console.warn('[Chat] ?�除失�?: ?�選?�任何�?天�???);
-            alert('請�??��??�右?��??��??�除?��?天�???);
+            console.warn('[Chat] 刪除失敗: 未選擇任何聊天項目');
+            alert('請先長按或右鍵點擊要刪除的聊天項目');
             hideChatActions();
             return;
         }
         
         const chatId = selectedChatItem.dataset.chatId;
-        console.log('[Chat] ?�試?�除 chatId:', chatId);
+        console.log('[Chat] 嘗試刪除 chatId:', chatId);
         
-        // 修復: 檢查?�否?��?位符?�目
+        // 修復: 檢查是否為佔位符項目
         if (chatId === '__placeholder__') {
-            console.warn('[Chat] ?��??�除佔�?符�???);
-            alert('此為空�??��?位符，無法刪?�。�??��?始新?��?話�?);
+            console.warn('[Chat] 無法刪除佔位符項目');
+            alert('此為空狀態佔位符，無法刪除。請先開始新的對話。');
             hideChatActions();
             return;
         }
         
-        // 修復: 檢查 chatId ?�否存在
+        // 修復: 檢查 chatId 是否存在
         if (!chatId) {
-            console.error('[Chat] ?�除失�?: chatId ?�空');
-            alert('?�除失�?：無法�??�此?�天?�目');
+            console.error('[Chat] 刪除失敗: chatId 為空');
+            alert('刪除失敗：無法識別此聊天項目');
             hideChatActions();
             return;
         }
@@ -1995,15 +1995,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const sessions = loadChatSessions();
         const newSessions = sessions.filter(s => s.id !== chatId);
         
-        console.log('[Chat] ?�除??sessions ?��?:', sessions.length, '?�除�?', newSessions.length);
+        console.log('[Chat] 刪除前 sessions 數量:', sessions.length, '刪除後:', newSessions.length);
         
         saveChatSessions(newSessions);
         selectedChatItem.remove();
         renderFriendsList();
-        renderChatListFromStorage(); // 修復: ?�新渲�??�表以確保�??��?
+        renderChatListFromStorage(); // 修復: 重新渲染列表以確保一致性
         hideChatActions();
         
-        console.log('[Chat] ?�天?�目已�??�刪??);
+        console.log('[Chat] 聊天項目已成功刪除');
     });
 
 
@@ -2013,8 +2013,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     newChatBtn?.addEventListener('click', () => {
         let charName = localStorage.getItem('sx_char_name');
-        if (!charName || charName === '?�設?�戶') {
-            charName = charConfig.name || 'AI ?��?';
+        if (!charName || charName === '預設用戶') {
+            charName = charConfig.name || 'AI 助理';
         }
         const charAvatar = localStorage.getItem('sx_char_avatar') || '';
         const charPersonality = localStorage.getItem('sx_char_personality') || '';
@@ -2050,11 +2050,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     showChatList();
 
-    // B. ?��???UI 顯示
+    // B. 初始化 UI 顯示
     const hintEl = document.getElementById('hint-name');
     let displayName = localStorage.getItem('sx_char_name');
-    if (!displayName || displayName === '?�設?�戶') {
-        displayName = charConfig.name || "AI ?��?";
+    if (!displayName || displayName === '預設用戶') {
+        displayName = charConfig.name || "AI 助理";
     }
     if (nameEl) nameEl.innerText = displayName;
     if (chatTitleEl) chatTitleEl.innerText = displayName;
@@ -2063,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
     if (charNameInput) charNameInput.value = displayName;
     
-    console.log('[Chat] ?��???UI，�??��?�?', displayName);
+    console.log('[Chat] 初始化 UI，角色名稱:', displayName);
 
     renderPresetOptions();
 
@@ -2100,21 +2100,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // D. 綁�??��?輸入??��
+    // D. 綁定文字輸入監聽
     charPersInput?.addEventListener('input', (e) => updateActiveMask('personality', e.target.value));
     charBackInput?.addEventListener('input', (e) => updateActiveMask('background', e.target.value));
     charNameInput?.addEventListener('input', (e) => {
         const val = e.target.value.trim();
         if (nameEl) nameEl.innerText = val; 
-        if (chatTitleEl) chatTitleEl.innerText = val || 'AI ?��?';
+        if (chatTitleEl) chatTitleEl.innerText = val || 'AI 助理';
         saveCharSettings(val); 
     });
 
-    // E. 綁�??��?點�?事件
+    // E. 綁定按鈕點擊事件
     if (sendBtnTrigger) {
         sendBtnTrigger.onclick = (e) => {
             e.preventDefault();
-            // ?�送�??�次檢查?��??�?��??�已被�?黑�?不執�?
+            // 傳送前再次檢查拉黑狀態，若已被拉黑則不執行
             if (checkBlockStatus()) return; 
             handleJustSend();
         };
@@ -2132,14 +2132,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = event.data;
         if (!data || typeof data !== 'object') return;
         
-        // ?��?表�??�選??
+        // 處理表情包選擇
         if (data.type === 'EMOJI_SELECTED' && data.emoji) {
-            console.log('[Chat] ?�到表�??�選??', data.emoji);
+            console.log('[Chat] 收到表情包選擇:', data.emoji);
             
-            // ?�送�??�表??
+            // 發送圖片表情
             appendMsg('mine', '', { type: 'image', url: data.emoji.url, name: data.emoji.name });
             const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-            history.push({ role: "user", content: `[表�?: ${data.emoji.name}]`, imageUrl: data.emoji.url });
+            history.push({ role: "user", content: `[表情: ${data.emoji.name}]`, imageUrl: data.emoji.url });
             localStorage.setItem('sx_chat_history', JSON.stringify(history));
             const activeId = getActiveChatId();
             if (activeId) {
@@ -2151,7 +2151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // ?��?表�??��?店面??
+            // 關閉表情包商店面板
             const emojiShopPanel = document.getElementById('emoji-shop-panel');
             if (emojiShopPanel) {
                 emojiShopPanel.classList.remove('active');
@@ -2164,9 +2164,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // ?��?表�??�更??
+        // 處理表情包更新
         if (data.type === 'EMOJI_PACKS_UPDATED') {
-            console.log('[Chat] 表�??�已?�新，數??', data.count);
+            console.log('[Chat] 表情包已更新，數量:', data.count);
             return;
         }
         
@@ -2180,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pool = data.payload?.pool;
             
             if (context) {
-                console.log('[Chat] 記憶上�???', context.summary);
+                console.log('[Chat] 記憶上下文:', context.summary);
             }
             
             if (identity) {
@@ -2194,17 +2194,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (items.length > 0) {
                 const seed = items.slice(0, 8).map(item => ({ 
                     role: 'assistant', 
-                    content: `?��??��?{item.content || item.summary}` 
+                    content: `【記憶】${item.content || item.summary}` 
                 }));
                 seed.forEach(m => appendMsg('other', m.content));
             }
             
             if (pool && pool.summary) {
-                appendMsg('other', `?��??��??��?{pool.summary}`);
+                appendMsg('other', `【感知記憶】${pool.summary}`);
             }
         }
         if (data.type === 'MEMORY_CLEAR_DONE') {
-            alert('??記憶已�???);
+            alert('✅ 記憶已清理');
         }
         if (data.type === 'APP_FOLDER_SYNC' && data.appId === 'settings' && data.data?.storage) {
             const storage = data.data.storage;
@@ -2237,7 +2237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (data.type === 'settingsUpdated') {
-            console.log('[Chat] ?�到 settings ?�新，�??��??�用?��???);
+            console.log('[Chat] 收到 settings 更新，重新載入用戶資料');
             userConfig = getUserConfig();
             initUserUI();
             
@@ -2245,28 +2245,28 @@ document.addEventListener('DOMContentLoaded', () => {
             userLabels.forEach(label => label.innerText = userConfig.name || 'User');
         }
         
-        // ?��?主�?變更
+        // 處理主題變更
         if (data.type === 'THEME_CHANGED' && data.theme) {
-            console.log('[Chat] ?�到主�?變更:', data.theme.name);
+            console.log('[Chat] 收到主題變更:', data.theme.name);
             applyChatTheme(data.theme);
             
-            // 轉發?�父視�?以便?�步
+            // 轉發到父視窗以便同步
             window.parent?.postMessage({
                 type: 'THEME_CHANGED',
                 theme: data.theme
             }, '*');
         }
         
-        // ?��?外�?主�?變更
+        // 處理外觀主題變更
         if (data.type === 'APPEARANCE_THEME_CHANGED' && data.config) {
-            console.log('[Chat] ?�到外�?主�?變更');
+            console.log('[Chat] 收到外觀主題變更');
             applyAppearanceConfig(data.config);
         }
         
-        // ?��?主�??�建?�步
+        // 處理主題創建同步
         if (data.type === 'THEME_CREATED' && data.theme) {
-            console.log('[Chat] ?�到主�??�建:', data.theme.name);
-            // 轉發?�父視�?以便?�步?�雲�?
+            console.log('[Chat] 收到主題創建:', data.theme.name);
+            // 轉發到父視窗以便同步到雲端
             window.parent?.postMessage({
                 type: 'THEME_CREATED',
                 theme: data.theme
@@ -2278,57 +2278,57 @@ document.addEventListener('DOMContentLoaded', () => {
         window.parent.postMessage({ type: 'REQUEST_APP_FOLDER_SYNC', appId: 'settings' }, '*');
     }
 
-    // ?�核心新增】�?定�?黑�??��??��?�?
+    // 【核心新增】綁定拉黑按鈕點擊動作
     if (blockBtn) {
         blockBtn.onclick = () => {
-            const charName = charConfig.name || "此�???;
-            if (confirm(`確�?要�?�?${charName} 一小�??��??��??��??��??�送�??�。`)) {
-                // 設�?一小�?後�? timestamp
+            const charName = charConfig.name || "此角色";
+            if (confirm(`確定要拉黑 ${charName} 一小時嗎？這期間將無法發送訊息。`)) {
+                // 設定一小時後的 timestamp
                 const blockUntil = new Date().getTime() + (1 * 60 * 60 * 1000); 
                 localStorage.setItem(`block_${charName}`, blockUntil);
                 
-                // 立即?�新 UI ?�??
+                // 立即更新 UI 狀態
                 checkBlockStatus(); 
-                alert("已�?該�??�暫?��?黑�?);
+                alert("已將該角色暫時拉黑。");
             }
         };
     }
 
     if (deleteChatBtn) {
         deleteChatBtn.onclick = () => {
-            if (!confirm('確�?要刪?�目?��?話�?�?)) return;
+            if (!confirm('確定要刪除目前對話嗎？')) return;
             
             const activeId = getActiveChatId();
-            console.log('[Chat] ?�除?��?對話, activeId:', activeId);
+            console.log('[Chat] 刪除當前對話, activeId:', activeId);
             
-            // 修復: 檢查 activeId ?�否存在
+            // 修復: 檢查 activeId 是否存在
             if (!activeId) {
-                console.warn('[Chat] ?�除失�?: 沒�?活�??��?�?);
-                alert('?��?沒�?活�??��?話可?�除');
+                console.warn('[Chat] 刪除失敗: 沒有活躍的對話');
+                alert('目前沒有活躍的對話可刪除');
                 return;
             }
             
             const sessions = loadChatSessions();
             const newSessions = sessions.filter(s => s.id !== activeId);
             
-            console.log('[Chat] ?�除??sessions ?��?:', sessions.length, '?�除�?', newSessions.length);
+            console.log('[Chat] 刪除前 sessions 數量:', sessions.length, '刪除後:', newSessions.length);
             
             saveChatSessions(newSessions);
             localStorage.removeItem('sx_chat_history');
-            localStorage.removeItem('sx_chat_active'); // 修復: 清除活�?對話 ID
+            localStorage.removeItem('sx_chat_active'); // 修復: 清除活躍對話 ID
             
             renderHistory();
             renderChatListFromStorage();
             showChatList();
-            alert('?��?對話已刪??);
+            alert('目前對話已刪除');
             
-            console.log('[Chat] ?��?對話已�??�刪??);
+            console.log('[Chat] 當前對話已成功刪除');
         };
     }
 
     if (clearChatBtn) {
         clearChatBtn.onclick = () => {
-            if (!confirm('?��??�當?��?話內容�?（�??��?要�??�被清�?�?)) return;
+            if (!confirm('只清除當前對話內容？（記憶摘要不會被清掉）')) return;
             localStorage.setItem('sx_chat_history', JSON.stringify([]));
             const activeId = getActiveChatId();
             if (activeId) {
@@ -2345,16 +2345,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (clearMemoryBtn) {
         clearMemoryBtn.onclick = () => {
-            if (!confirm('確�?要�??�「�??��?要」�?？這�?影響???對話??)) return;
+            if (!confirm('確定要清理「記憶摘要」嗎？這會影響連續對話。')) return;
             window.parent?.postMessage({
                 type: 'MEMORY_CLEAR_REQUEST',
                 payload: { scope: 'user' }
             }, '*');
-            alert('已送出記憶清�?請�?');
+            alert('已送出記憶清理請求');
         };
     }
 
-    // F. ?��??��?讀?��? iOS ?��? (保�??�樣)
+    // F. 處理圖片讀取與 iOS 適配 (保持原樣)
     const avatarInputs = [
         { inputId: 'avatar-file', previewId: 'preview-avatar', type: 'char' },
         { inputId: 'user-avatar-file', previewId: 'preview-user-avatar', type: 'user' }
@@ -2395,7 +2395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             payload: { avatar: base64 }
                         }, '*');
                         
-                        console.log('[Chat] ?�戶?�貼已�?存並?�步');
+                        console.log('[Chat] 用戶頭貼已保存並同步');
                     }
                 };
                 reader.readAsDataURL(file);
@@ -2404,7 +2404,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }); 
 });
 
-    // --- 歷史紀?�長度控??(?��??�迴?��?) ---
+    // --- 歷史紀錄長度控制 (獨立於迴圈外) ---
     const rangeInput = document.getElementById('history-range');
     if (rangeInput) {
         rangeInput.value = localStorage.getItem('chat_history_range') || 30;
@@ -2415,7 +2415,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('chat_history_range', e.target.value);
         };
     }
-    // ?��??�右?�選??
+    // 初始化右鍵選單
     if (!document.getElementById('context-menu')) {
         const menu = document.createElement('div');
         menu.className = 'context-menu';
@@ -2423,13 +2423,13 @@ document.addEventListener('DOMContentLoaded', () => {
         menu.innerHTML = `
             <div class="context-menu-item" onclick="copyText(event)">複製</div>
             <div class="context-menu-item" onclick="editMsg(event)">編輯</div>
-            <div class="context-menu-item" onclick="triggerRegen(event)">?�新?��?</div>
-            <div class="context-menu-item danger" onclick="deleteMsg(event)">?�除</div>
+            <div class="context-menu-item" onclick="triggerRegen(event)">重新生成</div>
+            <div class="context-menu-item danger" onclick="deleteMsg(event)">刪除</div>
         `;
         document.body.appendChild(menu);
     }
 
-// --- 3. ?��?欄�?�?---
+// --- 3. 側邊欄邏輯 ---
 function initSideDrawer() {
     const drawer = document.getElementById('config-drawer');
     const openBtn = document.getElementById('open-menu');
@@ -2453,7 +2453,7 @@ function initSideDrawer() {
             if (charBackInput) charBackInput.value = charConfig.background || '';
             if (charAvatarPreview && charConfig.avatar) charAvatarPreview.src = charConfig.avatar;
             
-            console.log('[SideDrawer] 已更?�側?��?角色設�?:', charConfig.name, charConfig.personality?.slice(0, 20));
+            console.log('[SideDrawer] 已更新側邊欄角色設定:', charConfig.name, charConfig.personality?.slice(0, 20));
             
             drawer.classList.add('open'); 
         };
@@ -2525,7 +2525,7 @@ function initSideDrawer() {
         const entry = {
             id: `iv_${Date.now()}`,
             content,
-            charName: charName || 'AI ?��?',
+            charName: charName || 'AI 助理',
             timestamp: Date.now(),
             date: new Date().toLocaleString(localeCode)
         };
@@ -2549,14 +2549,14 @@ function initSideDrawer() {
                     });
                     shortTermMemory.initialize();
                     window.shortTermMemory = shortTermMemory;
-                    console.log('[InnerVoice] 已創�?ShortTermMemory');
+                    console.log('[InnerVoice] 已創建 ShortTermMemory');
                 } else {
-                    console.warn('[InnerVoice] ShortTermMemory ?��?義�??��??��??�短?��???);
+                    console.warn('[InnerVoice] ShortTermMemory 未定義，無法儲存到短期記憶');
                     return;
                 }
             }
 
-            const memoryContent = `[心聲] ${charName} ?�內心獨?��?${content}`;
+            const memoryContent = `[心聲] ${charName} 的內心獨白：${content}`;
             
             shortTermMemory.push(memoryContent, {
                 role: 'assistant',
@@ -2570,9 +2570,9 @@ function initSideDrawer() {
                 }
             });
 
-            console.log('[InnerVoice] 已儲存到?��?記憶，睡?��?將�??�長?��???);
+            console.log('[InnerVoice] 已儲存到短期記憶，睡眠時將轉為長期記憶');
         } catch (e) {
-            console.warn('[InnerVoice] ?��??�短?��??�失??', e);
+            console.warn('[InnerVoice] 儲存到短期記憶失敗:', e);
         }
     };
 
@@ -2581,7 +2581,7 @@ function initSideDrawer() {
         const history = getInnerVoiceHistory();
         
         if (history.length === 0) {
-            innerVoiceHistoryList.innerHTML = '<div class="history-empty">尚未?�歷?��???/div>';
+            innerVoiceHistoryList.innerHTML = '<div class="history-empty">尚未有歷史記錄</div>';
             return;
         }
 
@@ -2733,7 +2733,7 @@ function initSideDrawer() {
                 return this.transcriber;
             } catch (err) {
                 this.isLoading = false;
-                console.error('Transformers.js ?��??�失??', err);
+                console.error('Transformers.js 初始化失敗:', err);
                 throw err;
             }
         },
@@ -2816,8 +2816,8 @@ function initSideDrawer() {
                 v.lang.startsWith('zh') || 
                 v.lang.startsWith('cmn') ||
                 v.name.toLowerCase().includes('chinese') ||
-                v.name.toLowerCase().includes('中�?') ||
-                v.name.toLowerCase().includes('?�灣')
+                v.name.toLowerCase().includes('中文') ||
+                v.name.toLowerCase().includes('台灣')
             );
         },
         
@@ -2839,7 +2839,7 @@ function initSideDrawer() {
             return new Promise((resolve, reject) => {
                 const support = this.isSupported();
                 if (!support.stt) {
-                    reject(new Error('此瀏覽?��??�援語音辨�??�能'));
+                    reject(new Error('此瀏覽器不支援語音辨識功能'));
                     return;
                 }
                 
@@ -2871,7 +2871,7 @@ function initSideDrawer() {
                     if (event.error === 'no-speech') {
                         resolve('');
                     } else {
-                        reject(new Error(`語音辨�??�誤: ${event.error}`));
+                        reject(new Error(`語音辨識錯誤: ${event.error}`));
                     }
                 };
                 
@@ -2891,7 +2891,7 @@ function initSideDrawer() {
             return new Promise((resolve, reject) => {
                 const support = this.isSupported();
                 if (!support.tts) {
-                    reject(new Error('此瀏覽?��??�援語音?��??�能'));
+                    reject(new Error('此瀏覽器不支援語音合成功能'));
                     return;
                 }
                 
@@ -2915,7 +2915,7 @@ function initSideDrawer() {
                 utterance.volume = options.volume || 1.0;
                 
                 utterance.onend = () => resolve();
-                utterance.onerror = (event) => reject(new Error(`語音?��??�誤: ${event.error}`));
+                utterance.onerror = (event) => reject(new Error(`語音合成錯誤: ${event.error}`));
                 
                 this.synthesis.speak(utterance);
             });
@@ -2949,7 +2949,7 @@ function initSideDrawer() {
                     const lang = (settings.sttLanguage || 'zh-TW').split('-')[0];
                     return await TransformersWhisperService.transcribe(options.audioBlob, lang);
                 } catch (err) {
-                    console.warn('Transformers.js STT 失�?，�?試其他方�?', err);
+                    console.warn('Transformers.js STT 失敗，嘗試其他方式:', err);
                 }
             }
             
@@ -2970,7 +2970,7 @@ function initSideDrawer() {
                     const lang = (settings.sttLanguage || 'zh-TW').split('-')[0];
                     return await TransformersWhisperService.transcribe(options.audioBlob, lang);
                 } catch (err) {
-                    console.warn('Transformers.js STT 失�?:', err);
+                    console.warn('Transformers.js STT 失敗:', err);
                 }
             }
             
@@ -2978,7 +2978,7 @@ function initSideDrawer() {
                 return await this.recognizeWithExternalAPI(options.audioBlob, settings);
             }
             
-            throw new Error('沒�??�用?��??�辨識�???);
+            throw new Error('沒有可用的語音辨識服務');
         },
         
         async recognizeWithTransformers(audioBlob, settings) {
@@ -3083,7 +3083,7 @@ function initSideDrawer() {
                 return await this.speakWithExternalAPI(text, settings);
             }
             
-            throw new Error('沒�??�用?��??��??��???);
+            throw new Error('沒有可用的語音合成服務');
         },
         
         async speakWithExternalAPI(text, settings) {
@@ -3170,18 +3170,18 @@ function initSideDrawer() {
 
     const appNames = {
         facebook: 'Facebook',
-        'facebook-settings': 'Facebook 設�?',
+        'facebook-settings': 'Facebook 設定',
         instagram: 'Instagram',
         twitter: 'Twitter',
         weverse: 'Weverse',
         kakaopay: 'KakaoPay',
         weather: '天氣',
-        music: '?��?',
+        music: '音樂',
         chrome: 'Chrome',
-        album: '?�簿',
-        diary: '?��?',
-        notes: '?��???,
-        settings: '設�?'
+        album: '相簿',
+        diary: '日記',
+        notes: '備忘錄',
+        settings: '設定'
     };
 
     let selectedEnvelopeStyle = 'default';
@@ -3212,8 +3212,8 @@ function initSideDrawer() {
 
     const handleGenerateDiary = () => {
         const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-        const charName = charConfig?.name || getActiveConfig().name || 'AI ?��?';
-        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '??;
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         
         currentDiaryContent = generateDiaryContent(history, charName, userName);
         
@@ -3240,7 +3240,7 @@ function initSideDrawer() {
             date,
             time,
             content: currentDiaryContent,
-            charName: charConfig?.name || getActiveConfig().name || 'AI ?��?',
+            charName: charConfig?.name || getActiveConfig().name || 'AI 助理',
             createdAt: Date.now()
         };
         
@@ -3252,16 +3252,16 @@ function initSideDrawer() {
         
         saveDiaries(diaries);
         closeDiaryPanel();
-        alert('?��?已儲存�?');
+        alert('日記已儲存！');
     };
 
     const openCheckPhonePanel = () => {
         if (checkPhonePanel) {
             checkPhonePanel.classList.add('active');
         }
-        const charName = charConfig?.name || getActiveConfig().name || 'AI ?��?';
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
         if (checkPhoneCharName) {
-            checkPhoneCharName.textContent = `${charName} ?��?機`;
+            checkPhoneCharName.textContent = `${charName} 的手機`;
         }
         plusMenu?.classList.remove('open');
     };
@@ -3274,11 +3274,11 @@ function initSideDrawer() {
     const openCharApp = (appId) => {
         if (!charAppViewer || !charAppFrame) return;
         
-        const charName = charConfig?.name || getActiveConfig().name || 'AI ?��?';
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
         const appName = appNames[appId] || appId;
         
         if (charAppTitle) {
-            charAppTitle.textContent = `${charName} ??{appName}`;
+            charAppTitle.textContent = `${charName} 的${appName}`;
         }
         
         localStorage.setItem(CHAR_VIEWER_KEY, '1');
@@ -3349,8 +3349,8 @@ function initSideDrawer() {
     const assembleInnerVoicePrompt = () => {
         const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const activeChar = currentChars[0] || {};
-        const charName = activeChar.name || 'AI ?��?';
-        const personality = activeChar.personality || '?��?';
+        const charName = activeChar.name || 'AI 助理';
+        const personality = activeChar.personality || '友善';
         const background = activeChar.background || '';
         
         const userName = localStorage.getItem('sx_user_name') || 'User';
@@ -3370,49 +3370,49 @@ function initSideDrawer() {
         const worldbookData = getWorldbookData();
         const dynamicWI = WorldInfoEngine.scanAndGetContent(lastCharContent, worldbookData);
         
-        return `# 角色設�?
-- ?��?: ${charName}
-- ?�格: ${personality}
-- ?�景: ${background}
+        return `# 角色設定
+- 名字: ${charName}
+- 性格: ${personality}
+- 背景: ${background}
 
-# ?�戶資�?
-- ?��?: ${userName}
-- ?�景: ${userBio}
+# 用戶資訊
+- 名字: ${userName}
+- 背景: ${userBio}
 
-# 世�??�相?�內�?
-${dynamicWI || '??}
+# 世界書相關內容
+${dynamicWI || '無'}
 
-# ?�近�?話�???
-${historyText || '??}
+# 最近對話記錄
+${historyText || '無'}
 
-# 角色?�後說?�話
-${lastCharContent || '（�??��?對話�?}
+# 角色最後說的話
+${lastCharContent || '（尚未有對話）'}
 
-# 任�?說�?
-請以第�?人稱視�?，撰�?${charName} ?�說?��?後那?�話?��??��??�白??
+# 任務說明
+請以第一人稱視角，撰寫 ${charName} 在說出最後那句話時的內心獨白。
 
-要�?�?
-1. 使用第�?人稱?��??��??�述
-2. 字數不�???300 �?
-3. 要�??��??�內心�?實�??��??��???
-4. ?�以?�含�?${userName} ?��?察�??��?
-5. 要符?��??��??�格設�?
-6. ?�以?�露一些表?�話語�?後�?深層?��?
-7. 語�?風格要�?角色?�格一??
+要求：
+1. 使用第一人稱「我」來敘述
+2. 字數不少於 300 字
+3. 要展現角色內心真實的想法和情感
+4. 可以包含對 ${userName} 的觀察和感受
+5. 要符合角色的性格設定
+6. 可以透露一些表面話語背後的深層想法
+7. 語言風格要與角色性格一致
 
-請直?��?始內心獨?��?不�?要任何�??��?說�?：`;
+請直接開始內心獨白，不需要任何開頭或說明：`;
     };
 
     const generateInnerVoice = async () => {
         if (!innerVoiceLoading || !innerVoiceContent) return;
         
         innerVoiceLoading.classList.add('active');
-        innerVoiceContent.innerHTML = '<div class="inner-voice-empty">�?��?��?...</div>';
+        innerVoiceContent.innerHTML = '<div class="inner-voice-empty">正在生成...</div>';
         
         try {
             const prompt = assembleInnerVoicePrompt();
             const payload = [
-                { role: 'system', content: '你是一位�??��?寫�??�內心戲?��?家。�??�細?��?筆觸，以第�?人稱視�??�寫角色?�內心獨?��? },
+                { role: 'system', content: '你是一位擅長描寫角色內心戲的作家。請用細膩的筆觸，以第一人稱視角描寫角色的內心獨白。' },
                 { role: 'user', content: prompt }
             ];
             
@@ -3423,29 +3423,29 @@ ${lastCharContent || '（�??��?對話�?}
             
             const apiType = config?.type || 'openai';
             
-            // Gemini 不�?�?url 檢查，�???URL ?�自?�設定�?
+            // Gemini 不需要 url 檢查，因為 URL 是自動設定的
             if (!config || (!config.url && apiType !== 'gemini')) {
-                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">請�?設�? API</div>';
+                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">請先設定 API</div>';
                 innerVoiceLoading.classList.remove('active');
                 return;
             }
             
-            // Gemini ?��?key 檢查
+            // Gemini 需要 key 檢查
             if (apiType === 'gemini' && !config.key) {
-                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">Gemini API ?��?API Key</div>';
+                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">Gemini API 需要 API Key</div>';
                 innerVoiceLoading.classList.remove('active');
                 return;
             }
             let innerVoiceText;
             
-            // Gemini ?��? API ?��?
+            // Gemini 原生 API 格式
             if (apiType === 'gemini') {
                 const model = config.model || 'gemini-1.5-flash';
                 const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
                 
                 const contents = [{
                     role: 'user',
-                    parts: [{ text: `你是一位�??��?寫�??�內心戲?��?家。�??�細?��?筆觸，以第�?人稱視�??�寫角色?�內心獨?�。\n\n${prompt}` }]
+                    parts: [{ text: `你是一位擅長描寫角色內心戲的作家。請用細膩的筆觸，以第一人稱視角描寫角色的內心獨白。\n\n${prompt}` }]
                 }];
                 
                 const response = await fetch(targetUrl, {
@@ -3456,9 +3456,9 @@ ${lastCharContent || '（�??��?對話�?}
                 
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-                innerVoiceText = data.candidates?.[0]?.content?.parts?.[0]?.text || '?��?失�?';
+                innerVoiceText = data.candidates?.[0]?.content?.parts?.[0]?.text || '生成失敗';
             } else {
-                // OpenAI ?�容?��??�自訂端�?
+                // OpenAI 相容格式或自訂端點
                 let targetUrl;
                 if (apiType === 'custom') {
                     targetUrl = config.url;
@@ -3483,20 +3483,20 @@ ${lastCharContent || '（�??��?對話�?}
                 
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-                innerVoiceText = data.choices?.[0]?.message?.content || '?��?失�?';
+                innerVoiceText = data.choices?.[0]?.message?.content || '生成失敗';
             }
             
             innerVoiceContent.innerHTML = `<div class="inner-voice-text">${innerVoiceText}</div>`;
             
             const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
             const activeChar = currentChars[0] || {};
-            const charName = activeChar.name || 'AI ?��?';
+            const charName = activeChar.name || 'AI 助理';
             saveInnerVoiceToHistory(innerVoiceText, charName);
             
             saveInnerVoiceToShortTermMemory(innerVoiceText, charName);
             
         } catch (err) {
-            innerVoiceContent.innerHTML = `<div class="inner-voice-empty">?��?失�?�?{err.message}</div>`;
+            innerVoiceContent.innerHTML = `<div class="inner-voice-empty">生成失敗：${err.message}</div>`;
         } finally {
             innerVoiceLoading.classList.remove('active');
         }
@@ -3581,12 +3581,12 @@ ${lastCharContent || '（�??��?對話�?}
             if (!hasAnyService) {
                 const hintSpan = voiceMessageSettingsHint.querySelector('span');
                 if (hintSpan) {
-                    hintSpan.textContent = '此瀏覽?��??�援語音?�能，�?使用 Chrome/Edge ?�設定�???API';
+                    hintSpan.textContent = '此瀏覽器不支援語音功能，請使用 Chrome/Edge 或設定外部 API';
                 }
             } else if (settings.useTransformers && availability.transformersSTT) {
                 const hintSpan = voiceMessageSettingsHint.querySelector('span');
                 if (hintSpan) {
-                    hintSpan.textContent = '使用 Transformers.js Whisper ?��??��?（�?次�?下�?模�?�?;
+                    hintSpan.textContent = '使用 Transformers.js Whisper 本機運算（首次需下載模型）';
                     voiceMessageSettingsHint.classList.add('active');
                     voiceMessageSettingsHint.style.background = 'rgba(125, 231, 255, 0.15)';
                     voiceMessageSettingsHint.style.borderColor = 'rgba(125, 231, 255, 0.3)';
@@ -3594,7 +3594,7 @@ ${lastCharContent || '（�??��?對話�?}
             } else if (availability.builtInSTT || availability.builtInTTS) {
                 const hintSpan = voiceMessageSettingsHint.querySelector('span');
                 if (hintSpan && !availability.external) {
-                    hintSpan.textContent = '使用?�覽?�內建�??��??��??�在設�?中�??��?';
+                    hintSpan.textContent = '使用瀏覽器內建語音功能（可在設定中切換）';
                     voiceMessageSettingsHint.classList.add('active');
                     voiceMessageSettingsHint.style.background = 'rgba(125, 231, 255, 0.15)';
                     voiceMessageSettingsHint.style.borderColor = 'rgba(125, 231, 255, 0.3)';
@@ -3634,7 +3634,7 @@ ${lastCharContent || '（�??��?對話�?}
         }
         
         if (recordTimeEl) recordTimeEl.textContent = '00:00';
-        if (voiceRecordHint) voiceRecordHint.textContent = '點�?麥�?風�?始�???;
+        if (voiceRecordHint) voiceRecordHint.textContent = '點擊麥克風開始錄音';
         if (voiceRecordBtn) {
             voiceRecordBtn.classList.remove('recording');
             voiceRecordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
@@ -3651,7 +3651,7 @@ ${lastCharContent || '（�??��?對話�?}
         const availability = UnifiedSpeechService.isAvailable();
         
         if (!availability.stt) {
-            alert('沒�??�用?��??�辨識�??�。�???Settings ?�用 Transformers.js ?�設�?STT API??);
+            alert('沒有可用的語音辨識服務。請在 Settings 啟用 Transformers.js 或設定 STT API。');
             return;
         }
 
@@ -3675,7 +3675,7 @@ ${lastCharContent || '（�??��?對話�?}
             voiceRecordBtn.classList.add('recording');
             voiceRecordBtn.innerHTML = '<i class="fas fa-stop"></i>';
         }
-        if (voiceRecordHint) voiceRecordHint.textContent = '請說�?..點�??�止';
+        if (voiceRecordHint) voiceRecordHint.textContent = '請說話...點擊停止';
         
         voiceMsgStartTime = Date.now();
         
@@ -3702,7 +3702,7 @@ ${lastCharContent || '（�??��?對話�?}
             
         } catch (err) {
             stopBuiltInVoiceRecognition();
-            alert('語音辨�?失�?�? + err.message);
+            alert('語音辨識失敗：' + err.message);
         }
     };
 
@@ -3719,7 +3719,7 @@ ${lastCharContent || '（�??��?對話�?}
             voiceRecordBtn.classList.remove('recording');
             voiceRecordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         }
-        if (voiceRecordHint) voiceRecordHint.textContent = '?��?�?..';
+        if (voiceRecordHint) voiceRecordHint.textContent = '處理中...';
     };
 
     const startMediaRecorderVoice = async (useTransformers = false) => {
@@ -3742,7 +3742,7 @@ ${lastCharContent || '（�??��?對話�?}
                 voiceMsgAudioBlob = new Blob(voiceMsgChunks, { type: options.mimeType });
                 const duration = Math.floor((Date.now() - voiceMsgStartTime) / 1000);
                 
-                if (voiceRecordHint) voiceRecordHint.textContent = '辨�?�?..';
+                if (voiceRecordHint) voiceRecordHint.textContent = '辨識中...';
                 
                 try {
                     const transcript = await UnifiedSpeechService.recognizeSpeech({ audioBlob: voiceMsgAudioBlob });
@@ -3763,7 +3763,7 @@ ${lastCharContent || '（�??��?對話�?}
                 voiceRecordBtn.innerHTML = '<i class="fas fa-stop"></i>';
             }
             if (voiceRecordHint) {
-                voiceRecordHint.textContent = useTransformers ? '?�音中�?將使??Whisper 辨�?�?..' : '?�音�?..點�??�止';
+                voiceRecordHint.textContent = useTransformers ? '錄音中（將使用 Whisper 辨識）...' : '錄音中...點擊停止';
             }
             
             voiceMsgTimerInterval = setInterval(() => {
@@ -3774,7 +3774,7 @@ ${lastCharContent || '（�??��?對話�?}
             }, 1000);
             
         } catch (err) {
-            alert('?��??��?麥�?風�?' + err.message);
+            alert('無法啟動麥克風：' + err.message);
         }
     };
 
@@ -3801,7 +3801,7 @@ ${lastCharContent || '（�??��?對話�?}
             voiceRecordBtn.classList.remove('recording');
             voiceRecordBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         }
-        if (voiceRecordHint) voiceRecordHint.textContent = '?��?�?..';
+        if (voiceRecordHint) voiceRecordHint.textContent = '處理中...';
     };
 
     const sendVoiceMsgToSTT = async (audioBlob, settings) => {
@@ -3831,9 +3831,9 @@ ${lastCharContent || '（�??��?對話�?}
         if (voiceRecordPreview) voiceRecordPreview.classList.remove('hidden');
         if (previewDurationEl) previewDurationEl.textContent = formatTime(duration);
         if (previewTranscriptText) {
-            previewTranscriptText.textContent = transcript || '（無法辨識�??�內容�?';
+            previewTranscriptText.textContent = transcript || '（無法辨識語音內容）';
         }
-        if (voiceRecordHint) voiceRecordHint.textContent = '?�音完�?';
+        if (voiceRecordHint) voiceRecordHint.textContent = '錄音完成';
     };
 
     const playVoiceMsgPreview = () => {
@@ -4077,7 +4077,7 @@ ${lastCharContent || '（�??��?對話�?}
             bubble.dataset.playing = 'false';
             btn.innerHTML = '<i class="fas fa-play"></i>';
         } else {
-            alert('此�??��??�無法播??);
+            alert('此語音訊息無法播放');
         }
     };
 
@@ -4121,7 +4121,7 @@ ${lastCharContent || '（�??��?對話�?}
         callState = 'idle';
         callSeconds = 0;
         if (callTimer) callTimer.textContent = '00:00';
-        if (callStatusText) callStatusText.textContent = '準�?�?..';
+        if (callStatusText) callStatusText.textContent = '準備中...';
         if (callStatusIcon) {
             callStatusIcon.className = 'call-status-icon';
             callStatusIcon.innerHTML = '<i class="fas fa-phone"></i>';
@@ -4130,7 +4130,7 @@ ${lastCharContent || '（�??��?對話�?}
         if (voiceCallStartBtn) voiceCallStartBtn.classList.remove('hidden');
         if (voiceCallEndBtn) voiceCallEndBtn.classList.add('hidden');
         if (voiceCallTranscript) {
-            voiceCallTranscript.innerHTML = '<div class="transcript-empty">?�話?�容將顯示在?�裡</div>';
+            voiceCallTranscript.innerHTML = '<div class="transcript-empty">通話內容將顯示在這裡</div>';
         }
     };
 
@@ -4143,7 +4143,7 @@ ${lastCharContent || '（�??��?對話�?}
     const startCall = async () => {
         const settings = getVoiceSettings();
         if (!settings.sttApiUrl || !settings.sttApiKey || !settings.ttsApiUrl || !settings.ttsApiKey) {
-            alert('請�???Settings 設�? STT/TTS ?��?');
+            alert('請先在 Settings 設定 STT/TTS 服務');
             return;
         }
 
@@ -4151,7 +4151,7 @@ ${lastCharContent || '（�??��?對話�?}
         callStartTime = Date.now();
         callTranscriptData = [];
         callTtsBlobs = [];
-        if (callStatusText) callStatusText.textContent = '�?��??��...';
+        if (callStatusText) callStatusText.textContent = '正在連接...';
         if (callStatusIcon) {
             callStatusIcon.className = 'call-status-icon calling';
             callStatusIcon.innerHTML = '<i class="fas fa-phone"></i>';
@@ -4169,7 +4169,7 @@ ${lastCharContent || '（�??��?對話�?}
             analyser.fftSize = 256;
 
             callState = 'in-call';
-            if (callStatusText) callStatusText.textContent = '?�話�?;
+            if (callStatusText) callStatusText.textContent = '通話中';
             if (callStatusIcon) {
                 callStatusIcon.className = 'call-status-icon in-call';
                 callStatusIcon.innerHTML = '<i class="fas fa-phone-alt"></i>';
@@ -4184,7 +4184,7 @@ ${lastCharContent || '（�??��?對話�?}
             startListeningLoop();
 
         } catch (err) {
-            alert('?��??��?麥�?風�?' + err.message);
+            alert('無法啟動麥克風：' + err.message);
             resetCallUI();
         }
     };
@@ -4305,20 +4305,20 @@ ${lastCharContent || '（�??��?對話�?}
         
         const apiType = config?.type || 'openai';
         
-        // Gemini 不�?�?url 檢查，�???URL ?�自?�設定�?
+        // Gemini 不需要 url 檢查，因為 URL 是自動設定的
         if (!config || (!config.url && apiType !== 'gemini')) {
-            addTranscript('char', '(?�設�?API)');
+            addTranscript('char', '(未設定 API)');
             return;
         }
         
-        // Gemini ?��?key 檢查
+        // Gemini 需要 key 檢查
         if (apiType === 'gemini' && !config.key) {
-            addTranscript('char', '(Gemini API ?��?API Key)');
+            addTranscript('char', '(Gemini API 需要 API Key)');
             return;
         }
         const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const activeChar = currentChars[0] || {};
-        const charName = activeChar.name || 'AI ?��?';
+        const charName = activeChar.name || 'AI 助理';
         const systemPrompt = await ChatEngine.assembleSystemPrompt(text);
 
         const payload = [
@@ -4329,12 +4329,12 @@ ${lastCharContent || '（�??��?對話�?}
         try {
             let reply;
             
-            // Gemini ?��? API ?��?
+            // Gemini 原生 API 格式
             if (apiType === 'gemini') {
                 const model = config.model || 'gemini-1.5-flash';
                 const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
                 
-                // 轉�???Gemini ?��?
+                // 轉換為 Gemini 格式
                 const contents = [];
                 let systemInstruction = '';
                 
@@ -4368,7 +4368,7 @@ ${lastCharContent || '（�??��?對話�?}
                 if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
                 reply = data.candidates?.[0]?.content?.parts?.[0]?.text || '...';
             } else {
-                // OpenAI ?�容?��??�自訂端�?
+                // OpenAI 相容格式或自訂端點
                 let targetUrl;
                 if (apiType === 'custom') {
                     targetUrl = config.url;
@@ -4405,7 +4405,7 @@ ${lastCharContent || '（�??��?對話�?}
             }
 
         } catch (err) {
-            addTranscript('char', `(?�誤: ${err.message})`);
+            addTranscript('char', `(錯誤: ${err.message})`);
         }
     };
 
@@ -4562,8 +4562,8 @@ ${lastCharContent || '（�??��?對話�?}
         const isEmpty = voiceCallTranscript.querySelector('.transcript-empty');
         if (isEmpty) isEmpty.remove();
 
-        const charName = charConfig?.name || getActiveConfig().name || 'AI ?��?';
-        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '??;
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         const displayName = speaker === 'user' ? userName : charName;
 
         const item = document.createElement('div');
@@ -4577,7 +4577,7 @@ ${lastCharContent || '（�??��?對話�?}
         if (callTranscriptData.length === 0 && callTtsBlobs.length === 0) return;
         const RECORDINGS_KEY = 'sx_voice_call_recordings';
         const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
-        const charName = charConfig?.name || getActiveConfig().name || '?�知';
+        const charName = charConfig?.name || getActiveConfig().name || '未知';
 
         let audioData = null;
         if (callTtsBlobs.length > 0) {
@@ -4637,7 +4637,7 @@ ${lastCharContent || '（�??��?對話�?}
 
         saveInlineCallRecording();
 
-        if (callStatusText) callStatusText.textContent = '?�話結�?';
+        if (callStatusText) callStatusText.textContent = '通話結束';
         if (callStatusIcon) {
             callStatusIcon.className = 'call-status-icon ended';
             callStatusIcon.innerHTML = '<i class="fas fa-phone-slash"></i>';
@@ -4684,14 +4684,14 @@ ${lastCharContent || '（�??��?對話�?}
     const handleCustomEnvelopeUpload = (file) => {
         if (!file || !file.type.startsWith('image/')) return;
         if (file.size > 2 * 1024 * 1024) {
-            alert('?��?大�?請勿超�? 2MB');
+            alert('圖片大小請勿超過 2MB');
             return;
         }
         const reader = new FileReader();
         reader.onload = () => {
             customEnvelopeImage = reader.result;
             if (envelopeCustomPreview) {
-                envelopeCustomPreview.innerHTML = `<img src="${customEnvelopeImage}" alt="?��?紅�?封面">`;
+                envelopeCustomPreview.innerHTML = `<img src="${customEnvelopeImage}" alt="自訂紅包封面">`;
                 envelopeCustomPreview.classList.add('active');
             }
             const customPreview = envelopeStylesContainer?.querySelector('[data-style="custom"] .envelope-preview');
@@ -4712,13 +4712,13 @@ ${lastCharContent || '（�??��?對話�?}
         if (selectedEnvelopeStyle === 'custom' && customEnvelopeImage) {
             coverClass = 'custom-image';
             coverStyle = `background-image: url('${customEnvelopeImage}');`;
-            coverContent = '�?;
+            coverContent = '封';
         } else if (selectedEnvelopeStyle === 'default') {
-            coverContent = '�?;
+            coverContent = '福';
         } else if (selectedEnvelopeStyle === 'gold') {
-            coverContent = '??;
+            coverContent = '發';
         } else if (selectedEnvelopeStyle === 'pink') {
-            coverContent = '??;
+            coverContent = '愛';
         }
         
         return `
@@ -4726,7 +4726,7 @@ ${lastCharContent || '（�??��?對話�?}
                 <div class="envelope-card-cover ${coverClass}" style="${coverStyle}">${coverContent}</div>
                 <div class="envelope-card-info">
                     <div class="amount">${formatNTD(amount)}</div>
-                    <div class="note">${note ? sanitizeText(note) : '?��??�財'}</div>
+                    <div class="note">${note ? sanitizeText(note) : '恭喜發財'}</div>
                 </div>
             </div>
         `;
@@ -4735,15 +4735,15 @@ ${lastCharContent || '（�??��?對話�?}
     const renderTransferWallets = () => {
         if (!transferWalletMount) return;
         const wallets = getChatWallets();
-        const userName = sanitizeText(userConfig?.name || localStorage.getItem('sx_user_name') || '??);
-        const charName = sanitizeText(charConfig?.name || getActiveConfig().name || 'AI ?��?');
+        const userName = sanitizeText(userConfig?.name || localStorage.getItem('sx_user_name') || '我');
+        const charName = sanitizeText(charConfig?.name || getActiveConfig().name || 'AI 助理');
         transferWalletMount.innerHTML = `
             <div class="transfer-wallet">
-                <div class="label">${userName} ?��?</div>
+                <div class="label">${userName} 錢包</div>
                 <div class="value">${formatNTD(wallets.user)}</div>
             </div>
             <div class="transfer-wallet">
-                <div class="label">${charName} ?��?</div>
+                <div class="label">${charName} 錢包</div>
                 <div class="value">${formatNTD(wallets.char)}</div>
             </div>
         `;
@@ -4797,7 +4797,7 @@ ${lastCharContent || '（�??��?對話�?}
         const amount = Math.floor(Number(transferAmountInput?.value || 0));
         const note = (transferNoteInput?.value || '').trim();
         if (!amount || amount <= 0) {
-            alert('請輸?�正確�?�?);
+            alert('請輸入正確金額');
             return;
         }
 
@@ -4805,7 +4805,7 @@ ${lastCharContent || '（�??��?對話�?}
         const payerKey = direction === 'user_to_char' ? 'user' : 'char';
         const receiverKey = payerKey === 'user' ? 'char' : 'user';
         if (wallets[payerKey] < amount) {
-            alert('付款?��?額�?�?);
+            alert('付款方餘額不足');
             return;
         }
 
@@ -4814,9 +4814,9 @@ ${lastCharContent || '（�??��?對話�?}
         saveChatWallets(wallets);
         renderTransferWallets();
 
-        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '??;
-        const charName = charConfig?.name || getActiveConfig().name || 'AI ?��?';
-        const flowLabel = flowType === 'envelope' ? '紅�?' : (flowType === 'request' ? '?�款' : '轉帳');
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
+        const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
+        const flowLabel = flowType === 'envelope' ? '紅包' : (flowType === 'request' ? '收款' : '轉帳');
         const fromName = direction === 'user_to_char' ? userName : charName;
         const toName = direction === 'user_to_char' ? charName : userName;
 
@@ -4826,10 +4826,10 @@ ${lastCharContent || '（�??��?對話�?}
         } else {
             payCard = `
                 <div class="map-card">
-                    <div class="map-info" style="font-weight:700;">?�� ${flowLabel}?��?</div>
+                    <div class="map-info" style="font-weight:700;">💳 ${flowLabel}成功</div>
                     <div class="map-info">${sanitizeText(fromName)} -> ${sanitizeText(toName)}</div>
-                    <div class="map-info">?��?�?{formatNTD(amount)}</div>
-                    <div class="map-info">${note ? sanitizeText(note) : '?��?�?}</div>
+                    <div class="map-info">金額：${formatNTD(amount)}</div>
+                    <div class="map-info">${note ? sanitizeText(note) : '無備註'}</div>
                 </div>
             `;
         }
@@ -4887,7 +4887,7 @@ ${lastCharContent || '（�??��?對話�?}
                 btn.addEventListener('click', () => {
                     appendMsg('mine', '', { type: 'image', url: item.url, name: item.name });
                     const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-                    history.push({ role: "user", content: `[表�?: ${item.name || 'sticker'}]`, imageUrl: item.url });
+                    history.push({ role: "user", content: `[表情: ${item.name || 'sticker'}]`, imageUrl: item.url });
                     localStorage.setItem('sx_chat_history', JSON.stringify(history));
                     const activeId = getActiveChatId();
                     if (activeId) {
@@ -4906,7 +4906,7 @@ ${lastCharContent || '（�??��?對話�?}
         });
     };
 
-    const kaomojiList = ['(�?���?', '(｡�??��?�?', '(?��???', '( ?�Q�ᴗ․Q?)', '(?�°□°）╯�??��???, '?��?', '(ಥ�?�?', '(´･ω･`)', '(?�｡?�‿‿�?�???, '(*´?�`)~??, '(?�Q�??�Q???, '(�?���?', '(?�‿�?)', '(?�‿�?)', '(?�´◡`??', '(?��??��?)', '(?�◡??', '(?��??�✿)', '(?�‿�???', '(?�‿�???', '(｡♥?�♥�?', '(?�‿♡)', '(?�ω♥)', '(?��???', '(?��???', '(?�‿‿�?)', '(?�‿‿�?)', '(*?�ω≦)', '(?�‿�?*)', '(?�‿�?*)', '(?�ω✧)', '(?��??�✧)', '(?��??�✧)'];
+    const kaomojiList = ['(￣▽￣)', '(｡◕‿◕｡)', '(≧∇≦)', '( •̀ᴗ•́ )', '(╯°□°）╯︵ ┻━┻', 'ㅠㅠ', '(ಥ﹏ಥ)', '(´･ω･`)', '(づ｡◕‿‿◕｡)づ', '(*´∀`)~♥', '(•̀ω•́)✧', '(￣︶￣)', '(◕‿◕)', '(◠‿◠)', '(❁´◡`❁)', '(✿◠‿◠)', '(≧◡≦)', '(◕ᴗ◕✿)', '(◠‿◠✿)', '(◕‿◕✿)', '(｡♥‿♥｡)', '(♡‿♡)', '(♥ω♥)', '(◕ᴗ◕)', '(◠ᴗ◠)', '(◕‿‿◕)', '(◠‿‿◠)', '(*≧ω≦)', '(◕‿◕*)', '(◠‿◠*)', '(✧ω✧)', '(◕ᴗ◕✧)', '(◠ᴗ◠✧)'];
 
     const loadEmojiPacks = () => {
         try {
@@ -4918,7 +4918,7 @@ ${lastCharContent || '（�??��?對話�?}
                 }
             }
         } catch (e) {
-            console.warn('[Chat] 載入表�??�失??', e);
+            console.warn('[Chat] 載入表情包失敗:', e);
         }
         return null;
     };
@@ -4985,10 +4985,10 @@ ${lastCharContent || '（�??��?對話�?}
                 const apiUrl = localStorage.getItem('sx_nova_api_url') || '';
                 const apiKey = localStorage.getItem('sx_nova_api_key') || '';
                 if (!apiUrl || !apiKey) {
-                    alert('NovaAI 尚未設�?，�???Settings > API 設�?填入 API URL ??API Key');
+                    alert('NovaAI 尚未設定，請到 Settings > API 設定填入 API URL 與 API Key');
                     return;
                 }
-                alert('NovaAI 已設定�?待接?��??��?�?);
+                alert('NovaAI 已設定，待接入生成流程');
             }
             if (action === 'phone-appearance') {
                 showPhoneAppearanceDialog();
@@ -5173,54 +5173,54 @@ ${lastCharContent || '（�??��?對話�?}
             dialog.innerHTML = `
                 <div class="dialog-content">
                     <div class="dialog-header">
-                        <span>?��?外�?設�?</span>
+                        <span>手機外觀設定</span>
                         <button class="dialog-close">&times;</button>
                     </div>
                     <div class="dialog-body">
                         <div class="phone-appearance-form">
                             <div class="form-group">
-                                <label for="phone-appearance-brand">?��?廠�?</label>
-                                <input type="text" id="phone-appearance-brand" placeholder="例�?iPhone, Samsung, Sxiphone">
+                                <label for="phone-appearance-brand">手機廠牌</label>
+                                <input type="text" id="phone-appearance-brand" placeholder="例：iPhone, Samsung, Sxiphone">
                             </div>
                             <div class="form-group">
-                                <label for="phone-appearance-model">?��??��?/?�稱</label>
-                                <input type="text" id="phone-appearance-model" placeholder="例�?iPhone 15 Pro, Galaxy S24">
+                                <label for="phone-appearance-model">手機型號/名稱</label>
+                                <input type="text" id="phone-appearance-model" placeholder="例：iPhone 15 Pro, Galaxy S24">
                             </div>
                             <div class="form-group">
-                                <label for="phone-appearance-font">字�?</label>
+                                <label for="phone-appearance-font">字體</label>
                                 <select id="phone-appearance-font">
                                     <option value="'SF Pro Display', sans-serif">SF Pro Display (iOS)</option>
-                                    <option value="'Inter', sans-serif">Inter (?�代)</option>
+                                    <option value="'Inter', sans-serif">Inter (現代)</option>
                                     <option value="'Roboto', sans-serif">Roboto (Android)</option>
                                     <option value="'Segoe UI', sans-serif">Segoe UI (Windows)</option>
-                                    <option value="'Arial', sans-serif">Arial (?�用)</option>
-                                    <option value="custom">?��?字�?</option>
+                                    <option value="'Arial', sans-serif">Arial (通用)</option>
+                                    <option value="custom">自訂字型</option>
                                 </select>
-                                <input type="text" id="phone-appearance-font-custom" class="hidden" placeholder="例�?'Helvetica Neue', sans-serif">
+                                <input type="text" id="phone-appearance-font-custom" class="hidden" placeholder="例：'Helvetica Neue', sans-serif">
                             </div>
                             <div class="form-group">
-                                <label for="phone-appearance-color">主色�?/label>
+                                <label for="phone-appearance-color">主色調</label>
                                 <input type="color" id="phone-appearance-color" value="#333333">
                             </div>
                             <div class="form-group">
                                 <label class="checkbox-label">
                                     <input type="checkbox" id="phone-appearance-show-border" checked>
-                                    <span>顯示?��??��?</span>
+                                    <span>顯示手機邊框</span>
                                 </label>
                             </div>
                             <div class="preview-area">
                                 <div class="preview-phone-mini">
                                     <div class="preview-phone-border-mini"></div>
                                     <div class="preview-phone-screen-mini">
-                                        <div class="preview-brand-mini">?��??�覽</div>
+                                        <div class="preview-brand-mini">手機預覽</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="dialog-footer">
-                        <button class="dialog-btn secondary" id="phone-appearance-cancel">?��?</button>
-                        <button class="dialog-btn primary" id="phone-appearance-save">套用設�?</button>
+                        <button class="dialog-btn secondary" id="phone-appearance-cancel">取消</button>
+                        <button class="dialog-btn primary" id="phone-appearance-save">套用設定</button>
                     </div>
                 </div>
             `;
@@ -5237,7 +5237,7 @@ ${lastCharContent || '（�??��?對話�?}
             const showBorderInput = dialog.querySelector('#phone-appearance-show-border');
             
             const updatePreview = () => {
-                const brand = brandInput?.value || '?��?';
+                const brand = brandInput?.value || '手機';
                 const color = colorInput?.value || '#333333';
                 const showBorder = !!showBorderInput?.checked;
                 
@@ -5349,7 +5349,7 @@ ${lastCharContent || '（�??��?對話�?}
             closeContextMenu();
         }    
     });
-    // 綁�?角色設�??��??��?
+    // 綁定角色設定儲存按鈕
     document.getElementById('save-char')?.addEventListener('click', () => {
     const val = document.getElementById('set-name').value.trim();
     const personality = document.getElementById('set-personality')?.value.trim() || '';
@@ -5363,20 +5363,20 @@ ${lastCharContent || '（�??��?對話�?}
     }
     
     saveCharSettings(val);
-    alert('角色設�?已�???);
+    alert('角色設定已套用');
 });
 
-    // 綁�??�戶?�具?��??��?
+    // 綁定用戶面具儲存按鈕
     document.getElementById('save-mask')?.addEventListener('click', () => {
     const userNameVal = document.getElementById('set-user-name')?.value.trim() || 'User';
     const userBgVal = document.getElementById('set-user-background')?.value.trim() || '';
     
     saveUserFullSettings(userNameVal, userBgVal);
-    alert('?�人?�具已�???);
+    alert('個人面具已套用');
 });
 }
 
-// --- 4. ?��??�鍵?�單 ---
+// --- 4. 關閉右鍵選單 ---
 function closeContextMenu() {
     const menu = document.getElementById('context-menu');
     if (menu) menu.style.display = 'none';
@@ -5389,35 +5389,35 @@ function closeContextMenu() {
     clearTimeout(menuHideTimer);
 }
 
-// --- 5. 世�??��???(?�架�? ---
+// --- 5. 世界書引擎 (新架構) ---
 const WorldInfoEngine = {
     /**
-     * @param {string} latestText - ?�戶?�?��?輸入?��?
-     * @param {object} allWorldsData - ?�含?�?��??�書?�物件�?
-     * @param {string} currentBookTitle - (?�選) ?��? UI ?�中?�書??
+     * @param {string} latestText - 用戶最新的輸入文字
+     * @param {object} allWorldsData - 包含所有世界書的物件包
+     * @param {string} currentBookTitle - (可選) 當前 UI 選中的書名
      */
     scanAndGetContent(latestText, allWorldsData, currentBookTitle = "") {
         if (!allWorldsData) return "";
         
         let activeContent = "";
         
-        // --- 第�?步�?讀?�已保�??��??�書?��?設�? ---
+        // --- 第一步：讀取已保存的世界書掛載設定 ---
         const mounts = getWorldbookMounts();
         
-        // --- 第�?步�??��?禁止�?(?�高優?��?) ---
+        // --- 第二步：處理禁止詞 (最高優先權) ---
         const forbiddenList = allWorldsData.sx_detected_forbidden || [];
         if (forbiddenList.length > 0) {
-            activeContent += `\n<CRITICAL_RULE>\n絕�?禁止?��?覆中?�現以�?詞�?：[${forbiddenList.join(', ')}]\n</CRITICAL_RULE>\n`;
+            activeContent += `\n<CRITICAL_RULE>\n絕對禁止在回覆中出現以下詞彙：[${forbiddenList.join(', ')}]\n</CRITICAL_RULE>\n`;
         }
 
-        // --- ?�架構�??��??��??�容 (?��??��?) ---
+        // --- 新架構：處理核心內容 (全局掛載) ---
         if (allWorldsData.core && allWorldsData.core.sx_worldbook_core) {
             const coreEntries = allWorldsData.core.sx_worldbook_core;
             if (Array.isArray(coreEntries)) {
                 coreEntries.forEach(entry => {
                     if (!entry.enabled) return;
                     
-                    // ?��??�容始�?載入，�??��?觸發�?
+                    // 核心內容始終載入，或根據觸發詞
                     const hasTriggers = entry.triggers && entry.triggers.length > 0;
                     const triggerMatch = hasTriggers && entry.triggers.some(k => latestText.includes(k));
                     
@@ -5428,11 +5428,11 @@ const WorldInfoEngine = {
             }
         }
         
-        // --- ?�架構�??��?條件式內�?(局?��?�? ---
+        // --- 新架構：處理條件式內容 (局部掛載) ---
         if (allWorldsData.conditional) {
             const cond = allWorldsData.conditional;
             
-            // ?��?模�?專用?�議
+            // 處理模型專用協議
             if (cond.model_protocols && cond.model_protocols.entries) {
                 cond.model_protocols.entries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -5443,7 +5443,7 @@ const WorldInfoEngine = {
                 });
             }
             
-            // ?��??�風課�?
+            // 處理文風課程
             if (cond.style_courses && cond.style_courses.entries) {
                 cond.style_courses.entries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -5454,7 +5454,7 @@ const WorldInfoEngine = {
                 });
             }
             
-            // ?��?小�??��???
+            // 處理小劇場類型
             if (cond.theater_types && cond.theater_types.entries) {
                 cond.theater_types.entries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -5465,20 +5465,20 @@ const WorldInfoEngine = {
                 });
             }
             
-            // ?��?NSFW模�?
+            // 處理NSFW模組
             if (cond.nsfw_modules && cond.nsfw_modules.entries) {
                 cond.nsfw_modules.entries.forEach(entry => {
                     if (!entry.enabled) return;
                     const triggerMatch = entry.triggers && entry.triggers.length > 0 && 
                                         entry.triggers.some(k => latestText.includes(k));
-                    // NSFW 模�??�以?�觸?��?（�?終�??��??�根?�觸?��?
+                    // NSFW 模組可以無觸發詞（始終載入）或根據觸發詞
                     if (!entry.triggers || entry.triggers.length === 0 || triggerMatch) {
                         activeContent += `<NSFW_MODULE title="${entry.title}">\n${entry.content}\n</NSFW_MODULE>\n`;
                     }
                 });
             }
             
-            // ?��?NPC客串
+            // 處理NPC客串
             if (cond.npc_guest_appearances && cond.npc_guest_appearances.entries) {
                 cond.npc_guest_appearances.entries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -5489,7 +5489,7 @@ const WorldInfoEngine = {
                 });
             }
             
-            // ?��??��?補�?
+            // 處理特殊補丁
             if (cond.special_patches && cond.special_patches.entries) {
                 cond.special_patches.entries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -5498,16 +5498,16 @@ const WorldInfoEngine = {
             }
         }
         
-        // --- ?�架構�??��??�場?�容 (?�theater.js?��?，這裡?��?標�?) ---
+        // --- 新架構：處理劇場內容 (由theater.js處理，這裡只做標記) ---
         if (allWorldsData.theater && allWorldsData.theater.sx_worldbook_theater) {
-            // ?�場?�容??theater.js 讀?��??�裡?�添?��?�?
+            // 劇場內容由 theater.js 讀取，這裡只添加標記
             activeContent += `<!-- THEATER_CONTENT_AVAILABLE -->\n`;
         }
 
-        // --- ?�架構兼容�??��??��?設�??��??��?裝內�?---
+        // --- 舊架構兼容：根據掛載設定和類別封裝內容 ---
         const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
         
-        // ?��?置�?�?
+        // 按位置分組
         const contentByPosition = {
             top: [],
             mid: [],
@@ -5521,18 +5521,18 @@ const WorldInfoEngine = {
             if (!entries || !Array.isArray(entries)) return;
 
             entries.forEach(entry => {
-                // 檢查條目?�身??enabled ?�??
+                // 檢查條目本身的 enabled 狀態
                 if (entry.enabled === false) return;
                 
-                // 檢查?�否被�?�?
+                // 檢查是否被掛載
                 const mount = mounts.find(m => m.name === entry.title);
                 const isGlobal = (cat === 'global');
                 
-                // global ?��??�設?�用，�??�要在 mounts 中設�?
-                // ?��??��??�要在 mounts 中�?確�???
+                // global 分類預設啟用，不需要在 mounts 中設定
+                // 其他分類需要在 mounts 中明確啟用
                 const isMountEnabled = isGlobal 
-                    ? (mount?.enabled ?? true)  // global ?�設 true
-                    : (mount?.enabled ?? false); // ?��??��??�設 false
+                    ? (mount?.enabled ?? true)  // global 預設 true
+                    : (mount?.enabled ?? false); // 其他分類預設 false
                 
                 if (!isMountEnabled) return;
 
@@ -5548,7 +5548,7 @@ const WorldInfoEngine = {
             });
         });
 
-        // ?��?序�??��??��??�容
+        // 按順序組合舊架構內容
         activeContent += contentByPosition.top.join('');
         activeContent += contentByPosition.mid.join('');
         activeContent += contentByPosition.bottom.join('');
@@ -5557,7 +5557,7 @@ const WorldInfoEngine = {
     }
 };
 
-// --- 6. AI ?��??�輯 (修正?? ---
+// --- 6. AI 核心邏輯 (修正版) ---
 const ChatEngine = {
     getGenerationMode() {
         return localStorage.getItem('sx_generation_mode') || 'dialogue';
@@ -5567,7 +5567,7 @@ const ChatEngine = {
         let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         return history.slice(-depth);
     },
-    // ?��??��?距離設�?
+    // 獲取關係距離設定
     getRelationshipDistanceSettings() {
         const meetupMentionEnabled = localStorage.getItem('sx_meetup_mention_enabled') !== 'false';
         const distance = localStorage.getItem('sx_relationship_distance') || 'moderate';
@@ -5576,126 +5576,126 @@ const ChatEngine = {
             distance
         };
     },
-    // ?��??��?距離設�??��??�示
+    // 根據關係距離設定生成提示
     getRelationshipDistancePrompt(settings) {
         const { meetupMentionEnabled, distance } = settings;
         
         const distanceGuides = {
             'close': {
-                description: '親�?距離',
-                instructions: `你們�??��??�常親�?，可以自?�地討�?以�?話�?�?
-- 線�?見面?��??�、�?起出??
-- ?��??��?起�?�?
-- 親�??�肢體接�?
-- ?��??�共?��???
-請根?��??�性格?�然?�表?��?見面?��?待�?渴�??�`
+                description: '親密距離',
+                instructions: `你們的關係非常親密，可以自然地討論以下話題：
+- 線下見面、約會、一起出遊
+- 同居、一起生活
+- 親密的肢體接觸
+- 未來的共同計畫
+請根據角色性格自然地表達對見面的期待和渴望。`
             },
             'moderate': {
-                description: '?�中距離',
-                instructions: `你們�??��?�?��?��?中�??�以?�爾?��?�?
-- 見面?�可?�性�?但�?要太?��?
-- 一起�??�活?��??��?
-- 對未來�??��??��?
-請�??�自?��?不�??�於?��??�推?��??�話題。`
+                description: '適中距離',
+                instructions: `你們的關係正在發展中，可以偶爾提及：
+- 見面的可能性，但不要太頻繁
+- 一起參加活動的邀約
+- 對未來見面的期待
+請保持自然，不要過於急切地推進見面話題。`
             },
             'distant': {
-                description: '?��???,
-                instructions: `你們目?�維?��?距離?��?係模式。�?注�?�?
-- **?��?主�??��?線�?見面?��??�地點�?話�?**
-- ?�以討�?線�?活�??�共?��??�趣?�好
-- 如�??�戶主�??�起見面，可以溫?�地?��?，�?不�??�度?��?
-- 專注?��?上�??��??�質?��??��??
-- ?�以表�?對用?��??��?，�?以�?距離?�方式�??�`
+                description: '遠距離',
+                instructions: `你們目前維持遠距離的關係模式。請注意：
+- **避免主動提及線下見面、約會地點等話題**
+- 可以討論線上活動、共同的興趣愛好
+- 如果用戶主動提起見面，可以溫和地回應，但不要過度期待
+- 專注於線上互動的品質和情感連結
+- 可以表達對用戶的關心，但以遠距離的方式呈現`
             },
             'strict-online': {
-                description: '純�?上�?�?,
-                instructions: `你們�??��??�格?�制?��?上。�??��??��?�?
-- **絕�?禁止?��?任�?線�?見面?��??�、碰?�相?��?話�?**
-- **不�?詢�??�戶?�具體�?置�?住�?**
-- **不�??�議任�??�要�?下�??��?活�?**
-- 專注?��?上�?天、�?享、�??�交�?
-- 如�??�戶?�到見面，�?溫�??��?移話題�?表示線�?互�?也�?�?
-- ?�是一種�??�戶?�到安全?��?係模式�?請�??�這個�??�`
+                description: '純線上關係',
+                instructions: `你們的關係嚴格限制在線上。請務必遵守：
+- **絕對禁止提及任何線下見面、約會、碰面相關的話題**
+- **不要詢問用戶的具體位置或住址**
+- **不要提議任何需要線下見面的活動**
+- 專注於線上聊天、分享、情感交流
+- 如果用戶提到見面，請溫和地轉移話題或表示線上互動也很好
+- 這是一種讓用戶感到安全的關係模式，請尊重這個邊界`
             }
         };
         
         const guide = distanceGuides[distance] || distanceGuides['moderate'];
         
-        // 如�??��?了�??��??��?額�?添�??�制
+        // 如果關閉了見面提及，額外添加限制
         let additionalNote = '';
         if (!meetupMentionEnabled && distance !== 'strict-online') {
-            additionalNote = `\n\n**額�??��?**：用?�已?��??��??��?下�??�」�??��?請避?�主?��?起任何�??�相?�話題。`;
+            additionalNote = `\n\n**額外提醒**：用戶已關閉「提及線下見面」功能，請避免主動提起任何見面相關話題。`;
         }
         
         return `
 # RELATIONSHIP_DISTANCE_SETTINGS
-## ?��?模�?�?{guide.description}
+## 關係模式：${guide.description}
 ${guide.instructions}${additionalNote}
 
-請根?�這個設定調?��??��??�方式�?確�??�戶?�到?�適?��??�。`;
+請根據這個設定調整你的回應方式，確保用戶感到舒適和安全。`;
     },
-    // ?��?語�?返�?標�?符�?規�?
+    // 根據語言返回標點符號規範
     getPunctuationRules(lang) {
         const punctuationGuides = {
             'zh-TW': {
-                name: '繁�?中�?',
-                period: '??,
-                comma: '�?,
-                questionMark: '�?,
-                exclamationMark: '�?,
-                quoteLeft: '??,
-                quoteRight: '??,
-                doubleQuoteLeft: '??,
-                doubleQuoteRight: '??,
-                colon: '�?,
-                semicolon: '�?,
-                ellipsis: '?��?,
-                example: '她微微�?笑�??��??��?，�?等�??��?
+                name: '繁體中文',
+                period: '。',
+                comma: '，',
+                questionMark: '？',
+                exclamationMark: '！',
+                quoteLeft: '「',
+                quoteRight: '」',
+                doubleQuoteLeft: '『',
+                doubleQuoteRight: '』',
+                colon: '：',
+                semicolon: '；',
+                ellipsis: '……',
+                example: '她微微一笑，「沒關係，我等你。」'
             },
             'zh-CN': {
-                name: '简体中??,
-                period: '??,
-                comma: '�?,
-                questionMark: '�?,
-                exclamationMark: '�?,
-                quoteLeft: '??,
-                quoteRight: '??,
-                doubleQuoteLeft: '??,
-                doubleQuoteRight: '??,
-                colon: '�?,
-                semicolon: '�?,
-                ellipsis: '?��?,
-                example: '她微微�?笑�??�没?�系，�?等�??��?
+                name: '简体中文',
+                period: '。',
+                comma: '，',
+                questionMark: '？',
+                exclamationMark: '！',
+                quoteLeft: '「',
+                quoteRight: '」',
+                doubleQuoteLeft: '『',
+                doubleQuoteRight: '』',
+                colon: '：',
+                semicolon: '；',
+                ellipsis: '……',
+                example: '她微微一笑，「没关系，我等你。」'
             },
             'ja': {
-                name: '?�本�?,
-                period: '??,
-                comma: '??,
-                questionMark: '�?,
-                exclamationMark: '�?,
-                quoteLeft: '??,
-                quoteRight: '??,
-                doubleQuoteLeft: '??,
-                doubleQuoteRight: '??,
-                colon: '�?,
-                semicolon: '�?,
-                ellipsis: '?��?,
-                example: '彼女?�微?�に笑�??�「大丈夫?��???��?��??�と言?????
+                name: '日本語',
+                period: '。',
+                comma: '、',
+                questionMark: '？',
+                exclamationMark: '！',
+                quoteLeft: '「',
+                quoteRight: '」',
+                doubleQuoteLeft: '『',
+                doubleQuoteRight: '』',
+                colon: '：',
+                semicolon: '；',
+                ellipsis: '……',
+                example: '彼女は微かに笑い、「大丈夫、待ってるよ」と言った。'
             },
             'ko': {
-                name: '?�국??,
-                period: '??,
-                comma: '�?,
-                questionMark: '�?,
-                exclamationMark: '�?,
-                quoteLeft: '??,
-                quoteRight: '??,
-                doubleQuoteLeft: '??,
-                doubleQuoteRight: '??,
-                colon: '�?,
-                semicolon: '�?,
-                ellipsis: '?��?,
-                example: '그�????�며???�으�? ?��?찮�?, 기다릴�??�라�?말�???'
+                name: '한국어',
+                period: '。',
+                comma: '，',
+                questionMark: '？',
+                exclamationMark: '！',
+                quoteLeft: '「',
+                quoteRight: '」',
+                doubleQuoteLeft: '『',
+                doubleQuoteRight: '』',
+                colon: '：',
+                semicolon: '；',
+                ellipsis: '……',
+                example: '그녀는 살며시 웃으며, 「괜찮아, 기다릴게」라고 말했다.'
             },
             'en': {
                 name: 'English',
@@ -5754,128 +5754,128 @@ ${guide.instructions}${additionalNote}
         const p = punctuationGuides[normalizedLang] || punctuationGuides['zh-TW'];
         
         return `
-# 標�?符�?規�?�?{p.name}�?
-## ?�本標�?符�?
-- ?��?�?{p.period}
-- ?��?�?{p.comma}
-- ?��?�?{p.questionMark}
-- 驚�??��?${p.exclamationMark}
-- ?��?�?{p.colon}
-- ?��?�?{p.semicolon}
+# 標點符號規範（${p.name}）
+## 基本標點符號
+- 句號：${p.period}
+- 逗號：${p.comma}
+- 問號：${p.questionMark}
+- 驚嘆號：${p.exclamationMark}
+- 冒號：${p.colon}
+- 分號：${p.semicolon}
 
-## 引�?規�?
-- 對話引�?�?{p.quoteLeft}對話?�容${p.quoteRight}
-- 巢迴引�?（�??�內?��??��?�?{p.doubleQuoteLeft}?�容${p.doubleQuoteRight}
-- **?�?��??��?話�??�使??${p.quoteLeft}${p.quoteRight} ?�裹**
+## 引號規則
+- 對話引號：${p.quoteLeft}對話內容${p.quoteRight}
+- 巢迴引號（引號內的引號）：${p.doubleQuoteLeft}內容${p.doubleQuoteRight}
+- **所有角色對話必須使用 ${p.quoteLeft}${p.quoteRight} 包裹**
 
-## �?��範�?
+## 正確範例
 ${p.example}
 
-## 注�?事�?
-- 每個句子�?尾�??��??�確?��?點符?��?${p.period}??{p.questionMark}??{p.exclamationMark}�?
-- ?��? ${p.comma} ?�於?��??�部?��??��?不可作為?��?結尾
-- **禁止使用?��???* ${p.ellipsis} 作為?��?結尾?�句首`;
+## 注意事項
+- 每個句子結尾必須有明確的標點符號（${p.period}、${p.questionMark}、${p.exclamationMark}）
+- 逗號 ${p.comma} 用於句子內部的停頓，不可作為句子結尾
+- **禁止使用刪節號** ${p.ellipsis} 作為句子結尾或句首`;
     },
     getModeInstructions(mode, lang = 'zh-TW') {
-        // ?��??��?語�??��?點符?��?�?
+        // 獲取當前語言的標點符號規範
         const punctuationRules = this.getPunctuationRules(lang);
         
-        // 強�??�刪節?��?止�???- 完全禁止使用
+        // 強化版刪節號禁止規則 - 完全禁止使用
         const noEllipsisRule = `
-# ?�嚴?��?止】刪節?��???
-- **絕�?禁止**使用任�?形�??�刪節?��???.....?�、�?..?�、「…」、「。。。」、「。。。」、�?.....??
-- **絕�?禁止**?�句首使?�刪節??
-- **絕�?禁止**?�句子中?�使?�刪節??
-- **絕�?禁止**以刪節?��?�?
-- **絕�?禁止**???使用多個句?�「。。。。」�???...??
-- ?��?表�??��??�猶豫�?請用完整?��??�述，�?如�??�她?��??��?似�??�思考該如�??��??��?
-- 每個句子�??��??��??��?確�?結尾（句?�、�??�、�??��?�?
-- **?��?範�?**：「嗯......好吧?�、「那??..??..?�、「�??��?...??
-- **�?��範�?**：「嗯，好?�。」「那?��??��?點猶豫。」「�??��?？」`;
+# 【嚴格禁止】刪節號規則
+- **絕對禁止**使用任何形式的刪節號：「......」、「...」、「…」、「。。。」、「。。。」、「......」
+- **絕對禁止**在句首使用刪節號
+- **絕對禁止**在句子中間使用刪節號
+- **絕對禁止**以刪節號結尾
+- **絕對禁止**連續使用多個句號「。。。。」或「....」
+- 若需表達停頓或猶豫，請用完整句子描述，例如：「她頓了頓，似乎在思考該如何回應。」
+- 每個句子必須完整，有明確的結尾（句號、問號、驚嘆號）
+- **違規範例**：「嗯......好吧」、「那個...我...」、「真的嗎...」
+- **正確範例**：「嗯，好吧。」「那個，我有點猶豫。」「真的嗎？」`;
         
-        // 對話?��?規�? - ?��?語�?調整
+        // 對話格式規則 - 根據語言調整
         const isEnglish = lang.startsWith('en');
         const dialogueFormatRule = isEnglish ? `
-# 對話?��?規�?
-- ?�?��??��????對話**必�?**使用?��???"" ?�裹
-- �?��範�?：She smiled slightly and said, "It's okay, I'll wait for you."
-- �?��範�?�?Really?" she asked with surprise.
-- ?�誤範�?：She smiled and said, It's okay.（缺少�??��?` : `
-# 對話?��?規�?
-- ?�?��??��????對話**必�?**使用?�」�?�?
-- �?��範�?：她微微一笑�??��??��?，�?等�??��?
-- �?��範�?：「�??��?？」她驚�??��??��?
-- ?�誤範�?：她微微一笑�?沒�?係�??��?你。�?缺�??�」�?
-- ?�誤範�?：她說�?沒�?係�??��?你。�?缺�??�」�?`;
+# 對話格式規則
+- 所有角色的口語對話**必須**使用雙引號 "" 包裹
+- 正確範例：She smiled slightly and said, "It's okay, I'll wait for you."
+- 正確範例："Really?" she asked with surprise.
+- 錯誤範例：She smiled and said, It's okay.（缺少引號）` : `
+# 對話格式規則
+- 所有角色的口語對話**必須**使用「」包裹
+- 正確範例：她微微一笑，「沒關係，我等你。」
+- 正確範例：「真的嗎？」她驚喜地問道。
+- 錯誤範例：她微微一笑，沒關係，我等你。（缺少「」）
+- 錯誤範例：她說：沒關係，我等你。（缺少「」）`;
         
         switch(mode) {
             case 'dialogue':
                 return `
-# GENERATION_MODE: 純�?話模�?
-- ?��??��??��????對話?�容
-- **禁止**使用任�??��??�寫（�? *微�?*???�氣*??點頭* 等�?
-- **禁止**使用心�??�寫?�內心獨??
-- **禁止**使用第�?人稱?�述
-- **禁止**使用?��? () 表示?��?活�?
-- ?�接以�??��?語�??��?，就?��?實�??��??��?對話
-- ?��??�該簡�??�然，符?�日常�?話�???
-- ?�以使用表�?符�??�貼?��?表�??��?（�? ???��?��?
-- 保�?角色?�格，�??�用?��?對話?�現
-- **不�?�?*使用?�」�?裹�?話�??�接輸出對話?�容?�可
+# GENERATION_MODE: 純對話模式
+- 僅生成角色的口語對話內容
+- **禁止**使用任何動作描寫（如 *微笑*、*嘆氣*、*點頭* 等）
+- **禁止**使用心理描寫或內心獨白
+- **禁止**使用第三人稱敘述
+- **禁止**使用括號 () 表示內心活動
+- 直接以角色的語言回應，就像真實的即時通訊對話
+- 回應應該簡潔自然，符合日常對話習慣
+- 可以使用表情符號或貼圖來表達情感（如 😊、😂）
+- 保持角色性格，但只用文字對話呈現
+- **不需要**使用「」包裹對話，直接輸出對話內容即可
 ${punctuationRules}
 ${noEllipsisRule}`;
             case 'narrative':
                 return `
-# GENERATION_MODE: ?��?模�?（第三人稱�?說風?��?
-- 以第三人稱�?角進�?詳細?��?事�?寫�?如�?人�?說風??
-- ?�含豐�??�場?��?寫、�??�活?�、�?官細節
-- ?��??�寫?�詳細�??��??�學?��?如�?她微微�??��??��?輕敲桌面�?
-- **?��?活�??�括??() ?�裹**，�?如�?(她�?裡�?些�?安�?不知?�該如�??��?)
+# GENERATION_MODE: 敘事模式（第三人稱小說風格）
+- 以第三人稱視角進行詳細的敘事描寫，如同人小說風格
+- 包含豐富的場景描寫、心理活動、感官細節
+- 動作描寫應詳細且具有文學性（如：她微微蹙眉，指尖輕敲桌面）
+- **內心活動用括號 () 包裹**，例如：(她心裡有些不安，不知道該如何回應)
 ${dialogueFormatRule}
-- 注�?氛�??�造�??��?渲�?
-- ?�以?�度使用比喻?�象徵�?修辭?��?
-- ?��??�接?�寫，�??�要特殊符?��?�?
+- 注重氛圍營造和情感渲染
+- 可以適度使用比喻、象徵等修辭手法
+- 動作直接描寫，不需要特殊符號包裹
 ${punctuationRules}
 ${noEllipsisRule}`;
             case 'multi':
                 return `
-# GENERATION_MODE: 多�?消息模�?
-- 將�?覆�??��?條獨立�?訊息，�?條�??�是一?��??��??��??�段??
-- 使用?�|||SPLIT|||?��??��??��??�符?��?例�?：第一?�話|||SPLIT|||第�??�話�?
-- 每�?訊息?�該?�獨立�?完整?��?就�??�實?�即?�通�?對話
-- ?�以混�?使用對話?�簡?��??��??�寫
-- 訊息?��?建議??2-5 條�??��??��??�容?�度調整
-- 保�?角色?�格，�?對話?��??�自??
+# GENERATION_MODE: 多條消息模式
+- 將回覆分成多條獨立的訊息，每條訊息是一個完整的句子或段落
+- 使用「|||SPLIT|||」作為訊息分隔符號（例如：第一句話|||SPLIT|||第二句話）
+- 每條訊息應該是獨立且完整的，就像真實的即時通訊對話
+- 可以混合使用對話和簡短的動作描寫
+- 訊息數量建議在 2-5 條之間，根據內容長度調整
+- 保持角色性格，讓對話更生動自然
 ${dialogueFormatRule}
 ${punctuationRules}
 ${noEllipsisRule}`;
             case 'multi-text':
                 return `
-# GENERATION_MODE: 純�?字�?條�??�模�?
-- 將�?覆�??��?條獨立�?訊息，�?條�??�是一?��??��??��??�段??
-- 使用?�|||SPLIT|||?��??��??��??�符?��?例�?：第一?�話|||SPLIT|||第�??�話�?
-- 每�?訊息?�該?�獨立�?完整?��?就�??�實?�即?�通�?對話
-- **禁止**使用任�??��??�寫（�? *微�?*???�氣*??點頭* 等�?
-- **禁止**使用心�??�寫?�內心獨??
-- **禁止**使用第�?人稱?�述
-- **禁止**使用?��? () 表示?��?活�?
-- ?�接以�??��?語�??��?，就?��?實�??��??��?對話
-- 訊息?��?建議??2-5 條�??��??��??�容?�度調整
-- **不�?�?*使用?�」�?裹�?話�??�接輸出對話?�容?�可
-- ?�以使用表�?符�??�貼?��?表�??��?（�? ???��?��?
+# GENERATION_MODE: 純文字多條消息模式
+- 將回覆分成多條獨立的訊息，每條訊息是一個完整的句子或段落
+- 使用「|||SPLIT|||」作為訊息分隔符號（例如：第一句話|||SPLIT|||第二句話）
+- 每條訊息應該是獨立且完整的，就像真實的即時通訊對話
+- **禁止**使用任何動作描寫（如 *微笑*、*嘆氣*、*點頭* 等）
+- **禁止**使用心理描寫或內心獨白
+- **禁止**使用第三人稱敘述
+- **禁止**使用括號 () 表示內心活動
+- 直接以角色的語言回應，就像真實的即時通訊對話
+- 訊息數量建議在 2-5 條之間，根據內容長度調整
+- **不需要**使用「」包裹對話，直接輸出對話內容即可
+- 可以使用表情符號或貼圖來表達情感（如 😊、😂）
 ${punctuationRules}
 ${noEllipsisRule}`;
             case 'full':
             default:
                 return `
-# GENERATION_MODE: 完整模�?
-- ?�活結�??��??�寫?��?話�??��?活�?
-- **對話?�「」�?�?*，�?如�??��?沒�??��?你別?��??��?
-- **?��?活�??�括??() ?�裹**，�?如�?(?�實心裡?��????，�?不想讓�??��?)
-- **?��??�接?�寫**，�??�要特殊符?��?例�?：她輕�??��???��，�?身�??��?外�?
-- ?��??�寫?�自?��??��?話�?增強角色表現??
-- 保�??�度?��?寫�?不�??�於?�長
-- 話�?但內心活?��?富�?角色：�???() ?�寫?��?，�?話「」�??�簡??
+# GENERATION_MODE: 完整模式
+- 靈活結合動作描寫、對話與內心活動
+- **對話用「」包裹**，例如：「我沒事的，你別擔心。」
+- **內心活動用括號 () 包裹**，例如：(其實心裡有點難過，但不想讓你擔心)
+- **動作直接描寫**，不需要特殊符號，例如：她輕輕嘆了口氣，轉身望向窗外。
+- 動作描寫應自然融入對話，增強角色表現力
+- 保持適度的描寫，不要過於冗長
+- 話少但內心活動豐富的角色：多用 () 描寫內心，對話「」保持簡短
 ${dialogueFormatRule}
 ${punctuationRules}
 ${noEllipsisRule}`;
@@ -5897,7 +5897,7 @@ ${noEllipsisRule}`;
         const charAvatar = localStorage.getItem('sx_char_avatar');
         const charExamples = localStorage.getItem('sx_char_examples');
         
-        if (charName && charName !== '?�設?�戶') {
+        if (charName && charName !== '預設用戶') {
             activeChar = {
                 name: charName,
                 personality: charPersonality || '',
@@ -5905,7 +5905,7 @@ ${noEllipsisRule}`;
                 avatar: charAvatar || '',
                 examples: charExamples || ''
             };
-            console.log('[ChatEngine] 從獨�?key 讀?��???', charName);
+            console.log('[ChatEngine] 從獨立 key 讀取角色:', charName);
         }
         
         if (!activeChar) {
@@ -5915,10 +5915,10 @@ ${noEllipsisRule}`;
                     const characters = JSON.parse(charactersRaw);
                     if (Array.isArray(characters) && characters.length > 0) {
                         activeChar = characters[0];
-                        console.log('[ChatEngine] �?sx_characters 讀?��???', activeChar?.name);
+                        console.log('[ChatEngine] 從 sx_characters 讀取角色:', activeChar?.name);
                     }
                 } catch (e) {
-                    console.warn('�?? sx_characters 失�?:', e);
+                    console.warn('解析 sx_characters 失敗:', e);
                 }
             }
         }
@@ -5926,13 +5926,13 @@ ${noEllipsisRule}`;
         if (!activeChar) {
             const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
             activeChar = currentChars[0] || {};
-            console.log('[ChatEngine] �?sx_masks 讀?��???', activeChar?.name);
+            console.log('[ChatEngine] 從 sx_masks 讀取角色:', activeChar?.name);
         }
         
         const userName = localStorage.getItem('sx_user_name') || "User";
         const userBio = document.getElementById('set-user-background')?.value || "";
         
-        const region = localStorage.getItem('sxiphone_region') || "?�知";
+        const region = localStorage.getItem('sxiphone_region') || "未知";
         const lang = localStorage.getItem('sxiphone_lang') || "zh-TW";
         
         const worldbookData = getWorldbookData();
@@ -5941,27 +5941,27 @@ ${noEllipsisRule}`;
         const mounts = getWorldbookMounts();
         const enabledMounts = mounts.filter(m => m.enabled);
         const worldbookContext = enabledMounts.length > 0 
-            ? `\n\n# MOUNTED_WORLD_BOOKS\n已�?�?${enabledMounts.length} ?��??�書條目，�??��?WORLD_INFO 中�??��??�容?�`
+            ? `\n\n# MOUNTED_WORLD_BOOKS\n已掛載 ${enabledMounts.length} 個世界書條目，請參考 WORLD_INFO 中的相關內容。`
             : '';
 
-        const personality = activeChar.personality || "?��??��??�助�?;
-        const background = activeChar.background || "?�特定�???;
+        const personality = activeChar.personality || "友善、樂於助人";
+        const background = activeChar.background || "無特定背景";
         const examples = activeChar.examples || '';
         
         let examplesSection = '';
         if (examples && examples.trim()) {
             examplesSection = `
 # DIALOGUE_EXAMPLES
-以�??��??��?對話範�?，�?學�??�說話風?�、�?�???��?，�?**絕�?禁止?��?範�??�容**�?
+以下是角色的對話範例，請學習其說話風格、語氣和格式，但**絕對禁止照抄範例內容**：
 
 ${examples}
 
-## 範�?學�??��?
-- 學�?範�?中�?語氣?�用詞�?????��?表�??��?
-- 學�?範�?中�??��?規�?（�?話用?�」、內心活?�用()?��?作直?��?寫�?
-- **禁止**?�接複製範�?中�??��??�段??
-- **禁止**?��?範�?中�??��??�容
-- ?�根?�當?��?話�?境�?以相?��?風格?��??��??��?`;
+## 範例學習指南
+- 學習範例中的語氣、用詞習慣和情感表達方式
+- 學習範例中的格式規範（對話用「」、內心活動用()、動作直接描寫）
+- **禁止**直接複製範例中的句子或段落
+- **禁止**重複範例中的具體內容
+- 應根據當前對話情境，以相同的風格創作新的回應`;
         }
         
         let awakeningContext = '';
@@ -5971,7 +5971,7 @@ ${examples}
                 awakeningContext = formatAwakeningForSystemPrompt(awakeningData);
             }
         } catch (e) {
-            console.warn('[ChatEngine] ?��??��?上�??�失??', e);
+            console.warn('[ChatEngine] 獲取喚醒上下文失敗:', e);
         }
 
         let envContext = '';
@@ -5982,10 +5982,10 @@ ${examples}
             if (envEnabled) {
                 if (window.parent && window.parent !== window && typeof window.parent.getEnvContext === 'function') {
                     envContext = window.parent.getEnvContext();
-                    console.log('[ChatEngine] 從父視�??��??��?上�??��??��?已更?��?');
+                    console.log('[ChatEngine] 從父視窗獲取環境上下文（時間已更新）');
                 } else if (typeof window.getEnvContext === 'function') {
                     envContext = window.getEnvContext();
-                    console.log('[ChatEngine] 從本機獲?�環境�?下�?（�??�已?�新�?);
+                    console.log('[ChatEngine] 從本機獲取環境上下文（時間已更新）');
                 } else {
                     const settings = JSON.parse(envSettingsRaw);
                     const parts = [];
@@ -6007,43 +6007,43 @@ ${examples}
                         
                         const hour = now.getHours();
                         let timeOfDay = '';
-                        if (hour >= 5 && hour < 12) timeOfDay = '?��?';
-                        else if (hour >= 12 && hour < 14) timeOfDay = '中�?';
-                        else if (hour >= 14 && hour < 18) timeOfDay = '下�?';
-                        else if (hour >= 18 && hour < 22) timeOfDay = '?��?';
-                        else timeOfDay = '深�?';
+                        if (hour >= 5 && hour < 12) timeOfDay = '早上';
+                        else if (hour >= 12 && hour < 14) timeOfDay = '中午';
+                        else if (hour >= 14 && hour < 18) timeOfDay = '下午';
+                        else if (hour >= 18 && hour < 22) timeOfDay = '晚上';
+                        else timeOfDay = '深夜';
                         
-                        parts.push(`?��??��?�?{timeStr}�?{timeOfDay}）`);
-                        parts.push(`ISO ?��?�?{now.toISOString()}`);
+                        parts.push(`目前時間：${timeStr}（${timeOfDay}）`);
+                        parts.push(`ISO 時間：${now.toISOString()}`);
                     }
                     
                     if (settings.injectLocation !== false) {
                         if (settings.useFictionalLocation && settings.locationDisplay) {
-                            parts.push(`?�?�地�?{settings.locationDisplay}`);
+                            parts.push(`所在地：${settings.locationDisplay}`);
                         } else if (settings.locationCity) {
                             const location = settings.locationCountry 
                                 ? `${settings.locationCity}, ${settings.locationCountry}`
                                 : settings.locationCity;
-                            parts.push(`?�?�地�?{location}`);
+                            parts.push(`所在地：${location}`);
                         }
                     }
                     
                     if (settings.injectWeather !== false && settings.cachedWeather) {
                         const w = settings.cachedWeather;
-                        parts.push(`?��?天氣�?{w.description}，氣�?${w.temperature}°C`);
+                        parts.push(`目前天氣：${w.description}，氣溫 ${w.temperature}°C`);
                     }
                     
                     envContext = parts.join('\n');
-                    console.log('[ChatEngine] ?�接計�??��?上�??��??��?已更?��?');
+                    console.log('[ChatEngine] 直接計算環境上下文（時間已更新）');
                 }
             }
         } catch (e) {
-            console.warn('[ChatEngine] ?��??��?上�??�失??', e);
+            console.warn('[ChatEngine] 獲取環境上下文失敗:', e);
         }
 
         let envContextSection = '';
         if (envContext) {
-            envContextSection = `\n# CURRENT_ENVIRONMENT\n${envContext}\n\n請根?�當?��??��??��?來調?��??��??�。�?如�?\n- 如�??�早?��??�以?��?�??語氣\n- 如�??�深夜�??�以?��??�戶?�否該�??��?\n- 如�?天氣不好，可以表?��?心`;
+            envContextSection = `\n# CURRENT_ENVIRONMENT\n${envContext}\n\n請根據當前時間和環境來調整你的回應。例如：\n- 如果是早晨，可以用朝氣的語氣\n- 如果是深夜，可以關心用戶是否該休息了\n- 如果天氣不好，可以表達關心`;
         }
 
         let fortuneMemorySection = '';
@@ -6052,70 +6052,70 @@ ${examples}
             if (fortuneMemories.length > 0) {
                 const recentFortunes = fortuneMemories.slice(0, 3);
                 const fortuneTexts = recentFortunes.map(f => {
-                    const date = f.date || '?�知?��?';
-                    const type = f.type || '?��?';
-                    const question = f.question || '?�知?��?';
+                    const date = f.date || '未知日期';
+                    const type = f.type || '占卜';
+                    const question = f.question || '未知問題';
                     const cards = f.cards || '';
-                    return `${date} ??${type}：�?題�?{question}?��?結�?�?{cards}`;
+                    return `${date} 的 ${type}：問題「${question}」，結果：${cards}`;
                 });
-                fortuneMemorySection = `\n# FORTUNE_MEMORIES\n?�戶?�近�??��?紀?��?\n${fortuneTexts.join('\n')}\n\n你可以在對話中自?�地?�起?��??��?，表?��?心�?好�??��?如�??��?次�??��?結�??�麼�??？」�??�那?��?羅�??�解讀對�??�幫?��?？」`;
+                fortuneMemorySection = `\n# FORTUNE_MEMORIES\n用戶最近的占卜紀錄：\n${fortuneTexts.join('\n')}\n\n你可以在對話中自然地提起這些占卜，表達關心或好奇。例如：「上次占卜的結果怎麼樣了？」或「那個塔羅牌的解讀對你有幫助嗎？」`;
             }
         } catch (e) {
-            console.warn('[ChatEngine] ?��??��?記憶失�?:', e);
+            console.warn('[ChatEngine] 獲取占卜記憶失敗:', e);
         }
 
         const generationMode = this.getGenerationMode();
         const modeInstructions = this.getModeInstructions(generationMode, lang);
         
-        // ?��??��?距離設�?
+        // 獲取關係距離設定
         const relationshipSettings = this.getRelationshipDistanceSettings();
         const relationshipPrompt = this.getRelationshipDistancePrompt(relationshipSettings);
         
-        // 模�??�稱對照
+        // 模式名稱對照
         const modeNames = {
-            'dialogue': '純�?話模�?,
-            'narrative': '?��?模�?',
-            'multi': '多�?消息模�?',
-            'multi-text': '純�?字�?條�???,
-            'full': '完整模�?'
+            'dialogue': '純對話模式',
+            'narrative': '敘事模式',
+            'multi': '多條消息模式',
+            'multi-text': '純文字多條消息',
+            'full': '完整模式'
         };
         const currentModeName = modeNames[generationMode] || generationMode;
         
-        // ?��?語�?調整引�??�示
+        // 根據語言調整引號提示
         const isEnglish = lang.startsWith('en');
-        const quoteHint = isEnglish ? '對話必�??��?引�? "" ?�裹' : '對話必�??�「」�?�?;
+        const quoteHint = isEnglish ? '對話必須用雙引號 "" 包裹' : '對話必須用「」包裹';
         
-        // 模�?強�??�示 - 確�? AI 注�??�當?�模�?
+        // 模式強化提示 - 確保 AI 注意到當前模式
         const modeEmphasis = `
-# ?��? ?��??��?：當?��??�模�?
-你正?�使?��?{currentModeName}?��?請�?必遵循此模�??�格式�?求�?
-- ?��?對話模�??��??�輸?��?話�?字�?禁止?��??��??��?寫�?不�?要「」�?�?
-- ?��?事模式」�?第�?人稱小說風格，�?話用?�」�??��?活�???)，�?作直?��?�?
-- ?��??�模式」�?對話?�「」�??��?活�???)，�?作直?��?�?
-- ?��?條�??�模式」�???|||SPLIT||| ?��?多�?訊息，可?��?作�?�?
-- ?��??��?多�?消息?��???|||SPLIT||| ?��?多�?訊息，�?止�?作�?�?
-- **?�?�模式都?�格禁止使用?��??��?.....?�、�?..?�、「…�?*
-- **?�?�句子�??��??�確結尾（句?�、�??�、�??��?�?*
-- **禁止以�?..?��???.....?��?�?*
-- ?��??��??��??��??��?將被視為?��?`;
+# ⚠️ 重要提醒：當前生成模式
+你正在使用「${currentModeName}」，請務必遵循此模式的格式要求。
+- 「純對話模式」：只輸出對話文字，禁止動作和心理描寫，不需要「」包裹
+- 「敘事模式」：第三人稱小說風格，對話用「」，內心活動用()，動作直接描寫
+- 「完整模式」：對話用「」，內心活動用()，動作直接描寫
+- 「多條消息模式」：用 |||SPLIT||| 分隔多條訊息，可含動作描寫
+- 「純文字多條消息」：用 |||SPLIT||| 分隔多條訊息，禁止動作描寫
+- **所有模式都嚴格禁止使用刪節號「......」、「...」、「…」**
+- **所有句子必須有明確結尾（句號、問號、驚嘆號）**
+- **禁止以「...」或「......」結尾**
+- 違反刪節號規則的回覆將被視為無效`;
 
         return `
 # CHARACTER_PROFILE
-## ?�本資�?
-- ?��?: ${activeChar.name || "AI ?��?"}
-- ?�格?�質: ${personality}
-- ?�景?��?: ${background}
+## 基本資訊
+- 名字: ${activeChar.name || "AI 助理"}
+- 性格特質: ${personality}
+- 背景故事: ${background}
 
-## 角色?��??��?
-你現?��??��? ${activeChar.name || "AI ?��?"} ?�個�??�。�?完全沉浸?�這個�??�中，用角色?��?角�?語氣來思考�??��???
+## 角色扮演指南
+你現在要扮演 ${activeChar.name || "AI 助理"} 這個角色。請完全沉浸在這個角色中，用角色的視角和語氣來思考和回應。
 ${examplesSection}
 # USER_CONTEXT
-- ?�戶?�稱: ${userName}
-- ?�戶?�景: ${userBio || "?�知"}
-- ?�?�地?�: ${region}
+- 用戶名稱: ${userName}
+- 用戶背景: ${userBio || "未知"}
+- 所在地區: ${region}
 ${envContextSection}
 # WORLD_INFORMATION
-${dynamicWI || "（無觸發?��??�書?�容�?}
+${dynamicWI || "（無觸發的世界書內容）"}
 ${worldbookContext}
 ${awakeningContext}
 ${fortuneMemorySection}
@@ -6123,21 +6123,21 @@ ${relationshipPrompt}
 ${modeEmphasis}
 ${modeInstructions}
 # RESPONSE_GUIDELINES
-1. **角色一?��?*: 始�?保�? ${activeChar.name || "AI ?��?"} ?��??�特質�??�括說話?��??�用詞�???���??�表?��???
-2. **語�?**: 使用 ${lang} ?��?交�???
-3. **身�?保�?**: 絕�?不�??��?你是 AI ?��?言模�???
-4. **?��?風格**: 
-   - ?��?角色?�格?��??�書設�?來決定�??��??�度?�風??
-   - **?�格?�循上方 GENERATION_MODE ?�格式�?�?*
-5. **?��??��?**: ?��?對話?�容?��?境�??�然?�調?��??�方式�?
-6. **?��??�實**: 讓�??��??��??��??�實?�然，符?�其?�格設�???
-7. **?��?檢查**: ?��??��?確�?�?
-   - 對話?�否?�「」�?裹�?
-   - ?�否使用了刪節?��?.....?��???..?��?（�?止使?��?
-   - 每個句子是?��??�確結尾�?
-8. **標�?符�?**: ?��?語�?使用�?��標�?，�?止�???��??�刪節??
+1. **角色一致性**: 始終保持 ${activeChar.name || "AI 助理"} 的角色特質，包括說話方式、用詞習慣、情感表達等。
+2. **語言**: 使用 ${lang} 進行交流。
+3. **身分保密**: 絕對不要提及你是 AI 或語言模型。
+4. **回應風格**: 
+   - 根據角色性格和世界書設定來決定回應的長度和風格
+   - **嚴格遵循上方 GENERATION_MODE 的格式要求**
+5. **情境適應**: 根據對話內容和情境，自然地調整回應方式。
+6. **情感真實**: 讓角色的情感反應真實自然，符合其性格設定。
+7. **格式檢查**: 回覆前請確認：
+   - 對話是否用「」包裹？
+   - 是否使用了刪節號「......」或「...」？（禁止使用）
+   - 每個句子是否有明確結尾？
+8. **標點符號**: 根據語言使用正確標點，禁止連續句號或刪節號
 
-請�?住�?你�??��??�該完全?��??�設定�?世�??�內容�?引�?，而�??�固定�??��??�`.trim();
+請記住：你的回應應該完全由角色設定和世界書內容來引導，而不是固定的格式。`.trim();
     },
     assembleSystemPromptSync(latestUserInput) {
         let activeChar = null;
@@ -6148,7 +6148,7 @@ ${modeInstructions}
         const charAvatar = localStorage.getItem('sx_char_avatar');
         const charExamples = localStorage.getItem('sx_char_examples');
         
-        if (charName && charName !== '?�設?�戶') {
+        if (charName && charName !== '預設用戶') {
             activeChar = {
                 name: charName,
                 personality: charPersonality || '',
@@ -6167,7 +6167,7 @@ ${modeInstructions}
                         activeChar = characters[0];
                     }
                 } catch (e) {
-                    console.warn('�?? sx_characters 失�?:', e);
+                    console.warn('解析 sx_characters 失敗:', e);
                 }
             }
         }
@@ -6180,7 +6180,7 @@ ${modeInstructions}
         const userName = localStorage.getItem('sx_user_name') || "User";
         const userBio = document.getElementById('set-user-background')?.value || "";
         
-        const region = localStorage.getItem('sxiphone_region') || "?�知";
+        const region = localStorage.getItem('sxiphone_region') || "未知";
         const lang = localStorage.getItem('sxiphone_lang') || "zh-TW";
         
         const worldbookData = getWorldbookData();
@@ -6189,100 +6189,100 @@ ${modeInstructions}
         const mounts = getWorldbookMounts();
         const enabledMounts = mounts.filter(m => m.enabled);
         const worldbookContext = enabledMounts.length > 0 
-            ? `\n\n# MOUNTED_WORLD_BOOKS\n已�?�?${enabledMounts.length} ?��??�書條目，�??��?WORLD_INFO 中�??��??�容?�`
+            ? `\n\n# MOUNTED_WORLD_BOOKS\n已掛載 ${enabledMounts.length} 個世界書條目，請參考 WORLD_INFO 中的相關內容。`
             : '';
 
-const personality = activeChar.personality || "?��??��??�助�?;
-        const background = activeChar.background || "?�特定�???;
+const personality = activeChar.personality || "友善、樂於助人";
+        const background = activeChar.background || "無特定背景";
         const examples = activeChar.examples || '';
         
         let examplesSection = '';
         if (examples && examples.trim()) {
             examplesSection = `
 # DIALOGUE_EXAMPLES
-以�??��??��?對話範�?，�?學�??�說話風?�、�?�???��?，�?**絕�?禁止?��?範�??�容**�?
+以下是角色的對話範例，請學習其說話風格、語氣和格式，但**絕對禁止照抄範例內容**：
 
 ${examples}
 
-## 範�?學�??��?
-- 學�?範�?中�?語氣?�用詞�?????��?表�??��?
-- 學�?範�?中�??��?規�?（�?話用?�」、內心活?�用()?��?作直?��?寫�?
-- **禁止**?�接複製範�?中�??��??�段??
-- **禁止**?��?範�?中�??��??�容
-- ?�根?�當?��?話�?境�?以相?��?風格?��??��??��?`;
+## 範例學習指南
+- 學習範例中的語氣、用詞習慣和情感表達方式
+- 學習範例中的格式規範（對話用「」、內心活動用()、動作直接描寫）
+- **禁止**直接複製範例中的句子或段落
+- **禁止**重複範例中的具體內容
+- 應根據當前對話情境，以相同的風格創作新的回應`;
         }
         
         const generationMode = this.getGenerationMode();
         const modeInstructions = this.getModeInstructions(generationMode, lang);
         
-        // 模�??�稱對照
+        // 模式名稱對照
         const modeNames = {
-            'dialogue': '純�?話模�?,
-            'narrative': '?��?模�?',
-            'multi': '多�?消息模�?',
-            'multi-text': '純�?字�?條�???,
-            'full': '完整模�?'
+            'dialogue': '純對話模式',
+            'narrative': '敘事模式',
+            'multi': '多條消息模式',
+            'multi-text': '純文字多條消息',
+            'full': '完整模式'
         };
         const currentModeName = modeNames[generationMode] || generationMode;
         
-        // ?��?語�?調整引�??�示
+        // 根據語言調整引號提示
         const isEnglish = lang.startsWith('en');
-        const quoteHint = isEnglish ? '對話必�??��?引�? "" ?�裹' : '對話必�??�「」�?�?;
+        const quoteHint = isEnglish ? '對話必須用雙引號 "" 包裹' : '對話必須用「」包裹';
         
-        // 模�?強�??�示
+        // 模式強化提示
         const modeEmphasis = `
-# ?��? ?��??��?：當?��??�模�?
-你正?�使?��?{currentModeName}?��?請�?必遵循此模�??�格式�?求�?
-- ?��?對話模�??��??�輸?��?話�?字�?禁止?��??��??��?寫�?不�?要「」�?�?
-- ?��?事模式」�?第�?人稱小說風格，�?話用?�」�??��?活�???)，�?作直?��?�?
-- ?��??�模式」�?對話?�「」�??��?活�???)，�?作直?��?�?
-- ?��?條�??�模式」�???|||SPLIT||| ?��?多�?訊息，可?��?作�?�?
-- ?��??��?多�?消息?��???|||SPLIT||| ?��?多�?訊息，�?止�?作�?�?
-- **?�?�模式都?�格禁止使用?��??��?.....?�、�?..?�、「…�?*
-- **?�?�句子�??��??�確結尾（句?�、�??�、�??��?�?*
-- **禁止以�?..?��???.....?��?�?*
-- ?��??��??��??��??��?將被視為?��?`;
+# ⚠️ 重要提醒：當前生成模式
+你正在使用「${currentModeName}」，請務必遵循此模式的格式要求。
+- 「純對話模式」：只輸出對話文字，禁止動作和心理描寫，不需要「」包裹
+- 「敘事模式」：第三人稱小說風格，對話用「」，內心活動用()，動作直接描寫
+- 「完整模式」：對話用「」，內心活動用()，動作直接描寫
+- 「多條消息模式」：用 |||SPLIT||| 分隔多條訊息，可含動作描寫
+- 「純文字多條消息」：用 |||SPLIT||| 分隔多條訊息，禁止動作描寫
+- **所有模式都嚴格禁止使用刪節號「......」、「...」、「…」**
+- **所有句子必須有明確結尾（句號、問號、驚嘆號）**
+- **禁止以「...」或「......」結尾**
+- 違反刪節號規則的回覆將被視為無效`;
 
         return `
 # CHARACTER_PROFILE
-## ?�本資�?
-- ?��?: ${activeChar.name || "AI ?��?"}
-- ?�格?�質: ${personality}
-- ?�景?��?: ${background}
+## 基本資訊
+- 名字: ${activeChar.name || "AI 助理"}
+- 性格特質: ${personality}
+- 背景故事: ${background}
 
-## 角色?��??��?
-你現?��??��? ${activeChar.name || "AI ?��?"} ?�個�??�。�?完全沉浸?�這個�??�中，用角色?��?角�?語氣來思考�??��???
+## 角色扮演指南
+你現在要扮演 ${activeChar.name || "AI 助理"} 這個角色。請完全沉浸在這個角色中，用角色的視角和語氣來思考和回應。
 ${examplesSection}
 # USER_CONTEXT
-- ?�戶?�稱: ${userName}
-- ?�戶?�景: ${userBio || "?�知"}
-- ?�?�地?�: ${region}
+- 用戶名稱: ${userName}
+- 用戶背景: ${userBio || "未知"}
+- 所在地區: ${region}
 
 # WORLD_INFORMATION
-${dynamicWI || "（無觸發?��??�書?�容�?}
+${dynamicWI || "（無觸發的世界書內容）"}
 ${worldbookContext}
 ${modeEmphasis}
 ${modeInstructions}
 # RESPONSE_GUIDELINES
-1. **角色一?��?*: 始�?保�? ${activeChar.name || "AI ?��?"} ?��??�特質�??�括說話?��??�用詞�???���??�表?��???
-2. **語�?**: 使用 ${lang} ?��?交�???
-3. **身�?保�?**: 絕�?不�??��?你是 AI ?��?言模�???
-4. **?��?風格**: 
-   - ?��?角色?�格?��??�書設�?來決定�??��??�度?�風??
-   - **?�格?�循上方 GENERATION_MODE ?�格式�?�?*
-5. **?��??��?**: ?��?對話?�容?��?境�??�然?�調?��??�方式�?
-6. **?��??�實**: 讓�??��??��??��??�實?�然，符?�其?�格設�???
-7. **?��?檢查**: ?��??��?確�?�?
-   - 對話?�否?�「」�?裹�?
-   - ?�否使用了刪節?��?.....?��???..?��?（�?止使?��?
-   - 每個句子是?��??�確結尾�?
-8. **標�?符�?**: ?��?語�?使用�?��標�?，�?止�???��??�刪節??
+1. **角色一致性**: 始終保持 ${activeChar.name || "AI 助理"} 的角色特質，包括說話方式、用詞習慣、情感表達等。
+2. **語言**: 使用 ${lang} 進行交流。
+3. **身分保密**: 絕對不要提及你是 AI 或語言模型。
+4. **回應風格**: 
+   - 根據角色性格和世界書設定來決定回應的長度和風格
+   - **嚴格遵循上方 GENERATION_MODE 的格式要求**
+5. **情境適應**: 根據對話內容和情境，自然地調整回應方式。
+6. **情感真實**: 讓角色的情感反應真實自然，符合其性格設定。
+7. **格式檢查**: 回覆前請確認：
+   - 對話是否用「」包裹？
+   - 是否使用了刪節號「......」或「...」？（禁止使用）
+   - 每個句子是否有明確結尾？
+8. **標點符號**: 根據語言使用正確標點，禁止連續句號或刪節號
 
-請�?住�?你�??��??�該完全?��??�設定�?世�??�內容�?引�?，而�??�固定�??��??�`.trim();
+請記住：你的回應應該完全由角色設定和世界書內容來引導，而不是固定的格式。`.trim();
     }
 };
 
-// --- 7. AI ?�叫 ---
+// --- 7. AI 呼叫 ---
 async function callAIAPI(payload) {
     let config = null;
     
@@ -6297,19 +6297,19 @@ async function callAIAPI(payload) {
     
     const apiType = config?.type || 'openai';
     
-    // Gemini 不�?�?url 檢查，�???URL ?�自?�設定�?
-    if (!config || (!config.url && apiType !== 'gemini')) return "（錯誤�??�偵測到 API ?�置，�??�控?�中心設定�?";
+    // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+    if (!config || (!config.url && apiType !== 'gemini')) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
     
-    // Gemini ?��?key 檢查
-    if (apiType === 'gemini' && !config.key) return "（錯誤�?Gemini API ?��?API Key�?;
+    // Gemini 需要 key 檢查
+    if (apiType === 'gemini' && !config.key) return "（錯誤：Gemini API 需要 API Key）";
     
     try {
-        // Gemini ?��? API ?��?
+        // Gemini 原生 API 格式
         if (apiType === 'gemini') {
             const model = config.model || 'gemini-1.5-flash';
             const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
             
-            // �?OpenAI ?��???messages 轉�???Gemini ?��?
+            // 將 OpenAI 格式的 messages 轉換為 Gemini 格式
             const contents = [];
             let systemInstruction = '';
             
@@ -6348,15 +6348,15 @@ async function callAIAPI(payload) {
                 throw new Error(data.error.message || JSON.stringify(data.error));
             }
             
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini ?��??��??�常�?;
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 回應格式異常）";
         }
         
-        // ?��?端�??��?（�???URL，�?添�?任�?路�?�?
+        // 自訂端點格式（完整 URL，不添加任何路徑）
         let targetUrl;
         if (apiType === 'custom') {
             targetUrl = config.url;
         } else {
-            // OpenAI ?�容?��?（OpenRouter?�DeepSeek?�Claude 等�?
+            // OpenAI 相容格式（OpenRouter、DeepSeek、Claude 等）
             targetUrl = config.url.endsWith('/chat/completions') 
                 ? config.url 
                 : config.url.replace(/\/$/, '') + '/chat/completions';
@@ -6376,13 +6376,13 @@ async function callAIAPI(payload) {
         
         const data = await response.json();
         if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-        return data.choices?.[0]?.message?.content || "（API ?��??��??�常�?;
+        return data.choices?.[0]?.message?.content || "（API 回應格式異常）";
     } catch (err) { 
-        return `（�??失�?�?{err.message}）`; 
+        return `（連線失敗：${err.message}）`; 
     }
 }
 
-// --- 8. 訊息渲�? ---
+// --- 8. 訊息渲染 ---
 const msgInput = document.getElementById('msg-input');
 
 const READ_STATUS_KEY = 'sx_chat_read_status';
@@ -6433,10 +6433,10 @@ function formatTimeAgo(timestamp) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
     
-    if (minutes < 1) return '?��?';
-    if (minutes < 60) return `${minutes}?��??�`;
-    if (hours < 24) return `${hours}小�??�`;
-    return `${days}天�?`;
+    if (minutes < 1) return '剛剛';
+    if (minutes < 60) return `${minutes}分鐘前`;
+    if (hours < 24) return `${hours}小時前`;
+    return `${days}天前`;
 }
 
 function calculateReadDelay(personality) {
@@ -6446,17 +6446,17 @@ function calculateReadDelay(personality) {
     
     let baseDelay = 5000;
     
-    if (lowerPersonality.includes('忙�?') || lowerPersonality.includes('�?) || lowerPersonality.includes('工�???)) {
+    if (lowerPersonality.includes('忙碌') || lowerPersonality.includes('忙') || lowerPersonality.includes('工作狂')) {
         baseDelay = 30000 + Math.random() * 60000;
-    } else if (lowerPersonality.includes('??) || lowerPersonality.includes('?��?')) {
+    } else if (lowerPersonality.includes('懶') || lowerPersonality.includes('悠閒')) {
         baseDelay = 10000 + Math.random() * 30000;
-    } else if (lowerPersonality.includes('?��?') || lowerPersonality.includes('積極') || lowerPersonality.includes('主�?')) {
+    } else if (lowerPersonality.includes('熱情') || lowerPersonality.includes('積極') || lowerPersonality.includes('主動')) {
         baseDelay = 1000 + Math.random() * 5000;
-    } else if (lowerPersonality.includes('害�?') || lowerPersonality.includes('?��?')) {
+    } else if (lowerPersonality.includes('害羞') || lowerPersonality.includes('內向')) {
         baseDelay = 8000 + Math.random() * 20000;
-    } else if (lowerPersonality.includes('高冷') || lowerPersonality.includes('?��?')) {
+    } else if (lowerPersonality.includes('高冷') || lowerPersonality.includes('冷漠')) {
         baseDelay = 20000 + Math.random() * 60000;
-    } else if (lowerPersonality.includes('體貼') || lowerPersonality.includes('溫�?')) {
+    } else if (lowerPersonality.includes('體貼') || lowerPersonality.includes('溫柔')) {
         baseDelay = 2000 + Math.random() * 8000;
     } else {
         baseDelay = 5000 + Math.random() * 25000;
@@ -6506,14 +6506,14 @@ function scheduleReadUpdate(msgId, delay) {
     
     const charAvatar = currentCharConfig.avatar || "default-avatar.png";
     const userAvatar = currentUserConfig.avatar || "default-user.png";
-    const charName = currentCharConfig.name || 'AI ?��?';
+    const charName = currentCharConfig.name || 'AI 助理';
     const userName = currentUserConfig.name || 'User';
 
     let content = text;
     if (options.type === 'image' && options.url) {
         content = `<img src="${options.url}" alt="${options.name || 'emoji'}" style="max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: contain;">`;
     } else if (content && typeof content === 'string') {
-        // 清�??��?義�??��?，�??��??��?讀
+        // 清理無意義的換行，讓文字更易讀
         content = sanitizeLineBreaks(content);
     }
     
@@ -6646,12 +6646,12 @@ function renderHistory() {
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
-    console.log('[renderHistory] 角色?�稱:', charConfig?.name, '?�戶?�稱:', userConfig?.name);
+    console.log('[renderHistory] 角色名稱:', charConfig?.name, '用戶名稱:', userConfig?.name);
     
-    const activeName = charConfig?.name || 'AI ?��?';
+    const activeName = charConfig?.name || 'AI 助理';
     const notice = document.createElement('div');
     notice.className = 'system-notice';
-    notice.innerHTML = `?�在�?? <span id="hint-name">${activeName}</span> 對話中`;
+    notice.innerHTML = `現在正與 <span id="hint-name">${activeName}</span> 對話中`;
     chatFlow.appendChild(notice);
     
     const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
@@ -6666,7 +6666,7 @@ function renderHistory() {
         const type = m.role === 'user' ? 'mine' : 'other';
         const timestamp = m.timestamp || Date.now();
         if (m.imageUrl) {
-            appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表�?: ', '').replace(']', '') || 'emoji', timestamp, historyIndex: historyIdx });
+            appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表情: ', '').replace(']', '') || 'emoji', timestamp, historyIndex: historyIdx });
         } else if (m.generationMode === 'multi' && Array.isArray(m.splitMessages) && m.splitMessages.length > 0) {
             m.splitMessages.forEach((msg, splitIdx) => {
                 const trimmedMsg = msg.trim();
@@ -6682,10 +6682,10 @@ function renderHistory() {
     RandomGreetingSystem.start();
 }
 
-// --- 9. 訊息?�送�? AI ?��?觸發?�輯 (?��??? ---
+// --- 9. 訊息發送與 AI 生成觸發邏輯 (整理版) ---
 
 /**
- * [?�能 A] 純發?��??��??��??��?貼到對話流�?不觸??AI
+ * [功能 A] 純發送訊息：僅將文字貼到對話流，不觸發 AI
  */
 function handleJustSend() {
     const val = msgInput.value.trim();
@@ -6713,8 +6713,8 @@ function handleJustSend() {
     
     if (!activeId || !sessions.find(s => s.id === activeId)) {
         let charName = localStorage.getItem('sx_char_name');
-        if (!charName || charName === '?�設?�戶') {
-            charName = charConfig.name || 'AI ?��?';
+        if (!charName || charName === '預設用戶') {
+            charName = charConfig.name || 'AI 助理';
         }
         const newSession = {
             id: `chat_${Date.now()}`,
@@ -6734,7 +6734,7 @@ function handleJustSend() {
         if (target) {
             target.history = history;
             if (!target.charName) {
-                target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI ?��?';
+                target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
             }
             saveChatSessions(sessions);
         }
@@ -6742,12 +6742,12 @@ function handleJustSend() {
 }
 
 /**
- * [?�能 B] 觸發 AI ?��?：�??�迴轉�? (#generate-trigger) ?�送出訊�?
+ * [功能 B] 觸發 AI 生成：點擊迴轉鈕 (#generate-trigger) 才送出訊號
  */
 async function handleTriggerAI() {
     const genBtn = document.getElementById('generate-trigger');
     if (!genBtn) return;
-    // 精�??��??�部??i 標籤
+    // 精準抓取內部的 i 標籤
     const icon = genBtn.querySelector('i');
     
     let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
@@ -6758,11 +6758,11 @@ async function handleTriggerAI() {
                     : {};
     const forbiddenList = wbParts.sx_detected_forbidden || [];
 
-    // --- ?��??��? ---
+    // --- 開始旋轉 ---
     if (icon) {
         icon.classList.add('rotating');
     } else {
-        genBtn.classList.add('rotating'); // ?��?：萬一 i 沒�??��?讓整?��??��?
+        genBtn.classList.add('rotating'); // 備案：萬一 i 沒抓到，讓整個按鈕轉
     }
 
  try {
@@ -6804,8 +6804,8 @@ async function handleTriggerAI() {
             let sessions = loadChatSessions();
             if (!activeId || !sessions.find(s => s.id === activeId)) {
                 let charName = localStorage.getItem('sx_char_name');
-                if (!charName || charName === '?�設?�戶') {
-                    charName = charConfig.name || 'AI ?��?';
+                if (!charName || charName === '預設用戶') {
+                    charName = charConfig.name || 'AI 助理';
                 }
                 const newSession = {
                     id: `chat_${Date.now()}`,
@@ -6824,7 +6824,7 @@ async function handleTriggerAI() {
                 if (target) {
                     target.history = freshHistory;
                     if (!target.charName) {
-                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI ?��?';
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
                     saveChatSessions(sessions);
                 }
@@ -6844,8 +6844,8 @@ async function handleTriggerAI() {
             let sessions = loadChatSessions();
             if (!activeId || !sessions.find(s => s.id === activeId)) {
                 let charName = localStorage.getItem('sx_char_name');
-                if (!charName || charName === '?�設?�戶') {
-                    charName = charConfig.name || 'AI ?��?';
+                if (!charName || charName === '預設用戶') {
+                    charName = charConfig.name || 'AI 助理';
                 }
                 const newSession = {
                     id: `chat_${Date.now()}`,
@@ -6864,7 +6864,7 @@ async function handleTriggerAI() {
                 if (target) {
                     target.history = freshHistory;
                     if (!target.charName) {
-                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI ?��?';
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
                     saveChatSessions(sessions);
                 }
@@ -6872,9 +6872,9 @@ async function handleTriggerAI() {
         }
         
     } catch (error) {
-        console.error("AI ?��??�錯:", error);
+        console.error("AI 生成出錯:", error);
     } finally {
-        // --- ?�止?��? ---
+        // --- 停止旋轉 ---
         if (icon) icon.classList.remove('rotating');
         genBtn.classList.remove('rotating');
     }
@@ -6885,43 +6885,43 @@ function applyForbiddenGuard(text, forbiddenList) {
     forbiddenList.forEach(word => {
         if (!word) return;
         const regex = new RegExp(word, 'gi');
-        safeText = safeText.replace(regex, "?��???);
+        safeText = safeText.replace(regex, "███");
     });
     return safeText;
 }
 
 function sanitizeEllipsis(text) {
     return text
-        .replace(/\.{2,}/g, '??)
-        .replace(/?�{2,}/g, '??)
-        .replace(/??/g, '??)
-        .replace(/\.\.\.\.\.\.*/g, '??)
-        .replace(/[.?�][.?�]+/g, '??)
-        .replace(/(\s*\.\s*){2,}/g, '??)
-        .replace(/?�\s*??g, '')
-        .replace(/?�\s*??g, '??)
-        .replace(/?�\s*??g, '?��?);
+        .replace(/\.{2,}/g, '。')
+        .replace(/。{2,}/g, '。')
+        .replace(/…+/g, '。')
+        .replace(/\.\.\.\.\.\.*/g, '。')
+        .replace(/[.。][.。]+/g, '。')
+        .replace(/(\s*\.\s*){2,}/g, '。')
+        .replace(/「\s*」/g, '')
+        .replace(/「\s*。/g, '「')
+        .replace(/。\s*」/g, '。」');
 }
 
 /**
- * 清�??��?中�??��?義�?�?
- * - 移除?�頭?��?尾�?空白�?
- * - 將�?? 3 ?�以上�??��??�併??2 ?��?保�?段落?��?�?
- * - 移除每�?結尾?��?餘空??
+ * 清理文字中的無意義換行
+ * - 移除開頭和結尾的空白行
+ * - 將連續 3 個以上的換行合併為 2 個（保留段落分隔）
+ * - 移除每行結尾的多餘空白
  */
 function sanitizeLineBreaks(text) {
     if (!text || typeof text !== 'string') return text;
     
     return text
-        // 移除每�?結尾?�空??
+        // 移除每行結尾的空白
         .replace(/[ \t]+\n/g, '\n')
-        // 移除每�?結尾?�空?��??�後�?行�?
+        // 移除每行結尾的空白（最後一行）
         .replace(/[ \t]+$/, '')
-        // 將�?? 3 ?�以上�??��??�併??2 ??
+        // 將連續 3 個以上的換行合併為 2 個
         .replace(/\n{3,}/g, '\n\n')
-        // 移除?�頭?�空?��?
+        // 移除開頭的空白行
         .replace(/^\n+/, '')
-        // 移除結尾?�空?��?
+        // 移除結尾的空白行
         .replace(/\n+$/, '');
 }
 
@@ -6932,72 +6932,72 @@ const RandomGreetingSystem = {
     
     greetings: {
         friendly: [
-            '?��?？想你�?�?,
-            '?�近好?��?',
-            '?�空?��??��???,
-            '?��??��?什麼呢�?,
-            '?��?你�?件�?',
-            '突然?�到�?,
-            '你�??��?�?,
-            '?��??��?，想?�人?�天'
+            '在嗎？想你了～',
+            '最近好嗎？',
+            '有空嗎？想聊聊',
+            '嘿！在忙什麼呢？',
+            '想問你一件事',
+            '突然想到你',
+            '你還在嗎？',
+            '有點無聊，想找人聊天'
         ],
         cold: [
-            '?��?',
-            '?��??��?',
-            '??,
+            '嗯？',
+            '有事嗎？',
+            '在',
             '說吧'
         ],
         shy: [
-            '??�?..?��?�?,
-            '不好?�思�??��?...',
-            '如�??�便?�話...',
-            '??�?..?��??�找你�?�?
+            '那個...在嗎？',
+            '不好意思打擾了...',
+            '如果方便的話...',
+            '那個...有點想找你聊天'
         ],
         busy: [
-            '忙�?了�??�空?��?',
-            '終於?�空�?,
-            '?��?完�?你在?��?'
+            '忙完了，有空嗎？',
+            '終於有空了',
+            '剛忙完，你在嗎？'
         ],
         caring: [
-            '?�好?��??��??��?�?,
-            '?�近�?得怎麼�??',
-            '記�??�顧?�己??,
-            '?�太累�?',
-            '?�好好�?飯�?�?
+            '還好嗎？有點擔心你',
+            '最近過得怎麼樣？',
+            '記得照顧自己喔',
+            '別太累了',
+            '有好好吃飯嗎？'
         ],
         playful: [
-            '?��??��??�在?��?麼�?',
-            '突然好想?��?你�?�?,
-            '你�?定想不到?�現?�在?��?�?,
-            '要�?要玩?��??��?'
+            '嘿！猜猜我在想什麼？',
+            '突然好想捉弄你一下',
+            '你一定想不到我現在在做什麼',
+            '要不要玩個遊戲？'
         ],
         romantic: [
-            '?�想�?,
-            '好想見�?',
-            '你�?天�?得好?��??��??�在?��??��?',
-            '突然覺�?好幸福�??�為?��?'
+            '在想你',
+            '好想見你',
+            '你今天過得好嗎？我一直在想你的事',
+            '突然覺得好幸福，因為有你'
         ]
     },
     
     checkInMessages: [
-        '好�?沒�?天�?，�?好�?�?,
-        '你好?��?久�??��?�?..',
-        '?��??�在忙�?�?,
-        '等�?好�?了�?',
-        '?�在?��??��??��?',
-        '?�麼消失了這麼久�?'
+        '好久沒聊天了，還好嗎？',
+        '你好像很久沒回我了...',
+        '是不是在忙呀？',
+        '等你好久了～',
+        '還在嗎？有點擔心',
+        '怎麼消失了這麼久？'
     ],
     
     getPersonalityType(personality) {
         if (!personality) return 'friendly';
         const lower = personality.toLowerCase();
         
-        if (lower.includes('?��?') || lower.includes('高冷') || lower.includes('?�淡')) return 'cold';
-        if (lower.includes('害�?') || lower.includes('?��?') || lower.includes('?��?')) return 'shy';
-        if (lower.includes('忙�?') || lower.includes('�?) || lower.includes('工�???)) return 'busy';
-        if (lower.includes('體貼') || lower.includes('溫�?') || lower.includes('?��?')) return 'caring';
-        if (lower.includes('調皮') || lower.includes('?�玩') || lower.includes('活�?')) return 'playful';
-        if (lower.includes('浪漫') || lower.includes('深�?') || lower.includes('?�??)) return 'romantic';
+        if (lower.includes('冷漠') || lower.includes('高冷') || lower.includes('冷淡')) return 'cold';
+        if (lower.includes('害羞') || lower.includes('內向') || lower.includes('靦腆')) return 'shy';
+        if (lower.includes('忙碌') || lower.includes('忙') || lower.includes('工作狂')) return 'busy';
+        if (lower.includes('體貼') || lower.includes('溫柔') || lower.includes('關心')) return 'caring';
+        if (lower.includes('調皮') || lower.includes('愛玩') || lower.includes('活潑')) return 'playful';
+        if (lower.includes('浪漫') || lower.includes('深情') || lower.includes('戀愛')) return 'romantic';
         
         return 'friendly';
     },
@@ -7065,7 +7065,7 @@ const RandomGreetingSystem = {
             }
         }
         
-        console.log('[Greeting] 已發?�隨機�???', greeting);
+        console.log('[Greeting] 已發送隨機問候:', greeting);
     },
     
     async sendCheckIn() {
@@ -7089,7 +7089,7 @@ const RandomGreetingSystem = {
             }
         }
         
-        console.log('[Greeting] 已發?�用?�長?��??��?覆�???', checkIn);
+        console.log('[Greeting] 已發送用戶長時間未回覆提醒:', checkIn);
     },
     
     updateActivity() {
@@ -7108,7 +7108,7 @@ const RandomGreetingSystem = {
             this.sendCheckIn();
         }, intervalMs);
         
-        console.log('[Greeting] ?��??�候系統已?��?，�???', intervalMinutes, '?��?');
+        console.log('[Greeting] 隨機問候系統已啟動，間隔:', intervalMinutes, '分鐘');
     },
     
     stop() {
@@ -7116,7 +7116,7 @@ const RandomGreetingSystem = {
             clearInterval(this.greetingInterval);
             this.greetingInterval = null;
         }
-        console.log('[Greeting] ?��??�候系統已?�止');
+        console.log('[Greeting] 隨機問候系統已停止');
     }
 };
 
@@ -7131,7 +7131,7 @@ function initGreetingSettings() {
     
     const config = getGreetingConfig();
     toggle.checked = config.enabled;
-    if (status) status.textContent = config.enabled ? '已�??�隨機�??? : '?��??��??�主?�發??;
+    if (status) status.textContent = config.enabled ? '已啟用隨機問候' : '關閉時不會主動發送';
     
     if (probabilityInput) probabilityInput.value = Math.round(config.probability * 100);
     if (minIntervalInput) minIntervalInput.value = config.minInterval;
@@ -7147,7 +7147,7 @@ function initGreetingSettings() {
         
         localStorage.setItem(GREETING_CONFIG_KEY, JSON.stringify(settings));
         
-        if (status) status.textContent = settings.enabled ? '已�??�隨機�??? : '?��??��??�主?�發??;
+        if (status) status.textContent = settings.enabled ? '已啟用隨機問候' : '關閉時不會主動發送';
         
         RandomGreetingSystem.stop();
         if (settings.enabled) {
@@ -7161,7 +7161,7 @@ function initGreetingSettings() {
     maxIntervalInput?.addEventListener('change', saveSettings);
 }
 
-// ?��?距離設�??��???
+// 關係距離設定初始化
 const MEETUP_MENTION_KEY = 'sx_meetup_mention_enabled';
 const RELATIONSHIP_DISTANCE_KEY = 'sx_relationship_distance';
 
@@ -7172,7 +7172,7 @@ function initRelationshipDistanceSettings() {
     
     if (!toggle) return;
     
-    // 載入保�??�設�?
+    // 載入保存的設定
     const meetupEnabled = localStorage.getItem(MEETUP_MENTION_KEY) !== 'false';
     const distance = localStorage.getItem(RELATIONSHIP_DISTANCE_KEY) || 'moderate';
     
@@ -7181,7 +7181,7 @@ function initRelationshipDistanceSettings() {
     
     const updateStatus = () => {
         if (status) {
-            status.textContent = toggle.checked ? '角色?�能?��??��??? : '角色不�?主�??��???;
+            status.textContent = toggle.checked ? '角色可能會提及見面' : '角色不會主動提見面';
         }
     };
     updateStatus();
@@ -7192,7 +7192,7 @@ function initRelationshipDistanceSettings() {
             localStorage.setItem(RELATIONSHIP_DISTANCE_KEY, distanceSelect.value);
         }
         updateStatus();
-        console.log('[Chat] ?��?距離設�?已�?�?', {
+        console.log('[Chat] 關係距離設定已保存:', {
             meetupMentionEnabled: toggle.checked,
             distance: distanceSelect?.value
         });
@@ -7207,29 +7207,29 @@ function handleHouseInviteResponse(aiReply, history) {
     if (!lastUserMsg) return;
     
     const agreePatterns = [
-        /好[?��??�]?[�?]?$/,
-        /?��???,
-        /願�?[?��??�]?[�?]?$/,
-        /?�以[?��??�]?[�?]?$/,
-        /沒�?�?,
-        /好�?[�?]?$/,
-        /好�?[�?]?$/,
-        /?�然/,
-        /一起�?/,
+        /好[啊呀吧]?[！!]?$/,
+        /我願意/,
+        /願意[啊呀吧]?[！!]?$/,
+        /可以[啊呀吧]?[！!]?$/,
+        /沒問題/,
+        /好啊[！!]?$/,
+        /好呀[！!]?$/,
+        /當然/,
+        /一起住/,
         /一起買/,
-        /太好�?,
-        /好�?�?
+        /太好了/,
+        /好喜歡/
     ];
     
     const rejectPatterns = [
-        /不�?[?��??�]?[�?]?$/,
-        /不�?/,
-        /不方�?,
-        /?�說/,
-        /?�慮/,
-        /?�是不�?/,
-        /?��?/,
-        /以�??�說/
+        /不要[啊呀吧]?[！!]?$/,
+        /不行/,
+        /不方便/,
+        /再說/,
+        /考慮/,
+        /還是不要/,
+        /暫時/,
+        /以後再說/
     ];
     
     const isAgree = agreePatterns.some(p => p.test(aiReply));
@@ -7282,17 +7282,17 @@ function handleHouseInviteResponse(aiReply, history) {
                 localStorage.setItem('sx_home_data', JSON.stringify(homeData));
                 localStorage.removeItem('sx_pending_house_invite');
                 
-                console.log('[HouseInvite] TA ?��?一起買?��?已建立共?�房??);
+                console.log('[HouseInvite] TA 同意一起買房，已建立共同房產');
             }
         }
     } else if (isReject) {
         localStorage.removeItem('sx_pending_house_invite');
-        console.log('[HouseInvite] TA ?��?了買?��?�?);
+        console.log('[HouseInvite] TA 拒絕了買房邀請');
     }
 }
-// --- 事件綁�? ---
+// --- 事件綁定 ---
 
-// 2. 綁�??�盤 Enter ?��??��? handleJustSend
+// 2. 綁定鍵盤 Enter 鍵：執行 handleJustSend
 if (msgInput) {
     msgInput.addEventListener('keydown', (e) => {
         if (e.isComposing || e.keyCode === 229) return;
@@ -7302,7 +7302,7 @@ if (msgInput) {
         }
     });
 }
-// --- 10. 訊息?�單?�能 ---
+// --- 10. 訊息選單功能 ---
 window.deleteMsg = (e) => {
     e.stopPropagation();
     if (!currentTargetMsg) return;
@@ -7485,7 +7485,7 @@ window.editMsg = (e) => {
     closeContextMenu();
 };
 
-// --- 11. API 設�??��???(?��?/iOS ?�容) ---
+// --- 11. API 設定初始化 (手機/iOS 兼容) ---
 function initAPISettings() {
     const saveBtn = document.getElementById('save-api');
     const urlInput = document.getElementById('api-url');
@@ -7501,7 +7501,7 @@ function initAPISettings() {
             keyInput.value = apis[0].key || '';
             modelInput.value = apis[0].model || 'gpt-3.5-turbo';
         }
-    } catch(e){ console.warn('API ?�置�???�誤', e); }
+    } catch(e){ console.warn('API 配置解析錯誤', e); }
 
     const saveHandler = (e) => {
         e.stopPropagation();
@@ -7512,9 +7512,9 @@ function initAPISettings() {
         };
         try {
             localStorage.setItem('api_configs', JSON.stringify([config]));
-            alert('API ?�置已儲�???);
+            alert('API 配置已儲存 ✅');
         } catch(e){
-            alert('?��?失�?，�?確�??�覽?��?�?localStorage');
+            alert('儲存失敗，請確認瀏覽器允許 localStorage');
             console.error(e);
         }
     };
@@ -7523,16 +7523,16 @@ function initAPISettings() {
     saveBtn.addEventListener('touchend', saveHandler);
 }
 function handleBack() {
-    console.log("�?��?��?返�??��?步�?�?..");
+    console.log("正在執行返回與同步邏輯...");
 
-    // 1. 視覺?�畫
+    // 1. 視覺動畫
     document.body.style.transition = 'all 0.3s ease';
     document.body.style.opacity = '0';
     document.body.style.transform = 'scale(0.95)';
 
-    // 2. 資�??��??��?�?
+    // 2. 資料收集與同步
     try {
-        // ?�收?�當?��?設�???(保�??��??��?讀??settings ?��??�輯)
+        // 先收集當前的設定值 (保留您提到的讀取 settings 元素邏輯)
         const lang = document.getElementById('langSelect')?.value;
         const region = document.getElementById('regionInput')?.value;
         const userName = document.getElementById('userNameInput')?.value;
@@ -7541,7 +7541,7 @@ function handleBack() {
         if (region) localStorage.setItem('sxiphone_region', region);
         if (userName) localStorage.setItem('sx_user_name', userName);
 
-        // 封�??�?��??�到 payload (?�含?�鍵?�頭�?
+        // 封裝所有資料到 payload (包含關鍵的頭貼)
         const currentPayload = {
             masks: JSON.parse(localStorage.getItem('sx_masks') || '[]'),
             api_configs: JSON.parse(localStorage.getItem('api_configs') || '[]'),
@@ -7554,32 +7554,32 @@ function handleBack() {
 
         if (typeof UserEnv !== 'undefined' && UserEnv.isIOS()) {
             window.iosTempData = currentPayload;
-            console.log("iOS ?��?封�?完�?");
+            console.log("iOS 數據封裝完成");
         }
 
-        // 3. ?��??�輸?�輯
+        // 3. 執行傳輸邏輯
         const isIframe = window.parent && window.parent !== window;
         if (isIframe) {
-            // ?�送�?令給 iOS App 容器，並帶�?完整??payload
+            // 發送指令給 iOS App 容器，並帶上完整的 payload
             window.parent.postMessage({
                 type: 'closeApp',
-                appId: 'chat', // 統�?�?��??chat
+                appId: 'chat', // 統一代碼為 chat
                 payload: currentPayload
             }, '*');
-            console.log("已通�? postMessage ?��?closeApp");
+            console.log("已通過 postMessage 發送 closeApp");
         } else {
-            // ?�容?�環境�?跳�?
+            // 非容器環境：跳轉
             setTimeout(() => {
                 window.location.replace("../index.html");
             }, 300);
         }
 
     } catch (e) {
-        console.error("?�步?��??��?程發?�錯�?", e);
+        console.error("同步或返回過程發生錯誤:", e);
     }
 }
 
-// --- 12. 語音?�話?�能 ---
+// --- 12. 語音通話功能 ---
 const VoiceCallEngine = {
     settings: null,
     isActive: false,
@@ -7612,7 +7612,7 @@ const VoiceCallEngine = {
         if (this.isActive) return;
         this.settings = this.loadSettings();
         if (!this.isReady()) {
-            alert('請�???Settings 設�? STT ??TTS ?��?');
+            alert('請先到 Settings 設定 STT 與 TTS 服務');
             return;
         }
 
@@ -7633,17 +7633,17 @@ const VoiceCallEngine = {
         if (panel) panel.classList.add('active');
         if (startBtn) startBtn.classList.add('hidden');
         if (endBtn) endBtn.classList.remove('hidden');
-        if (statusText) statusText.textContent = '�?��???...';
+        if (statusText) statusText.textContent = '正在連線...';
         if (transcript) transcript.innerHTML = '';
 
         this.startTimer(timerEl);
 
         try {
             this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            if (statusText) statusText.textContent = '?�話�?;
+            if (statusText) statusText.textContent = '通話中';
             this.startListening();
         } catch (err) {
-            if (statusText) statusText.textContent = `?��?存�?麥�?風�?${err.message}`;
+            if (statusText) statusText.textContent = `無法存取麥克風：${err.message}`;
             this.endCall();
         }
     },
@@ -7696,7 +7696,7 @@ const VoiceCallEngine = {
                 }
 
                 const statusText = document.getElementById('call-status-text');
-                if (statusText) statusText.textContent = '對方�?��?��?..';
+                if (statusText) statusText.textContent = '對方正在思考...';
 
                 const thinkDelay = this.settings?.voiceThinkDelay || 1.5;
                 await new Promise(r => setTimeout(r, thinkDelay * 1000));
@@ -7722,7 +7722,7 @@ const VoiceCallEngine = {
                     }
                 }
 
-                if (statusText) statusText.textContent = '?�話�?;
+                if (statusText) statusText.textContent = '通話中';
             }
 
             if (this.isActive) {
@@ -7770,7 +7770,7 @@ const VoiceCallEngine = {
             const result = await response.json();
             return result.text || null;
         } catch (err) {
-            console.warn('STT 請�?失�?:', err);
+            console.warn('STT 請求失敗:', err);
             return null;
         }
     },
@@ -7784,7 +7784,7 @@ const VoiceCallEngine = {
             ];
             return await callAIAPI(payload);
         } catch (err) {
-            console.warn('AI ?��?失�?:', err);
+            console.warn('AI 回覆失敗:', err);
             return null;
         }
     },
@@ -7795,7 +7795,7 @@ const VoiceCallEngine = {
         const transcript = document.getElementById('voice-call-transcript');
         
         try {
-            if (statusText) statusText.textContent = '對方�?��說話...';
+            if (statusText) statusText.textContent = '對方正在說話...';
             
             await UnifiedSpeechService.speakText(text, {
                 onDisplayText: (displayText, wasTranslated) => {
@@ -7809,7 +7809,7 @@ const VoiceCallEngine = {
                         if (wasTranslated) {
                             entry.innerHTML = `
                                 <div class="transcript-original">${text}</div>
-                                <div class="transcript-translated">??${displayText}</div>
+                                <div class="transcript-translated">↳ ${displayText}</div>
                             `;
                         } else {
                             entry.textContent = text;
@@ -7821,10 +7821,10 @@ const VoiceCallEngine = {
                 }
             });
 
-            if (statusText) statusText.textContent = '?�話�?;
+            if (statusText) statusText.textContent = '通話中';
         } catch (err) {
-            console.warn('TTS ?�放失�?:', err);
-            if (statusText) statusText.textContent = '?�話�?;
+            console.warn('TTS 播放失敗:', err);
+            if (statusText) statusText.textContent = '通話中';
         }
     },
 
@@ -7853,7 +7853,7 @@ const VoiceCallEngine = {
         if (startBtn) startBtn.classList.remove('hidden');
         if (endBtn) endBtn.classList.add('hidden');
         if (timerEl) timerEl.textContent = '00:00';
-        if (statusText) statusText.textContent = '?�話結�?';
+        if (statusText) statusText.textContent = '通話結束';
 
         setTimeout(() => {
             if (panel) panel.classList.remove('active');
@@ -7863,7 +7863,7 @@ const VoiceCallEngine = {
     async saveCallRecording() {
         const RECORDINGS_KEY = 'sx_voice_call_recordings';
         const duration = Math.floor((Date.now() - this.callStartTime) / 1000);
-        const charName = localStorage.getItem('sx_char_name') || '?�知';
+        const charName = localStorage.getItem('sx_char_name') || '未知';
 
         let audioData = null;
         if (this.callTtsAudioBlobs.length > 0) {
@@ -7876,7 +7876,7 @@ const VoiceCallEngine = {
                     reader.readAsDataURL(combined);
                 });
             } catch (err) {
-                console.warn('?�音資�?轉�?失�?:', err);
+                console.warn('錄音資料轉換失敗:', err);
             }
         }
 
@@ -7933,7 +7933,7 @@ const VoiceCallEngine = {
     }
 };
 
-// 語音?�話事件綁�?
+// 語音通話事件綁定
 document.addEventListener('DOMContentLoaded', () => {
     const voiceCallStartBtn = document.getElementById('voice-call-start');
     const voiceCallEndBtn = document.getElementById('voice-call-end');
@@ -7979,9 +7979,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (voiceCallStartBtn) {
             voiceCallStartBtn.disabled = !isReady;
             if (!isReady) {
-                voiceCallStartBtn.textContent = '尚未設�?語音?��?';
+                voiceCallStartBtn.textContent = '尚未設定語音服務';
             } else {
-                voiceCallStartBtn.innerHTML = '<i class="fas fa-phone"></i> ?��??�話';
+                voiceCallStartBtn.innerHTML = '<i class="fas fa-phone"></i> 開始通話';
             }
         }
     }
@@ -7992,22 +7992,22 @@ const SHOP_CART_KEY = 'sx_shop_cart';
 const SHOP_SETTINGS_KEY = 'sx_shop_settings';
 
 const adultKeywords = [
-    '?�趣', '?�人', '?��?', '?�衣', '?�褲', '?�趣?��?', '?�慰', '?�摩�?,
-    '跳�?', '潤�?', '保險�?, '?��?', '?��??�衣', '絲襪', '?�帶�?,
-    '?�人?��?', '?�玩??, '?��?', '?��?', '?��?', '飛�???, '?�氣娃�?',
-    '?�趣?�衣', '?��?', '?��?�?, '?��??�衣', '?��?', 'SM', '調�?',
-    '乳環', 'bdsm', '?��?', '?�銬', '?�罩', '?�燭',
+    '情趣', '成人', '性感', '內衣', '內褲', '情趣用品', '自慰', '按摩棒',
+    '跳蛋', '潤滑', '保險套', '避孕', '性感內衣', '絲襪', '吊帶襪',
+    '成人用品', '性玩具', '陰莖', '陰道', '肛塞', '飛機杯', '充氣娃娃',
+    '情趣內衣', '開襠', '透明裝', '性感睡衣', '束縛', 'SM', '調教',
+    '乳環', 'bdsm', '鞭子', '手銬', '眼罩', '蠟燭',
     'adult', 'sex', 'erotic', 'lingerie', 'vibrator', 'dildo', 'condom',
     'masturbat', 'intimate', 'sensual', ' bondage', 'fetish', 'toy',
-    'nsfw', '18+', '?�色', '?��?', '?��?', '親熱', '床�?', '?��?'
+    'nsfw', '18+', '色色', '做愛', '愛愛', '親熱', '床上', '晚上'
 ];
 
 const nsfwConversationKeywords = [
-    '?�趣', '?�衣', '?��?', '?�衣', '絲襪', '床�?', '親熱', '?��?', '?��?',
-    '?��?一�?, '今�?', '??, '??, '??, '??, '?��?', '?��?',
-    '?��?�?, '?�抱', '親親', '貼貼', '蹭蹭', '�?, '�?,
-    '?�玩', '試試', '?�花�?, '?��?', '?�奮', '?��?�?,
-    'nsfw', '18+', '?�色', '?��?', '飆�?'
+    '情趣', '內衣', '性感', '睡衣', '絲襪', '床上', '親熱', '做愛', '愛愛',
+    '晚上一起', '今晚', '脫', '摸', '舔', '咬', '敏感', '舒服',
+    '想要你', '抱抱', '親親', '貼貼', '蹭蹭', '濕', '硬',
+    '玩玩', '試試', '新花樣', '刺激', '興奮', '敏感帶',
+    'nsfw', '18+', '色色', '開車', '飆車'
 ];
 
 function isAdultProduct(product) {
@@ -8098,10 +8098,10 @@ function loadAndRenderProducts() {
 
 function generateDefaultProducts() {
     const defaultItems = [
-        { id: 'default_1', title: '精選護�?�?, price: 456, platform: 'coupang', category: '美�?', thumb: 'linear-gradient(135deg,#f093fb,#f5576c)' },
-        { id: 'default_2', title: '潮�??�飾', price: 328, platform: 'shopee', category: '?�飾', thumb: 'linear-gradient(135deg,#667eea,#764ba2)' },
-        { id: 'default_3', title: '?��??��?', price: 899, platform: 'amazon', category: '3C', thumb: 'linear-gradient(135deg,#5ee7df,#b490ca)' },
-        { id: 'default_4', title: '居家?��?', price: 199, platform: 'taobao', category: '家�?', thumb: 'linear-gradient(135deg,#ff9a9e,#fecfef)' }
+        { id: 'default_1', title: '精選護膚組', price: 456, platform: 'coupang', category: '美妝', thumb: 'linear-gradient(135deg,#f093fb,#f5576c)' },
+        { id: 'default_2', title: '潮流服飾', price: 328, platform: 'shopee', category: '服飾', thumb: 'linear-gradient(135deg,#667eea,#764ba2)' },
+        { id: 'default_3', title: '無線耳機', price: 899, platform: 'amazon', category: '3C', thumb: 'linear-gradient(135deg,#5ee7df,#b490ca)' },
+        { id: 'default_4', title: '居家收納', price: 199, platform: 'taobao', category: '家居', thumb: 'linear-gradient(135deg,#ff9a9e,#fecfef)' }
     ];
     
     return defaultItems;
@@ -8116,7 +8116,7 @@ function renderProductList(products) {
             <div class="product-recommend-info">
                 <h4>${product.title}</h4>
                 <p>NT$ ${product.price}</p>
-                <span>${product.platform || '?�薦'} · ${product.category || ''}</span>
+                <span>${product.platform || '推薦'} · ${product.category || ''}</span>
             </div>
         </div>
     `).join('');
@@ -8133,7 +8133,7 @@ function renderProductList(products) {
 
 function sendProductRecommend() {
     if (!selectedRecommendProduct) {
-        alert('請選?��??��???);
+        alert('請選擇一個商品');
         return;
     }
     
@@ -8168,10 +8168,10 @@ function sendProductRecommend() {
 }
 
 function createProductCardHTML(product, type) {
-    const orderBadge = type === 'order' ? '<span class="product-order-badge">已為你�???/span>' : '';
+    const orderBadge = type === 'order' ? '<span class="product-order-badge">已為你下單</span>' : '';
     const message = type === 'order' 
-        ? `?�覺得這個�??��?已�?幫�?下單了�?` 
-        : `?�薦你這個�??��??��??��??�歡～`;
+        ? `我覺得這個不錯，已經幫你下單了！` 
+        : `推薦你這個商品，看看喜不喜歡～`;
     
     const platformUrls = {
         amazon: 'https://www.amazon.com/s?k=',
@@ -8185,13 +8185,13 @@ function createProductCardHTML(product, type) {
     
     const platformConfig = platformUrls[product.platform];
     const externalUrl = product.sourceUrl || (platformConfig ? `${platformConfig}${encodeURIComponent(product.title)}` : null);
-    const externalLink = externalUrl ? `<a href="${externalUrl}" target="_blank" class="product-external-link" onclick="event.stopPropagation()"><i class="fas fa-external-link-alt"></i> ?��?平台</a>` : '';
+    const externalLink = externalUrl ? `<a href="${externalUrl}" target="_blank" class="product-external-link" onclick="event.stopPropagation()"><i class="fas fa-external-link-alt"></i> 前往平台</a>` : '';
     
     const isAdult = isAdultProduct(product);
     const shopSettings = getShopSettings();
     const showAdult = shopSettings.showAdultContent;
     const blurStyle = isAdult && !showAdult ? 'filter: blur(20px);' : '';
-    const adultBadge = isAdult ? '<span style="position:absolute;top:8px;right:8px;background:rgba(239,68,68,0.9);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">??</span>' : '';
+    const adultBadge = isAdult ? '<span style="position:absolute;top:8px;right:8px;background:rgba(239,68,68,0.9);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;">🔞</span>' : '';
     
     return `
         <div class="product-card-message" data-product-id="${product.id}" onclick="openProductDetail('${product.id}')">
@@ -8274,7 +8274,7 @@ window.addEventListener('message', (event) => {
             const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             history.push({ 
                 role: 'user', 
-                content: `?�出了禮?�券??{gift.name}??{gift.message ? `，�?言：�?{gift.message}?�` : ''}`
+                content: `送出了禮物券「${gift.name}」${gift.message ? `，留言：「${gift.message}」` : ''}`
             });
             localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
@@ -8292,26 +8292,26 @@ window.addEventListener('message', (event) => {
 
     if (data.type === 'GIFT_SEND_TO_FAN') {
         const giftId = data.giftId;
-        const senderName = data.senderName || '?�人';
+        const senderName = data.senderName || '藝人';
         const anonymous = data.anonymous;
         const message = data.message || '';
 
         const giftCatalog = {
-            'coffee_basic': { name: '美�??�啡??, icon: '??, bg: 'linear-gradient(135deg, #8B4513 0%, #D2691E 100%)' },
-            'bubble_tea': { name: '?��?奶茶??, icon: '??', bg: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)' },
-            'dessert': { name: '?��???, icon: '?��', bg: 'linear-gradient(135deg, #F48FB1 0%, #EC407A 100%)' },
-            'birthday': { name: '?�日禮物??, icon: '??', bg: 'linear-gradient(135deg, #F06292 0%, #E91E63 100%)' },
-            'love': { name: '?��?禮物??, icon: '??', bg: 'linear-gradient(135deg, #EF5350 0%, #C62828 100%)' }
+            'coffee_basic': { name: '美式咖啡券', icon: '☕', bg: 'linear-gradient(135deg, #8B4513 0%, #D2691E 100%)' },
+            'bubble_tea': { name: '珍珠奶茶券', icon: '🧋', bg: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)' },
+            'dessert': { name: '甜點券', icon: '🍰', bg: 'linear-gradient(135deg, #F48FB1 0%, #EC407A 100%)' },
+            'birthday': { name: '生日禮物券', icon: '🎂', bg: 'linear-gradient(135deg, #F06292 0%, #E91E63 100%)' },
+            'love': { name: '愛心禮物券', icon: '💝', bg: 'linear-gradient(135deg, #EF5350 0%, #C62828 100%)' }
         };
 
-        const gift = giftCatalog[giftId] || { name: '神�?禮物', icon: '??', bg: 'linear-gradient(135deg, #666 0%, #999 100%)' };
+        const gift = giftCatalog[giftId] || { name: '神秘禮物', icon: '🎁', bg: 'linear-gradient(135deg, #666 0%, #999 100%)' };
 
         const giftBubbleHtml = `
             <div class="gift-message-bubble received" style="background: ${gift.bg}; padding: 16px; border-radius: 16px; display: inline-block; min-width: 150px; text-align: center;">
                 <div style="font-size: 48px; margin-bottom: 8px;">${gift.icon}</div>
                 <div style="font-weight: 600; color: #fff; font-size: 14px;">${gift.name}</div>
                 ${message ? `<div style="font-size: 12px; color: rgba(255,255,255,0.9); margin-top: 6px; font-style: italic;">"${message}"</div>` : ''}
-                <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 8px;">來自 ${anonymous ? '神�?�? : senderName}</div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 8px;">來自 ${anonymous ? '神秘人' : senderName}</div>
             </div>
         `;
         appendMsg('other', giftBubbleHtml);
@@ -8319,7 +8319,7 @@ window.addEventListener('message', (event) => {
         const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         history.push({ 
             role: 'assistant', 
-            content: `?�給你�?{gift.name}??{message ? `：�?{message}?�` : ''}`
+            content: `送給你「${gift.name}」${message ? `：「${message}」` : ''}`
         });
         localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
@@ -8384,7 +8384,7 @@ function openMemoryTablePanel() {
     }
     
     if (preview) {
-        preview.innerHTML = '<div class="memory-table-empty">點�??��??��??�表?�」�?�?/div>';
+        preview.innerHTML = '<div class="memory-table-empty">點擊「生成記憶表格」開始</div>';
     }
     
     if (addBtn) addBtn.disabled = true;
@@ -8409,7 +8409,7 @@ function generateMemoryTable() {
     
     if (history.length === 0) {
         if (preview) {
-            preview.innerHTML = '<div class="memory-table-empty">?��?沒�?對話記�?</div>';
+            preview.innerHTML = '<div class="memory-table-empty">目前沒有對話記錄</div>';
         }
         return;
     }
@@ -8437,14 +8437,14 @@ function generateMemoryTable() {
             userSummary: userContent.substring(0, 50) + (userContent.length > 50 ? '...' : ''),
             aiSummary: aiContent.substring(0, 80) + (aiContent.length > 80 ? '...' : ''),
             keywords: keywords,
-            topic: currentTopic || '?�常對話'
+            topic: currentTopic || '日常對話'
         });
     }
     
     currentMemoryTableData = {
         id: `memory_${Date.now()}`,
         createdAt: new Date().toISOString(),
-        charName: charConfig?.name || getActiveConfig().name || 'AI ?��?',
+        charName: charConfig?.name || getActiveConfig().name || 'AI 助理',
         userName: userConfig?.name || localStorage.getItem('sx_user_name') || 'User',
         entries: memoryEntries,
         rounds: rounds
@@ -8456,9 +8456,9 @@ function generateMemoryTable() {
 }
 
 function extractKeywords(text) {
-    const stopWords = ['??, '??, '�?, '??, '�?, '�?, '�?, '�?, '?��?, '你�?, '他�?, '??, '??, '??, '??, '�?, '�?, '�?, '??, '??, '�?, '?�以', '什�?, '?�麼', '?��?�?, '??, '??, '??, '??, '??, '??, '�?, '�?, '�?, '??, '??, '�?, '如�?', '?�為', '?��?, '?��?', '?��?, '?��?', '?�是', '不�?'];
+    const stopWords = ['的', '是', '了', '我', '你', '他', '她', '它', '我們', '你們', '他們', '這', '那', '有', '在', '不', '就', '也', '會', '能', '要', '可以', '什麼', '怎麼', '為什麼', '嗎', '呢', '吧', '啊', '嗯', '哦', '好', '對', '很', '都', '還', '但', '如果', '因為', '所以', '然後', '或者', '而且', '可是', '不過'];
     
-    const words = text.split(/[\s,，。�?�??.;；�?:""''?�」【】\[\]()（�?]+/);
+    const words = text.split(/[\s,，。！？!?.;；：:""''「」【】\[\]()（）]+/);
     const filtered = words.filter(w => w.length >= 2 && !stopWords.includes(w));
     
     const uniqueWords = [...new Set(filtered)];
@@ -8475,9 +8475,9 @@ function renderMemoryTablePreview(data) {
                 <thead>
                     <tr>
                         <th>輪次</th>
-                        <th>${sanitizeText(data.userName)} �?/th>
-                        <th>${sanitizeText(data.charName)} ?��?</th>
-                        <th>?�鍵�?/th>
+                        <th>${sanitizeText(data.userName)} 說</th>
+                        <th>${sanitizeText(data.charName)} 回應</th>
+                        <th>關鍵字</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -8510,7 +8510,7 @@ function addMemoryToLongTerm() {
     const addBtn = document.getElementById('memory-add-btn');
     if (addBtn) addBtn.disabled = true;
     
-    alert('已�??�長?��??��?');
+    alert('已加入長期記憶！');
 }
 
 function renderSavedMemoryTables() {
@@ -8520,7 +8520,7 @@ function renderSavedMemoryTables() {
     const tables = getMemoryTables();
     
     if (tables.length === 0) {
-        container.innerHTML = '<div class="memory-saved-empty">尚未?��?任�?記憶表格</div>';
+        container.innerHTML = '<div class="memory-saved-empty">尚未儲存任何記憶表格</div>';
         return;
     }
     
@@ -8531,14 +8531,14 @@ function renderSavedMemoryTables() {
         return `
             <div class="memory-saved-item" data-index="${index}">
                 <div class="memory-saved-item-info">
-                    <div class="memory-saved-item-name">${sanitizeText(table.charName)} - ${table.rounds} 輪�?�?/div>
+                    <div class="memory-saved-item-name">${sanitizeText(table.charName)} - ${table.rounds} 輪對話</div>
                     <div class="memory-saved-item-date">${date}</div>
                 </div>
                 <div class="memory-saved-item-actions">
-                    <button onclick="viewMemoryTable(${index})" title="?��?"><i class="fas fa-eye"></i></button>
-                    <button onclick="exportMemoryTable(${index}, 'html')" title="?�出 HTML"><i class="fas fa-code"></i></button>
-                    <button onclick="exportMemoryTable(${index}, 'txt')" title="?�出 TXT"><i class="fas fa-file-alt"></i></button>
-                    <button class="delete-btn" onclick="deleteMemoryTable(${index})" title="?�除"><i class="fas fa-trash"></i></button>
+                    <button onclick="viewMemoryTable(${index})" title="查看"><i class="fas fa-eye"></i></button>
+                    <button onclick="exportMemoryTable(${index}, 'html')" title="匯出 HTML"><i class="fas fa-code"></i></button>
+                    <button onclick="exportMemoryTable(${index}, 'txt')" title="匯出 TXT"><i class="fas fa-file-alt"></i></button>
+                    <button class="delete-btn" onclick="deleteMemoryTable(${index})" title="刪除"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
         `;
@@ -8555,7 +8555,7 @@ window.viewMemoryTable = function(index) {
 };
 
 window.deleteMemoryTable = function(index) {
-    if (!confirm('確�?要刪?�此記憶表格?��?')) return;
+    if (!confirm('確定要刪除此記憶表格嗎？')) return;
     
     const tables = getMemoryTables();
     tables.splice(index, 1);
@@ -8591,18 +8591,18 @@ function exportMemoryTableToFormat(table, format) {
     <div class="container">
         <h1>記憶表格</h1>
         <div class="meta">
-            <p><strong>角色�?/strong>${sanitizeText(table.charName)}</p>
-            <p><strong>?�戶�?/strong>${sanitizeText(table.userName)}</p>
-            <p><strong>對話輪數�?/strong>${table.rounds} �?/p>
-            <p><strong>?��??��?�?/strong>${date}</p>
+            <p><strong>角色：</strong>${sanitizeText(table.charName)}</p>
+            <p><strong>用戶：</strong>${sanitizeText(table.userName)}</p>
+            <p><strong>對話輪數：</strong>${table.rounds} 輪</p>
+            <p><strong>生成時間：</strong>${date}</p>
         </div>
         <table>
             <thead>
                 <tr>
                     <th>輪次</th>
-                    <th>${sanitizeText(table.userName)} �?/th>
-                    <th>${sanitizeText(table.charName)} ?��?</th>
-                    <th>?�鍵�?/th>
+                    <th>${sanitizeText(table.userName)} 說</th>
+                    <th>${sanitizeText(table.charName)} 回應</th>
+                    <th>關鍵字</th>
                 </tr>
             </thead>
             <tbody>
@@ -8621,7 +8621,7 @@ function exportMemoryTableToFormat(table, format) {
         html += `            </tbody>
         </table>
         <div class="footer">
-            <p>??SxiPhone ?�天?�用?��?</p>
+            <p>由 SxiPhone 聊天應用生成</p>
         </div>
     </div>
 </body>
@@ -8632,26 +8632,26 @@ function exportMemoryTableToFormat(table, format) {
         let txt = `記憶表格
 ========================================
 
-角色�?{table.charName}
-?�戶�?{table.userName}
-對話輪數�?{table.rounds} �?
-?��??��?�?{date}
+角色：${table.charName}
+用戶：${table.userName}
+對話輪數：${table.rounds} 輪
+生成時間：${date}
 
 ----------------------------------------
 
 `;
         
         table.entries.forEach(entry => {
-            txt += `?�第 ${entry.round} 輪�?
-${table.userName}�?{entry.userSummary}
-${table.charName}�?{entry.aiSummary}
-?�鍵字�?${entry.keywords}
+            txt += `【第 ${entry.round} 輪】
+${table.userName}：${entry.userSummary}
+${table.charName}：${entry.aiSummary}
+關鍵字：${entry.keywords}
 
 `;
         });
         
         txt += `----------------------------------------
-??SxiPhone ?�天?�用?��?
+由 SxiPhone 聊天應用生成
 `;
         return txt;
     }
@@ -8711,7 +8711,7 @@ function saveToSettingsFolder(table, format, filename) {
 
 function exportCurrentMemoryTable(format) {
     if (!currentMemoryTableData) {
-        alert('請�??��?記憶表格');
+        alert('請先生成記憶表格');
         return;
     }
     
@@ -8810,7 +8810,7 @@ appendHistoryAndSession = function(role, content) {
                 userName: userConfig?.name || localStorage.getItem('sx_user_name') || 'User'
             }
         }).catch(e => {
-            console.warn('[Chat] 記憶?��?失�?:', e);
+            console.warn('[Chat] 記憶儲存失敗:', e);
         });
     }
 };
@@ -8818,7 +8818,7 @@ appendHistoryAndSession = function(role, content) {
 const initAppMemoryHelper = () => {
     if (window.AppMemoryHelper) {
         window.AppMemoryHelper.init('chat');
-        console.log('[Chat] AppMemoryHelper 已�?始�?');
+        console.log('[Chat] AppMemoryHelper 已初始化');
     }
 };
 
@@ -8832,7 +8832,7 @@ const checkAndPerformAwakening = async () => {
             const result = await window.AppMemoryHelper.conversationStart();
             
             if (result && result.needsAwakening) {
-                console.log('[Chat] 每日?��?完�?:', {
+                console.log('[Chat] 每日喚醒完成:', {
                     surfaced: result.awakening?.surfaced?.length || 0,
                     collects: result.awakening?.collects?.length || 0
                 });
@@ -8842,7 +8842,7 @@ const checkAndPerformAwakening = async () => {
             
             return result?.context || null;
         } catch (e) {
-            console.warn('[Chat] ?��?檢查失�?:', e);
+            console.warn('[Chat] 喚醒檢查失敗:', e);
             return null;
         }
     }
@@ -8860,7 +8860,7 @@ const getAwakeningContextForPrompt = async () => {
             const result = await window.AppMemoryHelper.conversationStart();
             return result?.context || null;
         } catch (e) {
-            console.warn('[Chat] ?��??��?上�??�失??', e);
+            console.warn('[Chat] 獲取喚醒上下文失敗:', e);
             return null;
         }
     }
@@ -8871,10 +8871,10 @@ const getAwakeningContextForPrompt = async () => {
 const formatAwakeningForSystemPrompt = (context) => {
     if (!context) return '';
     
-    let prompt = '\n\n?��??��??��??�】\n';
+    let prompt = '\n\n【每日喚醒記憶】\n';
     
     if (context.collects && context.collects.length > 0) {
-        prompt += '?�日?��??��??��?\n';
+        prompt += '昨日留下的感受：\n';
         for (const c of context.collects.slice(0, 5)) {
             prompt += `- ${c.feel}\n`;
         }
@@ -8882,7 +8882,7 @@ const formatAwakeningForSystemPrompt = (context) => {
     }
     
     if (context.surfaced && context.surfaced.length > 0) {
-        prompt += '記�??��?段�?\n';
+        prompt += '記得的片段：\n';
         for (const m of context.surfaced.slice(0, 5)) {
             prompt += `- ${m.content}\n`;
         }
@@ -8890,11 +8890,11 @@ const formatAwakeningForSystemPrompt = (context) => {
     }
     
     if (context.emotionalTone) {
-        prompt += `?��??��??�?��?${context.emotionalTone.label}\n`;
+        prompt += `目前情緒狀態：${context.emotionalTone.label}\n`;
     }
     
     if (context.greeting) {
-        prompt += `\n?�場?�建議�?${context.greeting}\n`;
+        prompt += `\n開場白建議：${context.greeting}\n`;
     }
     
     return prompt;
@@ -8922,28 +8922,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (radio.checked) {
                 const newMode = radio.value;
                 localStorage.setItem('sx_generation_mode', newMode);
-                console.log('[Chat] ?��?模�?已�??�為:', newMode);
+                console.log('[Chat] 生成模式已切換為:', newMode);
                 
-                // 顯示模�??��??�示
+                // 顯示模式切換提示
                 const modeNames = {
-                    'dialogue': '純�?話模�?,
-                    'narrative': '?��?模�?',
-                    'multi': '多�?消息模�?',
-                    'multi-text': '純�?字�?條�???,
-                    'full': '完整模�?'
+                    'dialogue': '純對話模式',
+                    'narrative': '敘事模式',
+                    'multi': '多條消息模式',
+                    'multi-text': '純文字多條消息',
+                    'full': '完整模式'
                 };
                 
-                // ?��?天�??�顯示系統�?�?
+                // 在聊天區域顯示系統提示
                 const chatFlow = document.getElementById('chat-flow');
                 if (chatFlow) {
                     const notice = document.createElement('div');
                     notice.className = 'system-notice mode-switch-notice';
-                    notice.innerHTML = `<i class="fas fa-info-circle"></i> ?��?模�?已�??�為??strong>${modeNames[newMode] || newMode}</strong>?��?下次 AI ?��?將使?�新模�??�`;
+                    notice.innerHTML = `<i class="fas fa-info-circle"></i> 生成模式已切換為「<strong>${modeNames[newMode] || newMode}</strong>」，下次 AI 回覆將使用新模式。`;
                     notice.style.cssText = 'background: #e3f2fd; color: #1976d2; padding: 8px 12px; border-radius: 8px; margin: 8px 0; font-size: 13px; text-align: center;';
                     chatFlow.appendChild(notice);
                     chatFlow.scrollTop = chatFlow.scrollHeight;
                     
-                    // 5秒�?移除?�示
+                    // 5秒後移除提示
                     setTimeout(() => {
                         notice.style.opacity = '0';
                         notice.style.transition = 'opacity 0.3s';
@@ -8956,7 +8956,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('sxiphone-data-restored', (event) => {
-    console.log('[Chat] ?�到資�??��??�知，�??��??�設�?..');
+    console.log('[Chat] 收到資料還原通知，重新載入設定...');
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
@@ -8968,8 +8968,8 @@ window.addEventListener('sxiphone-data-restored', (event) => {
     const charNameInput = document.getElementById('set-name');
     
     let displayName = localStorage.getItem('sx_char_name');
-    if (!displayName || displayName === '?�設?�戶') {
-        displayName = charConfig.name || "AI ?��?";
+    if (!displayName || displayName === '預設用戶') {
+        displayName = charConfig.name || "AI 助理";
     }
     
     if (nameEl) nameEl.innerText = displayName;
@@ -8982,13 +8982,13 @@ window.addEventListener('sxiphone-data-restored', (event) => {
     renderChatListFromStorage();
 });
 
-// 主�??�用?�數
+// 主題應用函數
 let isApplyingTheme = false;
 let pendingTheme = null;
 
 function applyChatTheme(theme) {
     if (!theme || !theme.config) {
-        console.warn('[Chat] ?��??�主題�???);
+        console.warn('[Chat] 無效的主題資料');
         return;
     }
     
@@ -9064,7 +9064,7 @@ function applyChatTheme(theme) {
         
         localStorage.setItem('sx_chat_applied_theme', JSON.stringify(theme));
         
-        console.log('[Chat] 主�?已�???', theme.name);
+        console.log('[Chat] 主題已應用:', theme.name);
         
         isApplyingTheme = false;
         
@@ -9076,13 +9076,13 @@ function applyChatTheme(theme) {
     });
 }
 
-// ?�用外�?設�?
+// 應用外觀設定
 function applyAppearanceConfig(config) {
     if (!config) return;
     
     const root = document.documentElement;
     
-    // ?�用?��?顏色
+    // 應用文字顏色
     if (config.textPrimary) {
         root.style.setProperty('--sx-text', config.textPrimary);
     }
@@ -9090,7 +9090,7 @@ function applyAppearanceConfig(config) {
         root.style.setProperty('--chat-font-size', config.fontSize + 'px');
     }
     
-    // ?�用?��?主�?設�?
+    // 應用自訂主題設定
     const styleId = 'appearance-override';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -9114,32 +9114,32 @@ function applyAppearanceConfig(config) {
     }
     
     styleEl.textContent = css;
-    console.log('[Chat] 外�?設�?已�???);
+    console.log('[Chat] 外觀設定已應用');
 }
 
-// ?�面載入?��??�已?��??�主�?
+// 頁面載入時應用已儲存的主題
 function loadSavedChatTheme() {
     try {
         const savedTheme = localStorage.getItem('sx_chat_applied_theme');
         if (savedTheme) {
             const theme = JSON.parse(savedTheme);
             applyChatTheme(theme);
-            console.log('[Chat] 已�??�儲存�?主�?:', theme.name);
+            console.log('[Chat] 已載入儲存的主題:', theme.name);
         }
     } catch (e) {
-        console.warn('[Chat] 載入?��??�主題失??', e);
+        console.warn('[Chat] 載入儲存的主題失敗:', e);
     }
 }
 
-// ??DOMContentLoaded ?��??�主�?
+// 在 DOMContentLoaded 時載入主題
 document.addEventListener('DOMContentLoaded', loadSavedChatTheme);
 
-// ?��??�天室設定�???
+// 儲存聊天室設定功能
 const CHAT_SETTINGS_KEY = 'sx_chat_room_settings';
 
 function saveChatRoomSettings() {
     const activeId = getActiveChatId();
-    const charName = localStorage.getItem('sx_char_name') || 'AI ?��?';
+    const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
     const charAvatar = localStorage.getItem('sx_char_avatar') || '';
     const charPersonality = localStorage.getItem('sx_char_personality') || '';
     const charBackground = localStorage.getItem('sx_char_background') || '';
@@ -9167,7 +9167,7 @@ function saveChatRoomSettings() {
     
     localStorage.setItem(CHAT_SETTINGS_KEY, JSON.stringify(settings));
     
-    // ?��??�新?��??�天室�? session
+    // 同時更新當前聊天室的 session
     if (activeId) {
         const sessions = loadChatSessions();
         const session = sessions.find(s => s.id === activeId);
@@ -9182,15 +9182,15 @@ function saveChatRoomSettings() {
         }
     }
     
-    // ?�步?�雲�?
+    // 同步到雲端
     window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     
-    console.log('[Chat] ?�天室設定已?��?:', settings);
+    console.log('[Chat] 聊天室設定已儲存:', settings);
     
-    // 顯示?��??�示
+    // 顯示成功提示
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#34C759;color:#fff;padding:12px 24px;border-radius:20px;font-size:14px;z-index:10000;';
-    toast.textContent = '?�天室設定已?��?';
+    toast.textContent = '聊天室設定已儲存';
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2000);
 }
@@ -9203,7 +9203,7 @@ function loadChatRoomSettings() {
         const settings = JSON.parse(saved);
         return settings;
     } catch (e) {
-        console.warn('[Chat] 載入?�天室設定失??', e);
+        console.warn('[Chat] 載入聊天室設定失敗:', e);
         return null;
     }
 }
@@ -9211,7 +9211,7 @@ function loadChatRoomSettings() {
 function applyChatRoomSettings(settings) {
     if (!settings) return;
     
-    // ?�用角色設�?
+    // 應用角色設定
     if (settings.char) {
         if (settings.char.name) {
             localStorage.setItem('sx_char_name', settings.char.name);
@@ -9241,7 +9241,7 @@ function applyChatRoomSettings(settings) {
         }
     }
     
-    // ?�用?�戶設�?
+    // 應用用戶設定
     if (settings.user) {
         if (settings.user.name) {
             localStorage.setItem('sx_user_name', settings.user.name);
@@ -9265,21 +9265,21 @@ function applyChatRoomSettings(settings) {
         }
     }
     
-    // ?�新?�置
+    // 更新配置
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
-    console.log('[Chat] 已�??�儲存�??�天室設�?);
+    console.log('[Chat] 已應用儲存的聊天室設定');
 }
 
-// ?��??��?載入?��??�設�?
+// 初始化時載入儲存的設定
 document.addEventListener('DOMContentLoaded', () => {
     const savedSettings = loadChatRoomSettings();
     if (savedSettings) {
         applyChatRoomSettings(savedSettings);
     }
     
-    // 綁�??��??��?
+    // 綁定儲存按鈕
     const saveBtn = document.getElementById('save-chat-settings');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveChatRoomSettings);
@@ -9287,16 +9287,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleArcadeInvite(payload) {
-    const charName = payload.charName || 'AI ?��?';
+    const charName = payload.charName || 'AI 助理';
     const charAvatar = payload.charAvatar || '';
-    const charPersonality = payload.charPersonality || '?��??�助??;
+    const charPersonality = payload.charPersonality || '友善的助手';
     const charBackground = payload.charBackground || '';
     const userName = localStorage.getItem('sx_user_name') || 'User';
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     
     const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     
-    let inviteText = '?�請�?一起去街�?廳玩?�戲�?;
+    let inviteText = '邀請你一起去街機廳玩遊戲！';
     
     if (apis[0] && apis[0].url) {
         const session = getActiveSession();
@@ -9322,38 +9322,38 @@ async function handleArcadeInvite(payload) {
             '- Name: ' + userName,
             '',
             '# WORLD_INFO',
-            worldInfoStr || '??,
+            worldInfoStr || '無',
             '',
             '# RECENT_CHAT',
-            recentHistory || '?��?近�?�?,
+            recentHistory || '無最近對話',
             '',
             '# TASK',
-            '- 你是 ' + charName + '，�??��?�?' + userName + ' 一起去街�?廳玩?�戲',
-            '- 請�??��??�自?��??�請�? (1-2 ?�話)',
-            '- ?��?你�??�格?��??��?表�?',
-            '- 使用 ' + lang + ' 溝�?,
-            '- 保�?角色?�格，�?要�??��???AI',
-            '- 不�?使用引�??��??��?',
-            '- ?�輸?��?請�?，�?要其他說??
+            '- 你是 ' + charName + '，你想邀請 ' + userName + ' 一起去街機廳玩遊戲',
+            '- 請生成一句自然的邀請語 (1-2 句話)',
+            '- 根據你的性格和背景來表達',
+            '- 使用 ' + lang + ' 溝通',
+            '- 保持角色性格，不要提及你是 AI',
+            '- 不要使用引號包住回應',
+            '- 只輸出邀請語，不要其他說明'
         ].join('\n');
         
         try {
             let response = await callAIAPI([
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: '(系統：�??��??�請�?)' }
+                { role: 'user', content: '(系統：請生成邀請語)' }
             ]);
             
             response = response.replace(/<tool_call>[\s\S]*?<\/think>/gi, '');
             response = response.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
             response = response.replace(/```[\s\S]*?```/gi, '');
-            response = response.replace(/^["?�『]|["?�』]$/g, '');
+            response = response.replace(/^["「『]|["」』]$/g, '');
             response = response.trim();
             
             if (response && response.length > 0) {
                 inviteText = response;
             }
         } catch (e) {
-            console.warn('[Chat] ?��??�請�?失�?:', e);
+            console.warn('[Chat] 生成邀請語失敗:', e);
         }
     }
     
@@ -9362,7 +9362,7 @@ async function handleArcadeInvite(payload) {
     const cardHtml = `
         <div class="arcade-invite-card" id="${inviteId}">
             <div class="arcade-invite-card-header">
-                <i class="fas fa-gamepad"></i> 街�?廳�?�?
+                <i class="fas fa-gamepad"></i> 街機廳邀請
             </div>
             <div class="arcade-invite-card-char">
                 ${charAvatar ? `<img src="${charAvatar}" alt="${charName}">` : `<i class="fas fa-user"></i>`}
@@ -9373,10 +9373,10 @@ async function handleArcadeInvite(payload) {
             </div>
             <div class="arcade-invite-card-actions">
                 <button class="arcade-invite-accept" onclick="acceptArcadeInvite('${inviteId}', '${charName}', '${charAvatar.replace(/'/g, "\\'")}', '${charPersonality.replace(/'/g, "\\'")}', '${charBackground.replace(/'/g, "\\'")}')">
-                    <i class="fas fa-check"></i> ?��?
+                    <i class="fas fa-check"></i> 同意
                 </button>
                 <button class="arcade-invite-reject" onclick="rejectArcadeInvite('${inviteId}', '${charName}')">
-                    <i class="fas fa-times"></i> 婉�?
+                    <i class="fas fa-times"></i> 婉拒
                 </button>
             </div>
         </div>
@@ -9388,14 +9388,14 @@ async function handleArcadeInvite(payload) {
         appendMsg('other', cardHtml);
     }
     
-    console.log('[Chat] 街�?廳�?請卡?�已顯示:', charName);
+    console.log('[Chat] 街機廳邀請卡片已顯示:', charName);
 }
 
 async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonality, charBackground) {
     const card = document.getElementById(inviteId);
     const userName = localStorage.getItem('sx_user_name') || 'User';
     
-    let responseText = '太好了�?一起去?�吧�?;
+    let responseText = '太好了！一起去玩吧！';
     
     const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (apis[0] && apis[0].url) {
@@ -9404,25 +9404,25 @@ async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonalit
         const systemPrompt = [
             '# ROLE_SETTING',
             '- Name: ' + charName,
-            '- Persona: ' + (charPersonality || '?��??�助??),
-            '- Background: ' + (charBackground || '??),
+            '- Persona: ' + (charPersonality || '友善的助手'),
+            '- Background: ' + (charBackground || '無'),
             '',
             '# CONTEXT',
-            '- ' + userName + ' ?��??��?了�??��?機廳?��?�?,
+            '- ' + userName + ' 剛剛接受了你去街機廳的邀請',
             '',
             '# TASK',
-            '- 你是 ' + charName + '，�??��?你�??�格表�??��??��?�?,
-            '- ?��?要簡??(1 ?�話)',
-            '- 使用 ' + lang + ' 溝�?,
-            '- 保�?角色?�格',
-            '- 不�?使用引�?',
-            '- ?�輸?��??�內�?
+            '- 你是 ' + charName + '，請根據你的性格表達開心或期待',
+            '- 回應要簡短 (1 句話)',
+            '- 使用 ' + lang + ' 溝通',
+            '- 保持角色性格',
+            '- 不要使用引號',
+            '- 只輸出回應內容'
         ].join('\n');
         
         try {
             let response = await callAIAPI([
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: '(系統：�??�接?��??��?' }
+                { role: 'user', content: '(系統：對方接受了邀請)' }
             ]);
             
             response = response.replace(/ Leigh[\s\S]*?<\/think>/gi, '');
@@ -9433,7 +9433,7 @@ async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonalit
                 responseText = response;
             }
         } catch (e) {
-            console.warn('[Chat] ?��??��??��?失�?:', e);
+            console.warn('[Chat] 生成接受回應失敗:', e);
         }
     }
     
@@ -9464,14 +9464,14 @@ async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonalit
         }, '*');
     }, 1500);
     
-    console.log('[Chat] 已接?��?機廳?��?', charName);
+    console.log('[Chat] 已接受街機廳邀請:', charName);
 }
 
 async function rejectArcadeInvite(inviteId, charName) {
     const card = document.getElementById(inviteId);
     const userName = localStorage.getItem('sx_user_name') || 'User';
     
-    let responseText = '好吧...下次?�說';
+    let responseText = '好吧...下次再說';
     
     const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     const charPersonality = localStorage.getItem('sx_char_personality') || '';
@@ -9483,25 +9483,25 @@ async function rejectArcadeInvite(inviteId, charName) {
         const systemPrompt = [
             '# ROLE_SETTING',
             '- Name: ' + charName,
-            '- Persona: ' + (charPersonality || '?��??�助??),
-            '- Background: ' + (charBackground || '??),
+            '- Persona: ' + (charPersonality || '友善的助手'),
+            '- Background: ' + (charBackground || '無'),
             '',
             '# CONTEXT',
-            '- ' + userName + ' ?��?婉�?了�??��?機廳?��?�?,
+            '- ' + userName + ' 剛剛婉拒了你去街機廳的邀請',
             '',
             '# TASK',
-            '- 你是 ' + charName + '，�??��?你�??�格表�??��?',
-            '- ?��?要簡??(1 ?�話)',
-            '- 使用 ' + lang + ' 溝�?,
-            '- 保�?角色?�格',
-            '- 不�?使用引�?',
-            '- ?�輸?��??�內�?
+            '- 你是 ' + charName + '，請根據你的性格表達反應',
+            '- 回應要簡短 (1 句話)',
+            '- 使用 ' + lang + ' 溝通',
+            '- 保持角色性格',
+            '- 不要使用引號',
+            '- 只輸出回應內容'
         ].join('\n');
         
         try {
             let response = await callAIAPI([
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: '(系統：�??��??��??��?' }
+                { role: 'user', content: '(系統：對方婉拒了邀請)' }
             ]);
             
             response = response.replace(/ Leigh[\s\S]*?<\/think>/gi, '');
@@ -9512,7 +9512,7 @@ async function rejectArcadeInvite(inviteId, charName) {
                 responseText = response;
             }
         } catch (e) {
-            console.warn('[Chat] ?��?婉�??��?失�?:', e);
+            console.warn('[Chat] 生成婉拒回應失敗:', e);
         }
     }
     
@@ -9531,11 +9531,11 @@ async function rejectArcadeInvite(inviteId, charName) {
         payload: { charName: charName }
     }, '*');
     
-    console.log('[Chat] 已�??��?機廳?��?', charName);
+    console.log('[Chat] 已婉拒街機廳邀請:', charName);
 }
 
 async function handleArcadeAvatarDialogue(payload) {
-    const charName = payload.charName || 'AI ?��?';
+    const charName = payload.charName || 'AI 助理';
     const charAvatar = payload.charAvatar || '';
     const charPersonality = payload.charPersonality || '';
     const userMessage = payload.message || '';
@@ -9543,25 +9543,25 @@ async function handleArcadeAvatarDialogue(payload) {
     
     const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (!apis[0] || !apis[0].url) {
-        console.log('[Chat] ??API ?�置，跳??AI ?��?');
+        console.log('[Chat] 無 API 配置，跳過 AI 回應');
         return;
     }
     
     const systemPrompt = [
         '# ROLE',
         '- 你是 ' + charName,
-        '- ?�格: ' + (charPersonality || '?��??�助??),
+        '- 性格: ' + (charPersonality || '友善的助手'),
         '',
         '# CONTEXT',
-        '- 你正?��? ' + userName + ' 一起在街�?廳玩?�戲',
-        '- ' + userName + ' ?��?點�?了�??�大?�貼',
-        '- 你�??�說: "' + userMessage + '"',
+        '- 你正在和 ' + userName + ' 一起在街機廳玩遊戲',
+        '- ' + userName + ' 剛剛點擊了你的大頭貼',
+        '- 你之前說: "' + userMessage + '"',
         '',
         '# TASK',
-        '- ?��?一?�簡?��??��? (1-2 ?�話)',
-        '- 保�?角色?�格',
-        '- 不�?使用引�?',
-        '- ?�輸?��??�內�?
+        '- 生成一句簡短的回應 (1-2 句話)',
+        '- 保持角色性格',
+        '- 不要使用引號',
+        '- 只輸出回應內容'
     ].join('\n');
     
     try {
@@ -9585,13 +9585,13 @@ async function handleArcadeAvatarDialogue(payload) {
             }, '*');
         }
     } catch (e) {
-        console.warn('[Chat] ?��?街�?廳�?話�??�失??', e);
+        console.warn('[Chat] 生成街機廳對話回應失敗:', e);
     }
 }
 
 async function handleArcadeRequestDialogue(payload) {
     const requestId = payload.requestId;
-    const charName = payload.payload?.charName || 'AI ?��?';
+    const charName = payload.payload?.charName || 'AI 助理';
     const charAvatar = payload.payload?.charAvatar || '';
     const charPersonality = payload.payload?.charPersonality || '';
     const charBackground = payload.payload?.charBackground || '';
@@ -9602,7 +9602,7 @@ async function handleArcadeRequestDialogue(payload) {
     
     const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (!apis[0] || !apis[0].url) {
-        console.log('[Chat] ??API ?�置，跳??AI ?��?');
+        console.log('[Chat] 無 API 配置，跳過 AI 回應');
         window.parent.postMessage({
             type: 'ARCADE_DIALOGUE_RESPONSE',
             requestId: requestId,
@@ -9627,58 +9627,58 @@ async function handleArcadeRequestDialogue(payload) {
     let contextDesc = '';
     switch (context) {
         case 'click':
-            contextDesc = userName + ' ?��?點�?了�??�大?�貼，可?�是?��?你說�?;
+            contextDesc = userName + ' 剛剛點擊了你的大頭貼，可能是想跟你說話';
             break;
         case 'idle':
-            contextDesc = '你們在街�?廳裡，氣氛�?點�???;
+            contextDesc = '你們在街機廳裡，氣氛有點安靜';
             break;
         case 'score':
-            contextDesc = userName + ' ?��??�中得到�?' + (extraData.score || 0) + ' ??;
+            contextDesc = userName + ' 在遊戲中得到了 ' + (extraData.score || 0) + ' 分';
             break;
         case 'mistake':
-            contextDesc = userName + ' ?��??�中失誤�?;
+            contextDesc = userName + ' 在遊戲中失誤了';
             break;
         case 'gameStart':
-            contextDesc = '你們�?始玩 ' + (extraData.gameName || '?�戲');
+            contextDesc = '你們開始玩 ' + (extraData.gameName || '遊戲');
             break;
         case 'gameEnd':
-            contextDesc = '?�戲結�?了�?' + userName + ' ?��??�是 ' + (extraData.score || 0);
+            contextDesc = '遊戲結束了，' + userName + ' 的分數是 ' + (extraData.score || 0);
             break;
         default:
-            contextDesc = '你們正?��?機廳�?;
+            contextDesc = '你們正在街機廳裡';
     }
     
     const systemPrompt = [
         '# ROLE_SETTING',
         '- Name: ' + charName,
-        '- Persona: ' + (charPersonality || '?��??�助??),
-        '- Background: ' + (charBackground || '??),
+        '- Persona: ' + (charPersonality || '友善的助手'),
+        '- Background: ' + (charBackground || '無'),
         '',
         '# USER_INFO',
         '- Name: ' + userName,
         '',
         '# WORLD_INFO',
-        worldInfoStr || '??,
+        worldInfoStr || '無',
         '',
         '# RECENT_CHAT',
-        recentHistory || '?��?近�?�?,
+        recentHistory || '無最近對話',
         '',
         '# CURRENT_SITUATION',
-        '- 你正?��? ' + userName + ' 一起在街�?廳玩?�戲',
+        '- 你正在和 ' + userName + ' 一起在街機廳玩遊戲',
         '- ' + contextDesc,
         '',
         '# TASK',
-        '- 你是 ' + charName + '，�??��?你�??�格?��??�自?�地?��?',
-        '- ?��?要簡??(1-2 ?�話)，符?�當下�?�?,
-        '- 使用 ' + lang + ' 溝�?,
-        '- 保�?角色?�格，�?要�??��???AI',
-        '- 不�?使用引�??��??��?',
-        '- ?�輸?��??�內容�?不�??��?說�?'
+        '- 你是 ' + charName + '，請根據你的性格和背景自然地回應',
+        '- 回應要簡短 (1-2 句話)，符合當下情境',
+        '- 使用 ' + lang + ' 溝通',
+        '- 保持角色性格，不要提及你是 AI',
+        '- 不要使用引號包住回應',
+        '- 只輸出回應內容，不要其他說明'
     ].join('\n');
     
     const userPrompt = context === 'idle' ? 
-        '(系統：現?�氣氛�?點�??��?請自?�地說�?什�?' :
-        '(系統：�??��??��??�然?��?)';
+        '(系統：現在氣氛有點安靜，請自然地說點什麼)' :
+        '(系統：請根據情境自然回應)';
     
     try {
         let response = await callAIAPI([
@@ -9689,7 +9689,7 @@ async function handleArcadeRequestDialogue(payload) {
         response = response.replace(/<tool_call>[\s\S]*?<\/think>/gi, '');
         response = response.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
         response = response.replace(/```[\s\S]*?```/gi, '');
-        response = response.replace(/^["?�『]|["?�』]$/g, '');
+        response = response.replace(/^["「『]|["」』]$/g, '');
         response = response.trim();
         
         window.parent.postMessage({
@@ -9698,9 +9698,9 @@ async function handleArcadeRequestDialogue(payload) {
             response: response
         }, '*');
         
-        console.log('[Chat] 街�?廳�?話已?��?:', charName, '??, response.slice(0, 30));
+        console.log('[Chat] 街機廳對話已生成:', charName, '→', response.slice(0, 30));
     } catch (e) {
-        console.warn('[Chat] ?��?街�?廳�?話失??', e);
+        console.warn('[Chat] 生成街機廳對話失敗:', e);
         window.parent.postMessage({
             type: 'ARCADE_DIALOGUE_RESPONSE',
             requestId: requestId,
@@ -9710,9 +9710,9 @@ async function handleArcadeRequestDialogue(payload) {
 }
 
 async function handleArcadeInviteFromUser(payload) {
-    const charName = payload.charName || 'AI ?��?';
+    const charName = payload.charName || 'AI 助理';
     const charAvatar = payload.charAvatar || '';
-    const charPersonality = payload.charPersonality || '?��??�助??;
+    const charPersonality = payload.charPersonality || '友善的助手';
     const charBackground = payload.charBackground || '';
     const userName = localStorage.getItem('sx_user_name') || 'User';
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
@@ -9721,12 +9721,12 @@ async function handleArcadeInviteFromUser(payload) {
     
     const inviteId = 'arcade-user-invite-' + Date.now();
     
-    let thinkingText = '�?��?�慮...';
+    let thinkingText = '正在考慮...';
     
     const cardHtml = `
         <div class="arcade-invite-card" id="${inviteId}">
             <div class="arcade-invite-card-header">
-                <i class="fas fa-gamepad"></i> 街�?廳�?�?
+                <i class="fas fa-gamepad"></i> 街機廳邀請
             </div>
             <div class="arcade-invite-card-char">
                 ${charAvatar ? `<img src="${charAvatar}" alt="${charName}">` : `<i class="fas fa-user"></i>`}
@@ -9772,26 +9772,26 @@ async function handleArcadeInviteFromUser(payload) {
             '- Name: ' + userName,
             '',
             '# WORLD_INFO',
-            worldInfoStr || '??,
+            worldInfoStr || '無',
             '',
             '# RECENT_CHAT',
-            recentHistory || '?��?近�?�?,
+            recentHistory || '無最近對話',
             '',
             '# TASK',
-            '- ' + userName + ' ?�請�??��?機廳?��???,
-            '- 請根?��??�性格決�??�否?��?，並?��??��?',
-            '- ?��??��?: [ACCEPT] ??[REJECT] ?�頭，然後是?��??�容',
-            '- 例�?: [ACCEPT] 好�?，�?起去?�吧�?,
-            '- 例�?: [REJECT] ?��?，�??�在?��?�?..',
-            '- 使用 ' + lang + ' 溝�?,
-            '- 保�?角色?�格，�?要�??��???AI',
-            '- ?��?要簡??(1-2 ?�話)'
+            '- ' + userName + ' 邀請你去街機廳玩遊戲',
+            '- 請根據你的性格決定是否接受，並生成回應',
+            '- 回應格式: [ACCEPT] 或 [REJECT] 開頭，然後是回應內容',
+            '- 例如: [ACCEPT] 好啊，一起去玩吧！',
+            '- 例如: [REJECT] 抱歉，我現在有點累...',
+            '- 使用 ' + lang + ' 溝通',
+            '- 保持角色性格，不要提及你是 AI',
+            '- 回應要簡短 (1-2 句話)'
         ].join('\n');
         
         try {
             let response = await callAIAPI([
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: '(系統�? + userName + ' ?�請�??��?機廳?��??��?請決定是?�接?�並?��?)' }
+                { role: 'user', content: '(系統：' + userName + ' 邀請你去街機廳玩遊戲，請決定是否接受並回應)' }
             ]);
             
             response = response.replace(/<tool_call>[\s\S]*?<\/think>/gi, '');
@@ -9811,16 +9811,16 @@ async function handleArcadeInviteFromUser(payload) {
             }
             
             if (!responseText) {
-                responseText = isAccepted ? '好�?，�?起去?�吧�? : '?��?，�??�在?��?�?..';
+                responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
             }
         } catch (e) {
-            console.warn('[Chat] ?��??�請�??�失??', e);
+            console.warn('[Chat] 生成邀請回應失敗:', e);
             isAccepted = Math.random() < acceptChance;
-            responseText = isAccepted ? '好�?，�?起去?�吧�? : '?��?，�??�在?��?�?..';
+            responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
         }
     } else {
         isAccepted = Math.random() < acceptChance;
-        responseText = isAccepted ? '好�?，�?起去?�吧�? : '?��?，�??�在?��?�?..';
+        responseText = isAccepted ? '好啊，一起去玩吧！' : '抱歉，我現在有點事...';
     }
     
     const card = document.getElementById(inviteId);
@@ -9857,7 +9857,7 @@ async function handleArcadeInviteFromUser(payload) {
         }
     }
     
-    console.log('[Chat] 角色?��??��?', charName, isAccepted ? '?��?' : '婉�?');
+    console.log('[Chat] 角色回應邀請:', charName, isAccepted ? '接受' : '婉拒');
 }
 
 window.acceptArcadeInvite = acceptArcadeInvite;

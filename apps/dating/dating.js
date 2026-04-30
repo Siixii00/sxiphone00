@@ -1,6 +1,6 @@
 console.log('Loaded app: dating');
 
-// ==================== ?��?資�?結�? ====================
+// ==================== 核心資料結構 ====================
 const DatingApp = {
     currentScene: 'home',
     currentChar: null,
@@ -9,28 +9,31 @@ const DatingApp = {
     isMoving: false,
     dialogueActive: false,
     currentDialogue: null,
-    sceneCache: {}, // ?�景?��?快�?
+    sceneCache: {}, // 場景圖片快取
     canvas: null,
     ctx: null,
-    pendingSceneFromChat: null, // 從�?天�??��?請�??��??��??�景
-    // ?��?系統
+    pendingSceneFromChat: null, // 從聊天約會邀請來的待啟動場景
+    // 時間系統
     timeSystem: {
-        totalDays: 3, // ?�設3�?        currentDay: 1,
-        currentHour: 9, // ?��?9點�?�?        currentMinute: 0,
-        timeSpeed: 1, // ?��?流速�??��?/秒�?
+        totalDays: 3, // 預設3天
+        currentDay: 1,
+        currentHour: 9, // 早上9點開始
+        currentMinute: 0,
+        timeSpeed: 1, // 時間流速（分鐘/秒）
         isPaused: false
     },
-    // AI ?�制系統
+    // AI 控制系統
     aiController: {
         enabled: true,
         lastActionTime: 0,
-        actionInterval: 3000, // �?秒檢?��?次�???        currentAction: null,
+        actionInterval: 3000, // 每3秒檢查一次行動
+        currentAction: null,
         greetingShown: false,
         contextLoaded: false,
         worldbookData: null,
         chatHistory: null
     },
-    // 角色外�?系統
+    // 角色外觀系統
     charSprite: {
         body: 'slim',
         hair: 'short',
@@ -40,7 +43,7 @@ const DatingApp = {
         outfitcolor: '#ff6b9d',
         name: ''
     },
-    // ?�家外�?
+    // 玩家外觀
     playerSprite: {
         body: 'normal',
         hair: 'short',
@@ -49,16 +52,17 @@ const DatingApp = {
         outfit: 'casual',
         outfitcolor: '#38bdf8'
     },
-    // ?��?編輯?��???    pixelEditor: {
+    // 像素編輯器狀態
+    pixelEditor: {
         tool: 'draw',
         penColor: '#ff6b9d',
         pixels: Array.from({length: 16}, () => Array(16).fill(null))
     },
-    // 對話歷史（AI ?��??��?
+    // 對話歷史（AI 生成用）
     dialogueHistory: []
 };
 
-// ==================== ?��?角色渲�???====================
+// ==================== 像素角色渲染器 ====================
 function adjustColor(hex, amt) {
     let r = parseInt(hex.slice(1, 3), 16);
     let g = parseInt(hex.slice(3, 5), 16);
@@ -200,7 +204,7 @@ function getPlayerSpriteCanvas(size = 96) {
     return canvas;
 }
 
-// ==================== ?��?編輯??====================
+// ==================== 像素編輯器 ====================
 function initPixelEditor() {
     const canvas = document.getElementById('pixel-editor-canvas');
     if (!canvas) return;
@@ -334,7 +338,7 @@ function applyPixelToSprite() {
     }
 }
 
-// ==================== 角色建�??�選??====================
+// ==================== 角色建立器選項 ====================
 function selectSpriteOpt(group, value) {
     DatingApp.charSprite[group] = value;
     
@@ -362,7 +366,7 @@ function updateSpritePreview() {
     }
 }
 
-// ?��??�數
+// 全域函數
 window.setPixelTool = setPixelTool;
 window.setPixelColor = setPixelColor;
 window.clearPixelCanvas = clearPixelCanvas;
@@ -391,25 +395,26 @@ function switchSetupTab(tabName) {
     }
 }
 
-// �?settings 載入角色資�?
+// 從 settings 載入角色資料
 function loadCharacterFromSettings() {
     const chars = JSON.parse(localStorage.getItem('sx_characters') || '[]');
     if (chars.length > 0) {
-        return chars[0]; // 使用第�??��???    }
+        return chars[0]; // 使用第一個角色
+    }
     return {
         name: '',
         avatar: '',
-        personality: '溫�?體貼',
+        personality: '溫柔體貼',
         background: ''
     };
 }
 
-// ==================== ?�景定義 ====================
+// ==================== 場景定義 ====================
 const SCENES = {
     cafe: {
-        name: '?�啡�?,
+        name: '咖啡廳',
         icon: 'coffee',
-        background: null, // 將由generateSceneBackground?��?
+        background: null, // 將由generateSceneBackground生成
         objects: [
             { type: 'counter', x: 40, y: 90, width: 240, height: 70 },
             { type: 'plant', x: 320, y: 90, width: 45, height: 45 },
@@ -428,13 +433,13 @@ const SCENES = {
             { type: 'chair', x: 460, y: 440, width: 40, height: 40 }
         ],
         dialogues: [
-            { text: '?�裡?��??��?香呢...', mood: 'happy' },
-            { text: '謝�?你陪?��??�裡', mood: 'shy' },
-            { text: '?�們�?次�?要�?起�???', mood: 'hopeful' }
+            { text: '這裡的咖啡很香呢...', mood: 'happy' },
+            { text: '謝謝你陪我來這裡', mood: 'shy' },
+            { text: '我們下次還要一起來嗎?', mood: 'hopeful' }
         ]
     },
     park: {
-        name: '?��?',
+        name: '公園',
         icon: 'tree-deciduous',
         background: null,
         objects: [
@@ -451,13 +456,13 @@ const SCENES = {
             { type: 'path', x: 0, y: 460, width: 800, height: 50 }
         ],
         dialogues: [
-            { text: '天氣?�好，散步�??��?', mood: 'relaxed' },
-            { text: '?�那?��??��?得好漂亮', mood: 'excited' },
-            { text: '?��?你�?起散步�?�?, mood: 'happy' }
+            { text: '天氣真好，散步很舒服', mood: 'relaxed' },
+            { text: '看那邊的花開得好漂亮', mood: 'excited' },
+            { text: '能和你一起散步真好', mood: 'happy' }
         ]
     },
     cinema: {
-        name: '?�影??,
+        name: '電影院',
         icon: 'film',
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         objects: [
@@ -466,9 +471,9 @@ const SCENES = {
             { type: 'seats', x: 120, y: 340, width: 520, height: 70 }
         ],
         dialogues: [
-            { text: '?�部?�影好�?很�?�?, mood: 'curious' },
-            { text: '?��?點�?�?..', mood: 'nervous' },
-            { text: '謝�?你選了這部?�影', mood: 'grateful' }
+            { text: '這部電影好像很有趣', mood: 'curious' },
+            { text: '我有點緊張...', mood: 'nervous' },
+            { text: '謝謝你選了這部電影', mood: 'grateful' }
         ]
     },
     restaurant: {
@@ -488,13 +493,13 @@ const SCENES = {
             { type: 'candle', x: 310, y: 375, width: 18, height: 26 }
         ],
         dialogues: [
-            { text: '?�裡?�氣氛�?浪漫', mood: 'romantic' },
-            { text: '食物?�起來�?美味', mood: 'happy' },
-            { text: '?��?一起�?飯�??��?�?, mood: 'loving' }
+            { text: '這裡的氣氛真浪漫', mood: 'romantic' },
+            { text: '食物看起來很美味', mood: 'happy' },
+            { text: '和你一起吃飯最開心了', mood: 'loving' }
         ]
     },
     beach: {
-        name: '海�?',
+        name: '海邊',
         icon: 'waves',
         background: 'linear-gradient(135deg, #87CEEB 0%, #4682B4 100%)',
         objects: [
@@ -504,13 +509,13 @@ const SCENES = {
             { type: 'towel', x: 420, y: 360, width: 110, height: 60 }
         ],
         dialogues: [
-            { text: '海風?��?好�???, mood: 'relaxed' },
-            { text: '?�們去踩踩水吧', mood: 'playful' },
-            { text: '夕陽好�?...', mood: 'romantic' }
+            { text: '海風吹來好舒服', mood: 'relaxed' },
+            { text: '我們去踩踩水吧', mood: 'playful' },
+            { text: '夕陽好美...', mood: 'romantic' }
         ]
     },
     library: {
-        name: '?�書�?,
+        name: '圖書館',
         icon: 'book-open',
         background: 'linear-gradient(135deg, #8B7355 0%, #A0826D 100%)',
         objects: [
@@ -525,21 +530,21 @@ const SCENES = {
             { type: 'chair', x: 520, y: 390, width: 36, height: 36 }
         ],
         dialogues: [
-            { text: '?�裡好�??��?很適?��???, mood: 'peaceful' },
-            { text: '你�?歡�?什麼�??��???', mood: 'curious' },
-            { text: '?��?你�?起度?�這段?��??�好', mood: 'content' }
+            { text: '這裡好安靜，很適合看書', mood: 'peaceful' },
+            { text: '你喜歡看什麼類型的書?', mood: 'curious' },
+            { text: '能和你一起度過這段時光真好', mood: 'content' }
         ]
     }
 };
 
-// ==================== ?��???====================
+// ==================== 初始化 ====================
 function init() {
     showLoadingScreen();
     
-    // ??��來自?�天約�??�請�?訊息
+    // 監聽來自聊天約會邀請的訊息
     window.addEventListener('message', handleChatInvitationMessage);
     
-    // 模擬載入?��?
+    // 模擬載入過程
     setTimeout(() => {
         DatingApp.currentChar = loadCharacterFromSettings();
         setupEventListeners();
@@ -547,30 +552,33 @@ function init() {
         updateCharInfo();
         hideLoadingScreen();
         
-        // 檢查?�否從�?天�??��?請�???        checkChatInvitationStart();
+        // 檢查是否從聊天約會邀請啟動
+        checkChatInvitationStart();
     }, 2000);
 }
 
-// ?��?來自?�天?��??��?請�???function handleChatInvitationMessage(event) {
+// 處理來自聊天的約會邀請訊息
+function handleChatInvitationMessage(event) {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
     
-    // 檢查?�否?��??�天約�??�請�???    if (data.type === 'openApp' && data.appId === 'dating' && data.source === 'chat-invitation') {
-        console.log('?�到?�天約�??�請�??��?求�??�景�?, data.scene);
+    // 檢查是否是從聊天約會邀請啟動
+    if (data.type === 'openApp' && data.appId === 'dating' && data.source === 'chat-invitation') {
+        console.log('收到聊天約會邀請啟動請求，場景：', data.scene);
         
-        // ?��?要自?��??��??�景
+        // 儲存要自動啟動的場景
         DatingApp.pendingSceneFromChat = data.scene || 'cafe';
     }
 }
 
-// 檢查?�否?�要自?��??��??��?從�?天�??��?
+// 檢查是否需要自動啟動約會（從聊天來的）
 function checkChatInvitationStart() {
     const pendingScene = DatingApp.pendingSceneFromChat;
     if (!pendingScene) return;
     
-    console.log('?��??��?約�?，場?��?', pendingScene);
+    console.log('自動啟動約會，場景：', pendingScene);
     
-    // ?�試?�接?��?該場?�並?��?
+    // 嘗試直接選擇該場景並啟動
     const sceneMap = {
         'cafe': 0,
         'park': 1,
@@ -582,27 +590,28 @@ function checkChatInvitationStart() {
     
     const sceneIndex = sceneMap[pendingScene];
     if (sceneIndex !== undefined) {
-        // 延遲一點�? UI 完全載入
+        // 延遲一點讓 UI 完全載入
         setTimeout(() => {
-            // ?��??��??�景?��?
+            // 自動選擇場景卡片
             const sceneCards = document.querySelectorAll('.scene-card');
             if (sceneCards[sceneIndex]) {
-                // ?�接觸發?�景?��??��?事件
+                // 直接觸發場景選擇的擊事件
                 const card = sceneCards[sceneIndex];
                 card.click();
                 
-                // 延遲後自?�確認�??�設�?                setTimeout(() => {
+                // 延遲後自動確認約會設定
+                setTimeout(() => {
                     confirmDateSetup();
                 }, 500);
             }
         }, 300);
     }
     
-    // 清除待�??��??�景
+    // 清除待啟動的場景
     DatingApp.pendingSceneFromChat = null;
 }
 
-// 載入?�面
+// 載入畫面
 function showLoadingScreen() {
     const loading = document.getElementById('dating-loading');
     const loadingBar = document.getElementById('loading-bar');
@@ -612,11 +621,11 @@ function showLoadingScreen() {
     if (!loading) return;
     
     const tips = [
-        '小�?示�??��?角色?�E?�可以�???,
-        '小�?示�??��?不�??��?話選?��?影響好�?�?,
-        '小�?示�??�以使用?�景編輯?�創建自己�?約�??�景',
-        '小�?示�??�ESC?�以返�??�景?��?',
-        '小�?示�?�?��?��??�獲得更多好?�度'
+        '小提示：靠近角色按E鍵可以互動',
+        '小提示：選擇不同的對話選項會影響好感度',
+        '小提示：可以使用場景編輯器創建自己的約會場景',
+        '小提示：按ESC可以返回場景選擇',
+        '小提示：正面回應能獲得更多好感度'
     ];
     
     if (loadingTips) {
@@ -633,10 +642,10 @@ function showLoadingScreen() {
         
         if (loadingBar) loadingBar.style.width = progress + '%';
         if (loadingText) {
-            if (progress < 30) loadingText.textContent = '載入角色資�?...';
-            else if (progress < 60) loadingText.textContent = '準�??�景...';
-            else if (progress < 90) loadingText.textContent = '?��??�系�?..';
-            else loadingText.textContent = '準�?完�?�?;
+            if (progress < 30) loadingText.textContent = '載入角色資料...';
+            else if (progress < 60) loadingText.textContent = '準備場景...';
+            else if (progress < 90) loadingText.textContent = '初始化系統...';
+            else loadingText.textContent = '準備完成！';
         }
     }, 100);
 }
@@ -651,7 +660,7 @@ function hideLoadingScreen() {
     }
 }
 
-// 說�??�板?��?
+// 說明面板切換
 function toggleHelp() {
     const helpModal = document.getElementById('help-modal');
     if (helpModal) {
@@ -701,7 +710,7 @@ function handleTopBack() {
 
 window.handleTopBack = handleTopBack;
 
-// ==================== ?��?系統 ====================
+// ==================== 時間系統 ====================
 let timeInterval = null;
 
 function startTimeSystem() {
@@ -710,29 +719,29 @@ function startTimeSystem() {
     timeInterval = setInterval(() => {
         if (DatingApp.timeSystem.isPaused) return;
         
-        // 增�??��?
+        // 增加分鐘
         DatingApp.timeSystem.currentMinute += DatingApp.timeSystem.timeSpeed;
         
-        // ?��?小�??��?
+        // 處理小時進位
         if (DatingApp.timeSystem.currentMinute >= 60) {
             DatingApp.timeSystem.currentHour += Math.floor(DatingApp.timeSystem.currentMinute / 60);
             DatingApp.timeSystem.currentMinute = DatingApp.timeSystem.currentMinute % 60;
         }
         
-        // ?��?天數?��?
+        // 處理天數進位
         if (DatingApp.timeSystem.currentHour >= 24) {
             DatingApp.timeSystem.currentDay += Math.floor(DatingApp.timeSystem.currentHour / 24);
             DatingApp.timeSystem.currentHour = DatingApp.timeSystem.currentHour % 24;
         }
         
-        // 檢查?�否結�?
+        // 檢查是否結束
         if (DatingApp.timeSystem.currentDay > DatingApp.timeSystem.totalDays) {
             endDateByTime();
             return;
         }
         
         updateTimeDisplay();
-    }, 1000); // 每�??�新
+    }, 1000); // 每秒更新
 }
 
 function stopTimeSystem() {
@@ -750,22 +759,23 @@ function updateTimeDisplay() {
     const hourStr = currentHour.toString().padStart(2, '0');
     const minuteStr = Math.floor(currentMinute).toString().padStart(2, '0');
     
-    display.textContent = `�?{currentDay}�?${hourStr}:${minuteStr}`;
+    display.textContent = `第${currentDay}天 ${hourStr}:${minuteStr}`;
 }
 
 function endDateByTime() {
     stopTimeSystem();
-    alert(`約�??��?結�?！共度�?�?{DatingApp.timeSystem.totalDays}天�?好�??�。`);
+    alert(`約會時間結束！共度過了${DatingApp.timeSystem.totalDays}天美好時光。`);
     endDate();
 }
 
-// ?��?設�??��??�數
+// 時間設定相關函數
 function openTimeSettings() {
     const modal = document.getElementById('time-settings-modal');
     if (modal) {
         modal.classList.remove('hidden');
         
-        // ?�新輸入框�???        document.getElementById('current-day-input').value = DatingApp.timeSystem.currentDay;
+        // 更新輸入框的值
+        document.getElementById('current-day-input').value = DatingApp.timeSystem.currentDay;
         document.getElementById('current-hour-input').value = DatingApp.timeSystem.currentHour;
         document.getElementById('current-minute-input').value = Math.floor(DatingApp.timeSystem.currentMinute);
         
@@ -795,14 +805,15 @@ function setCustomDays() {
         DatingApp.timeSystem.totalDays = days;
         alert(`已設定為${days}天`);
     } else {
-        alert('請輸??-365之�??�天??);
+        alert('請輸入1-365之間的天數');
     }
 }
 
 function setTimeSpeed(speed, btn) {
     DatingApp.timeSystem.timeSpeed = speed;
     
-    // ?�新?��??�??    document.querySelectorAll('.speed-btn').forEach(b => {
+    // 更新按鈕狀態
+    document.querySelectorAll('.speed-btn').forEach(b => {
         b.classList.remove('active');
     });
     if (btn) btn.classList.add('active');
@@ -816,14 +827,15 @@ function setCustomDays() {
         DatingApp.timeSystem.totalDays = days;
         alert(`已設定為${days}天`);
     } else {
-        alert('請輸??-365之�??�天??);
+        alert('請輸入1-365之間的天數');
     }
 }
 
 function setTimeSpeed(speed) {
     DatingApp.timeSystem.timeSpeed = speed;
     
-    // ?�新?��??�??    document.querySelectorAll('.speed-btn').forEach(btn => {
+    // 更新按鈕狀態
+    document.querySelectorAll('.speed-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
@@ -841,9 +853,9 @@ function applyTimeChange() {
         DatingApp.timeSystem.currentHour = hour;
         DatingApp.timeSystem.currentMinute = minute;
         updateTimeDisplay();
-        alert('?��?已更??);
+        alert('時間已更新');
     } else {
-        alert('請輸?��??��??��?');
+        alert('請輸入有效的時間');
     }
 }
 
@@ -879,10 +891,10 @@ function resetTime() {
     DatingApp.timeSystem.currentMinute = 0;
     DatingApp.timeSystem.isPaused = false;
     updateTimeDisplay();
-    alert('?��?已�?�?);
+    alert('時間已重置');
 }
 
-// ?��??�數
+// 全域函數
 window.openTimeSettings = openTimeSettings;
 window.closeTimeSettings = closeTimeSettings;
 window.setDays = setDays;
@@ -901,22 +913,23 @@ window.selectSpeed = selectSpeed;
 window.cancelDateSetup = cancelDateSetup;
 window.confirmDateSetup = confirmDateSetup;
 
-// 約�?設�?彈�?
+// 約會設定彈窗
 function openDatingSettings() {
     const modal = document.getElementById('dating-settings-modal');
     if (modal) {
         modal.classList.remove('hidden');
         
-        // ?�新?��?顯示
+        // 更新時間顯示
         const timeDisplay = document.getElementById('settings-time-display');
         if (timeDisplay) {
             const { currentDay, currentHour, currentMinute } = DatingApp.timeSystem;
             const hourStr = currentHour.toString().padStart(2, '0');
             const minuteStr = Math.floor(currentMinute).toString().padStart(2, '0');
-            timeDisplay.textContent = `�?{currentDay}�?${hourStr}:${minuteStr}`;
+            timeDisplay.textContent = `第${currentDay}天 ${hourStr}:${minuteStr}`;
         }
         
-        // 檢查 API ?�??        checkApiStatus();
+        // 檢查 API 狀態
+        checkApiStatus();
         
         if (window.lucide) lucide.createIcons();
     }
@@ -928,11 +941,12 @@ function closeDatingSettings() {
 }
 
 function switchSettingsTab(tabName) {
-    // ?�新標籤?�??    document.querySelectorAll('.settings-tab').forEach(tab => {
+    // 更新標籤狀態
+    document.querySelectorAll('.settings-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.tab === tabName);
     });
     
-    // ?�新?�板顯示
+    // 更新面板顯示
     document.querySelectorAll('.settings-panel').forEach(panel => {
         panel.classList.remove('active');
     });
@@ -959,24 +973,24 @@ async function checkApiStatus() {
     
     const config = getActiveApiConfig();
     if (!config || !config.url || !config.key) {
-        statusEl.textContent = '?��?�?;
+        statusEl.textContent = '未配置';
         statusEl.style.color = '#f87171';
         return false;
     }
     
-    statusEl.textContent = '已�?�?;
+    statusEl.textContent = '已配置';
     statusEl.style.color = '#4ade80';
     return true;
 }
 
 async function regenerateDialogue() {
     if (!DatingApp.dialogueActive) {
-        alert('請�??��??��??��??��??��??��?�?);
+        alert('請先與角色互動後再重新生成對話');
         return;
     }
     
     const context = {
-        situation: '?�新?��?對話',
+        situation: '重新生成對話',
         scene: DatingApp.currentScene
     };
     
@@ -985,7 +999,7 @@ async function regenerateDialogue() {
     showDialogueBox(dialogue);
 }
 
-// ==================== ?�景?��?介面 ====================
+// ==================== 場景選擇介面 ====================
 let selectedScene = null;
 
 function renderSceneSelection() {
@@ -1010,7 +1024,7 @@ function renderSceneSelection() {
     );
     
     if (customSceneKeys.length > 0) {
-        html += '<div class="scene-divider"><span>?��?義地??/span></div>';
+        html += '<div class="scene-divider"><span>自定義地圖</span></div>';
         
         customSceneKeys.forEach(key => {
             const scene = SCENES[key];
@@ -1033,10 +1047,11 @@ function renderSceneSelection() {
 function selectScene(sceneKey) {
     selectedScene = sceneKey;
     
-    // ?��??�景?��?，顯示�??�設�?    document.getElementById('scene-selection')?.classList.add('hidden');
+    // 隱藏場景選擇，顯示約會設定
+    document.getElementById('scene-selection')?.classList.add('hidden');
     document.getElementById('date-setup')?.classList.remove('hidden');
     
-    // 載入角色?�表
+    // 載入角色列表
     renderCharacterSelector();
 }
 
@@ -1052,7 +1067,7 @@ function renderCharacterSelector() {
                 <div class="char-card-avatar">
                     <i data-lucide="heart"></i>
                 </div>
-                <div class="char-card-name">?�設角色</div>
+                <div class="char-card-name">預設角色</div>
             </div>
         `;
     } else {
@@ -1063,7 +1078,7 @@ function renderCharacterSelector() {
                         `<img src="${char.avatar}" alt="${char.name}">` :
                         '<i data-lucide="user"></i>'}
                 </div>
-                <div class="char-card-name">${char.name || '?�命??}</div>
+                <div class="char-card-name">${char.name || '未命名'}</div>
             </div>
         `).join('');
     }
@@ -1072,11 +1087,12 @@ function renderCharacterSelector() {
 }
 
 function selectCharacter(idx) {
-    // ?�新?�中?�??    document.querySelectorAll('.char-card').forEach((card, i) => {
+    // 更新選中狀態
+    document.querySelectorAll('.char-card').forEach((card, i) => {
         card.classList.toggle('selected', i === idx);
     });
     
-    // 載入角色資�?
+    // 載入角色資料
     const chars = JSON.parse(localStorage.getItem('sx_characters') || '[]');
     if (idx >= 0 && idx < chars.length) {
         DatingApp.currentChar = chars[idx];
@@ -1085,11 +1101,12 @@ function selectCharacter(idx) {
     }
 }
 
-// ==================== 約�?設�? ====================
+// ==================== 約會設定 ====================
 function selectDays(days) {
     DatingApp.timeSystem.totalDays = days;
     
-    // ?�新?��??�??    document.querySelectorAll('.date-setup .day-btn').forEach(btn => {
+    // 更新按鈕狀態
+    document.querySelectorAll('.date-setup .day-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
@@ -1102,25 +1119,27 @@ function selectCustomDays() {
     if (days && days > 0 && days <= 365) {
         DatingApp.timeSystem.totalDays = days;
         
-        // 移除?��??��??�active?�??        document.querySelectorAll('.date-setup .day-btn').forEach(btn => {
+        // 移除其他按鈕的active狀態
+        document.querySelectorAll('.date-setup .day-btn').forEach(btn => {
             btn.classList.remove('active');
         });
     } else {
-        alert('請輸??-365之�??�天??);
+        alert('請輸入1-365之間的天數');
     }
 }
 
 function selectSpeed(speed) {
     DatingApp.timeSystem.timeSpeed = speed;
     
-    // ?�新?��??�??    document.querySelectorAll('.date-setup .speed-btn').forEach(btn => {
+    // 更新按鈕狀態
+    document.querySelectorAll('.date-setup .speed-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');
 }
 
 function cancelDateSetup() {
-    // 返�??�景?��?
+    // 返回場景選擇
     document.getElementById('date-setup')?.classList.add('hidden');
     document.getElementById('scene-selection')?.classList.remove('hidden');
     selectedScene = null;
@@ -1128,7 +1147,7 @@ function cancelDateSetup() {
 
 function confirmDateSetup() {
     if (!selectedScene) {
-        alert('請選?�場??);
+        alert('請選擇場景');
         return;
     }
     
@@ -1136,51 +1155,55 @@ function confirmDateSetup() {
         DatingApp.currentChar = loadCharacterFromSettings();
     }
     
-    // ?��?約�?
+    // 開始約會
     startDate();
 }
 
-// ==================== ?��?約�? ====================
+// ==================== 開始約會 ====================
 function startDate() {
     DatingApp.currentScene = selectedScene;
     const scene = SCENES[selectedScene];
     
-    // ?��?設�?，顯示�??�畫??    document.getElementById('date-setup')?.classList.add('hidden');
+    // 隱藏設定，顯示遊戲畫面
+    document.getElementById('date-setup')?.classList.add('hidden');
     document.getElementById('game-container')?.classList.remove('hidden');
     
-    // ?�置?��?快�?
+    // 重置畫布快取
     DatingApp.canvas = null;
     DatingApp.ctx = null;
     
-    // ?�新角色資�?顯示
+    // 更新角色資訊顯示
     updateCharInfo();
     
-    // ?��??�場??    resetPositions();
+    // 初始化場景
+    resetPositions();
     renderScene(scene);
     startGameLoop();
     
-    // ?��??��?系統
+    // 啟動時間系統
     startTimeSystem();
     
-    // ?��? AI ?�制系統
+    // 啟動 AI 控制系統
     initAIController();
 }
 
-// ==================== AI ?�制系統 ====================
+// ==================== AI 控制系統 ====================
 function initAIController() {
     DatingApp.aiController.enabled = true;
     DatingApp.aiController.greetingShown = false;
     DatingApp.aiController.contextLoaded = false;
     DatingApp.aiController.lastActionTime = Date.now();
     
-    // 載入世�??��??�天紀??    loadAIContext();
+    // 載入世界書和聊天紀錄
+    loadAIContext();
     
-    // ?��? AI 行�?循環
+    // 啟動 AI 行動循環
     startAIActionLoop();
 }
 
 function loadAIContext() {
-    // 載入世�??��???    const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
+    // 載入世界書資料
+    const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
     const worldbookData = {};
     
     categories.forEach(cat => {
@@ -1199,9 +1222,11 @@ function loadAIContext() {
     
     DatingApp.aiController.worldbookData = worldbookData;
     
-    // 載入?�天紀??    const chatHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-    DatingApp.aiController.chatHistory = chatHistory.slice(-20); // ?��?0�?    
-    // 載入角色設�?
+    // 載入聊天紀錄
+    const chatHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+    DatingApp.aiController.chatHistory = chatHistory.slice(-20); // 最近20條
+    
+    // 載入角色設定
     const charData = DatingApp.currentChar;
     const userName = localStorage.getItem('sx_user_name') || 'User';
     const userPersonality = localStorage.getItem('sx_user_personality') || '';
@@ -1212,7 +1237,8 @@ function loadAIContext() {
     
     DatingApp.aiController.contextLoaded = true;
     
-    // ?��??��??��?    if (!DatingApp.aiController.greetingShown) {
+    // 生成初始問候
+    if (!DatingApp.aiController.greetingShown) {
         generateAIGreeting();
     }
 }
@@ -1231,12 +1257,13 @@ function buildAISystemPrompt(actionType) {
     const userName = DatingApp.aiController.userName;
     const wb = DatingApp.aiController.worldbookData;
     
-    // 構建世�??�內�?    let worldbookContent = '';
+    // 構建世界書內容
+    let worldbookContent = '';
     const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
     categories.forEach(cat => {
         const entries = wb[cat] || [];
         if (entries.length > 0) {
-            worldbookContent += `\n??{cat}?�\n`;
+            worldbookContent += `\n【${cat}】\n`;
             entries.forEach(entry => {
                 if (entry.content) {
                     worldbookContent += `${entry.content}\n`;
@@ -1245,38 +1272,44 @@ function buildAISystemPrompt(actionType) {
         }
     });
     
-    // 構建?�天紀?��?�?    let chatSummary = '';
+    // 構建聊天紀錄摘要
+    let chatSummary = '';
     const history = DatingApp.aiController.chatHistory || [];
     if (history.length > 0) {
-        chatSummary = '\n?��?近�?話】\n';
+        chatSummary = '\n【最近對話】\n';
         history.slice(-5).forEach(msg => {
             const role = msg.role === 'user' ? userName : (char?.name || '角色');
             chatSummary += `${role}: ${msg.content}\n`;
         });
     }
     
-    const basePrompt = `你正?�扮�?${char?.name || '角色'}，�? ${userName} ??${scene?.name || '約�??�景'} 約�???
-?��??�設定�??��?: ${char?.name || '角色'}
-?�格: ${char?.personality || '溫�?體貼'}
-?�景: ${char?.background || ''}
+    const basePrompt = `你正在扮演 ${char?.name || '角色'}，與 ${userName} 在 ${scene?.name || '約會場景'} 約會。
+
+【角色設定】
+名字: ${char?.name || '角色'}
+性格: ${char?.personality || '溫柔體貼'}
+背景: ${char?.background || ''}
 ${worldbookContent}
 ${chatSummary}
 
-?�場?��?${scene?.name} - ${getSceneDescription(DatingApp.currentScene)}
+【場景】
+${scene?.name} - ${getSceneDescription(DatingApp.currentScene)}
 
-?��??��??��?- 你�?模仿角色?��?�???�格
-- ?�然?��? ${userName} 互�?
-- ?�以主�?說話?��??�、�??�出?��?
-- 保�?角色?��??��?- ?��?要簡?�自?��??�日常�?話`;
+【行動指南】
+- 你要模仿角色的語氣和性格
+- 自然地與 ${userName} 互動
+- 可以主動說話、跟隨、或做出反應
+- 保持角色的一致性
+- 回應要簡短自然，像日常對話`;
 
     if (actionType === 'greeting') {
-        return basePrompt + `\n\n?�在約�??��?始�?請以角色?�身份�? ${userName} ?��??��?表�??��??��?心�?心�??�只?��?一?�話?�`;
+        return basePrompt + `\n\n現在約會剛開始，請以角色的身份向 ${userName} 打招呼，表達期待或開心的心情。只回覆一句話。`;
     } else if (actionType === 'follow') {
-        return basePrompt + `\n\n${userName} �?��移�?，�?決�?跟隨�?她。�?簡短表�?你�?行�??�想法。只?��?一?�話?�`;
+        return basePrompt + `\n\n${userName} 正在移動，你決定跟隨他/她。請簡短表達你的行動或想法。只回覆一句話。`;
     } else if (actionType === 'react') {
-        return basePrompt + `\n\n${userName} ?�出了�??��??��?請自?�地?�出?��??�只?��?一?�話?�`;
+        return basePrompt + `\n\n${userName} 做出了某個行動，請自然地做出反應。只回覆一句話。`;
     } else if (actionType === 'idle') {
-        return basePrompt + `\n\n?��?沒�??�別?��??�發?��?請自?�地說�??�話?��??��??��??��??�只?��?一?�話?�`;
+        return basePrompt + `\n\n目前沒有特別的事情發生，請自然地說一句話或做出一個小動作。只回覆一句話。`;
     }
     
     return basePrompt;
@@ -1284,26 +1317,26 @@ ${chatSummary}
 
 function getSceneDescription(sceneKey) {
     const descriptions = {
-        cafe: '溫馨?��??�廳，�??�質?�板?��??��??��?',
-        park: '美�??�公?��??��?樹、花?��???��小�?',
-        cinema: '?�影?��?�?��?�放?�影',
-        restaurant: '浪漫?��?廳�??��??��?精緻?��?�?,
-        beach: '海�?，�?沙�??�陽??,
-        library: '安�??��??�館，適?��?起閱讀'
+        cafe: '溫馨的咖啡廳，有木質地板和柔和的燈光',
+        park: '美麗的公園，有綠樹、花朵和散步小徑',
+        cinema: '電影院，正在播放電影',
+        restaurant: '浪漫的餐廳，有蠟燭和精緻的裝飾',
+        beach: '海邊，有沙灘和陽傘',
+        library: '安靜的圖書館，適合一起閱讀'
     };
-    return descriptions[sceneKey] || '約�??��?';
+    return descriptions[sceneKey] || '約會場所';
 }
 
 async function callAIAPI(systemPrompt) {
     const config = getActiveApiConfig();
     if (!config || !config.url || !config.key) {
-        console.warn('AI API ?��?置�?使用?�設?��?');
+        console.warn('AI API 未配置，使用預設回應');
         return null;
     }
     
     const apiType = config.type || 'openai';
     
-    // Gemini ?��? API ?��?
+    // Gemini 原生 API 格式
     if (apiType === 'gemini') {
         const model = config.model || 'gemini-1.5-flash';
         const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
@@ -1313,30 +1346,31 @@ async function callAIAPI(systemPrompt) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ role: 'user', parts: [{ text: '請�??? }] }],
+                    contents: [{ role: 'user', parts: [{ text: '請回應' }] }],
                     generationConfig: { temperature: 0.8, maxOutputTokens: 100 },
                     systemInstruction: { parts: [{ text: systemPrompt }] }
                 })
             });
             
             if (!response.ok) {
-                console.warn('Gemini API ?��?失�?:', response.status);
+                console.warn('Gemini API 回應失敗:', response.status);
                 return null;
             }
             
             const data = await response.json();
             if (data.error) {
-                console.warn('Gemini API ?�誤:', data.error);
+                console.warn('Gemini API 錯誤:', data.error);
                 return null;
             }
             return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
         } catch (e) {
-            console.warn('Gemini API 調用失�?:', e);
+            console.warn('Gemini API 調用失敗:', e);
             return null;
         }
     }
     
-    // OpenAI ?�容?��??�自訂端�?    let targetUrl;
+    // OpenAI 相容格式或自訂端點
+    let targetUrl;
     if (apiType === 'custom') {
         targetUrl = config.url;
     } else {
@@ -1354,7 +1388,7 @@ async function callAIAPI(systemPrompt) {
                 model: config.model || 'gpt-3.5-turbo',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: '請�??? }
+                    { role: 'user', content: '請回應' }
                 ],
                 max_tokens: 100,
                 temperature: 0.8
@@ -1362,14 +1396,14 @@ async function callAIAPI(systemPrompt) {
         });
         
         if (!response.ok) {
-            console.warn('AI API ?��?失�?:', response.status);
+            console.warn('AI API 回應失敗:', response.status);
             return null;
         }
         
         const data = await response.json();
         return data.choices?.[0]?.message?.content || null;
     } catch (e) {
-        console.warn('AI API 調用失�?:', e);
+        console.warn('AI API 調用失敗:', e);
         return null;
     }
 }
@@ -1382,7 +1416,8 @@ async function generateAIGreeting() {
     
     const greeting = aiResponse || getDefaultGreeting();
     
-    // 顯示?�候�?�?    showAIDialogue(greeting);
+    // 顯示問候對話
+    showAIDialogue(greeting);
     DatingApp.aiController.greetingShown = true;
 }
 
@@ -1390,10 +1425,10 @@ function getDefaultGreeting() {
     const char = DatingApp.currentChar;
     const scene = SCENES[DatingApp.currentScene];
     const greetings = [
-        `今天?��?你�?起�?${scene?.name || '?�裡'}，�?很�?心呢！`,
-        `終於等到?��?天�?�?{char?.name || '??}好�?待�?`,
-        `?��??��?起�??��?，總?�特?��?好。`,
-        `?�裡?�氣氛�?好�?謝�?你�??�出來�?`
+        `今天能和你一起來${scene?.name || '這裡'}，我很開心呢！`,
+        `終於等到這一天了，${char?.name || '我'}好期待！`,
+        `和你在一起的時間，總是特別美好。`,
+        `這裡的氣氛真好，謝謝你約我出來！`
     ];
     return greetings[Math.floor(Math.random() * greetings.length)];
 }
@@ -1401,7 +1436,8 @@ function getDefaultGreeting() {
 function showAIDialogue(text) {
     const box = document.getElementById('ai-dialogue-box');
     if (!box) {
-        // ?��??�建 AI 對話�?        createAIDialogueBox();
+        // 動態創建 AI 對話框
+        createAIDialogueBox();
     }
     
     const dialogueBox = document.getElementById('ai-dialogue-box');
@@ -1421,7 +1457,7 @@ function showAIDialogue(text) {
         
         if (window.lucide) lucide.createIcons();
         
-        // 3秒�??��??��?
+        // 3秒後自動隱藏
         setTimeout(() => {
             dialogueBox.classList.add('hidden');
         }, 4000);
@@ -1447,20 +1483,21 @@ function startAIActionLoop() {
         
         DatingApp.aiController.lastActionTime = now;
         
-        // 檢查?�家?��??��?距離
+        // 檢查玩家與角色的距離
         const distance = Math.sqrt(
             Math.pow(DatingApp.player.x - DatingApp.char.x, 2) +
             Math.pow(DatingApp.player.y - DatingApp.char.y, 2)
         );
         
-        // ?��??��?決�?行�?
+        // 根據情況決定行動
         if (distance > 150) {
-            // ?�家走�?了�?角色跟隨
+            // 玩家走遠了，角色跟隨
             moveCharTowardsPlayer();
         } else if (distance < 60 && Math.random() > 0.7) {
-            // ?��??��??��??�主?�說�?            generateAIIdleAction();
+            // 靠近時，有機率主動說話
+            generateAIIdleAction();
         } else if (Math.random() > 0.85) {
-            // ?��??�置行�?
+            // 隨機閒置行動
             generateAIIdleAction();
         }
     }, 1000);
@@ -1472,14 +1509,14 @@ function moveCharTowardsPlayer() {
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance > 100) {
-        // 移�?角色?��??�家
+        // 移動角色朝向玩家
         const speed = 3;
         const ratio = speed / distance;
         
         const newX = DatingApp.char.x + dx * ratio;
         const newY = DatingApp.char.y + dy * ratio;
         
-        // ?��?檢查
+        // 邊界檢查
         if (newX >= 20 && newX <= 680 && newY >= 20 && newY <= 480) {
             DatingApp.char.x = newX;
             DatingApp.char.y = newY;
@@ -1496,11 +1533,11 @@ async function generateAIIdleAction() {
     }
 }
 
-// ==================== AI ?��?對話?��? ====================
+// ==================== AI 動態對話生成 ====================
 async function generateDynamicDialogue(context = {}) {
     const config = getActiveApiConfig();
     if (!config || !config.url || !config.key) {
-        console.warn('AI API ?��?置�?使用?�設對話');
+        console.warn('AI API 未配置，使用預設對話');
         return getDefaultDialogue(context);
     }
     
@@ -1521,7 +1558,7 @@ async function generateDynamicDialogue(context = {}) {
                 model: config.model || 'gpt-3.5-turbo',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: '請�??��?話�??? }
+                    { role: 'user', content: '請生成對話回應' }
                 ],
                 max_tokens: 500,
                 temperature: 0.85
@@ -1529,7 +1566,7 @@ async function generateDynamicDialogue(context = {}) {
         });
         
         if (!response.ok) {
-            console.warn('AI API ?��?失�?:', response.status);
+            console.warn('AI API 回應失敗:', response.status);
             return getDefaultDialogue(context);
         }
         
@@ -1542,20 +1579,20 @@ async function generateDynamicDialogue(context = {}) {
                 return JSON.parse(jsonMatch[0]);
             }
         } catch (parseError) {
-            console.warn('�?? AI ?��?失�?:', parseError);
+            console.warn('解析 AI 回應失敗:', parseError);
         }
         
         return {
             dialogue: content,
             mood: 'neutral',
             choices: [
-                { text: '?��???, affection: 5 },
-                { text: '?�嗯', affection: 2 },
-                { text: '?��?�?, affection: -1 }
+                { text: '我同意', affection: 5 },
+                { text: '嗯嗯', affection: 2 },
+                { text: '是嗎？', affection: -1 }
             ]
         };
     } catch (e) {
-        console.warn('AI API 調用失�?:', e);
+        console.warn('AI API 調用失敗:', e);
         return getDefaultDialogue(context);
     }
 }
@@ -1573,7 +1610,7 @@ function buildDialogueSystemPrompt(context) {
     ['cot', 'style', 'global', 'keywords', 'backend'].forEach(cat => {
         const entries = wb[cat] || [];
         if (entries.length > 0) {
-            worldbookContent += `\n??{cat}?�\n`;
+            worldbookContent += `\n【${cat}】\n`;
             entries.slice(0, 5).forEach(entry => {
                 if (entry.content) {
                     worldbookContent += `${entry.content}\n`;
@@ -1585,45 +1622,55 @@ function buildDialogueSystemPrompt(context) {
     let chatSummary = '';
     const history = DatingApp.dialogueHistory || [];
     if (history.length > 0) {
-        chatSummary = '\n?��?近�?話�??�】\n';
+        chatSummary = '\n【最近對話紀錄】\n';
         history.slice(-5).forEach(msg => {
             chatSummary += `${msg.speaker}: ${msg.text}\n`;
         });
     }
     
     const timeInfo = DatingApp.timeSystem;
-    const timeStr = `�?{timeInfo.currentDay}�?${timeInfo.currentHour.toString().padStart(2, '0')}:${Math.floor(timeInfo.currentMinute).toString().padStart(2, '0')}`;
+    const timeStr = `第${timeInfo.currentDay}天 ${timeInfo.currentHour.toString().padStart(2, '0')}:${Math.floor(timeInfo.currentMinute).toString().padStart(2, '0')}`;
     
-    return `你正?�扮�?${char?.name || '角色'}，�? ${userName} ??${scene?.name || '約�??�景'} 約�???
-?��??�設定�??��?: ${char?.name || '角色'}
-?�格: ${char?.personality || '溫�?體貼'}
-?�景: ${char?.background || ''}
+    return `你正在扮演 ${char?.name || '角色'}，與 ${userName} 在 ${scene?.name || '約會場景'} 約會。
 
-?�用?�設定�??��?: ${userName}
-?�格: ${userPersonality || '?��??��?'}
-?�景: ${userBackground || ''}
+【角色設定】
+名字: ${char?.name || '角色'}
+性格: ${char?.personality || '溫柔體貼'}
+背景: ${char?.background || ''}
 
-?�場?��?${scene?.name} - ${getSceneDescription(DatingApp.currentScene)}
-?��??��?: ${timeStr}
+【用戶設定】
+名字: ${userName}
+性格: ${userPersonality || '開朗友善'}
+背景: ${userBackground || ''}
 
-?��??�書資�???${worldbookContent || '??}
+【場景】
+${scene?.name} - ${getSceneDescription(DatingApp.currentScene)}
+當前時間: ${timeStr}
+
+【世界書資料】
+${worldbookContent || '無'}
 ${chatSummary}
 
-?��?境�?${context.situation || '?�常對話'}
+【情境】
+${context.situation || '日常對話'}
 
-?��??�格式�?請以 JSON ?��??��?，�??��?
+【回應格式】
+請以 JSON 格式回應，包含：
 {
-  "dialogue": "角色說�?話�?1-2?��??�然????��?",
+  "dialogue": "角色說的話（1-2句，自然口語化）",
   "mood": "happy/shy/curious/nervous/romantic/playful/neutral",
   "choices": [
-    {"text": "?��?一（正?��??��?", "affection": 5??5},
-    {"text": "?��?二�?中性�??��?", "affection": -2??},
-    {"text": "?��?三�?負面?�調?��??��?", "affection": -10??}
+    {"text": "選項一（正面回應）", "affection": 5到15},
+    {"text": "選項二（中性回應）", "affection": -2到5},
+    {"text": "選項三（負面或調皮回應）", "affection": -10到2}
   ]
 }
 
-注�?�?- 好�?度�??��???-10 ??+15
-- 對話要符?��??�性格?�當?��?�?- ?��?要�?�???��?�?- ?��???JSON，�?要其他�?字`;
+注意：
+- 好感度變化範圍 -10 到 +15
+- 對話要符合角色性格和當前情境
+- 選項要有趣且有意義
+- 只回傳 JSON，不要其他文字`;
 }
 
 function getDefaultDialogue(context) {
@@ -1632,30 +1679,30 @@ function getDefaultDialogue(context) {
     
     const defaultDialogues = [
         {
-            dialogue: `?��??��?�?{scene?.name || '?�裡'}?�覺?�好??..`,
+            dialogue: `和你在一起${scene?.name || '這裡'}感覺真好呢...`,
             mood: 'happy',
             choices: [
-                { text: '?��??�麼覺�?�?, affection: 10 },
-                { text: '?��?，�??��?', affection: 5 },
-                { text: '?�好??, affection: 0 }
+                { text: '我也這麼覺得！', affection: 10 },
+                { text: '是啊，很開心', affection: 5 },
+                { text: '還好啦', affection: 0 }
             ]
         },
         {
-            dialogue: `今天?�天�??不錯，�??��?約�??��?`,
+            dialogue: `今天的天氣真不錯，很適合約會呢！`,
             mood: 'cheerful',
             choices: [
-                { text: '對�?，�??��?�?, affection: 8 },
-                { text: '?��??��???, affection: 3 },
-                { text: '?�覺得太?��?...', affection: -3 }
+                { text: '對啊，很舒服！', affection: 8 },
+                { text: '嗯，還不錯', affection: 3 },
+                { text: '我覺得太熱了...', affection: -3 }
             ]
         },
         {
-            dialogue: `${char?.name || '??}很�??��?你在一起�??��??�`,
+            dialogue: `${char?.name || '我'}很珍惜和你在一起的時光。`,
             mood: 'romantic',
             choices: [
-                { text: '?��??��?很幸�?, affection: 12 },
-                { text: '謝�?你這麼�?, affection: 6 },
-                { text: '?��?，�??��?�?, affection: 2 }
+                { text: '我也是，很幸福', affection: 12 },
+                { text: '謝謝你這麼說', affection: 6 },
+                { text: '哈哈，真的嗎？', affection: 2 }
             ]
         }
     ];
@@ -1676,16 +1723,17 @@ function recordDialogue(speaker, text, choice = null) {
     }
 }
 
-// ?�玩家移?��?，AI ?�能?�出?��?
+// 當玩家移動時，AI 可能做出反應
 function onPlayerMove() {
     if (!DatingApp.aiController.enabled) return;
     
-    // ?��??��?角色跟隨?�說�?    if (Math.random() > 0.8) {
+    // 有機率讓角色跟隨或說話
+    if (Math.random() > 0.8) {
         moveCharTowardsPlayer();
     }
 }
 
-// ==================== ?�景渲�? ====================
+// ==================== 場景渲染 ====================
 function renderScene(scene) {
     if (!DatingApp.canvas) {
         DatingApp.canvas = document.getElementById('game-canvas');
@@ -1698,13 +1746,15 @@ function renderScene(scene) {
     const ctx = DatingApp.ctx;
     const canvas = DatingApp.canvas;
     
-    // 清空?��?
+    // 清空畫布
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // 使用快�??�場?��???    if (typeof SceneRenderer !== 'undefined') {
-        // 檢查快�?
+    // 使用快取的場景圖片
+    if (typeof SceneRenderer !== 'undefined') {
+        // 檢查快取
         if (!DatingApp.sceneCache[DatingApp.currentScene]) {
-            // ?��?並快?�場??            const bgImage = new Image();
+            // 生成並快取場景
+            const bgImage = new Image();
             bgImage.src = SceneRenderer.generateBackground(DatingApp.currentScene);
             DatingApp.sceneCache[DatingApp.currentScene] = bgImage;
             
@@ -1712,10 +1762,11 @@ function renderScene(scene) {
                 renderSceneContent(ctx, canvas, scene);
             };
         } else {
-            // 使用快�??��???            renderSceneContent(ctx, canvas, scene);
+            // 使用快取的圖片
+            renderSceneContent(ctx, canvas, scene);
         }
     } else {
-        // ?�用?��?
+        // 備用方案
         renderSceneFallback(ctx, canvas, scene);
     }
 }
@@ -1734,7 +1785,7 @@ function renderSceneContent(ctx, canvas, scene) {
             SceneRenderer.drawObject(ctx, obj);
         });
         
-        drawCharacter(ctx, DatingApp.player, '#4A90E2', '�?);
+        drawCharacter(ctx, DatingApp.player, '#4A90E2', '你');
         drawCharacter(ctx, DatingApp.char, '#E91E63', DatingApp.currentChar.name);
     }
 }
@@ -1788,18 +1839,19 @@ function renderCustomTilemapScene(ctx, canvas, scene) {
         });
     }
     
-    drawCharacter(ctx, DatingApp.player, '#4A90E2', '�?);
+    drawCharacter(ctx, DatingApp.player, '#4A90E2', '你');
     drawCharacter(ctx, DatingApp.char, '#E91E63', DatingApp.currentChar.name);
 }
 
 function renderSceneFallback(ctx, canvas, scene) {
-    // ?�用?��?：使?�漸層�???    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    // 備用方案：使用漸層背景
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#87CEEB');
     gradient.addColorStop(1, '#228B22');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // 簡單繪製?�件
+    // 簡單繪製物件
     scene.objects.forEach(obj => {
         ctx.fillStyle = 'rgba(139, 69, 19, 0.7)';
         ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
@@ -1808,14 +1860,14 @@ function renderSceneFallback(ctx, canvas, scene) {
         ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
     });
     
-    drawCharacter(ctx, DatingApp.player, '#4A90E2', '�?);
+    drawCharacter(ctx, DatingApp.player, '#4A90E2', '你');
     drawCharacter(ctx, DatingApp.char, '#E91E63', DatingApp.currentChar.name);
 }
 
 function drawCharacter(ctx, char, color, label) {
     if (DatingApp.charSprite && label === DatingApp.currentChar?.name) {
         drawPixelCharacter(ctx, char, DatingApp.charSprite, label);
-    } else if (label === '�? && DatingApp.playerSprite) {
+    } else if (label === '你' && DatingApp.playerSprite) {
         drawPixelCharacter(ctx, char, DatingApp.playerSprite, label);
     } else {
         drawFallbackCharacter(ctx, char, color, label);
@@ -1872,22 +1924,22 @@ function drawFallbackCharacter(ctx, char, color, label) {
     ctx.fillText(label, char.x, char.y - 25);
 }
 
-// ==================== 角色移�? ====================
+// ==================== 角色移動 ====================
 function movePlayer(dx, dy) {
     if (DatingApp.dialogueActive) return;
     
     const newX = DatingApp.player.x + dx * 5;
     const newY = DatingApp.player.y + dy * 5;
     
-    // ?��?檢查
+    // 邊界檢查
     if (newX >= 20 && newX <= 680 && newY >= 20 && newY <= 480) {
         DatingApp.player.x = newX;
         DatingApp.player.y = newY;
         
-        // 檢查?�否?��?角色
+        // 檢查是否接近角色
         checkInteraction();
         
-        // AI 角色?�能?�出?��?
+        // AI 角色可能做出反應
         onPlayerMove();
     }
 }
@@ -1907,7 +1959,7 @@ function showInteractionPrompt() {
     const prompt = document.getElementById('interaction-prompt');
     if (prompt) {
         prompt.classList.remove('hidden');
-        prompt.textContent = '??E 互�?';
+        prompt.textContent = '按 E 互動';
     }
 }
 
@@ -1917,9 +1969,9 @@ async function startDialogue() {
     
     DatingApp.dialogueActive = true;
     
-    // 使用 AI ?��??��?對話
+    // 使用 AI 生成動態對話
     const context = {
-        situation: `${scene?.name || '約�??��?'}?�日常�?話`,
+        situation: `${scene?.name || '約會場所'}的日常對話`,
         scene: DatingApp.currentScene
     };
     
@@ -1936,17 +1988,17 @@ function showDialogueBox(dialogue) {
     box.classList.remove('hidden');
     
     const moodEmoji = {
-        happy: '??',
-        shy: '?��',
-        curious: '??',
-        nervous: '?��',
-        romantic: '??',
-        playful: '??',
-        neutral: '??',
-        cheerful: '??'
+        happy: '😊',
+        shy: '😳',
+        curious: '🤔',
+        nervous: '😰',
+        romantic: '💕',
+        playful: '😜',
+        neutral: '😐',
+        cheerful: '😄'
     };
     
-    const emoji = moodEmoji[dialogue.mood] || '??';
+    const emoji = moodEmoji[dialogue.mood] || '😊';
     
     let choicesHtml = '';
     if (dialogue.choices && dialogue.choices.length > 0) {
@@ -1958,9 +2010,9 @@ function showDialogueBox(dialogue) {
     } else {
         choicesHtml = `
             <div class="dialogue-options">
-                <button onclick="respondToDialogue(0, 5)">?��? ?��??�麼覺�?</button>
-                <button onclick="respondToDialogue(1, 2)">?? ?��?</button>
-                <button onclick="respondToDialogue(2, -1)">?? ?��???</button>
+                <button onclick="respondToDialogue(0, 5)">❤️ 我也這麼覺得</button>
+                <button onclick="respondToDialogue(1, 2)">😊 是啊</button>
+                <button onclick="respondToDialogue(2, -1)">😄 真的嗎?</button>
             </div>
         `;
     }
@@ -1991,7 +2043,7 @@ async function respondToDialogue(choiceIdx, affectionDelta, choiceText = '') {
     }
     
     recordDialogue(DatingApp.currentChar?.name || '角色', dialogue?.dialogue || '', choiceText);
-    recordDialogue('�?, choiceText, null);
+    recordDialogue('你', choiceText, null);
     
     closeDialogue();
 }
@@ -2007,11 +2059,12 @@ function closeDialogue() {
     if (prompt) prompt.classList.add('hidden');
 }
 
-// ==================== ?�戲循環 ====================
+// ==================== 遊戲循環 ====================
 let gameLoopId = null;
 
 function startGameLoop() {
-    // ?�止之�??�循??    if (gameLoopId) {
+    // 停止之前的循環
+    if (gameLoopId) {
         cancelAnimationFrame(gameLoopId);
     }
     
@@ -2042,9 +2095,9 @@ function stopGameLoop() {
     }
 }
 
-// ==================== 事件??�� ====================
+// ==================== 事件監聽 ====================
 function setupEventListeners() {
-    // ?�盤?�制
+    // 鍵盤控制
     document.addEventListener('keydown', (e) => {
         if (DatingApp.currentScene === 'home') return;
         
@@ -2081,7 +2134,7 @@ function setupEventListeners() {
         }
     });
     
-    // 觸控?�制
+    // 觸控控制
     setupTouchControls();
 }
 
@@ -2090,11 +2143,11 @@ function setupTouchControls() {
     if (!controls) return;
     
     controls.innerHTML = `
-        <button class="control-btn" data-dir="up">??/button>
-        <button class="control-btn" data-dir="down">??/button>
-        <button class="control-btn" data-dir="left">??/button>
-        <button class="control-btn" data-dir="right">??/button>
-        <button class="control-btn interact" onclick="startDialogue()">?��</button>
+        <button class="control-btn" data-dir="up">↑</button>
+        <button class="control-btn" data-dir="down">↓</button>
+        <button class="control-btn" data-dir="left">←</button>
+        <button class="control-btn" data-dir="right">→</button>
+        <button class="control-btn interact" onclick="startDialogue()">💬</button>
     `;
     
     controls.querySelectorAll('[data-dir]').forEach(btn => {
@@ -2114,7 +2167,7 @@ function setupTouchControls() {
     });
 }
 
-// ==================== 輔助?�數 ====================
+// ==================== 輔助函數 ====================
 function resetPositions() {
     DatingApp.player = { x: 200, y: 300, direction: 'down' };
     DatingApp.char = { x: 400, y: 300, direction: 'down' };
@@ -2133,22 +2186,22 @@ function updateCharInfo() {
 function updateAffectionDisplay() {
     const display = document.getElementById('affection-display');
     if (display) {
-        const hearts = '?��?'.repeat(Math.min(5, Math.floor(DatingApp.affection / 10)));
-        display.textContent = `好�?�? ${hearts} (${DatingApp.affection})`;
+        const hearts = '❤️'.repeat(Math.min(5, Math.floor(DatingApp.affection / 10)));
+        display.textContent = `好感度: ${hearts} (${DatingApp.affection})`;
     }
 }
 
 function endDate() {
-    if (confirm('確�?要�??��??��??')) {
+    if (confirm('確定要結束約會嗎?')) {
         stopGameLoop();
         stopTimeSystem();
         document.getElementById('game-container')?.classList.add('hidden');
         document.getElementById('scene-selection')?.classList.remove('hidden');
         DatingApp.currentScene = 'home';
         selectedScene = null;
-        // 清空快�?
+        // 清空快取
         DatingApp.sceneCache = {};
-        // ?�置?��?
+        // 重置時間
         DatingApp.timeSystem.currentDay = 1;
         DatingApp.timeSystem.currentHour = 9;
         DatingApp.timeSystem.currentMinute = 0;
@@ -2158,18 +2211,19 @@ function endDate() {
     }
 }
 
-// ==================== ?��??�數 ====================
+// ==================== 全域函數 ====================
 window.startDate = startDate;
 window.respondToDialogue = respondToDialogue;
 window.endDate = endDate;
 
-// ?�景編輯??function openSceneEditor() {
+// 場景編輯器
+function openSceneEditor() {
     window.location.href = 'scene-editor.html';
 }
 
 window.openSceneEditor = openSceneEditor;
 
-// 載入?��??�景
+// 載入自訂場景
 function loadCustomScenes() {
     const customScenes = JSON.parse(localStorage.getItem('sx_dating_custom_scenes') || '[]');
     customScenes.forEach(scene => {
@@ -2180,8 +2234,8 @@ function loadCustomScenes() {
             background: '#ffffff',
             objects: [],
             dialogues: [
-                { text: '?�個場?��??�別', mood: 'curious' },
-                { text: '你設計�??�景很�?', mood: 'happy' }
+                { text: '這個場景真特別', mood: 'curious' },
+                { text: '你設計的場景很棒', mood: 'happy' }
             ],
             custom: true,
             data: scene
@@ -2197,8 +2251,8 @@ function loadCustomScenes() {
             background: map.backgroundColor || '#2a2a4a',
             objects: map.objects || [],
             dialogues: [
-                { text: `歡�?來到${map.name}！`, mood: 'happy' },
-                { text: '?�個地?��?不錯??, mood: 'curious' }
+                { text: `歡迎來到${map.name}！`, mood: 'happy' },
+                { text: '這個地方真不錯呢', mood: 'curious' }
             ],
             custom: true,
             imported: true,
@@ -2207,7 +2261,7 @@ function loadCustomScenes() {
     });
 }
 
-// 檢查測試?�景
+// 檢查測試場景
 function checkTestScene() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('testScene') === 'true') {
@@ -2216,12 +2270,12 @@ function checkTestScene() {
             try {
                 const data = JSON.parse(testSceneData);
                 const testScene = {
-                    name: '測試?�景',
+                    name: '測試場景',
                     icon: 'play',
                     background: '#2a2a4a',
                     objects: [],
                     dialogues: [
-                        { text: '?�是測試?�景', mood: 'neutral' }
+                        { text: '這是測試場景', mood: 'neutral' }
                     ],
                     custom: true,
                     data: data
@@ -2234,13 +2288,14 @@ function checkTestScene() {
                     confirmDateSetup();
                 }, 500);
             } catch (e) {
-                console.error('載入測試?�景失�?:', e);
+                console.error('載入測試場景失敗:', e);
             }
         }
     }
 }
 
-// ?��???if (document.readyState === 'loading') {
+// 初始化
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         loadCustomScenes();
         checkTestScene();
@@ -2256,7 +2311,7 @@ function checkTestScene() {
     renderImportedMapsList();
 }
 
-// ==================== ?��?義地?��??��???====================
+// ==================== 自定義地圖導入功能 ====================
 let pendingMapData = null;
 
 function openImportModal() {
@@ -2332,7 +2387,7 @@ function handleMapFileSelect(event) {
 
 function handleMapFile(file) {
     if (!file.name.endsWith('.json')) {
-        showImportError('請選??JSON ?��??��?�?);
+        showImportError('請選擇 JSON 格式的文件');
         return;
     }
     
@@ -2342,11 +2397,11 @@ function handleMapFile(file) {
             const data = JSON.parse(e.target.result);
             validateAndPreviewMap(data, file.name.replace('.json', ''));
         } catch (err) {
-            showImportError('JSON �??失�?�? + err.message);
+            showImportError('JSON 解析失敗：' + err.message);
         }
     };
     reader.onerror = () => {
-        showImportError('?�件讀?�失??);
+        showImportError('文件讀取失敗');
     };
     reader.readAsText(file);
 }
@@ -2354,15 +2409,15 @@ function handleMapFile(file) {
 function parseMapJson() {
     const input = document.getElementById('map-json-input');
     if (!input || !input.value.trim()) {
-        showImportError('請輸??JSON ?��?');
+        showImportError('請輸入 JSON 數據');
         return;
     }
     
     try {
         const data = JSON.parse(input.value);
-        validateAndPreviewMap(data, '?��?義地??);
+        validateAndPreviewMap(data, '自定義地圖');
     } catch (err) {
-        showImportError('JSON �??失�?�? + err.message);
+        showImportError('JSON 解析失敗：' + err.message);
     }
 }
 
@@ -2373,7 +2428,7 @@ function validateAndPreviewMap(data, defaultName) {
     const nameInput = document.getElementById('import-map-name');
     
     if (!data.name && !data.tileData && !data.layers) {
-        showImportError('?��??�地?�數?�格�?);
+        showImportError('無效的地圖數據格式');
         return;
     }
     
@@ -2392,19 +2447,19 @@ function validateAndPreviewMap(data, defaultName) {
     if (previewInfo) {
         previewInfo.innerHTML = `
             <div class="preview-item">
-                <span class="preview-label">?��??�稱�?/span>
+                <span class="preview-label">地圖名稱：</span>
                 <span class="preview-value">${mapName}</span>
             </div>
             <div class="preview-item">
-                <span class="preview-label">?��?大�?�?/span>
+                <span class="preview-label">格子大小：</span>
                 <span class="preview-value">${tileSize}px</span>
             </div>
             <div class="preview-item">
-                <span class="preview-label">?�層?��?�?/span>
+                <span class="preview-label">圖層數量：</span>
                 <span class="preview-value">${layerCount}</span>
             </div>
             <div class="preview-item">
-                <span class="preview-label">?�件?��?�?/span>
+                <span class="preview-label">物件數量：</span>
                 <span class="preview-value">${objectCount}</span>
             </div>
         `;
@@ -2427,12 +2482,12 @@ function showImportError(message) {
 
 function confirmMapImport() {
     if (!pendingMapData) {
-        showImportError('沒�?待�??��??��??��?');
+        showImportError('沒有待導入的地圖數據');
         return;
     }
     
     const nameInput = document.getElementById('import-map-name');
-    const mapName = (nameInput && nameInput.value.trim()) || pendingMapData.name || '?�命?�地??;
+    const mapName = (nameInput && nameInput.value.trim()) || pendingMapData.name || '未命名地圖';
     
     pendingMapData.name = mapName;
     pendingMapData.importedAt = Date.now();
@@ -2441,7 +2496,7 @@ function confirmMapImport() {
     
     const existingIndex = customMaps.findIndex(m => m.name === mapName);
     if (existingIndex >= 0) {
-        if (!confirm(`?��???{mapName}?�已存在，是?��??��?`)) {
+        if (!confirm(`地圖「${mapName}」已存在，是否覆蓋？`)) {
             return;
         }
         customMaps[existingIndex] = pendingMapData;
@@ -2457,7 +2512,7 @@ function confirmMapImport() {
     
     closeImportModal();
     
-    alert(`?��???{mapName}?��??��??��?`);
+    alert(`地圖「${mapName}」導入成功！`);
 }
 
 function renderImportedMapsList() {
@@ -2467,12 +2522,12 @@ function renderImportedMapsList() {
     const customMaps = JSON.parse(localStorage.getItem('sx_dating_custom_maps') || '[]');
     
     if (customMaps.length === 0) {
-        container.innerHTML = '<p class="no-maps">尚未導入任�??��?義地??/p>';
+        container.innerHTML = '<p class="no-maps">尚未導入任何自定義地圖</p>';
         return;
     }
     
     container.innerHTML = `
-        <h4>已�??��??��? (${customMaps.length})</h4>
+        <h4>已導入的地圖 (${customMaps.length})</h4>
         <div class="imported-maps-list">
             ${customMaps.map((map, idx) => `
                 <div class="imported-map-item" data-map-index="${idx}">
@@ -2481,7 +2536,7 @@ function renderImportedMapsList() {
                         <span class="imported-map-name">${map.name}</span>
                     </div>
                     <div class="imported-map-actions">
-                        <button class="imported-map-btn delete" onclick="deleteImportedMap(${idx})" title="?�除">
+                        <button class="imported-map-btn delete" onclick="deleteImportedMap(${idx})" title="刪除">
                             <i data-lucide="trash-2"></i>
                         </button>
                     </div>
@@ -2500,7 +2555,7 @@ function deleteImportedMap(index) {
     
     const mapName = customMaps[index].name;
     
-    if (confirm(`確�?要刪?�地?��?{mapName}?��?？`)) {
+    if (confirm(`確定要刪除地圖「${mapName}」嗎？`)) {
         customMaps.splice(index, 1);
         localStorage.setItem('sx_dating_custom_maps', JSON.stringify(customMaps));
         

@@ -57,12 +57,12 @@ function getWorldbookContext() {
     if (list && list.length > 0) {
       list.slice(0, 5).forEach(e => {
         if (e.enabled && e.title && e.content) {
-          entries.push(`??{e.title}??{e.content.slice(0, 200)}`);
+          entries.push(`【${e.title}】${e.content.slice(0, 200)}`);
         }
       });
     }
   }
-  return entries.length > 0 ? entries.join('\n') : '?��??�書設�?';
+  return entries.length > 0 ? entries.join('\n') : '無世界書設定';
 }
 
 function getWorldviewSetting() {
@@ -106,32 +106,32 @@ function getCommunityContext() {
   const haterProfiles = getHaterProfiles();
   
   const toneMap = {
-    friendly: '社群氛�??��?溫�?，大多數?�戶禮�?互�?',
-    neutral: '社群氛�?中�?�?��，混?��?種�?�?,
-    hostile: '社群氛�??�滿?�議，容?��??��??��??��?',
-    toxic: '社群氛�??��?，�??�罵人、攻?�性�?�?
+    friendly: '社群氛圍友善溫和，大多數用戶禮貌互動',
+    neutral: '社群氛圍中立正常，混合各種態度',
+    hostile: '社群氛圍充滿爭議，容易引發筆戰和攻擊',
+    toxic: '社群氛圍惡意，會有罵人、攻擊性言論'
   };
   
-  let context = `# 社群氛�?\n${toneMap[tone] || toneMap.neutral}\n`;
+  let context = `# 社群氛圍\n${toneMap[tone] || toneMap.neutral}\n`;
   
   const allowedTypes = [];
-  if (flags.criticism) allowedTypes.push('?��?言�?);
-  if (flags.sarcasm) allowedTypes.push('諷刺?�諷');
-  if (flags.arguments) allowedTypes.push('筆戰?�吵');
-  if (flags.trolling) allowedTypes.push('???引戰');
+  if (flags.criticism) allowedTypes.push('批評言論');
+  if (flags.sarcasm) allowedTypes.push('諷刺嘲諷');
+  if (flags.arguments) allowedTypes.push('筆戰爭吵');
+  if (flags.trolling) allowedTypes.push('釣魚引戰');
   
   if (allowedTypes.length > 0) {
-    context += `?�許?�內容�??? ${allowedTypes.join('??)}\n`;
+    context += `允許的內容類型: ${allowedTypes.join('、')}\n`;
   }
   
   if (npcPersonality) {
-    context += `\n# NPC ?��??�個性\n${npcPersonality}\n`;
+    context += `\n# NPC 回應者個性\n${npcPersonality}\n`;
   }
   
   if (hatersEnabled && haterProfiles) {
-    context += `\n# 負面?��??�設定\n${haterProfiles}\n`;
+    context += `\n# 負面回應者設定\n${haterProfiles}\n`;
   } else if (!hatersEnabled) {
-    context += `\n# 負面?��??�設定\n已�??��?不�??�現罵人?�攻?�性用?�\n`;
+    context += `\n# 負面回應者設定\n已關閉，不會出現罵人或攻擊性用戶\n`;
   }
   
   return context;
@@ -248,7 +248,7 @@ function getChatHistory(limit = 15) {
 
 function getChatHistoryContext() {
   const history = getChatHistory(15);
-  if (history.length === 0) return '?��?天�???;
+  if (history.length === 0) return '無聊天記錄';
   const user = getUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
@@ -271,12 +271,12 @@ function getApiConfig() {
 async function callAIAPI(messages, temperature = 0.85) {
   const config = getApiConfig();
   if (!config || !config.url) {
-    throw new Error('尚未設�? API');
+    throw new Error('尚未設定 API');
   }
 
   const apiType = config.type || 'openai';
   
-  // Gemini ?��? API ?��?
+  // Gemini 原生 API 格式
   if (apiType === 'gemini') {
     const model = config.model || 'gemini-1.5-flash';
     const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
@@ -311,7 +311,7 @@ async function callAIAPI(messages, temperature = 0.85) {
     });
     
     if (!response.ok) {
-      throw new Error(`Gemini API ?�誤 (${response.status})`);
+      throw new Error(`Gemini API 錯誤 (${response.status})`);
     }
     
     const data = await response.json();
@@ -319,7 +319,8 @@ async function callAIAPI(messages, temperature = 0.85) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   
-  // OpenAI ?�容?��??�自訂端�?  let endpoint;
+  // OpenAI 相容格式或自訂端點
+  let endpoint;
   if (apiType === 'custom') {
     endpoint = config.url;
   } else {
@@ -344,7 +345,7 @@ async function callAIAPI(messages, temperature = 0.85) {
   });
 
   if (!response.ok) {
-    throw new Error(`API ?�誤 (${response.status})`);
+    throw new Error(`API 錯誤 (${response.status})`);
   }
 
   const data = await response.json();
@@ -359,26 +360,26 @@ function buildTwitterContext() {
   const worldview = getWorldviewSetting();
   const communityContext = getCommunityContext();
 
-  let context = `# 使用?�設定\n?�稱: ${user.name}\n`;
-  if (user.personality) context += `?�格: ${user.personality}\n`;
-  if (user.background) context += `?�景: ${user.background}\n`;
+  let context = `# 使用者設定\n名稱: ${user.name}\n`;
+  if (user.personality) context += `性格: ${user.personality}\n`;
+  if (user.background) context += `背景: ${user.background}\n`;
 
   if (char) {
-    context += `\n# 角色設�?\n?�稱: ${char.name}\n`;
-    if (char.personality) context += `?�格: ${char.personality}\n`;
-    if (char.background) context += `?�景: ${char.background}\n`;
+    context += `\n# 角色設定\n名稱: ${char.name}\n`;
+    if (char.personality) context += `性格: ${char.personality}\n`;
+    if (char.background) context += `背景: ${char.background}\n`;
   }
 
-  context += `\n# 世�??�\n${worldbook}\n`;
+  context += `\n# 世界書\n${worldbook}\n`;
 
   if (worldview) {
-    context += `\n# 世�?觀設�?\n${worldview}\n`;
+    context += `\n# 世界觀設定\n${worldview}\n`;
   }
 
   context += `\n${communityContext}\n`;
 
-  if (chatHistory !== '?��?天�???) {
-    context += `\n# 近�?對話\n${chatHistory}\n`;
+  if (chatHistory !== '無聊天記錄') {
+    context += `\n# 近期對話\n${chatHistory}\n`;
   }
 
   return context;
@@ -388,7 +389,7 @@ let isGeneratingTweets = false;
 
 async function generateAITweets() {
   if (isGeneratingTweets) {
-    alert('�?��?��?中�?請�???..');
+    alert('正在生成中，請稍候...');
     return;
   }
 
@@ -397,7 +398,7 @@ async function generateAITweets() {
   const fabAiBtn = document.getElementById('fab-ai-generate');
   if (generateBtn) {
     generateBtn.disabled = true;
-    generateBtn.textContent = '?��?�?..';
+    generateBtn.textContent = '生成中...';
   }
   if (fabAiBtn) {
     fabAiBtn.disabled = true;
@@ -410,25 +411,32 @@ async function generateAITweets() {
     const generateUserTweets = shouldGenerateUserTweets();
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-    const systemPrompt = `你是一位�?業�?社群媒�??�容?��??��??�長?��?角色設�??�使?�者�??�創作符?�人?�性格?�推?��?請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"tweets": [{"author": "作者�?�?, "content": "?��??�容", "likes": ?��?讚數, "retweets": ?��?轉推?? "replies": ?��??��??�}]}`;
+    const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的推文。
+請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
+輸出格式為 JSON: {"tweets": [{"author": "作者名稱", "content": "推文內容", "likes": 隨機讚數, "retweets": 隨機轉推數, "replies": 隨機回覆數}]}`;
 
     let authors = [];
-    if (generateUserTweets) authors.push('�?);
+    if (generateUserTweets) authors.push('你');
     if (char) authors.push(char.name);
     if (npcFollows.length > 0) authors.push(...npcFollows);
 
     if (authors.length === 0) {
-      alert('請至少選?��??��??��? NPC');
+      alert('請至少選擇一個角色或 NPC');
       isGeneratingTweets = false;
       return;
     }
 
     const prompt = `${context}
 
-請為以�?作者�??��? 1-2 ?�推?��?${authors.join('??)}
-要�?�?1. 符�??��??�性格?�設�?2. ?�然?�入世�??��?世�?觀設�?
-3. ?��?社群氛�?調整語氣?�風??4. 每�??��? 30-100 �?5. 語氣?�然?��?互�???
-輸出 JSON ?��??�`;
+請為以下作者各生成 1-2 則推文：${authors.join('、')}
+要求：
+1. 符合各角色性格和設定
+2. 自然融入世界書和世界觀設定
+3. 根據社群氛圍調整語氣和風格
+4. 每則推文 30-100 字
+5. 語氣自然、有互動感
+
+輸出 JSON 格式。`;
 
     const result = await callAIAPI([
       { role: 'system', content: systemPrompt },
@@ -447,8 +455,8 @@ async function generateAITweets() {
 
     tweets.forEach(tweet => {
       if (tweet.content) {
-        const author = tweet.author || '�?;
-        if (author === '�?) {
+        const author = tweet.author || '你';
+        if (author === '你') {
           addTweet(tweet.content);
         } else {
           addNpcTweet(author, tweet.content);
@@ -457,15 +465,15 @@ async function generateAITweets() {
     });
 
     if (tweets.length === 0) {
-      alert('?��?失�?，�?稍�??�試');
+      alert('生成失敗，請稍後重試');
     }
   } catch (err) {
-    alert(`?��?失�?: ${err.message}`);
+    alert(`生成失敗: ${err.message}`);
   } finally {
     isGeneratingTweets = false;
     if (generateBtn) {
       generateBtn.disabled = false;
-      generateBtn.textContent = 'AI ?��??��?';
+      generateBtn.textContent = 'AI 生成推文';
     }
     if (fabAiBtn) {
       fabAiBtn.disabled = false;
@@ -500,10 +508,10 @@ function renderWorldbookMountList() {
   const index = getWorldbookIndex();
   const mounts = getWorldbookMounts();
   const mountMap = new Map(mounts.map(item => [item.name, item]));
-  const items = index.length ? index : [{ title: '?�用常�?�? }];
+  const items = index.length ? index : [{ title: '通用常識庫' }];
 
   wbMountList.innerHTML = items.map(entry => {
-    const name = entry.title || entry.name || '?�命?��??�書';
+    const name = entry.title || entry.name || '未命名世界書';
     const mount = mountMap.get(name) || {};
     const enabled = mount.enabled ?? false;
     const position = mount.position || 'mid';
@@ -514,9 +522,9 @@ function renderWorldbookMountList() {
           <span>${name}</span>
         </label>
         <select class="wb-mount-position" data-wb-name="${name}">
-          <option value="top" ${position === 'top' ? 'selected' : ''}>??/option>
-          <option value="mid" ${position === 'mid' ? 'selected' : ''}>�?/option>
-          <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>�?/option>
+          <option value="top" ${position === 'top' ? 'selected' : ''}>前</option>
+          <option value="mid" ${position === 'mid' ? 'selected' : ''}>中</option>
+          <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>後</option>
         </select>
       </div>
     `;
@@ -540,9 +548,9 @@ function saveWorldbookMounts() {
   });
   localStorage.setItem(WORLD_BOOK_MOUNTS_KEY, JSON.stringify(mounts));
   if (wbSaveBtn) {
-    wbSaveBtn.textContent = '已儲�?;
+    wbSaveBtn.textContent = '已儲存';
     setTimeout(() => {
-      wbSaveBtn.textContent = '?��??��?設�?';
+      wbSaveBtn.textContent = '儲存掛載設定';
     }, 1200);
   }
 }
@@ -563,7 +571,7 @@ function renderMountSelect(selectEl, list, activeName, placeholder) {
   const options = [];
   options.push(`<option value="">${placeholder}</option>`);
   list.forEach(item => {
-    const name = item.name || '?�命??;
+    const name = item.name || '未命名';
     const selected = activeName && activeName === name ? 'selected' : '';
     options.push(`<option value="${name}" ${selected}>${name}</option>`);
   });
@@ -575,8 +583,8 @@ function renderMountLists() {
   const userList = loadListFromStorage(USER_LIST_KEY);
   const activeChar = localStorage.getItem(ACTIVE_CHAR_KEY) || '';
   const activeUser = localStorage.getItem(ACTIVE_USER_KEY) || '';
-  renderMountSelect(mountCharSelect, charList, activeChar, '?��?角色');
-  renderMountSelect(mountUserSelect, userList, activeUser, '?��??�戶');
+  renderMountSelect(mountCharSelect, charList, activeChar, '選擇角色');
+  renderMountSelect(mountUserSelect, userList, activeUser, '選擇用戶');
   renderNpcFollowList();
 }
 
@@ -588,19 +596,19 @@ function renderNpcFollowList() {
   const follows = getNpcFollows();
   
   if (npcList.length === 0) {
-    container.innerHTML = '<div class="settings-hint">尚未建�? NPC</div>';
+    container.innerHTML = '<div class="settings-hint">尚未建立 NPC</div>';
     return;
   }
   
   container.innerHTML = npcList.map(npc => {
-    const name = npc.name || '?�命??;
+    const name = npc.name || '未命名';
     const isFollowed = follows.includes(name);
     return `
       <div class="npc-follow-item">
         <span class="npc-name">${name}</span>
         <label>
           <input type="checkbox" class="npc-follow-check" data-npc-name="${name}" ${isFollowed ? 'checked' : ''}>
-          <span>?�注</span>
+          <span>關注</span>
         </label>
       </div>
     `;
@@ -644,14 +652,14 @@ function saveTweetMemories(memories) {
 }
 
 function addTweetMemory(tweet) {
-  if (tweet.author === '�?) return;
+  if (tweet.author === '你') return;
   
   const memories = getTweetMemories();
   const existingMemory = memories.find(m => m.id === tweet.id || m.timestamp === tweet.timestamp);
   if (existingMemory) return;
   
   const date = new Date(tweet.timestamp || Date.now());
-  const dateStr = `${date.getFullYear()}�?{date.getMonth() + 1}??{date.getDate()}?�`;
+  const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
   
   memories.push({
     id: tweet.id || tweet.timestamp,
@@ -739,12 +747,12 @@ function saveUserTweets() {
   try {
     localStorage.setItem(USER_TWEETS_KEY, data);
   } catch (e) {
-    console.warn('[twitter] localStorage ?��?失�?:', e);
+    console.warn('[twitter] localStorage 儲存失敗:', e);
   }
   try {
     sessionStorage.setItem(USER_TWEETS_KEY, data);
   } catch (e) {
-    console.warn('[twitter] sessionStorage ?��?失�?:', e);
+    console.warn('[twitter] sessionStorage 儲存失敗:', e);
   }
 }
 
@@ -768,13 +776,13 @@ function loadUserTweets() {
   try {
     raw = localStorage.getItem(USER_TWEETS_KEY);
   } catch (e) {
-    console.warn('[twitter] localStorage 讀?�失??', e);
+    console.warn('[twitter] localStorage 讀取失敗:', e);
   }
   if (!raw) {
     try {
       raw = sessionStorage.getItem(USER_TWEETS_KEY);
     } catch (e) {
-      console.warn('[twitter] sessionStorage 讀?�失??', e);
+      console.warn('[twitter] sessionStorage 讀取失敗:', e);
     }
   }
   if (raw) {
@@ -782,7 +790,7 @@ function loadUserTweets() {
       const parsed = JSON.parse(raw);
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
-      console.warn('[twitter] JSON �??失�?:', e);
+      console.warn('[twitter] JSON 解析失敗:', e);
     }
   }
   return [];
@@ -821,7 +829,7 @@ function renderTweets() {
   displayTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
   if (displayTweets.length === 0) {
-    feedEl.innerHTML = '<div class="empty-state">歡�?使用?�特</div>';
+    feedEl.innerHTML = '<div class="empty-state">歡迎使用推特</div>';
     return;
   }
 
@@ -830,7 +838,7 @@ function renderTweets() {
     const isBookmarked = isTweetBookmarked(tweetId);
     const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
     const bookmarkClass = isBookmarked ? 'bookmarked' : '';
-    const isUserTweet = tweet.author === '�?;
+    const isUserTweet = tweet.author === '你';
     const avatarStyle = isUserTweet ? `style="background: ${profile.avatarGradient || 'linear-gradient(135deg, #2d89ef, #8ec5ff)'}"` : '';
     const displayName = isUserTweet ? profile.name : tweet.author;
     const displayHandle = isUserTweet ? profile.handle : tweet.handle;
@@ -882,9 +890,9 @@ function addTweet(content) {
   const trimmed = content.trim();
   if (!trimmed) return;
   const tweet = {
-    author: '�?,
+    author: '你',
     handle: '@you',
-    time: '?�在',
+    time: '現在',
     content: trimmed.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
     stats: { reply: 0, retweet: 0, like: 0 },
     timestamp: Date.now()
@@ -902,7 +910,7 @@ function addNpcTweet(npcName, content) {
   const tweet = {
     author: npcName,
     handle: `@${npcName.toLowerCase().replace(/\s+/g, '_')}`,
-    time: '?�在',
+    time: '現在',
     content: trimmed.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
     stats: { reply: 0, retweet: 0, like: 0 },
     timestamp: Date.now()
@@ -917,8 +925,8 @@ function addRetweetToFeed(retweeterName, tweetContent, originalAuthor) {
   npcTweets.unshift({
     author: retweeterName,
     handle: `@${retweeterName.toLowerCase().replace(/\s+/g, '_')}`,
-    time: '?�在',
-    content: `轉發�?@${originalAuthor} ?�推?�\n${tweetContent}`,
+    time: '現在',
+    content: `轉發了 @${originalAuthor} 的推文\n${tweetContent}`,
     stats: { reply: 0, retweet: 0, like: 0 },
     timestamp: Date.now(),
     isRetweet: true,
@@ -949,7 +957,7 @@ function toggleDrawer(open) {
 }
 
 function showComposeModal() {
-  const content = prompt('?��?麼新鮮�?�?);
+  const content = prompt('有什麼新鮮事？');
   if (content && content.trim()) {
     addTweet(content.trim());
   }
@@ -1012,9 +1020,9 @@ function bindEvents() {
     if (!replyGuidelinesInput) return;
     const value = replyGuidelinesInput.value.trim();
     localStorage.setItem(REPLY_GUIDELINES_KEY, value);
-    replyGuidelinesSaveBtn.textContent = '已儲�?;
+    replyGuidelinesSaveBtn.textContent = '已儲存';
     setTimeout(() => {
-      replyGuidelinesSaveBtn.textContent = '?��?注�?事�?';
+      replyGuidelinesSaveBtn.textContent = '儲存注意事項';
     }, 1200);
   });
 
@@ -1056,9 +1064,9 @@ function bindEvents() {
     if (!worldviewInput) return;
     const value = worldviewInput.value.trim();
     localStorage.setItem(WORLDVIEW_KEY, value);
-    worldviewSaveBtn.textContent = '已儲�?;
+    worldviewSaveBtn.textContent = '已儲存';
     setTimeout(() => {
-      worldviewSaveBtn.textContent = '?��?世�?觀';
+      worldviewSaveBtn.textContent = '儲存世界觀';
     }, 1200);
   });
 
@@ -1132,9 +1140,9 @@ function bindEvents() {
     if (haterProfilesInput) {
       localStorage.setItem(HATER_PROFILES_KEY, haterProfilesInput.value.trim());
     }
-    communitySaveBtn.textContent = '已儲�?;
+    communitySaveBtn.textContent = '已儲存';
     setTimeout(() => {
-      communitySaveBtn.textContent = '?��?社群設�?';
+      communitySaveBtn.textContent = '儲存社群設定';
     }, 1200);
   });
 
@@ -1147,13 +1155,13 @@ function bindEvents() {
   }
 }
 
-// iOS Safari / Android Chrome ?��?保護
+// iOS Safari / Android Chrome 儲存保護
 const saveTwitterData = () => {
   try {
     const guidelines = replyGuidelinesInput?.value || '';
     localStorage.setItem(REPLY_GUIDELINES_KEY, guidelines);
   } catch (e) {
-    console.warn('[twitter] 保�??��?失�?:', e);
+    console.warn('[twitter] 保存數據失敗:', e);
   }
   saveUserTweets();
 };
@@ -1333,7 +1341,7 @@ function executeReaction(reaction) {
       break;
       
     case 'reply':
-      const replies = ['?�個�?點�??�趣�?, '?��?�?, '說�?�?, '?��???, '?��??��?�?, '?��?沒錯', '?��??�麼覺�?', '太扯了吧', '?��??�享�?, '學到了新?�西'];
+      const replies = ['這個觀點很有趣！', '同意！', '說得好', '推一個', '真的假的？', '哈哈沒錯', '我也這麼覺得', '太扯了吧', '感謝分享！', '學到了新東西'];
       const replyContent = replies[Math.floor(Math.random() * replies.length)];
       addNotification({
         type: 'reply',

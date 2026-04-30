@@ -1,72 +1,73 @@
 /**
  * Twitch App - SXI Phone
- * 一?�仿 Twitch ?�直?�串流�??��?�? */
+ * 一個仿 Twitch 的直播串流應用程式
+ */
 
 (function() {
   'use strict';
 
-  // ==================== 模擬?��? ====================
+  // ==================== 模擬數據 ====================
   const mockData = {
     streams: [
       {
         id: 'stream-1',
-        title: '?�傳說�?決】�??�傳說段位�?一起�??��?',
-        streamer: '?�競小�?�?,
-        streamerAvatar: 'https://placehold.co/80x80/9146ff/ffffff?text=??,
-        game: '?�說對決',
+        title: '【傳說對決】挑戰傳說段位！一起衝分！',
+        streamer: '電競小王子',
+        streamerAvatar: 'https://placehold.co/80x80/9146ff/ffffff?text=王',
+        game: '傳說對決',
         viewers: 12580,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/9146ff?text=?�說對決',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/9146ff?text=傳說對決',
         isLive: true,
         category: 'gaming'
       },
       {
         id: 'stream-2',
-        title: '?�英?�聯?�】台?��??��?�?Day 3',
-        streamer: 'LOL大師??,
+        title: '【英雄聯盟】台服菁英之路 Day 3',
+        streamer: 'LOL大師兄',
         streamerAvatar: 'https://placehold.co/80x80/ff6b6b/ffffff?text=L',
-        game: '?��??��?',
+        game: '英雄聯盟',
         viewers: 8920,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/ff6b6b?text=?��??��?',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/ff6b6b?text=英雄聯盟',
         isLive: true,
         category: 'gaming'
       },
       {
         id: 'stream-3',
-        title: '?��??�天室�?今天?��??�麼�??',
-        streamer: '?��?主播',
-        streamerAvatar: 'https://placehold.co/80x80/ff9ff3/ffffff?text=??,
+        title: '晚安聊天室～今天過得怎麼樣？',
+        streamer: '甜心主播',
+        streamerAvatar: 'https://placehold.co/80x80/ff9ff3/ffffff?text=甜',
         game: 'Just Chatting',
         viewers: 5630,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/ff9ff3?text=?�天',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/ff9ff3?text=聊天',
         isLive: true,
         category: 'irl'
       },
       {
         id: 'stream-4',
-        title: '?��?神�?.5?�本?��??�抽?��?�?,
-        streamer: '?��??�略�?,
-        streamerAvatar: 'https://placehold.co/80x80/4ecdc4/ffffff?text=??,
-        game: '?��?',
+        title: '【原神】4.5版本新角色抽抽樂！',
+        streamer: '原神攻略組',
+        streamerAvatar: 'https://placehold.co/80x80/4ecdc4/ffffff?text=原',
+        game: '原神',
         viewers: 7840,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/4ecdc4?text=?��?',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/4ecdc4?text=原神',
         isLive: true,
         category: 'gaming'
       },
       {
         id: 'stream-5',
-        title: '深�??��??�台～放鬆�?�?,
-        streamer: 'DJ小�?',
+        title: '深夜音樂電台～放鬆一下',
+        streamer: 'DJ小夜',
         streamerAvatar: 'https://placehold.co/80x80/45b7d1/ffffff?text=D',
         game: 'Music',
         viewers: 3210,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/45b7d1?text=?��?',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/45b7d1?text=音樂',
         isLive: true,
         category: 'music'
       },
       {
         id: 'stream-6',
-        title: '?�VALORANT?�特?�英豪�?位賽',
-        streamer: 'FPS?��?',
+        title: '【VALORANT】特戰英豪排位賽',
+        streamer: 'FPS戰神',
         streamerAvatar: 'https://placehold.co/80x80/ff6348/ffffff?text=F',
         game: 'VALORANT',
         viewers: 6540,
@@ -76,20 +77,20 @@
       },
       {
         id: 'stream-7',
-        title: '繪�??�播～�?天�??�風?�畫',
+        title: '繪圖直播～今天來畫風景畫',
         streamer: '繪師小櫻',
-        streamerAvatar: 'https://placehold.co/80x80/ffa502/ffffff?text=�?,
+        streamerAvatar: 'https://placehold.co/80x80/ffa502/ffffff?text=繪',
         game: 'Art',
         viewers: 1890,
-        thumbnail: 'https://placehold.co/640x360/1a1a2e/ffa502?text=繪�?',
+        thumbnail: 'https://placehold.co/640x360/1a1a2e/ffa502?text=繪圖',
         isLive: true,
         category: 'creative'
       },
       {
         id: 'stream-8',
-        title: '?�Minecraft?��?存建築�??��?',
-        streamer: '麥�??�人',
-        streamerAvatar: 'https://placehold.co/80x80/2ed573/ffffff?text=�?,
+        title: '【Minecraft】生存建築挑戰！',
+        streamer: '麥塊達人',
+        streamerAvatar: 'https://placehold.co/80x80/2ed573/ffffff?text=麥',
         game: 'Minecraft',
         viewers: 4320,
         thumbnail: 'https://placehold.co/640x360/1a1a2e/2ed573?text=Minecraft',
@@ -98,54 +99,54 @@
       }
     ],
     categories: [
-      { id: 'cat-1', name: '?�說對決', viewers: 45680, cover: 'https://placehold.co/300x400/9146ff/ffffff?text=?�說對決' },
-      { id: 'cat-2', name: '?��??��?', viewers: 38420, cover: 'https://placehold.co/300x400/ff6b6b/ffffff?text=?��??��?' },
-      { id: 'cat-3', name: 'Just Chatting', viewers: 28930, cover: 'https://placehold.co/300x400/ff9ff3/ffffff?text=?�天' },
-      { id: 'cat-4', name: '?��?', viewers: 24560, cover: 'https://placehold.co/300x400/4ecdc4/ffffff?text=?��?' },
+      { id: 'cat-1', name: '傳說對決', viewers: 45680, cover: 'https://placehold.co/300x400/9146ff/ffffff?text=傳說對決' },
+      { id: 'cat-2', name: '英雄聯盟', viewers: 38420, cover: 'https://placehold.co/300x400/ff6b6b/ffffff?text=英雄聯盟' },
+      { id: 'cat-3', name: 'Just Chatting', viewers: 28930, cover: 'https://placehold.co/300x400/ff9ff3/ffffff?text=聊天' },
+      { id: 'cat-4', name: '原神', viewers: 24560, cover: 'https://placehold.co/300x400/4ecdc4/ffffff?text=原神' },
       { id: 'cat-5', name: 'VALORANT', viewers: 19870, cover: 'https://placehold.co/300x400/ff6348/ffffff?text=VALORANT' },
       { id: 'cat-6', name: 'Minecraft', viewers: 16430, cover: 'https://placehold.co/300x400/2ed573/ffffff?text=Minecraft' }
     ],
     followedChannels: [
-      { id: 'follow-1', name: '?�競小�?�?, game: '?�說對決', viewers: 12580, avatar: 'https://placehold.co/60x60/9146ff/ffffff?text=??, isLive: true },
-      { id: 'follow-2', name: '?��?主播', game: 'Just Chatting', viewers: 5630, avatar: 'https://placehold.co/60x60/ff9ff3/ffffff?text=??, isLive: true },
-      { id: 'follow-3', name: '?�戲實�?�?, game: '', viewers: 0, avatar: 'https://placehold.co/60x60/71717a/ffffff?text=??, isLive: false }
+      { id: 'follow-1', name: '電競小王子', game: '傳說對決', viewers: 12580, avatar: 'https://placehold.co/60x60/9146ff/ffffff?text=王', isLive: true },
+      { id: 'follow-2', name: '甜心主播', game: 'Just Chatting', viewers: 5630, avatar: 'https://placehold.co/60x60/ff9ff3/ffffff?text=甜', isLive: true },
+      { id: 'follow-3', name: '遊戲實況主', game: '', viewers: 0, avatar: 'https://placehold.co/60x60/71717a/ffffff?text=遊', isLive: false }
     ],
     recommendedChannels: [
-      { id: 'rec-1', name: 'LOL大師??, game: '?��??��?', viewers: 8920, avatar: 'https://placehold.co/60x60/ff6b6b/ffffff?text=L', isLive: true },
-      { id: 'rec-2', name: '?��??�略�?, game: '?��?', viewers: 7840, avatar: 'https://placehold.co/60x60/4ecdc4/ffffff?text=??, isLive: true },
-      { id: 'rec-3', name: 'FPS?��?', game: 'VALORANT', viewers: 6540, avatar: 'https://placehold.co/60x60/ff6348/ffffff?text=F', isLive: true }
+      { id: 'rec-1', name: 'LOL大師兄', game: '英雄聯盟', viewers: 8920, avatar: 'https://placehold.co/60x60/ff6b6b/ffffff?text=L', isLive: true },
+      { id: 'rec-2', name: '原神攻略組', game: '原神', viewers: 7840, avatar: 'https://placehold.co/60x60/4ecdc4/ffffff?text=原', isLive: true },
+      { id: 'rec-3', name: 'FPS戰神', game: 'VALORANT', viewers: 6540, avatar: 'https://placehold.co/60x60/ff6348/ffffff?text=F', isLive: true }
     ],
     featuredStreams: [
       {
         id: 'featured-1',
-        title: '?�電競錦標賽?�總決賽?�播',
-        streamer: '官方?�播',
-        game: '?�競賽�?',
+        title: '【電競錦標賽】總決賽直播',
+        streamer: '官方直播',
+        game: '電競賽事',
         viewers: 156780,
-        thumbnail: 'https://placehold.co/1280x720/1a1a2e/9146ff?text=?�競?��?�?
+        thumbnail: 'https://placehold.co/1280x720/1a1a2e/9146ff?text=電競錦標賽'
       },
       {
         id: 'featured-2',
-        title: '?�新?�戲?�表?��?024?�季?�表??,
-        streamer: '?�戲官方',
+        title: '【新遊戲發表會】2024春季發表會',
+        streamer: '遊戲官方',
         game: 'Special Events',
         viewers: 89340,
-        thumbnail: 'https://placehold.co/1280x720/1a1a2e/ff6b6b?text=?�表??
+        thumbnail: 'https://placehold.co/1280x720/1a1a2e/ff6b6b?text=發表會'
       },
       {
         id: 'featured-3',
-        title: '?�音樂祭?��?上�??��??�播',
-        streamer: '?��??��?',
+        title: '【音樂祭】線上演唱會直播',
+        streamer: '音樂頻道',
         game: 'Music',
         viewers: 45620,
-        thumbnail: 'https://placehold.co/1280x720/1a1a2e/45b7d1?text=?��?�?
+        thumbnail: 'https://placehold.co/1280x720/1a1a2e/45b7d1?text=音樂祭'
       }
     ],
-    searchHistory: ['?�說對決', 'LOL', '?��?', 'Just Chatting'],
-    trendingSearches: ['?�競?��?�?, '?��??�發表�?', '?��?�?, '?�卡實�?', '?��??�戰']
+    searchHistory: ['傳說對決', 'LOL', '原神', 'Just Chatting'],
+    trendingSearches: ['電競錦標賽', '新遊戲發表會', '音樂祭', '抽卡實況', '生存挑戰']
   };
 
-  // ==================== ?�?�管??====================
+  // ==================== 狀態管理 ====================
   const state = {
     currentCategory: 'all',
     currentTab: 'home',
@@ -157,7 +158,7 @@
     streamPageOpen: false
   };
 
-  // ==================== DOM ?��? ====================
+  // ==================== DOM 元素 ====================
   const elements = {
     backBtn: document.getElementById('backBtn'),
     menuBtn: document.getElementById('menuBtn'),
@@ -191,10 +192,10 @@
     followerCount: document.getElementById('followerCount')
   };
 
-  // ==================== 工具?�數 ====================
+  // ==================== 工具函數 ====================
   function formatViewers(num) {
     if (num >= 10000) {
-      return (num / 10000).toFixed(1) + '??;
+      return (num / 10000).toFixed(1) + '萬';
     } else if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
     }
@@ -210,7 +211,7 @@
     return newArray;
   }
 
-  // ==================== 渲�??�數 ====================
+  // ==================== 渲染函數 ====================
   function renderChannels(container, channels) {
     container.innerHTML = '';
     
@@ -223,7 +224,7 @@
         </div>
         <div class="channel-info">
           <div class="channel-name">${channel.name}</div>
-          <div class="channel-game">${channel.game || '?��?'}</div>
+          <div class="channel-game">${channel.game || '離線'}</div>
         </div>
         ${channel.isLive ? `
           <div class="channel-viewers">
@@ -260,10 +261,11 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="6"/>
             </svg>
-            ?�播�?          </div>
+            直播中
+          </div>
           <div class="featured-title">${stream.title}</div>
           <div class="featured-streamer">${stream.streamer}</div>
-          <div class="featured-game">${stream.game} · ${formatViewers(stream.viewers)} 位�???/div>
+          <div class="featured-game">${stream.game} · ${formatViewers(stream.viewers)} 位觀眾</div>
         </div>
       `;
       
@@ -271,7 +273,7 @@
         const fullStream = {
           ...stream,
           id: stream.id,
-          streamerAvatar: 'https://placehold.co/80x80/9146ff/ffffff?text=�?
+          streamerAvatar: 'https://placehold.co/80x80/9146ff/ffffff?text=官'
         };
         openStreamPage(fullStream);
       });
@@ -321,7 +323,7 @@
       card.innerHTML = `
         <div class="stream-thumbnail">
           <img src="${stream.thumbnail}" alt="${stream.title}">
-          <span class="stream-live-badge">?�播�?/span>
+          <span class="stream-live-badge">直播中</span>
           <span class="stream-viewers">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="6"/>
@@ -357,15 +359,16 @@
           <img src="${category.cover}" alt="${category.name}">
         </div>
         <div class="category-name">${category.name}</div>
-        <div class="category-viewers">${formatViewers(category.viewers)} 位�???/div>
+        <div class="category-viewers">${formatViewers(category.viewers)} 位觀眾</div>
       `;
       
       card.addEventListener('click', () => {
-        // 點�??��??�篩?�直??        const categoryMap = {
-          '?�說對決': 'gaming',
-          '?��??��?': 'gaming',
+        // 點擊分類時篩選直播
+        const categoryMap = {
+          '傳說對決': 'gaming',
+          '英雄聯盟': 'gaming',
           'Just Chatting': 'irl',
-          '?��?': 'gaming',
+          '原神': 'gaming',
           'VALORANT': 'esports',
           'Minecraft': 'gaming'
         };
@@ -422,11 +425,11 @@
 
   function renderChatMessages() {
     const messages = [
-      { username: '小�?', message: '主播好強�?, type: 'normal' },
-      { username: '管�???, message: '歡�?大家來到?�播?��?', type: 'moderator' },
-      { username: '訂閱?�A', message: '已�??��??��?了�?', type: 'subscriber' },
-      { username: '路人??, message: '第�?次�??�直??, type: 'normal' },
-      { username: '粉絲B', message: '主播?�油�?, type: 'normal' }
+      { username: '小明', message: '主播好強！', type: 'normal' },
+      { username: '管理員', message: '歡迎大家來到直播間～', type: 'moderator' },
+      { username: '訂閱者A', message: '已訂閱三個月了！', type: 'subscriber' },
+      { username: '路人甲', message: '第一次來看直播', type: 'normal' },
+      { username: '粉絲B', message: '主播加油！', type: 'normal' }
     ];
     
     elements.chatMessages.innerHTML = '';
@@ -441,10 +444,11 @@
       elements.chatMessages.appendChild(messageEl);
     });
     
-    // 滾�??��???    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    // 滾動到底部
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
   }
 
-  // ==================== ?�面?��? ====================
+  // ==================== 頁面操作 ====================
   function openStreamPage(stream) {
     state.currentStream = stream;
     state.isFollowing = false;
@@ -452,9 +456,9 @@
     elements.streamerName.textContent = stream.streamer;
     elements.streamCategory.textContent = stream.game;
     elements.streamerTitle.textContent = stream.streamer;
-    elements.streamerBio.textContent = `歡�?來到 ${stream.streamer} ?�直?��?！`;
+    elements.streamerBio.textContent = `歡迎來到 ${stream.streamer} 的直播間！`;
     elements.streamerAvatar.src = stream.streamerAvatar;
-    elements.viewerCount.textContent = `${formatViewers(stream.viewers)} 位�??�`;
+    elements.viewerCount.textContent = `${formatViewers(stream.viewers)} 位觀眾`;
     elements.followerCount.textContent = `${Math.floor(Math.random() * 100 + 10)}K 位追蹤者`;
     
     updateFollowButton();
@@ -476,7 +480,7 @@
   }
 
   function updateFollowButton() {
-    elements.followBtn.textContent = state.isFollowing ? '已追�? : '追蹤';
+    elements.followBtn.textContent = state.isFollowing ? '已追蹤' : '追蹤';
     elements.followBtn.classList.toggle('following', state.isFollowing);
   }
 
@@ -495,7 +499,7 @@
   function performSearch(query) {
     if (!query.trim()) return;
     
-    // 模擬?��?結�?
+    // 模擬搜尋結果
     const results = mockData.streams.filter(s => 
       s.title.toLowerCase().includes(query.toLowerCase()) ||
       s.streamer.toLowerCase().includes(query.toLowerCase()) ||
@@ -506,7 +510,8 @@
     
     if (results.length > 0) {
       renderStreams();
-      // 滾�??�直?��???      document.querySelector('.streams-section').scrollIntoView({ behavior: 'smooth' });
+      // 滾動到直播區域
+      document.querySelector('.streams-section').scrollIntoView({ behavior: 'smooth' });
     }
   }
 
@@ -524,7 +529,7 @@
   }
 
   function addCategory() {
-    const categoryName = prompt('請輸?�新主�??�稱�?);
+    const categoryName = prompt('請輸入新主題名稱：');
     if (!categoryName || !categoryName.trim()) return;
     
     const categoryId = categoryName.trim().toLowerCase().replace(/\s+/g, '-');
@@ -564,7 +569,7 @@
       item.classList.toggle('active', item.dataset.tab === tab);
     });
     
-    // ?��?標籤顯示不�??�容
+    // 根據標籤顯示不同內容
     if (tab === 'following') {
       renderStreams('all');
     } else {
@@ -579,7 +584,7 @@
     const messageEl = document.createElement('div');
     messageEl.className = 'chat-message';
     messageEl.innerHTML = `
-      <span class="chat-username">??</span>
+      <span class="chat-username">我:</span>
       <span class="chat-text">${message}</span>
     `;
     elements.chatMessages.appendChild(messageEl);
@@ -587,16 +592,17 @@
     elements.chatInput.value = '';
   }
 
-  // ==================== 事件綁�? ====================
+  // ==================== 事件綁定 ====================
   function bindEvents() {
-    // 返�?
+    // 返回
     elements.backBtn.addEventListener('click', () => {
       window.parent?.postMessage({ type: 'closeApp' }, '*');
     });
 
-    // ?��?�?    elements.menuBtn.addEventListener('click', toggleSidebar);
+    // 側邊欄
+    elements.menuBtn.addEventListener('click', toggleSidebar);
     
-    // ?��?
+    // 搜尋
     elements.searchBtn.addEventListener('click', openSearch);
     elements.closeSearchBtn.addEventListener('click', closeSearch);
     elements.searchInput.addEventListener('keypress', (e) => {
@@ -605,7 +611,7 @@
       }
     });
     
-    // ?�播?�面
+    // 直播頁面
     elements.closeStreamBtn.addEventListener('click', closeStreamPage);
     elements.followBtn.addEventListener('click', toggleFollow);
     elements.sendChatBtn.addEventListener('click', sendChatMessage);
@@ -615,7 +621,7 @@
       }
     });
     
-    // 標籤?��?
+    // 標籤切換
     document.querySelectorAll('.stream-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.stream-tab').forEach(t => t.classList.remove('active'));
@@ -627,7 +633,7 @@
       });
     });
     
-    // ?��?標籤
+    // 分類標籤
     if (elements.categorySelect) {
       elements.categorySelect.addEventListener('change', (e) => {
         switchCategory(e.target.value);
@@ -647,7 +653,8 @@
       });
     });
     
-    // 點�?外部?��??��?�?    document.addEventListener('click', (e) => {
+    // 點擊外部關閉側邊欄
+    document.addEventListener('click', (e) => {
       if (state.sidebarOpen && 
           !elements.sidebar.contains(e.target) && 
           !elements.menuBtn.contains(e.target)) {
@@ -655,7 +662,8 @@
       }
     });
     
-    // ?�盤快捷??    document.addEventListener('keydown', (e) => {
+    // 鍵盤快捷鍵
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (state.streamPageOpen) {
           closeStreamPage();
@@ -668,7 +676,7 @@
     });
   }
 
-  // ==================== Settings ?��? ====================
+  // ==================== Settings 整合 ====================
   function loadSxSettings() {
     if (typeof SxSettings === 'undefined') return null;
     return SxSettings.getSettingsSnapshot();
@@ -683,12 +691,12 @@
     return SxSettings.getNpcByName(streamerName);
   }
 
-  // ==================== iOS Safari / Android Chrome ?��?保護 ====================
+  // ==================== iOS Safari / Android Chrome 儲存保護 ====================
   const saveTwitchData = () => {
     try {
       localStorage.setItem('sx_twitch_search_history', JSON.stringify(mockData.searchHistory));
     } catch (e) {
-      console.warn('[twitch] 保�??��?失�?:', e);
+      console.warn('[twitch] 保存數據失敗:', e);
     }
   };
 
@@ -700,7 +708,7 @@
     if (event.data?.type === 'APP_WILL_CLOSE') saveTwitchData();
   });
 
-  // ==================== ?��???====================
+  // ==================== 初始化 ====================
   function init() {
     const settings = loadSxSettings();
     if (settings) {
@@ -725,14 +733,14 @@
     console.log('Twitch app initialized');
   }
 
-  // ?��??�用
+  // 啟動應用
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  // ==================== AI ?��??�能 ====================
+  // ==================== AI 生成功能 ====================
   function getTwitchWorldbookData() {
     const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
     const result = {};
@@ -757,12 +765,12 @@
       if (list && list.length > 0) {
         list.slice(0, 5).forEach(e => {
           if (e.title && e.content) {
-            entries.push(`??{e.title}??{e.content.slice(0, 200)}`);
+            entries.push(`【${e.title}】${e.content.slice(0, 200)}`);
           }
         });
       }
     }
-    return entries.length > 0 ? entries.join('\n') : '?��??�書設�?';
+    return entries.length > 0 ? entries.join('\n') : '無世界書設定';
   }
 
   function getTwitchCharacterData(name) {
@@ -803,7 +811,7 @@
 
   function getTwitchChatHistoryContext() {
     const history = getTwitchChatHistory(15);
-    if (history.length === 0) return '?��?天�???;
+    if (history.length === 0) return '無聊天記錄';
     const user = getTwitchUserData();
     return history.map(msg => {
       const role = msg.role === 'user' ? user.name : '角色';
@@ -826,12 +834,12 @@
   async function callTwitchAIAPI(messages, temperature = 0.85) {
     const config = getTwitchApiConfig();
     if (!config || !config.url) {
-      throw new Error('尚未設�? API');
+      throw new Error('尚未設定 API');
     }
 
     const apiType = config.type || 'openai';
     
-    // Gemini ?��? API ?��?
+    // Gemini 原生 API 格式
     if (apiType === 'gemini') {
       const model = config.model || 'gemini-1.5-flash';
       const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
@@ -866,7 +874,7 @@
       });
       
       if (!response.ok) {
-        throw new Error('Gemini API ?�誤 (' + response.status + ')');
+        throw new Error('Gemini API 錯誤 (' + response.status + ')');
       }
       
       const data = await response.json();
@@ -874,7 +882,8 @@
       return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
     
-    // OpenAI ?�容?��??�自訂端�?    let endpoint;
+    // OpenAI 相容格式或自訂端點
+    let endpoint;
     if (apiType === 'custom') {
       endpoint = config.url;
     } else {
@@ -899,7 +908,7 @@
     });
 
     if (!response.ok) {
-      throw new Error(`API ?�誤 (${response.status})`);
+      throw new Error(`API 錯誤 (${response.status})`);
     }
 
     const data = await response.json();
@@ -912,20 +921,20 @@
     const worldbook = getTwitchWorldbookContext();
     const chatHistory = getTwitchChatHistoryContext();
 
-    let context = `# 使用?�設定\n?�稱: ${user.name}\n`;
-    if (user.personality) context += `?�格: ${user.personality}\n`;
-    if (user.background) context += `?�景: ${user.background}\n`;
+    let context = `# 使用者設定\n名稱: ${user.name}\n`;
+    if (user.personality) context += `性格: ${user.personality}\n`;
+    if (user.background) context += `背景: ${user.background}\n`;
 
     if (char) {
-      context += `\n# 角色設�?\n?�稱: ${char.name}\n`;
-      if (char.personality) context += `?�格: ${char.personality}\n`;
-      if (char.background) context += `?�景: ${char.background}\n`;
+      context += `\n# 角色設定\n名稱: ${char.name}\n`;
+      if (char.personality) context += `性格: ${char.personality}\n`;
+      if (char.background) context += `背景: ${char.background}\n`;
     }
 
-    context += `\n# 世�??�\n${worldbook}\n`;
+    context += `\n# 世界書\n${worldbook}\n`;
 
-    if (chatHistory !== '?��?天�???) {
-      context += `\n# 近�?對話\n${chatHistory}\n`;
+    if (chatHistory !== '無聊天記錄') {
+      context += `\n# 近期對話\n${chatHistory}\n`;
     }
 
     return context;
@@ -935,7 +944,7 @@
 
   async function generateAIStreams() {
     if (isGeneratingStreams) {
-      alert('�?��?��?中�?請�???..');
+      alert('正在生成中，請稍候...');
       return;
     }
 
@@ -945,14 +954,19 @@
       const context = buildTwitchContext();
       const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-      const systemPrompt = `你是一位�?業�??�播?�容?��??��??�長?��?角色設�??�使?�者�??�創作符?�人?�性格?�直?��?題�??�述??請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"streams": [{"title": "?�播標�?", "streamer": "實�?主�?�?, "game": "?�戲?�稱", "viewers": 觀?�人?�}]}`;
+      const systemPrompt = `你是一位專業的直播內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的直播標題和描述。
+請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
+輸出格式為 JSON: {"streams": [{"title": "直播標題", "streamer": "實況主名稱", "game": "遊戲名稱", "viewers": 觀看人數}]}`;
 
       const prompt = `${context}
 
-請�???3 ??Twitch ?�播，�?求�?
-1. 符�?角色?�格?�使?�者設�?2. ?�然?�入世�??�設�?3. 標�?要�??��???4. ?�以?��??�、�?天、音樂�?類�?
+請生成 3 個 Twitch 直播，要求：
+1. 符合角色性格和使用者設定
+2. 自然融入世界書設定
+3. 標題要有吸引力
+4. 可以是遊戲、聊天、音樂等類型
 
-輸出 JSON ?��??�`;
+輸出 JSON 格式。`;
 
       const result = await callTwitchAIAPI([
         { role: 'system', content: systemPrompt },
@@ -974,7 +988,7 @@
           mockData.streams.unshift({
             id: `ai-stream-${Date.now()}-${index}`,
             title: stream.title,
-            streamer: stream.streamer || 'AI 實�?�?,
+            streamer: stream.streamer || 'AI 實況主',
             streamerAvatar: 'https://placehold.co/80x80/9146ff/ffffff?text=AI',
             game: stream.game || 'Just Chatting',
             viewers: stream.viewers || Math.floor(Math.random() * 10000),
@@ -988,10 +1002,10 @@
       if (streams.length > 0) {
         renderStreams();
       } else {
-        alert('?��?失�?，�?稍�??�試');
+        alert('生成失敗，請稍後重試');
       }
     } catch (err) {
-      alert(`?��?失�?: ${err.message}`);
+      alert(`生成失敗: ${err.message}`);
     } finally {
       isGeneratingStreams = false;
     }
