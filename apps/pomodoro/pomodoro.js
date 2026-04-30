@@ -186,15 +186,28 @@
   }
 
   function getActiveMask(){
-    // 優先從 sx_char_name / sx_char_avatar 讀取當前激活角色
     const charName = localStorage.getItem('sx_char_name');
-    const charAvatar = localStorage.getItem('sx_char_avatar');
     
-    if (charName && charName !== '預設用戶') {
+    if (charName) {
+      const raw = localStorage.getItem('sx_characters');
+      if (raw) {
+        try {
+          const chars = JSON.parse(raw);
+          const found = chars.find(c => c.name === charName);
+          if (found) {
+            return { 
+              name: found.name, 
+              avatar: found.avatar || '' 
+            };
+          }
+        } catch (e) {
+          console.warn('[pomodoro] 解析 sx_characters 失敗:', e);
+        }
+      }
+      const charAvatar = localStorage.getItem('sx_char_avatar');
       return { name: charName, avatar: charAvatar || '' };
     }
     
-    // 其次檢查 sx_masks
     const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     if (masks.length > 0 && masks[0] && masks[0].name) {
       return { 
@@ -203,7 +216,6 @@
       };
     }
     
-    // 最後使用預設值
     return { name: 'AI 夥伴', avatar: '' };
   }
 

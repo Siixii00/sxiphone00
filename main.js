@@ -119,8 +119,10 @@
             }
 
             if (requestMethod) {
+                localStorage.setItem('sx_fullscreen_preferred', 'true');
                 return requestMethod().catch(err => {
                     console.warn('[BrowserCompat] 全螢幕請求失敗:', err);
+                    localStorage.removeItem('sx_fullscreen_preferred');
                     if (browser.isIOS && browser.isSafari) {
                         this.showIOSFullscreenTip();
                     }
@@ -135,6 +137,7 @@
         },
 
         exitFullscreen() {
+            localStorage.removeItem('sx_fullscreen_preferred');
             if (document.exitFullscreen) {
                 return document.exitFullscreen();
             } else if (document.webkitExitFullscreen) {
@@ -221,13 +224,36 @@
             events.forEach(event => {
                 document.addEventListener(event, callback);
             });
+        },
+
+        setupFullscreenPersistence() {
+            const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+            events.forEach(event => {
+                document.addEventListener(event, () => {
+                    const isFs = this.isFullscreen();
+                    if (!isFs) {
+                        const preferred = localStorage.getItem('sx_fullscreen_preferred');
+                        if (preferred === 'true') {
+                            setTimeout(() => {
+                                if (!this.isFullscreen()) {
+                                    localStorage.removeItem('sx_fullscreen_preferred');
+                                }
+                            }, 1000);
+                        }
+                    }
+                });
+            });
         }
     };
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => BrowserCompat.applyFixes());
+        document.addEventListener('DOMContentLoaded', () => {
+            BrowserCompat.applyFixes();
+            BrowserCompat.setupFullscreenPersistence();
+        });
     } else {
         BrowserCompat.applyFixes();
+        BrowserCompat.setupFullscreenPersistence();
     }
 
     window.SxBrowserCompat = BrowserCompat;
@@ -5230,6 +5256,15 @@ const handleEnd = (y) => {
         if (document.visibilityState === 'hidden') {
             console.log('頁面變為不可見，保存數據...');
             saveAllData();
+        } else if (document.visibilityState === 'visible') {
+            const preferredFullscreen = localStorage.getItem('sx_fullscreen_preferred');
+            if (preferredFullscreen === 'true' && window.SxBrowserCompat) {
+                const isCurrentlyFullscreen = window.SxBrowserCompat.isFullscreen();
+                if (!isCurrentlyFullscreen) {
+                    console.log('[Fullscreen] 恢復全螢幕模式...');
+                    window.SxBrowserCompat.requestFullscreen().catch(() => {});
+                }
+            }
         }
     });
 

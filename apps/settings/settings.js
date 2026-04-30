@@ -773,10 +773,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     refreshGitHubSection();
 
     const arrayBufferToBase64 = (buffer) => {
-        let binary = '';
         const bytes = new Uint8Array(buffer);
-        for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
+        const chunkSize = 8192;
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+            const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.byteLength));
+            binary += String.fromCharCode.apply(null, Array.from(chunk));
         }
         return btoa(binary);
     };
@@ -791,9 +793,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const encodeToBase64 = (str) => {
-        const encoder = new TextEncoder();
-        const uint8Array = encoder.encode(str);
-        return arrayBufferToBase64(uint8Array.buffer);
+        try {
+            const encoder = new TextEncoder();
+            const uint8Array = encoder.encode(str);
+            return arrayBufferToBase64(uint8Array.buffer);
+        } catch (e) {
+            console.error('[encodeToBase64] Error:', e);
+            return btoa(unescape(encodeURIComponent(str)));
+        }
     };
 
     const decodeFromBase64 = (base64) => {
@@ -972,10 +979,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
 
             const jsonStr = JSON.stringify(payload, null, 2);
+            
+            if (jsonStr.length > 1024 * 1024) {
+                console.warn('[GitHub 備份] 資料過大，嘗試壓縮...');
+            }
+            
             const contentBase64 = encodeToBase64(jsonStr);
 
-            if (contentBase64.length > 70 * 1024 * 1024) {
-                throw new Error('備份資料過大（超過 70MB），請減少資料量');
+            if (contentBase64.length > 1024 * 1024) {
+                throw new Error(`備份資料過大 (${Math.round(contentBase64.length / 1024 / 1024)}MB)，GitHub API 限制 1MB。請減少資料量或使用本地導出。`);
             }
 
             if (statusEl) statusEl.textContent = '正在上傳備份...';
@@ -1165,12 +1177,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const payload = sanitizeBackup(jsonStr);
 
-            if (!payload.data) {
+            let dataToRestore = null;
+            
+            if (payload.data) {
+                dataToRestore = payload.data;
+            } else if (payload.localStorage || payload.localforage) {
+                dataToRestore = {
+                    localStorage: payload.localStorage || {},
+                    localforage: payload.localforage || {}
+                };
+            } else if (payload.masks || payload.apis) {
+                dataToRestore = {
+                    localStorage: {},
+                    localforage: {}
+                };
+                if (payload.masks) {
+                    dataToRestore.localStorage['sx_masks'] = JSON.stringify(payload.masks);
+                    dataToRestore.localStorage['sx_characters'] = JSON.stringify(payload.masks);
+                }
+                if (payload.apis) {
+                    dataToRestore.localStorage['api_configs'] = JSON.stringify(payload.apis);
+                }
+                if (payload.activeApiIndex !== undefined) {
+                    dataToRestore.localStorage['sx_active_api'] = String(payload.activeApiIndex);
+                }
+                ['sxiphone_lang', 'sxiphone_region', 'sx_user_name', 'sx_user_avatar', 'sx_user_personality', 'sx_user_background'].forEach(key => {
+                    if (payload[key]) {
+                        dataToRestore.localStorage[key] = payload[key];
+                    }
+                });
+            }
+
+            if (!dataToRestore) {
                 throw new Error('備份格式不正確或已損壞');
             }
 
             if (statusEl) statusEl.textContent = '正在還原資料...';
-            const count = await restoreAllStorageData(payload.data);
+            const count = await restoreAllStorageData(dataToRestore);
 
             localStorage.setItem('sx_github_last_sync', new Date().toLocaleString());
             localStorage.setItem('sx_github_user', owner);
@@ -1270,6 +1313,677 @@ document.addEventListener('DOMContentLoaded', async () => {
         const success = await githubPullBackup(githubStatus);
         if (success) refreshGitHubSection();
     });
+
+    // ==================== Supabase 緊急備援 ====================
+    const SUPABASE_URL_KEY = 'sx_supabase_url';
+    const SUPABASE_KEY_KEY = 'sx_supabase_key';
+    const SUPABASE_TABLE_KEY = 'sx_supabase_table';
+
+    const supabaseUrlInput = document.getElementById('supabase-url');
+    const supabaseKeyInput = document.getElementById('supabase-key');
+    const supabaseTableInput = document.getElementById('supabase-table');
+    const supabaseSaveBtn = document.getElementById('supabase-save');
+    const supabasePushBtn = document.getElementById('supabase-push');
+    const supabasePullBtn = document.getElementById('supabase-pull');
+    const supabaseTestBtn = document.getElementById('supabase-test');
+    const supabaseClearBtn = document.getElementById('supabase-clear');
+    const supabaseStatusEl = document.getElementById('supabase-status');
+
+    const loadSupabaseSettings = () => {
+        const savedUrl = localStorage.getItem(SUPABASE_URL_KEY);
+        const savedKey = localStorage.getItem(SUPABASE_KEY_KEY);
+        const savedTable = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
+        
+        if (supabaseUrlInput) supabaseUrlInput.value = savedUrl || '';
+        if (supabaseKeyInput) supabaseKeyInput.value = savedKey || '';
+        if (supabaseTableInput) supabaseTableInput.value = savedTable;
+        
+        if (savedUrl && savedKey) {
+            if (supabaseStatusEl) supabaseStatusEl.textContent = '已設定，尚未測試連線';
+        }
+    };
+
+    const setSupabaseStatus = (text) => {
+        if (supabaseStatusEl) supabaseStatusEl.textContent = text;
+    };
+
+    const getSupabaseHeaders = (key) => ({
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+    });
+
+    const testSupabaseConnection = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
+
+        if (!url || !key) {
+            setSupabaseStatus('❌ 請先設定 URL 和 Key');
+            return false;
+        }
+
+        setSupabaseStatus('正在測試連線...');
+        try {
+            const resp = await fetch(`${url}/rest/v1/${table}?select=count&limit=1`, {
+                headers: getSupabaseHeaders(key)
+            });
+            
+            if (resp.ok) {
+                setSupabaseStatus('✅ 連線成功');
+                return true;
+            } else if (resp.status === 404) {
+                setSupabaseStatus('⚠️ 資料表不存在，將自動建立');
+                return true;
+            } else {
+                const errData = await resp.json().catch(() => ({}));
+                setSupabaseStatus(`❌ 連線失敗: ${errData.message || resp.status}`);
+                return false;
+            }
+        } catch (err) {
+            setSupabaseStatus(`❌ 連線錯誤: ${err.message}`);
+            return false;
+        }
+    };
+
+    const supabasePushBackup = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
+
+        if (!url || !key) {
+            setSupabaseStatus('❌ 請先設定 URL 和 Key');
+            return false;
+        }
+
+        setSupabaseStatus('正在收集資料...');
+        try {
+            const allData = await collectAllStorageData();
+            const payload = {
+                id: `backup_${Date.now()}`,
+                version: '3.0',
+                exported_at: new Date().toISOString(),
+                device: navigator.userAgent,
+                data: allData,
+                user_id: localStorage.getItem('sx_user_name') || 'default'
+            };
+
+            setSupabaseStatus('正在上傳備份...');
+            const resp = await fetch(`${url}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: getSupabaseHeaders(key),
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                
+                if (resp.status === 404) {
+                    setSupabaseStatus('資料表不存在，請先在 Supabase 建立資料表');
+                    return false;
+                }
+                
+                throw new Error(errData.message || `上傳失敗 (${resp.status})`);
+            }
+
+            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            setSupabaseStatus('✅ 推送備份完成');
+            return true;
+        } catch (err) {
+            console.error('[Supabase] 備份錯誤:', err);
+            setSupabaseStatus(`❌ 推送失敗: ${err.message}`);
+            return false;
+        }
+    };
+
+    const supabasePullBackup = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
+
+        if (!url || !key) {
+            setSupabaseStatus('❌ 請先設定 URL 和 Key');
+            return false;
+        }
+
+        setSupabaseStatus('正在下載備份...');
+        try {
+            const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
+                headers: getSupabaseHeaders(key)
+            });
+
+            if (!resp.ok) {
+                throw new Error(`下載失敗 (${resp.status})`);
+            }
+
+            const backups = await resp.json();
+            if (!backups || backups.length === 0) {
+                setSupabaseStatus('❌ 找不到備份資料');
+                return false;
+            }
+
+            const latestBackup = backups[0];
+            setSupabaseStatus('正在還原資料...');
+
+            const dataToRestore = latestBackup.data;
+            if (!dataToRestore) {
+                throw new Error('備份格式不正確');
+            }
+
+            const count = await restoreAllStorageData(dataToRestore);
+            
+            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            setSupabaseStatus(`✅ 拉取還原完成 (${count} 筆資料)`);
+            
+            alert(`✅ 已成功還原 ${count} 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。`);
+            return true;
+        } catch (err) {
+            console.error('[Supabase] 還原錯誤:', err);
+            setSupabaseStatus(`❌ 拉取失敗: ${err.message}`);
+            return false;
+        }
+    };
+
+    supabaseSaveBtn?.addEventListener('click', () => {
+        if (supabaseUrlInput?.value) {
+            localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
+        }
+        if (supabaseKeyInput?.value) {
+            localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
+        }
+        if (supabaseTableInput?.value) {
+            localStorage.setItem(SUPABASE_TABLE_KEY, supabaseTableInput.value.trim());
+        }
+        setSupabaseStatus('✅ 設定已儲存');
+    });
+
+    supabaseTestBtn?.addEventListener('click', testSupabaseConnection);
+    supabasePushBtn?.addEventListener('click', supabasePushBackup);
+    supabasePullBtn?.addEventListener('click', supabasePullBackup);
+
+    supabaseClearBtn?.addEventListener('click', () => {
+        if (!confirm('確定要清除 Supabase 設定？')) return;
+        localStorage.removeItem(SUPABASE_URL_KEY);
+        localStorage.removeItem(SUPABASE_KEY_KEY);
+        localStorage.removeItem(SUPABASE_TABLE_KEY);
+        localStorage.removeItem('sx_supabase_last_sync');
+        if (supabaseUrlInput) supabaseUrlInput.value = '';
+        if (supabaseKeyInput) supabaseKeyInput.value = '';
+        setSupabaseStatus('已清除設定');
+    });
+
+    loadSupabaseSettings();
+
+    // ==================== Supabase 一鍵設定 ====================
+    const supabaseQuickUrlInput = document.getElementById('supabase-quick-url');
+    const supabaseQuickKeyInput = document.getElementById('supabase-quick-key');
+    const supabaseAutoToggle = document.getElementById('supabase-auto-toggle');
+    const supabaseQuickEnableBtn = document.getElementById('supabase-quick-enable');
+    const supabaseQuickTestBtn = document.getElementById('supabase-quick-test');
+    const supabaseQuickStatusEl = document.getElementById('supabase-quick-status');
+    const supabaseLastSyncEl = document.getElementById('supabase-last-sync');
+    const supabaseBackupCountEl = document.getElementById('supabase-backup-count');
+
+    const SUPABASE_AUTO_BACKUP_KEY = 'sx_supabase_auto_backup';
+    const SUPABASE_BACKUP_COUNT_KEY = 'sx_supabase_backup_count';
+    const SUPABASE_LAST_SYNC_KEY = 'sx_supabase_last_sync';
+
+    const loadSupabaseQuickSettings = () => {
+        const savedUrl = localStorage.getItem(SUPABASE_URL_KEY);
+        const savedKey = localStorage.getItem(SUPABASE_KEY_KEY);
+        const autoEnabled = localStorage.getItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
+        const lastSync = localStorage.getItem(SUPABASE_LAST_SYNC_KEY);
+        const backupCount = localStorage.getItem(SUPABASE_BACKUP_COUNT_KEY) || '0';
+
+        if (supabaseQuickUrlInput) supabaseQuickUrlInput.value = savedUrl || '';
+        if (supabaseQuickKeyInput) supabaseQuickKeyInput.value = savedKey || '';
+        if (supabaseAutoToggle) supabaseAutoToggle.checked = autoEnabled;
+        if (supabaseLastSyncEl) supabaseLastSyncEl.textContent = lastSync || '-';
+        if (supabaseBackupCountEl) supabaseBackupCountEl.textContent = backupCount;
+
+        updateSupabaseQuickStatus();
+    };
+
+    const updateSupabaseQuickStatus = () => {
+        if (!supabaseQuickStatusEl) return;
+
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const autoEnabled = localStorage.getItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
+
+        if (!url || !key) {
+            supabaseQuickStatusEl.textContent = '尚未設定';
+            supabaseQuickStatusEl.style.color = '#666';
+        } else if (autoEnabled) {
+            supabaseQuickStatusEl.textContent = '✅ 已啟用，每 10 則對話自動備份';
+            supabaseQuickStatusEl.style.color = '#34C759';
+        } else {
+            supabaseQuickStatusEl.textContent = '已設定，尚未啟用自動備份';
+            supabaseQuickStatusEl.style.color = '#007AFF';
+        }
+    };
+
+    const createSupabaseTableSQL = `
+CREATE TABLE sxiphone_backups (
+  id TEXT PRIMARY KEY,
+  version TEXT,
+  exported_at TIMESTAMPTZ,
+  device TEXT,
+  data JSONB,
+  user_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security (optional)
+ALTER TABLE sxiphone_backups ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow all operations (adjust as needed)
+CREATE POLICY "Allow all operations" ON sxiphone_backups
+  FOR ALL USING (true) WITH CHECK (true);
+`;
+
+    const attemptCreateSupabaseTable = async (url, key, table) => {
+        try {
+            const testPayload = {
+                id: `test_${Date.now()}`,
+                version: '3.0',
+                exported_at: new Date().toISOString(),
+                device: 'test',
+                data: { test: true },
+                user_id: 'test'
+            };
+
+            const resp = await fetch(`${url}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(testPayload)
+            });
+
+            if (resp.ok) {
+                return { success: true };
+            } else if (resp.status === 404) {
+                return { 
+                    success: false, 
+                    needManualCreate: true,
+                    sql: createSupabaseTableSQL
+                };
+            } else {
+                const errData = await resp.json().catch(() => ({}));
+                return { 
+                    success: false, 
+                    error: errData.message || `HTTP ${resp.status}`
+                };
+            }
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    };
+
+    const enableSupabaseQuickBackup = async () => {
+        const url = supabaseQuickUrlInput?.value?.trim();
+        const key = supabaseQuickKeyInput?.value?.trim();
+
+        if (!url || !key) {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '❌請填入 URL 和 Key';
+                supabaseQuickStatusEl.style.color = '#FF453A';
+            }
+            return;
+        }
+
+        if (!url.includes('supabase.co')) {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '❌ URL 格式不正確';
+                supabaseQuickStatusEl.style.color = '#FF453A';
+            }
+            return;
+        }
+
+        if (supabaseQuickStatusEl) {
+            supabaseQuickStatusEl.textContent = '正在設定...';
+            supabaseQuickStatusEl.style.color = '#007AFF';
+        }
+
+        localStorage.setItem(SUPABASE_URL_KEY, url);
+        localStorage.setItem(SUPABASE_KEY_KEY, key);
+        localStorage.setItem(SUPABASE_TABLE_KEY, 'sxiphone_backups');
+
+        const tableResult = await attemptCreateSupabaseTable(url, key, 'sxiphone_backups');
+
+        if (tableResult.success) {
+            localStorage.setItem(SUPABASE_AUTO_BACKUP_KEY, 'true');
+            localStorage.setItem(SUPABASE_BACKUP_COUNT_KEY, '0');
+            
+            if (supabaseAutoToggle) supabaseAutoToggle.checked = true;
+            updateSupabaseQuickStatus();
+            
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '✅ 已啟用，每 10 則對話自動備份';
+                supabaseQuickStatusEl.style.color = '#34C759';
+            }
+        } else if (tableResult.needManualCreate) {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '⚠️ 資料表不存在，需手動建立';
+                supabaseQuickStatusEl.style.color = '#FF9500';
+            }
+            
+            const shouldCopySQL = confirm(
+                'Supabase 資料表不存在。\n\n' +
+                '請到 Supabase Dashboard → SQL Editor 建立資料表。\n\n' +
+                '是否複製 SQL 語句到剪貼板？'
+            );
+            
+            if (shouldCopySQL) {
+                try {
+                    await navigator.clipboard.writeText(createSupabaseTableSQL);
+                    alert('SQL 語句已複製！\n\n請到 Supabase SQL Editor 貼上並執行，然後再點擊「一鍵啟用」。');
+                } catch (e) {
+                    alert('無法複製到剪貼板，請手動複製以下 SQL：\n\n' + createSupabaseTableSQL);
+                }
+            }
+        } else {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = `❌ 設定失敗: ${tableResult.error}`;
+                supabaseQuickStatusEl.style.color = '#FF453A';
+            }
+        }
+    };
+
+    const testSupabaseQuickConnection = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+
+        if (!url || !key) {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '❌請先設定 URL 和 Key';
+                supabaseQuickStatusEl.style.color = '#FF453A';
+            }
+            return;
+        }
+
+        if (supabaseQuickStatusEl) {
+            supabaseQuickStatusEl.textContent = '正在測試連線...';
+            supabaseQuickStatusEl.style.color = '#007AFF';
+        }
+
+        const result = await testSupabaseConnection();
+
+        if (result) {
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '✅連線成功';
+                supabaseQuickStatusEl.style.color = '#34C759';
+                setTimeout(updateSupabaseQuickStatus, 2000);
+            }
+        }
+    };
+
+    supabaseQuickEnableBtn?.addEventListener('click', enableSupabaseQuickBackup);
+    supabaseQuickTestBtn?.addEventListener('click', testSupabaseQuickConnection);
+
+    supabaseAutoToggle?.addEventListener('change', () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+
+        if (!url || !key && supabaseAutoToggle.checked) {
+            supabaseAutoToggle.checked = false;
+            if (supabaseQuickStatusEl) {
+                supabaseQuickStatusEl.textContent = '❌請先設定 URL 和 Key';
+                supabaseQuickStatusEl.style.color = '#FF453A';
+            }
+            return;
+        }
+
+        localStorage.setItem(SUPABASE_AUTO_BACKUP_KEY, supabaseAutoToggle.checked ? 'true' : 'false');
+        updateSupabaseQuickStatus();
+    });
+
+    loadSupabaseQuickSettings();
+
+    // ==================== 自動備份設定 ====================
+    const autoBackupEnabledToggle = document.getElementById('auto-backup-enabled');
+    const autoBackupGithubToggle = document.getElementById('auto-backup-github');
+    const autoBackupSupabaseToggle = document.getElementById('auto-backup-supabase');
+    const autoBackupLocalToggle = document.getElementById('auto-backup-local');
+    const autoBackupSaveBtn = document.getElementById('auto-backup-save');
+    const autoBackupNowBtn = document.getElementById('auto-backup-now');
+    const autoBackupStatusEl = document.getElementById('auto-backup-status');
+
+    const loadAutoBackupSettings = () => {
+        const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
+        const github = localStorage.getItem('sx_auto_backup_github') === 'true';
+        const supabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
+        const local = localStorage.getItem('sx_auto_backup_local') === 'true';
+
+        if (autoBackupEnabledToggle) autoBackupEnabledToggle.checked = enabled;
+        if (autoBackupGithubToggle) autoBackupGithubToggle.checked = github;
+        if (autoBackupSupabaseToggle) autoBackupSupabaseToggle.checked = supabase;
+        if (autoBackupLocalToggle) autoBackupLocalToggle.checked = local;
+
+        updateAutoBackupStatus();
+    };
+
+    const updateAutoBackupStatus = () => {
+        if (!autoBackupStatusEl) return;
+
+        const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
+        const targets = [];
+        
+        if (localStorage.getItem('sx_auto_backup_github') === 'true') targets.push('GitHub');
+        if (localStorage.getItem('sx_auto_backup_supabase') === 'true') targets.push('Supabase');
+        if (localStorage.getItem('sx_auto_backup_local') === 'true') targets.push('本地');
+
+        if (!enabled) {
+            autoBackupStatusEl.textContent = '自動備份已停用';
+        } else if (targets.length === 0) {
+            autoBackupStatusEl.textContent = '已啟用，但未選擇備份目標';
+        } else {
+            autoBackupStatusEl.textContent = `已啟用，備份到: ${targets.join(', ')}`;
+        }
+    };
+
+    autoBackupSaveBtn?.addEventListener('click', () => {
+        localStorage.setItem('sx_auto_backup_enabled', autoBackupEnabledToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
+
+        updateAutoBackupStatus();
+        if (autoBackupStatusEl) {
+            autoBackupStatusEl.textContent = '✅ 設定已儲存';
+            setTimeout(updateAutoBackupStatus, 2000);
+        }
+    });
+
+    autoBackupNowBtn?.addEventListener('click', async () => {
+        if (autoBackupStatusEl) autoBackupStatusEl.textContent = '正在執行備份...';
+
+        const results = { github: null, supabase: null, local: null };
+
+        if (localStorage.getItem('sx_auto_backup_github') === 'true') {
+            try {
+                results.github = await githubPushBackup(autoBackupStatusEl);
+            } catch (e) {
+                results.github = false;
+            }
+        }
+
+        if (localStorage.getItem('sx_auto_backup_supabase') === 'true') {
+            try {
+                results.supabase = await supabasePushBackup();
+            } catch (e) {
+                results.supabase = false;
+            }
+        }
+
+        if (localStorage.getItem('sx_auto_backup_local') === 'true') {
+            try {
+                await quickBackupFull();
+                results.local = true;
+            } catch (e) {
+                results.local = false;
+            }
+        }
+
+        const successCount = Object.values(results).filter(v => v === true).length;
+        const totalTargets = Object.values(results).filter(v => v !== null).length;
+
+        if (autoBackupStatusEl) {
+            autoBackupStatusEl.textContent = `✅ 備份完成 (${successCount}/${totalTargets} 成功)`;
+        }
+    });
+
+    loadAutoBackupSettings();
+
+    // ==================== 本地檔案備援 ====================
+    const localFolderExportBtn = document.getElementById('local-folder-export');
+    const localFolderImportBtn = document.getElementById('local-folder-import');
+    const localFolderStatusEl = document.getElementById('local-folder-status');
+    const quickBackupFullBtn = document.getElementById('quick-backup-full');
+    const quickBackupMinimalBtn = document.getElementById('quick-backup-minimal');
+
+    const exportToFolder = async () => {
+        if (!('showSaveFilePicker' in window)) {
+            if (localFolderStatusEl) localFolderStatusEl.textContent = '瀏覽器不支援 File System API';
+            return false;
+        }
+
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: `sxiphone_backup_${new Date().toISOString().slice(0, 10)}.json`,
+                types: [{
+                    description: 'JSON Backup',
+                    accept: { 'application/json': ['.json'] }
+                }]
+            });
+
+            const writable = await handle.createWritable();
+            
+            const allData = await collectAllStorageData();
+            const payload = {
+                version: '3.0',
+                exportedAt: new Date().toISOString(),
+                device: navigator.userAgent,
+                data: allData
+            };
+
+            await writable.write(JSON.stringify(payload, null, 2));
+            await writable.close();
+
+            if (localFolderStatusEl) localFolderStatusEl.textContent = '✅ 已匯出到本地檔案';
+            return true;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                if (localFolderStatusEl) localFolderStatusEl.textContent = '已取消';
+            } else {
+                if (localFolderStatusEl) localFolderStatusEl.textContent = `❌ 匯出失敗: ${err.message}`;
+            }
+            return false;
+        }
+    };
+
+    const importFromFolder = async () => {
+        if (!('showOpenFilePicker' in window)) {
+            if (localFolderStatusEl) localFolderStatusEl.textContent = '瀏覽器不支援 File System API';
+            return false;
+        }
+
+        try {
+            const [handle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'JSON Backup',
+                    accept: { 'application/json': ['.json'] }
+                }]
+            });
+
+            const file = await handle.getFile();
+            const content = await file.text();
+            const payload = JSON.parse(content);
+
+            if (!payload.data && !payload.localStorage) {
+                throw new Error('備份格式不正確');
+            }
+
+            let dataToRestore = payload.data || { localStorage: payload.localStorage || {}, localforage: payload.localforage || {} };
+            const count = await restoreAllStorageData(dataToRestore);
+
+            if (localFolderStatusEl) localFolderStatusEl.textContent = `✅ 已從本地檔案還原 (${count} 筆資料)`;
+            alert(`✅ 已成功還原 ${count} 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。`);
+            return true;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                if (localFolderStatusEl) localFolderStatusEl.textContent = '已取消';
+            } else {
+                if (localFolderStatusEl) localFolderStatusEl.textContent = `❌ 匯入失敗: ${err.message}`;
+            }
+            return false;
+        }
+    };
+
+    const quickBackupFull = async () => {
+        const allData = await collectAllStorageData();
+        const payload = {
+            version: '3.0',
+            exportedAt: new Date().toISOString(),
+            device: navigator.userAgent,
+            data: allData
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `sxiphone_full_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+
+        if (localFolderStatusEl) localFolderStatusEl.textContent = '✅ 完整備份已下載';
+    };
+
+    const quickBackupMinimal = async () => {
+        const minimalData = {
+            masks: JSON.parse(localStorage.getItem('sx_masks') || '[]'),
+            characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
+            users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
+            activeCharName: localStorage.getItem('sx_char_name'),
+            userName: localStorage.getItem('sx_user_name'),
+            apiConfigs: JSON.parse(localStorage.getItem('api_configs') || '[]')
+        };
+
+        const payload = {
+            version: '3.0-minimal',
+            exportedAt: new Date().toISOString(),
+            data: { localStorage: {}, localforage: {} }
+        };
+
+        for (const [key, value] of Object.entries(minimalData)) {
+            if (value !== null && value !== undefined) {
+                payload.data.localStorage[key] = typeof value === 'string' ? value : JSON.stringify(value);
+            }
+        }
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `sxiphone_minimal_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+
+        if (localFolderStatusEl) localFolderStatusEl.textContent = '✅ 最小備份已下載';
+    };
+
+    localFolderExportBtn?.addEventListener('click', exportToFolder);
+    localFolderImportBtn?.addEventListener('click', importFromFolder);
+    quickBackupFullBtn?.addEventListener('click', quickBackupFull);
+    quickBackupMinimalBtn?.addEventListener('click', quickBackupMinimal);
 
     const applySelectedChar = (char) => {
         if (!char) {
@@ -1669,27 +2383,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 5. 修正導出備份邏輯
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
-        exportBtn.onclick = () => {
-            const dataToExport = UserEnv.isIOS() ? iosTempData : {
+        exportBtn.onclick = async () => {
+            const allStorageData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key) continue;
+                if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
+                    const value = localStorage.getItem(key);
+                    if (value && !isFunctionString(value)) {
+                        allStorageData[key] = value;
+                    }
+                }
+            }
+
+            const dataToExport = {
+                version: '3.0',
+                exportedAt: new Date().toISOString(),
+                device: navigator.userAgent,
+                localStorage: allStorageData,
                 masks, 
                 apis, 
-                activeApiIndex,
-                lang: localStorage.getItem('sxiphone_lang'),
-                region: localStorage.getItem('sxiphone_region'),
-                userName: localStorage.getItem('sx_user_name'),
-                userAvatar: localStorage.getItem('sx_user_avatar'),
-                userPersonality: localStorage.getItem('sx_user_personality'),
-                userBackground: localStorage.getItem('sx_user_background'),
-                appFolders: collectAppFolders()
+                activeApiIndex
             };
 
-            if (!dataToExport) return alert('尚無資料可供導出');
+            if (typeof localforage !== 'undefined') {
+                try {
+                    const persistedData = await localforage.getItem('sx_app_persisted_data');
+                    if (persistedData) {
+                        dataToExport.localforage = persistedData;
+                    }
+                } catch (e) {
+                    console.warn('[Export] localforage read failed:', e);
+                }
+            }
             
             const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `sx_backup_${new Date().getTime()}.json`;
+            a.download = `sx_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
         };
     }
 
@@ -2112,19 +2847,43 @@ function handleImport(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = evt => {
+    reader.onload = async evt => {
         try {
             const data = JSON.parse(evt.target.result);
+            
+            if (data.localStorage) {
+                for (const [key, value] of Object.entries(data.localStorage)) {
+                    if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
+                        localStorage.setItem(key, value);
+                    }
+                }
+            }
+            
+            if (data.localforage && typeof localforage !== 'undefined') {
+                try {
+                    await localforage.setItem('sx_app_persisted_data', data.localforage);
+                } catch (lfErr) {
+                    console.warn('[Import] localforage restore failed:', lfErr);
+                }
+            }
+            
             masks = data.masks || masks;
             apis = data.apis || apis;
             activeApiIndex = data.activeApiIndex ?? 0;
+            
             if (data.appFolders) {
                 restoreAppFolders(data.appFolders);
             }
+            
             saveAll();
-            renderMasks(); renderApis();
-            alert('✅ 備份已導入');
-        } catch (err) { alert('❌ 解析失敗'); }
+            renderMasks(); 
+            renderApis();
+            
+            alert('✅ 備份已導入！\n\n建議重新整理頁面以確保所有資料正確載入。');
+        } catch (err) { 
+            console.error('[Import] 解析失敗:', err);
+            alert('❌ 解析失敗：' + err.message); 
+        }
     };
     reader.readAsText(file);
 }

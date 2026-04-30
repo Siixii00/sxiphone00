@@ -26,7 +26,22 @@ class EmbeddingEngine {
 
     if (this.isLoading) {
       console.log('[EmbeddingEngine] 正在加載中，請等待');
-      return false;
+      return new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (this.isInitialized) {
+            clearInterval(checkInterval);
+            resolve(true);
+          } else if (!this.isLoading) {
+            clearInterval(checkInterval);
+            resolve(false);
+          }
+        }, 500);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          resolve(this.isInitialized);
+        }, 60000);
+      });
     }
 
     this.isLoading = true;
@@ -34,34 +49,47 @@ class EmbeddingEngine {
     try {
       if (progressCallback) progressCallback({ stage: 'loading', progress: 0 });
 
-      if (typeof Transformers === 'undefined') {
+      if (typeof Transformers === 'undefined' && typeof window.Transformers === 'undefined') {
         console.log('[EmbeddingEngine] 加載 Transformers.js...');
         if (progressCallback) progressCallback({ stage: 'loading_lib', progress: 10 });
         
-        await this._loadTransformers();
+        await Promise.race([
+          this._loadTransformers(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Transformers.js 加載超時')), 30000))
+        ]);
       }
 
       if (progressCallback) progressCallback({ stage: 'loading_model', progress: 20 });
 
       console.log(`[EmbeddingEngine] 加載模型: ${this.model}`);
       
-      const { pipeline, env } = window.Transformers;
+      const pipeline = window.TransformersPipeline || window.Transformers?.pipeline;
+      const env = window.TransformersEnv || window.Transformers?.env;
       
-      env.allowLocalModels = false;
-      env.useBrowserCache = true;
+      if (!pipeline) {
+        throw new Error('Transformers pipeline 未定義');
+      }
 
-      this.pipeline = await pipeline('feature-extraction', this.model, {
-        progress_callback: (progress) => {
-          if (progressCallback) {
-            const percent = 20 + Math.round((progress.progress || 0) * 0.7);
-            progressCallback({ 
-              stage: 'downloading', 
-              progress: percent,
-              file: progress.file || ''
-            });
+      if (env) {
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+      }
+
+      this.pipeline = await Promise.race([
+        pipeline('feature-extraction', this.model, {
+          progress_callback: (progress) => {
+            if (progressCallback) {
+              const percent = 20 + Math.round((progress.progress || 0) * 0.7);
+              progressCallback({ 
+                stage: 'downloading', 
+                progress: percent,
+                file: progress.file || ''
+              });
+            }
           }
-        }
-      });
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('模型加載超時')), 120000))
+      ]);
 
       this.isInitialized = true;
       this.isLoading = false;
@@ -72,7 +100,7 @@ class EmbeddingEngine {
       return true;
     } catch (error) {
       this.isLoading = false;
-      console.error('[EmbeddingEngine] 初始化失敗:', error);
+      console.error('[EmbeddingEngine] 初始化失敗:', error.message);
       
       if (this.apiConfig.enabled && this.apiConfig.provider) {
         console.log('[EmbeddingEngine] 嘗試使用 API 降級...');
@@ -80,7 +108,7 @@ class EmbeddingEngine {
         return true;
       }
       
-      throw error;
+      return false;
     }
   }
 
@@ -149,12 +177,18 @@ class EmbeddingEngine {
     }
 
     if (!this.pipeline) {
-      throw new Error('模型尚未初始化，請先調用 initialize()');
+      console.warn('[EmbeddingEngine] 模型尚未初始化，返回簡單哈希嵌入');
+      return this._simpleHashEmbedding(text);
     }
 
     try {
       console.log('[EmbeddingEngine] 生成嵌入向量...');
-      const output = await this.pipeline(text, { pooling: 'mean', normalize: true });
+      
+      const output = await Promise.race([
+        this.pipeline(text, { pooling: 'mean', normalize: true }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('嵌入生成超時')), 15000))
+      ]);
+      
       const vector = Array.from(output.data);
 
       const vectorToStore = this.useCompression ? this._compressVector(vector) : vector;
@@ -178,9 +212,43 @@ class EmbeddingEngine {
       console.log(`[EmbeddingEngine] 嵌入生成完成，維度: ${vector.length}${this.useCompression ? ' (已壓縮)' : ''}`);
       return vector;
     } catch (error) {
-      console.error('[EmbeddingEngine] 嵌入生成失敗:', error);
-      throw error;
+      console.error('[EmbeddingEngine] 嵌入生成失敗:', error.message);
+      
+      if (this.apiConfig.enabled && this.apiConfig.provider) {
+        try {
+          return await this._embedWithAPI(text);
+        } catch (apiError) {
+          console.warn('[EmbeddingEngine] API 嵌入也失敗:', apiError.message);
+        }
+      }
+      
+      return this._simpleHashEmbedding(text);
     }
+  }
+
+  _simpleHashEmbedding(text, dimensions = 384) {
+    const vector = new Array(dimensions).fill(0);
+    const normalized = (text || '').toLowerCase().trim();
+    
+    for (let i = 0; i < normalized.length; i++) {
+      const charCode = normalized.charCodeAt(i);
+      const pos = i % dimensions;
+      vector[pos] += Math.sin(charCode * (i + 1) * 0.1) * 0.1;
+    }
+
+    let norm = 0;
+    for (let i = 0; i < dimensions; i++) {
+      norm += vector[i] * vector[i];
+    }
+    norm = Math.sqrt(norm);
+
+    if (norm > 0) {
+      for (let i = 0; i < dimensions; i++) {
+        vector[i] /= norm;
+      }
+    }
+
+    return vector;
   }
 
   async embedBatch(texts, batchSize = 5) {

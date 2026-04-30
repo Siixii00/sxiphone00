@@ -1169,3 +1169,65 @@ textarea::-webkit-scrollbar, .ios-textarea::-webkit-scrollbar {
     width: 16px !important;
     height: 16px !important;
 }
+
+.ios-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ios-border);
+}
+
+.ios-toggle-row:last-child {
+    border-bottom: none;
+}
+
+.toggle-label {
+    font-size: 15px;
+    color: var(--ios-text);
+}
+
+.ios-toggle {
+    position: relative;
+    width: 51px;
+    height: 31px;
+    display: inline-block;
+}
+
+.ios-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--ios-secondary-bg);
+    transition: 0.3s;
+    border-radius: 31px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.ios-toggle input:checked + .toggle-slider {
+    background-color: var(--ios-green);
+}
+
+.ios-toggle input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}

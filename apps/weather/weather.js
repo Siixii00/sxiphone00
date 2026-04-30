@@ -180,10 +180,47 @@ const elements = {
 };
 
 function loadCharFromChats() {
+    const charName = localStorage.getItem('sx_char_name');
+    
+    if (charName) {
+        const raw = localStorage.getItem('sx_characters');
+        if (raw) {
+            try {
+                const chars = JSON.parse(raw);
+                const found = chars.find(c => c.name === charName);
+                if (found) {
+                    if (!elements.charName || !elements.charAvatar) return;
+                    elements.charName.textContent = found.name || '未命名角色';
+                    if (found.avatar) {
+                        elements.charAvatar.innerHTML = `<img src="${found.avatar}" alt="${found.name}" />`;
+                        elements.charAvatar.classList.add('image');
+                    } else {
+                        elements.charAvatar.textContent = found.name.charAt(0) || '?';
+                    }
+                    if (elements.charPlaceholder) elements.charPlaceholder.style.display = 'none';
+                    return;
+                }
+            } catch (e) {
+                console.warn('[Weather] 解析 sx_characters 失敗:', e);
+            }
+        }
+        const charAvatar = localStorage.getItem('sx_char_avatar');
+        if (!elements.charName || !elements.charAvatar) return;
+        elements.charName.textContent = charName || '未命名角色';
+        if (charAvatar) {
+            elements.charAvatar.innerHTML = `<img src="${charAvatar}" alt="${charName}" />`;
+            elements.charAvatar.classList.add('image');
+        } else {
+            elements.charAvatar.textContent = charName.charAt(0) || '?';
+        }
+        if (elements.charPlaceholder) elements.charPlaceholder.style.display = 'none';
+        return;
+    }
+
     const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     const activeMask = masks[0] || {};
-    const name = activeMask.name || localStorage.getItem('sx_char_name') || '';
-    const avatar = activeMask.avatar || localStorage.getItem('sx_char_avatar') || '';
+    const name = activeMask.name || '';
+    const avatar = activeMask.avatar || '';
 
     if (!elements.charName || !elements.charAvatar) return;
 

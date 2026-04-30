@@ -126,7 +126,9 @@ class UnifiedMemorySystem {
           memoryStore: this.memoryStore,
           embeddingEngine: this.embeddingEngine,
           classifier: this.classifier,
-          shortTermMemory: this.shortTermMemory
+          standardizer: this.memoryStandardizer || null,
+          shortTermMemory: this.shortTermMemory,
+          chatMemoryIntegration: null
         });
       }
       

@@ -10,6 +10,68 @@ const UserEnv = {
     }
 };
 
+let supabaseMessageCountSinceLastBackup = 0;
+const SUPABASE_BACKUP_INTERVAL = 10;
+
+async function autoBackupToSupabase() {
+    const url = localStorage.getItem('sx_supabase_url');
+    const key = localStorage.getItem('sx_supabase_key');
+    const autoEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
+    const table = localStorage.getItem('sx_supabase_table') || 'sxiphone_backups';
+
+    if (!url || !key || !autoEnabled) return;
+
+    try {
+        const allData = await collectAllStorageData();
+        const payload = {
+            id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            version: '3.0',
+            exported_at: new Date().toISOString(),
+            device: navigator.userAgent,
+            data: allData,
+            user_id: localStorage.getItem('sx_user_name') || 'default'
+        };
+
+        const resp = await fetch(`${url}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+                'apikey': key,
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+            const newCount = (parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1).toString();
+            localStorage.setItem('sx_supabase_backup_count', newCount);
+            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            console.log('[Supabase] 自動備份成功，累計', newCount, '次');
+        } else {
+            console.warn('[Supabase] 自動備份失敗:', resp.status);
+        }
+    } catch (e) {
+        console.warn('[Supabase] 自動備份錯誤:', e);
+    }
+}
+
+async function collectAllStorageData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sx_')) {
+            const value = localStorage.getItem(key);
+            try {
+                data[key] = JSON.parse(value);
+            } catch {
+                data[key] = value;
+            }
+        }
+    }
+    return data;
+}
+
 function buildApiHeaders(config) {
     const headers = { 'Content-Type': 'application/json' };
     if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
@@ -202,32 +264,50 @@ const saveChatData = () => {
 
 const saveToPersistentStorage = async () => {
     saveChatData();
-    if (typeof localforage !== 'undefined') {
-        try {
-            const sessions = loadChatSessions();
-            const userName = localStorage.getItem('sx_user_name') || 'User';
-            const userAvatar = localStorage.getItem('sx_user_avatar') || '';
-            const userPersonality = localStorage.getItem('sx_user_personality') || '';
-            const userBackground = localStorage.getItem('sx_user_background') || '';
-            
-            const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-            await localforage.setItem('sx_app_persisted_data', {
-                ...existingData,
-                sx_chat_sessions: sessions,
-                sx_chat_active: getActiveChatId(),
-                userName,
-                userAvatar,
-                userPersonality,
-                userBackground
+    
+    if (typeof localforage === 'undefined') {
+        console.warn('[Storage] localforage 未載入，略過 IndexedDB 備份');
+        return;
+    }
+    
+    try {
+        if (!localforage._config || !localforage._config.storeName) {
+            localforage.config({
+                name: 'sxiphone',
+                storeName: 'chatData',
+                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
             });
-            console.log("聊天數據已保存至 IndexedDB");
-        } catch (e) {
-            console.error("IndexedDB 保存失敗:", e);
         }
+        
+        const sessions = loadChatSessions();
+        const userName = localStorage.getItem('sx_user_name') || 'User';
+        const userAvatar = localStorage.getItem('sx_user_avatar') || '';
+        const userPersonality = localStorage.getItem('sx_user_personality') || '';
+        const userBackground = localStorage.getItem('sx_user_background') || '';
+        
+        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
+        await localforage.setItem('sx_app_persisted_data', {
+            ...existingData,
+            sx_chat_sessions: sessions,
+            sx_chat_active: getActiveChatId(),
+            userName,
+            userAvatar,
+            userPersonality,
+            userBackground,
+            lastSaved: Date.now()
+        });
+        console.log("[Storage] 聊天數據已保存至 IndexedDB");
+    } catch (e) {
+        console.error("[Storage] IndexedDB 保存失敗:", e);
     }
 };
 
 window.addEventListener('pagehide', () => {
+    saveChatData();
+    saveToPersistentStorage();
+});
+
+window.addEventListener('beforeunload', () => {
     saveChatData();
 });
 
@@ -2483,7 +2563,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             input.addEventListener('change', function(e) {
                 const file = e.target.files[0];
-                if (!file || file.size > 1024 * 1024) return;
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('圖片大小不能超過 5MB');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const base64 = event.target.result;
@@ -6770,6 +6854,12 @@ function scheduleReadUpdate(msgId, delay) {
     if (type === 'mine' && !isRead) {
         const delay = calculateReadDelay(currentCharConfig.personality);
         scheduleReadUpdate(msgId, delay);
+    }
+
+    supabaseMessageCountSinceLastBackup++;
+    if (supabaseMessageCountSinceLastBackup >= SUPABASE_BACKUP_INTERVAL) {
+        supabaseMessageCountSinceLastBackup = 0;
+        autoBackupToSupabase();
     }
 }
 

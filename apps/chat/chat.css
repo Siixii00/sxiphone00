@@ -1086,6 +1086,7 @@ body, html {
 
 .transfer-panel .transfer-modal {
     width: min(360px, 92vw);
+    max-width: 100%;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -1093,6 +1094,8 @@ body, html {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .transfer-header {
@@ -1149,6 +1152,8 @@ body, html {
     border: 1px solid #ddd;
     padding: 0 10px;
     font-size: 13px;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .envelope-style-section {

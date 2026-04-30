@@ -44,14 +44,30 @@ class SleepEngine {
     }
 
     if (!this.memoryStore) {
-      console.warn('[SleepEngine] MemoryStore 未設置');
-      return { skipped: true, reason: 'no_store' };
+      console.warn('[SleepEngine] MemoryStore 未設置，嘗試從全域獲取');
+      this.memoryStore = window.memoryStore;
+      if (!this.memoryStore) {
+        return { skipped: true, reason: 'no_store' };
+      }
+    }
+
+    if (!this.embeddingEngine) {
+      this.embeddingEngine = window.embeddingEngine;
+    }
+    
+    if (!this.classifier) {
+      this.classifier = window.memoryClassifier;
+    }
+    
+    if (!this.shortTermMemory) {
+      this.shortTermMemory = window.shortTermMemory;
     }
 
     this.isRunning = true;
     console.log(`[SleepEngine] 進入休眠模式，觸發原因: ${trigger}`);
+    console.log(`[SleepEngine] 組件狀態: memoryStore=${!!this.memoryStore}, embeddingEngine=${!!this.embeddingEngine?.isInitialized}, classifier=${!!this.classifier}, shortTermMemory=${!!this.shortTermMemory?.isInitialized}`);
 
-    const tasks = options.tasks || JSON.parse(localStorage.getItem('sx_ai_sleep_tasks') || '{"consolidate":true,"vectorize":true,"associate":true,"decay":true}');
+    const tasks = options.tasks || JSON.parse(localStorage.getItem('sx_ai_sleep_tasks') || '{"consolidate":true,"vectorize":true,"associate":true,"decay":true,"wiki":true}');
 
     const report = {
       trigger,
@@ -60,14 +76,31 @@ class SleepEngine {
     };
 
     try {
+      console.log('[SleepEngine] Phase 1: Recall (建立關聯)');
       report.phases.recall = tasks.associate !== false ? await this.recall() : { skipped: true };
+      
+      console.log('[SleepEngine] Phase 2: ShortToLong (短期記憶轉長期)');
       report.phases.shortToLong = tasks.consolidate !== false ? await this.consolidateShortTermMemory() : { skipped: true };
+      
+      console.log('[SleepEngine] Phase 3: Classify (分類)');
       report.phases.classify = await this.classify();
+      
+      console.log('[SleepEngine] Phase 4: Consolidate (合併相似記憶)');
       report.phases.consolidate = await this.consolidate();
+      
+      console.log('[SleepEngine] Phase 5: Crystallize (結晶化)');
       report.phases.crystallize = await this.crystallize();
+      
+      console.log('[SleepEngine] Phase 6: Decay (衰變)');
       report.phases.decay = tasks.decay !== false ? await this.decay() : { skipped: true };
+      
+      console.log('[SleepEngine] Phase 7: SocialMemories (社交記憶向量化)');
       report.phases.socialMemories = tasks.vectorize !== false ? await this.processSocialMemories() : { skipped: true };
+      
+      console.log('[SleepEngine] Phase 8: ChatMemories (聊天記憶向量化)');
       report.phases.chatMemories = tasks.vectorize !== false ? await this.processChatMemories() : { skipped: true };
+      
+      console.log('[SleepEngine] Phase 9: WikiProcessing (Wiki處理)');
       report.phases.wikiProcessing = tasks.wiki !== false ? await this.processWikiEntries() : { skipped: true };
 
       report.endTime = new Date().toISOString();
@@ -80,6 +113,12 @@ class SleepEngine {
       this._markAwakeningNeeded();
 
       console.log(`[SleepEngine] 休眠完成，耗時 ${report.duration}ms`);
+      console.log('[SleepEngine] 報告:', JSON.stringify(report.phases, null, 2));
+      
+      if (options.autoBackup !== false) {
+        await this._autoBackup(report);
+      }
+      
       return report;
     } catch (error) {
       console.error('[SleepEngine] 休眠過程出錯:', error);
@@ -101,115 +140,132 @@ class SleepEngine {
       failed: 0
     };
 
-    const shortTermMemory = this.shortTermMemory || window.shortTermMemory;
+    let shortTermMemory = this.shortTermMemory || window.shortTermMemory;
     if (!shortTermMemory || !shortTermMemory.isInitialized) {
       console.log('[SleepEngine] Phase 2 - ShortToLong: ShortTermMemory 未初始化');
       
       if (typeof ShortTermMemory !== 'undefined') {
-        shortTermMemory = new ShortTermMemory({
-          maxCapacity: 100,
-          decayMinutes: this.config.shortTermDecayMinutes,
-          importanceThreshold: this.config.shortTermImportanceThreshold
-        });
-        shortTermMemory.initialize();
-        window.shortTermMemory = shortTermMemory;
-        console.log('[SleepEngine] Phase 2 - ShortToLong: 已創建 ShortTermMemory');
+        try {
+          shortTermMemory = new ShortTermMemory({
+            maxCapacity: 100,
+            decayMinutes: this.config.shortTermDecayMinutes,
+            importanceThreshold: this.config.shortTermImportanceThreshold
+          });
+          shortTermMemory.initialize();
+          window.shortTermMemory = shortTermMemory;
+          this.shortTermMemory = shortTermMemory;
+          console.log('[SleepEngine] Phase 2 - ShortToLong: 已創建 ShortTermMemory');
+        } catch (e) {
+          console.warn('[SleepEngine] Phase 2 - ShortToLong: ShortTermMemory 創建失敗:', e);
+          return result;
+        }
       } else {
         return result;
       }
     }
 
-    const readyMemories = shortTermMemory.getReadyForConsolidation();
-    result.loaded = readyMemories.length;
+    try {
+      const readyMemories = shortTermMemory.getReadyForConsolidation();
+      result.loaded = readyMemories ? readyMemories.length : 0;
 
-    if (readyMemories.length === 0) {
-      console.log('[SleepEngine] Phase 2 - ShortToLong: 無需鞏固的記憶');
-      return result;
-    }
+      if (!readyMemories || readyMemories.length === 0) {
+        console.log('[SleepEngine] Phase 2 - ShortToLong: 無需鞏固的記憶');
+        return result;
+      }
 
-    console.log(`[SleepEngine] Phase 2 - ShortToLong: ${readyMemories.length} 條待處理`);
+      console.log(`[SleepEngine] Phase 2 - ShortToLong: ${readyMemories.length} 條待處理`);
 
-    const consolidatedIds = [];
+      const consolidatedIds = [];
 
-    for (const entry of readyMemories) {
-      try {
-        let embedding = null;
-        if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
-          try {
-            embedding = await this.embeddingEngine.embed(entry.content);
-            result.vectorized++;
-          } catch (e) {
-            console.warn('[SleepEngine] 向量化失敗，使用降級:', e);
+      for (const entry of readyMemories) {
+        try {
+          let embedding = null;
+          
+          if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
+            try {
+              embedding = await Promise.race([
+                this.embeddingEngine.embed(entry.content),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('向量化超時')), 10000))
+              ]);
+              result.vectorized++;
+            } catch (e) {
+              console.warn('[SleepEngine] 向量化失敗，使用降級:', e.message);
+              embedding = this._simpleHashEmbedding(entry.content);
+            }
+          } else {
             embedding = this._simpleHashEmbedding(entry.content);
           }
-        } else {
-          embedding = this._simpleHashEmbedding(entry.content);
-        }
 
-        let region = null;
-        if (this.classifier) {
-          try {
-            const classifyResult = await this.classifier.classify(entry.content, { skipLLM: true });
-            region = {
-              primary: classifyResult.primary,
-              secondary: classifyResult.secondary || [],
-              confidence: classifyResult.confidence || 0.5
-            };
-            result.classified++;
-          } catch (e) {
-            console.warn('[SleepEngine] 分類失敗:', e);
+          let region = null;
+          if (this.classifier) {
+            try {
+              const classifyResult = await this.classifier.classify(entry.content, { skipLLM: true });
+              region = {
+                primary: classifyResult.primary,
+                secondary: classifyResult.secondary || [],
+                confidence: classifyResult.confidence || 0.5
+              };
+              result.classified++;
+            } catch (e) {
+              console.warn('[SleepEngine] 分類失敗:', e.message);
+            }
           }
-        }
 
-        const emotion = entry.emotion || this._analyzeChatEmotion(entry.content);
+          const emotion = entry.emotion || this._analyzeChatEmotion(entry.content);
 
-        const existingSimilar = await this._findSimilarLongTermMemory(entry.content, embedding);
-        if (existingSimilar) {
-          await this._reinforceMemory(existingSimilar, entry, embedding);
-          result.reinforced++;
+          const existingSimilar = await this._findSimilarLongTermMemory(entry.content, embedding);
+          if (existingSimilar) {
+            await this._reinforceMemory(existingSimilar, entry, embedding);
+            result.reinforced++;
+            consolidatedIds.push(entry.id);
+            continue;
+          }
+
+          const memory = await this.memoryStore.create({
+            content: entry.content,
+            embedding,
+            emotion,
+            tags: ['short_term_consolidated', entry.role, entry.source, ...entry.tags],
+            domain: [entry.source, 'consolidated'],
+            region,
+            metadata: {
+              type: 'dynamic',
+              importance: entry.importance,
+              source: entry.source,
+              originalId: entry.id,
+              originalCreatedAt: entry.createdAt,
+              consolidatedAt: new Date().toISOString(),
+              accessCount: entry.accessCount,
+              activationCount: 1,
+              reinforcementCount: 0,
+              lastReinforced: null,
+              consolidated: true,
+              sleepSession: this.sleepCount,
+              memoryStrength: this._calculateInitialStrength(entry)
+            }
+          });
+
           consolidatedIds.push(entry.id);
-          continue;
-        }
+          result.stored++;
 
-        const memory = await this.memoryStore.create({
-          content: entry.content,
-          embedding,
-          emotion,
-          tags: ['short_term_consolidated', entry.role, entry.source, ...entry.tags],
-          domain: [entry.source, 'consolidated'],
-          region,
-          metadata: {
-            type: 'dynamic',
-            importance: entry.importance,
-            source: entry.source,
-            originalId: entry.id,
-            originalCreatedAt: entry.createdAt,
-            consolidatedAt: new Date().toISOString(),
-            accessCount: entry.accessCount,
-            activationCount: 1,
-            reinforcementCount: 0,
-            lastReinforced: null,
-            consolidated: true,
-            sleepSession: this.sleepCount,
-            memoryStrength: this._calculateInitialStrength(entry)
+          if (result.stored % 10 === 0) {
+            console.log(`[SleepEngine] Phase 2 進度: ${result.stored}/${result.loaded}`);
           }
-        });
-
-        consolidatedIds.push(entry.id);
-        result.stored++;
-
-        if (result.stored % 10 === 0) {
-          console.log(`[SleepEngine] Phase 2 進度: ${result.stored}/${result.loaded}`);
+        } catch (e) {
+          console.warn(`[SleepEngine] 鞏固失敗: ${entry.id}`, e.message);
+          result.failed++;
         }
-      } catch (e) {
-        console.warn(`[SleepEngine] 鞏固失敗: ${entry.id}`, e);
-        result.failed++;
       }
+
+      if (shortTermMemory.markConsolidated) {
+        shortTermMemory.markConsolidated(consolidatedIds);
+      }
+
+      console.log(`[SleepEngine] Phase 2 - ShortToLong: ${result.stored} 新建, ${result.reinforced} 強化, ${result.vectorized} 向量化, ${result.failed} 失敗`);
+    } catch (e) {
+      console.error('[SleepEngine] Phase 2 - ShortToLong 整體錯誤:', e);
     }
-
-    shortTermMemory.markConsolidated(consolidatedIds);
-
-    console.log(`[SleepEngine] Phase 2 - ShortToLong: ${result.stored} 新建, ${result.reinforced} 強化, ${result.vectorized} 向量化, ${result.failed} 失敗`);
+    
     return result;
   }
 
@@ -333,44 +389,51 @@ class SleepEngine {
   }
 
   async classify() {
-    const allMemories = await this.memoryStore.getAll();
-    const unclassified = allMemories.filter(m => !m.region?.primary);
+    try {
+      const allMemories = await this.memoryStore.getAll();
+      const unclassified = allMemories.filter(m => !m.region?.primary);
 
-    if (unclassified.length === 0) {
-      console.log('[SleepEngine] Phase 2 - Classify: 無需分類的記憶');
-      return { classified: 0, skipped: true };
-    }
-
-    let classified = 0;
-    let failed = 0;
-
-    for (const memory of unclassified.slice(0, this.config.batchSize)) {
-      try {
-        if (!this.classifier) {
-          continue;
-        }
-
-        const result = await this.classifier.classify(memory.content, { skipLLM: true });
-
-        await this.memoryStore.update(memory.id, {
-          region: {
-            primary: result.primary,
-            secondary: result.secondary || [],
-            confidence: result.confidence || 0.5,
-            distribution: result.distribution || {}
-          }
-        });
-
-        classified++;
-      } catch (e) {
-        console.warn(`[SleepEngine] 分類失敗: ${memory.id}`, e);
-        failed++;
+      if (unclassified.length === 0) {
+        console.log('[SleepEngine] Phase 2 - Classify: 無需分類的記憶');
+        return { classified: 0, skipped: true };
       }
+
+      let classified = 0;
+      let failed = 0;
+
+      const maxToProcess = Math.min(unclassified.length, this.config.batchSize);
+
+      for (const memory of unclassified.slice(0, maxToProcess)) {
+        try {
+          if (!this.classifier) {
+            continue;
+          }
+
+          const result = await this.classifier.classify(memory.content, { skipLLM: true });
+
+          await this.memoryStore.update(memory.id, {
+            region: {
+              primary: result.primary,
+              secondary: result.secondary || [],
+              confidence: result.confidence || 0.5,
+              distribution: result.distribution || {}
+            }
+          });
+
+          classified++;
+        } catch (e) {
+          console.warn(`[SleepEngine] 分類失敗: ${memory.id}`, e.message);
+          failed++;
+        }
+      }
+
+      console.log(`[SleepEngine] Phase 2 - Classify: ${classified} 成功, ${failed} 失敗`);
+
+      return { classified, failed, total: unclassified.length };
+    } catch (e) {
+      console.error('[SleepEngine] Phase 2 - Classify 整體錯誤:', e);
+      return { classified: 0, failed: 0, error: e.message };
     }
-
-    console.log(`[SleepEngine] Phase 2 - Classify: ${classified} 成功, ${failed} 失敗`);
-
-    return { classified, failed, total: unclassified.length };
   }
 
   async consolidate() {
@@ -516,85 +579,100 @@ class SleepEngine {
       instagram: { processed: 0, vectorized: 0, stored: 0 }
     };
 
-    const fbMemories = this._loadSocialMemories('sx_fb_post_memories');
-    result.facebook.processed = fbMemories.length;
-    
-    const twMemories = this._loadSocialMemories('sx_twitter_tweet_memories');
-    result.twitter.processed = twMemories.length;
-    
-    const igMemories = this._loadSocialMemories('sx_instagram_post_memories');
-    result.instagram.processed = igMemories.length;
+    try {
+      const fbMemories = this._loadSocialMemories('sx_fb_post_memories');
+      result.facebook.processed = fbMemories.length;
+      
+      const twMemories = this._loadSocialMemories('sx_twitter_tweet_memories');
+      result.twitter.processed = twMemories.length;
+      
+      const igMemories = this._loadSocialMemories('sx_instagram_post_memories');
+      result.instagram.processed = igMemories.length;
 
-    const allSocialMemories = [
-      ...fbMemories.map(m => ({ ...m, platform: 'facebook' })),
-      ...twMemories.map(m => ({ ...m, platform: 'twitter' })),
-      ...igMemories.map(m => ({ ...m, platform: 'instagram' }))
-    ];
+      const allSocialMemories = [
+        ...fbMemories.map(m => ({ ...m, platform: 'facebook' })),
+        ...twMemories.map(m => ({ ...m, platform: 'twitter' })),
+        ...igMemories.map(m => ({ ...m, platform: 'instagram' }))
+      ];
 
-    if (allSocialMemories.length === 0) {
-      console.log('[SleepEngine] Phase 6 - SocialMemories: 無社交媒體記憶需處理');
-      return result;
-    }
+      if (allSocialMemories.length === 0) {
+        console.log('[SleepEngine] Phase 6 - SocialMemories: 無社交媒體記憶需處理');
+        return result;
+      }
 
-    const alreadyVectorized = await this._getVectorizedIds();
-    const unvectorized = allSocialMemories.filter(m => !alreadyVectorized.has(m.id));
+      const alreadyVectorized = await this._getVectorizedIds();
+      const unvectorized = allSocialMemories.filter(m => !alreadyVectorized.has(m.id));
 
-    if (unvectorized.length === 0) {
-      console.log('[SleepEngine] Phase 6 - SocialMemories: 所有記憶已向量化');
-      return result;
-    }
+      if (unvectorized.length === 0) {
+        console.log('[SleepEngine] Phase 6 - SocialMemories: 所有記憶已向量化');
+        return result;
+      }
 
-    console.log(`[SleepEngine] Phase 6 - SocialMemories: ${unvectorized.length} 條待向量化`);
+      console.log(`[SleepEngine] Phase 6 - SocialMemories: ${unvectorized.length} 條待向量化`);
 
-    for (const memory of unvectorized) {
-      try {
-        const content = this._buildMemoryText(memory);
-        let embedding = null;
+      let processedCount = 0;
+      const batchSize = 10;
 
-        if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
-          try {
-            embedding = await this.embeddingEngine.embed(content);
-          } catch (e) {
-            console.warn('[SleepEngine] 向量化失敗，使用哈希降維:', e);
+      for (const memory of unvectorized) {
+        try {
+          if (processedCount >= this.config.batchSize) {
+            console.log(`[SleepEngine] Phase 6 - 達到批次限制 ${this.config.batchSize}，暫停處理`);
+            break;
+          }
+
+          const content = this._buildMemoryText(memory);
+          let embedding = null;
+
+          if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
+            try {
+              embedding = await Promise.race([
+                this.embeddingEngine.embed(content),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('超時')), 8000))
+              ]);
+            } catch (e) {
+              console.warn('[SleepEngine] 社交記憶向量化失敗，使用哈希降維:', e.message);
+              embedding = this._simpleHashEmbedding(content);
+            }
+          } else {
             embedding = this._simpleHashEmbedding(content);
           }
-        } else {
-          embedding = this._simpleHashEmbedding(content);
+
+          await this.memoryStore.create({
+            content,
+            embedding,
+            emotion: { valence: 0.5, arousal: 0.3 },
+            tags: ['social_memory', memory.platform, memory.author || memory.user || 'unknown'],
+            domain: [memory.platform, 'social_media'],
+            metadata: {
+              type: 'permanent',
+              importance: 6,
+              source: `${memory.platform}_memory`,
+              socialMemoryId: memory.id,
+              platform: memory.platform,
+              originalDate: memory.date || '',
+              consolidated: true,
+              vectorizedAt: new Date().toISOString()
+            }
+          });
+
+          if (memory.platform === 'facebook') result.facebook.vectorized++;
+          if (memory.platform === 'twitter') result.twitter.vectorized++;
+          if (memory.platform === 'instagram') result.instagram.vectorized++;
+          
+          processedCount++;
+        } catch (e) {
+          console.warn(`[SleepEngine] 社交記憶處理失敗: ${memory.id}`, e.message);
         }
-
-        await this.memoryStore.create({
-          content,
-          embedding,
-          emotion: { valence: 0.5, arousal: 0.3 },
-          tags: ['social_memory', memory.platform, memory.author || memory.user || 'unknown'],
-          domain: [memory.platform, 'social_media'],
-          metadata: {
-            type: 'permanent',
-            importance: 6,
-            source: `${memory.platform}_memory`,
-            socialMemoryId: memory.id,
-            platform: memory.platform,
-            originalDate: memory.date || '',
-            consolidated: true,
-            vectorizedAt: new Date().toISOString()
-          }
-        });
-
-        if (memory.platform === 'facebook') result.facebook.vectorized++;
-        if (memory.platform === 'twitter') result.twitter.vectorized++;
-        if (memory.platform === 'instagram') result.instagram.vectorized++;
-      } catch (e) {
-        console.warn(`[SleepEngine] 社交記憶向量化失敗: ${memory.id}`, e);
       }
+
+      result.facebook.stored = fbMemories.length;
+      result.twitter.stored = twMemories.length;
+      result.instagram.stored = igMemories.length;
+
+      console.log(`[SleepEngine] Phase 6 - SocialMemories: FB=${result.facebook.vectorized}, TW=${result.twitter.vectorized}, IG=${result.instagram.vectorized} 已向量化`);
+    } catch (e) {
+      console.error('[SleepEngine] Phase 6 - SocialMemories 整體錯誤:', e);
     }
-
-    await this._syncToCloud(allSocialMemories);
-
-    result.facebook.stored = fbMemories.length;
-    result.twitter.stored = twMemories.length;
-    result.instagram.stored = igMemories.length;
-
-    console.log(`[SleepEngine] Phase 6 - SocialMemories: FB=${result.facebook.vectorized}, TW=${result.twitter.vectorized}, IG=${result.instagram.vectorized} 已向量化`);
 
     return result;
   }
@@ -608,108 +686,139 @@ class SleepEngine {
       summarized: 0
     };
 
-    if (!this.chatMemoryIntegration) {
-      if (typeof ChatMemoryIntegration !== 'undefined') {
-        this.chatMemoryIntegration = new ChatMemoryIntegration({
-          memoryStore: this.memoryStore,
-          embeddingEngine: this.embeddingEngine,
-          classifier: this.classifier
-        });
-        await this.chatMemoryIntegration.initialize();
-      } else {
-        console.log('[SleepEngine] Phase 7 - ChatMemories: ChatMemoryIntegration 未初始化');
-        return result;
-      }
-    }
-
-    const chatSessions = this._loadChatSessions();
-    result.loaded = chatSessions.length;
-
-    console.log(`[SleepEngine] Phase 7 - ChatMemories: ${chatSessions.length} 個聊天會話`);
-
-    const allChatMemories = [];
-    for (const session of chatSessions) {
-      if (!session.history || session.history.length === 0) continue;
-
-      for (const message of session.history) {
-        const content = this._extractChatText(message.content);
-        if (content.length < 10) continue;
-
-        allChatMemories.push({
-          id: `chat_${session.id}_${message.id || Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          content: this._buildChatMemoryText(message, session),
-          rawContent: content,
-          role: message.role,
-          sessionId: session.id,
-          sessionTitle: session.title,
-          timestamp: message.timestamp || session.createdAt || new Date().toISOString()
-        });
-      }
-    }
-
-    if (allChatMemories.length === 0) {
-      console.log('[SleepEngine] Phase 7 - ChatMemories: 無聊天記憶需處理');
-      return result;
-    }
-
-    const alreadyVectorized = await this._getChatVectorizedIds();
-    const toVectorize = allChatMemories.filter(m => !alreadyVectorized.has(m.id));
-
-    console.log(`[SleepEngine] Phase 7 - ChatMemories: ${toVectorize.length} 條待向量化`);
-
-    for (const memory of toVectorize.slice(0, this.config.batchSize * 2)) {
-      try {
-        let embedding = null;
-
-        if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
+    try {
+      if (!this.chatMemoryIntegration) {
+        if (typeof ChatMemoryIntegration !== 'undefined') {
           try {
-            embedding = await this.embeddingEngine.embed(memory.content);
+            this.chatMemoryIntegration = new ChatMemoryIntegration({
+              memoryStore: this.memoryStore,
+              embeddingEngine: this.embeddingEngine,
+              classifier: this.classifier
+            });
+            await this.chatMemoryIntegration.initialize();
           } catch (e) {
-            console.warn('[SleepEngine] 聊天記憶向量化失敗，使用哈希降維:', e);
-            embedding = this._simpleHashEmbedding(memory.content);
+            console.warn('[SleepEngine] Phase 7 - ChatMemoryIntegration 初始化失敗:', e);
+            return result;
           }
         } else {
-          embedding = this._simpleHashEmbedding(memory.content);
+          console.log('[SleepEngine] Phase 7 - ChatMemories: ChatMemoryIntegration 未定義');
+          return result;
         }
-
-        const emotion = this._analyzeChatEmotion(memory.rawContent);
-        const importance = this._calculateChatImportance(memory.rawContent);
-        const tags = this._extractChatTags(memory.rawContent, memory.role);
-
-        await this.memoryStore.create({
-          content: memory.content,
-          embedding,
-          emotion,
-          tags: ['chat_memory', memory.role, ...tags],
-          domain: ['chat', memory.sessionId],
-          metadata: {
-            type: 'chat_memory',
-            importance,
-            source: 'chat',
-            sessionId: memory.sessionId,
-            sessionTitle: memory.sessionTitle,
-            role: memory.role,
-            originalTimestamp: memory.timestamp,
-            vectorizedAt: new Date().toISOString(),
-            consolidated: false
-          }
-        });
-
-        result.vectorized++;
-      } catch (e) {
-        console.warn(`[SleepEngine] 聊天記憶處理失敗: ${memory.id}`, e);
       }
+
+      const chatSessions = this._loadChatSessions();
+      result.loaded = chatSessions.length;
+
+      console.log(`[SleepEngine] Phase 7 - ChatMemories: ${chatSessions.length} 個聊天會話`);
+
+      const allChatMemories = [];
+      for (const session of chatSessions) {
+        if (!session.history || session.history.length === 0) continue;
+
+        for (const message of session.history) {
+          try {
+            const content = this._extractChatText(message.content);
+            if (content.length < 10) continue;
+
+            allChatMemories.push({
+              id: `chat_${session.id}_${message.id || Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+              content: this._buildChatMemoryText(message, session),
+              rawContent: content,
+              role: message.role,
+              sessionId: session.id,
+              sessionTitle: session.title,
+              timestamp: message.timestamp || session.createdAt || new Date().toISOString()
+            });
+          } catch (e) {
+            console.warn('[SleepEngine] 提取聊天訊息失敗:', e);
+          }
+        }
+      }
+
+      if (allChatMemories.length === 0) {
+        console.log('[SleepEngine] Phase 7 - ChatMemories: 無聊天記憶需處理');
+        return result;
+      }
+
+      const alreadyVectorized = await this._getChatVectorizedIds();
+      const toVectorize = allChatMemories.filter(m => !alreadyVectorized.has(m.id));
+
+      console.log(`[SleepEngine] Phase 7 - ChatMemories: ${toVectorize.length} 條待向量化`);
+
+      const maxToProcess = Math.min(toVectorize.length, this.config.batchSize * 2);
+      
+      for (let i = 0; i < maxToProcess; i++) {
+        const memory = toVectorize[i];
+        try {
+          let embedding = null;
+
+          if (this.embeddingEngine && this.embeddingEngine.isInitialized) {
+            try {
+              embedding = await Promise.race([
+                this.embeddingEngine.embed(memory.content),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('超時')), 8000))
+              ]);
+            } catch (e) {
+              console.warn('[SleepEngine] 聊天記憶向量化失敗，使用哈希降維:', e.message);
+              embedding = this._simpleHashEmbedding(memory.content);
+            }
+          } else {
+            embedding = this._simpleHashEmbedding(memory.content);
+          }
+
+          const emotion = this._analyzeChatEmotion(memory.rawContent);
+          const importance = this._calculateChatImportance(memory.rawContent);
+          const tags = this._extractChatTags(memory.rawContent, memory.role);
+
+          await this.memoryStore.create({
+            content: memory.content,
+            embedding,
+            emotion,
+            tags: ['chat_memory', memory.role, ...tags],
+            domain: ['chat', memory.sessionId],
+            metadata: {
+              type: 'chat_memory',
+              importance,
+              source: 'chat',
+              sessionId: memory.sessionId,
+              sessionTitle: memory.sessionTitle,
+              role: memory.role,
+              originalTimestamp: memory.timestamp,
+              vectorizedAt: new Date().toISOString(),
+              consolidated: false
+            }
+          });
+
+          result.vectorized++;
+        } catch (e) {
+          console.warn(`[SleepEngine] 聊天記憶處理失敗: ${memory.id}`, e.message);
+        }
+      }
+
+      if (this.classifier) {
+        try {
+          result.classified = await this._classifyChatMemories();
+        } catch (e) {
+          console.warn('[SleepEngine] 聊天記憶分類失敗:', e);
+        }
+      }
+
+      try {
+        result.pruned = await this._pruneOldChatMemories();
+      } catch (e) {
+        console.warn('[SleepEngine] 聊天記憶清理失敗:', e);
+      }
+
+      try {
+        result.summarized = await this._createChatSummaries(chatSessions);
+      } catch (e) {
+        console.warn('[SleepEngine] 聊天摘要創建失敗:', e);
+      }
+
+      console.log(`[SleepEngine] Phase 7 - ChatMemories: ${result.vectorized} 向量化, ${result.classified} 分類, ${result.pruned} 清理`);
+    } catch (e) {
+      console.error('[SleepEngine] Phase 7 - ChatMemories 整體錯誤:', e);
     }
-
-    if (this.classifier) {
-      result.classified = await this._classifyChatMemories();
-    }
-
-    result.pruned = await this._pruneOldChatMemories();
-
-    result.summarized = await this._createChatSummaries(chatSessions);
-
-    console.log(`[SleepEngine] Phase 7 - ChatMemories: ${result.vectorized} 向量化, ${result.classified} 分類, ${result.pruned} 清理`);
 
     return result;
   }
@@ -1459,6 +1568,233 @@ class SleepEngine {
     }
   }
 
+  async _autoBackup(sleepReport) {
+    const autoBackupEnabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
+    if (!autoBackupEnabled) {
+      console.log('[SleepEngine] 自動備份已停用');
+      return;
+    }
+
+    const backupTargets = [];
+    
+    const githubToken = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
+    if (githubToken) {
+      backupTargets.push('github');
+    }
+    
+    const supabaseUrl = localStorage.getItem('sx_supabase_url');
+    const supabaseKey = localStorage.getItem('sx_supabase_key');
+    if (supabaseUrl && supabaseKey) {
+      backupTargets.push('supabase');
+    }
+    
+    if (backupTargets.length === 0) {
+      console.log('[SleepEngine] 未設定任何備份目標，跳過自動備份');
+      return;
+    }
+
+    console.log(`[SleepEngine] 開始自動備份到: ${backupTargets.join(', ')}`);
+    
+    const backupResult = {
+      github: null,
+      supabase: null,
+      errors: []
+    };
+
+    if (backupTargets.includes('github')) {
+      try {
+        const success = await this._backupToGitHub(sleepReport);
+        backupResult.github = success ? 'success' : 'failed';
+        if (success) {
+          localStorage.setItem('sx_github_last_sync', new Date().toLocaleString());
+        }
+      } catch (e) {
+        console.warn('[SleepEngine] GitHub 備份失敗:', e);
+        backupResult.github = 'error';
+        backupResult.errors.push(`GitHub: ${e.message}`);
+      }
+    }
+
+    if (backupTargets.includes('supabase')) {
+      try {
+        const success = await this._backupToSupabase(sleepReport);
+        backupResult.supabase = success ? 'success' : 'failed';
+        if (success) {
+          localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+        }
+      } catch (e) {
+        console.warn('[SleepEngine] Supabase 備份失敗:', e);
+        backupResult.supabase = 'error';
+        backupResult.errors.push(`Supabase: ${e.message}`);
+      }
+    }
+
+    console.log('[SleepEngine] 自動備份完成:', backupResult);
+    return backupResult;
+  }
+
+  async _backupToGitHub(sleepReport) {
+    const token = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
+    const repoName = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
+    const filePath = localStorage.getItem('sx_github_backup_file') || 'backup/sxiphone.json';
+    
+    if (!token) return false;
+
+    try {
+      const userResp = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `token ${token}` }
+      });
+      
+      if (!userResp.ok) {
+        throw new Error('無法取得使用者資訊');
+      }
+      
+      const userData = await userResp.json();
+      const owner = userData.login;
+
+      const allData = await this._collectBackupData();
+      allData.sleepReport = {
+        trigger: sleepReport.trigger,
+        duration: sleepReport.duration,
+        phases: sleepReport.phases,
+        timestamp: sleepReport.endTime
+      };
+
+      const jsonStr = JSON.stringify(allData, null, 2);
+      const contentBase64 = btoa(unescape(encodeURIComponent(jsonStr)));
+
+      if (contentBase64.length > 1024 * 1024) {
+        console.warn('[SleepEngine] 備份資料過大，跳過 GitHub 備份');
+        return false;
+      }
+
+      let sha = null;
+      try {
+        const existing = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
+          headers: { Authorization: `token ${token}` }
+        });
+        if (existing.ok) {
+          const existingData = await existing.json();
+          sha = existingData.sha;
+        }
+      } catch {}
+
+      const uploadResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: { 
+          Authorization: `token ${token}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({
+          message: `[Auto Backup] 睡眠後自動備份 ${new Date().toLocaleString()}`,
+          content: contentBase64,
+          sha
+        })
+      });
+
+      if (!uploadResp.ok) {
+        const errData = await uploadResp.json().catch(() => ({}));
+        throw new Error(errData.message || `上傳失敗 (${uploadResp.status})`);
+      }
+
+      console.log('[SleepEngine] GitHub 備份成功');
+      return true;
+    } catch (e) {
+      console.error('[SleepEngine] GitHub 備份錯誤:', e);
+      throw e;
+    }
+  }
+
+  async _backupToSupabase(sleepReport) {
+    const url = localStorage.getItem('sx_supabase_url');
+    const key = localStorage.getItem('sx_supabase_key');
+    const table = localStorage.getItem('sx_supabase_table') || 'sxiphone_backups';
+
+    if (!url || !key) return false;
+
+    try {
+      const allData = await this._collectBackupData();
+      
+      const payload = {
+        id: `sleep_backup_${Date.now()}`,
+        version: '3.0',
+        exported_at: new Date().toISOString(),
+        device: navigator.userAgent,
+        data: allData,
+        sleep_report: {
+          trigger: sleepReport.trigger,
+          duration: sleepReport.duration,
+          phases: sleepReport.phases
+        },
+        user_id: localStorage.getItem('sx_user_name') || 'default'
+      };
+
+      const resp = await fetch(`${url}/rest/v1/${table}`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Supabase 錯誤: ${resp.status}`);
+      }
+
+      console.log('[SleepEngine] Supabase 備份成功');
+      return true;
+    } catch (e) {
+      console.error('[SleepEngine] Supabase 備份錯誤:', e);
+      throw e;
+    }
+  }
+
+  async _collectBackupData() {
+    const data = {
+      localStorage: {},
+      localforage: {},
+      memoryStats: null
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
+        try {
+          const value = localStorage.getItem(key);
+          if (value && value.length < 512000) {
+            data.localStorage[key] = value;
+          }
+        } catch {}
+      }
+    }
+
+    if (typeof localforage !== 'undefined') {
+      try {
+        await localforage.iterate((value, key) => {
+          if (key.startsWith('sx_') || key.startsWith('api_')) {
+            data.localforage[key] = value;
+          }
+        });
+      } catch {}
+    }
+
+    if (this.memoryStore) {
+      try {
+        const memories = await this.memoryStore.getAll();
+        data.memoryStats = {
+          totalMemories: memories.length,
+          lastBackup: new Date().toISOString()
+        };
+      } catch {}
+    }
+
+    return data;
+  }
+
   getStats() {
     return {
       isRunning: this.isRunning,
@@ -2043,4 +2379,50 @@ SleepEngine.prototype._syncWikiToCloud = async function(db, entries) {
 if (typeof window !== 'undefined') {
   window.SleepEngine = SleepEngine;
   window.SleepScheduler = SleepScheduler;
+  
+  window.triggerMemorySleep = async function(options = {}) {
+    console.log('[MemorySleep] 手動觸發記憶睡眠流程...');
+    
+    const sleepEngine = window.sleepEngine || 
+                        window.unifiedMemory?.sleepEngine || 
+                        window.globalMemorySystem?.sleepEngine;
+    
+    if (!sleepEngine) {
+      console.error('[MemorySleep] 找不到 SleepEngine，請確認記憶系統已初始化');
+      return { success: false, error: 'sleep_engine_not_found' };
+    }
+    
+    const report = await sleepEngine.sleep('manual', options);
+    
+    if (report.success) {
+      console.log('[MemorySleep] 睡眠流程完成！');
+      console.log('[MemorySleep] 階段結果:', report.phases);
+    } else {
+      console.error('[MemorySleep] 睡眠流程失敗:', report.error);
+    }
+    
+    return report;
+  };
+  
+  window.getMemorySleepStatus = function() {
+    const sleepEngine = window.sleepEngine || 
+                        window.unifiedMemory?.sleepEngine || 
+                        window.globalMemorySystem?.sleepEngine;
+    
+    if (!sleepEngine) {
+      return { initialized: false, error: 'sleep_engine_not_found' };
+    }
+    
+    return {
+      initialized: true,
+      isRunning: sleepEngine.isRunning,
+      lastSleepTime: sleepEngine.lastSleepTime,
+      sleepCount: sleepEngine.sleepCount,
+      hasMemoryStore: !!sleepEngine.memoryStore,
+      hasEmbeddingEngine: !!sleepEngine.embeddingEngine?.isInitialized,
+      hasClassifier: !!sleepEngine.classifier,
+      hasShortTermMemory: !!sleepEngine.shortTermMemory?.isInitialized,
+      config: sleepEngine.config
+    };
+  };
 }
