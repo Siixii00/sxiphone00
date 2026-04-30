@@ -99,8 +99,8 @@ body.ios-settings::-webkit-scrollbar {
     height: auto;
     min-height: 54px;
     padding: 16px 16px 10px;
-    padding-top: calc(40px + env(safe-area-inset-top, 0px));
-    padding-top: calc(40px + var(--safe-area-top, 0px));
+    padding-top: calc(30px + env(safe-area-inset-top, 0px));
+    padding-top: calc(30px + var(--safe-area-top, 0px));
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
