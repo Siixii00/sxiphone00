@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TimeTree | SXI Phone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="timetree.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="timetree-app">
+    <!-- 返回按鈕 -->
+    <div class="top-bar">
+      <button class="back-btn" id="backBtn" aria-label="返回">
+        <span class="back-icon">‹</span>
+      </button>
+      <button class="back-btn" id="appearance-btn" aria-label="外觀設定" style="margin-left:auto;margin-right:8px;">
+        <span class="icon">🎨</span>
+      </button>
+    </div>
+    
+    <!-- 頂部導航 -->
+    <header class="app-header">
+      <button class="header-btn" id="menuBtn" aria-label="選單">
+        <span class="icon">☰</span>
+      </button>
+      <div class="header-title">
+        <h1 id="currentCalendarName">我的日曆</h1>
+        <span class="calendar-type" id="calendarType">個人</span>
+      </div>
+      <button class="header-btn" id="addEventBtn" aria-label="新增事件">
+        <span class="icon">+</span>
+      </button>
+    </header>
+
+    <!-- 側邊欄 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="user-info">
+          <div class="user-avatar">
+            <span>我</span>
+          </div>
+          <div class="user-details">
+            <span class="user-name">使用者</span>
+            <span class="user-email">user@sxiphone.com</span>
+          </div>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <h3>日曆</h3>
+          <ul class="calendar-list" id="calendarList">
+            <li class="calendar-item active" data-calendar="personal">
+              <span class="calendar-dot" style="background: #4CAF50;"></span>
+              <span class="calendar-name">我的日曆</span>
+              <span class="calendar-badge">個人</span>
+            </li>
+            <li class="calendar-item" data-calendar="family">
+              <span class="calendar-dot" style="background: #FF9800;"></span>
+              <span class="calendar-name">家庭</span>
+              <span class="calendar-badge">共享</span>
+            </li>
+            <li class="calendar-item" data-calendar="work">
+              <span class="calendar-dot" style="background: #2196F3;"></span>
+              <span class="calendar-name">工作</span>
+              <span class="calendar-badge">共享</span>
+            </li>
+            <li class="calendar-item" data-calendar="love">
+              <span class="calendar-dot" style="background: #E91E63;"></span>
+              <span class="calendar-name">戀人</span>
+              <span class="calendar-badge">共享</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="nav-section">
+          <h3>功能</h3>
+          <ul class="feature-list">
+            <li class="feature-item" id="searchBtn">
+              <span class="feature-icon">🔍</span>
+              <span>搜尋事件</span>
+            </li>
+            <li class="feature-item" id="settingsBtn">
+              <span class="feature-icon">⚙️</span>
+              <span>設定</span>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      
+      <button class="new-calendar-btn" id="newCalendarBtn">
+        <span>+ 新增日曆</span>
+      </button>
+    </aside>
+
+    <!-- 主要內容區 -->
+    <main class="main-content">
+      <!-- 月份導航 -->
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth">
+          <span>‹</span>
+        </button>
+        <div class="current-month">
+          <span id="currentYear">2024</span>
+          <span id="currentMonth">三月</span>
+        </div>
+        <button class="nav-btn" id="nextMonth">
+          <span>›</span>
+        </button>
+        <button class="today-btn" id="todayBtn">今天</button>
+      </div>
+
+      <!-- 週標題 -->
+      <div class="weekdays">
+        <div class="weekday sun">日</div>
+        <div class="weekday">一</div>
+        <div class="weekday">二</div>
+        <div class="weekday">三</div>
+        <div class="weekday">四</div>
+        <div class="weekday">五</div>
+        <div class="weekday sat">六</div>
+      </div>
+
+      <!-- 日曆網格 -->
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- 由 JS 動態生成 -->
+      </div>
+    </main>
+
+    <!-- 事件詳情面板 -->
+    <div class="event-panel" id="eventPanel">
+      <div class="panel-header">
+        <button class="close-btn" id="closePanelBtn">×</button>
+        <h2 id="panelDate">選擇日期</h2>
+      </div>
+      <div class="panel-content">
+        <div class="day-events" id="dayEvents">
+          <p class="no-events">這天沒有任何事件</p>
+        </div>
+        <button class="add-event-card" id="addEventCardBtn">
+          <span class="add-icon">+</span>
+          <span>新增事件</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 新增/編輯事件 Modal -->
+    <div class="modal-overlay" id="eventModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modalTitle">新增事件</h2>
+          <button class="close-btn" id="closeModalBtn">×</button>
+        </div>
+        <form id="eventForm">
+          <div class="form-group">
+            <label for="eventTitle">事件標題</label>
+            <input type="text" id="eventTitle" placeholder="輸入事件標題" required>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>開始日期</label>
+              <input type="date" id="eventStartDate" required>
+            </div>
+            <div class="form-group">
+              <label>開始時間</label>
+              <input type="time" id="eventStartTime">
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>結束日期</label>
+              <input type="date" id="eventEndDate">
+            </div>
+            <div class="form-group">
+              <label>結束時間</label>
+              <input type="time" id="eventEndTime">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="eventCalendar">所屬日曆</label>
+            <select id="eventCalendar">
+              <option value="personal">我的日曆</option>
+              <option value="family">家庭</option>
+              <option value="work">工作</option>
+              <option value="love">戀人</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="eventColor">標籤顏色</label>
+            <div class="color-picker" id="colorPicker">
+              <span class="color-option active" data-color="#4CAF50" style="background: #4CAF50;"></span>
+              <span class="color-option" data-color="#FF9800" style="background: #FF9800;"></span>
+              <span class="color-option" data-color="#2196F3" style="background: #2196F3;"></span>
+              <span class="color-option" data-color="#E91E63" style="background: #E91E63;"></span>
+              <span class="color-option" data-color="#9C27B0" style="background: #9C27B0;"></span>
+              <span class="color-option" data-color="#F44336" style="background: #F44336;"></span>
+              <span class="color-option" data-color="#00BCD4" style="background: #00BCD4;"></span>
+              <span class="color-option" data-color="#795548" style="background: #795548;"></span>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="eventMemo">備註</label>
+            <textarea id="eventMemo" rows="3" placeholder="新增備註..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="eventAllDay">
+              <span>全天事件</span>
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="eventReminder">
+              <span>設定提醒</span>
+            </label>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" id="cancelEventBtn">取消</button>
+            <button type="submit" class="btn-save">儲存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 搜尋 Modal -->
+    <div class="modal-overlay" id="searchModal">
+      <div class="modal search-modal">
+        <div class="modal-header">
+          <h2>搜尋事件</h2>
+          <button class="close-btn" id="closeSearchBtn">×</button>
+        </div>
+        <div class="search-content">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="搜尋事件...">
+          </div>
+          <div class="search-results" id="searchResults">
+            <p class="search-hint">輸入關鍵字搜尋事件</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成員管理 Modal -->
+    <div class="modal-overlay" id="membersModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>日曆成員</h2>
+          <button class="close-btn" id="closeMembersBtn">×</button>
+        </div>
+        <div class="members-content">
+          <div class="members-list" id="membersList">
+            <!-- 由 JS 動態生成 -->
+          </div>
+          <button class="invite-btn" id="inviteBtn">
+            <span>+</span> 邀請成員
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="timetree.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('timetree');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('timetree', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

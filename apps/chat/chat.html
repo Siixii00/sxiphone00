@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>KakaoTalk Simulator</title>
+    <link rel="stylesheet" href="chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1';
+        window.TransformersPipeline = pipeline;
+        window.TransformersEnv = env;
+        window.TransformersReady = true;
+        window.dispatchEvent(new Event('transformers-ready'));
+    </script>
+</head>
+<body>
+
+<div class="chat-app">
+<header class="kakao-header" id="chat-list-header">
+    <div class="kakao-header-left">
+        <button class="kakao-back" onclick="handleBack()">
+            <i class="fas fa-chevron-left"></i>
+            <span>返回</span>
+        </button>
+    </div>
+    <span class="kakao-title">聊天</span>
+    <div class="kakao-header-actions">
+        <button class="kakao-icon-btn" id="new-chat-btn" aria-label="加好友">
+            <i class="fas fa-user-plus"></i>
+        </button>
+    </div>
+</header>
+
+<div class="chat-tab-panel active" id="chat-tab-chats">
+    <div class="chat-list kakao-list" id="chat-list-view"></div>
+</div>
+
+<div class="chat-tab-panel" id="chat-tab-friends">
+    <div class="tab-placeholder">尚未新增好友</div>
+</div>
+
+<div class="chat-tab-panel" id="chat-tab-more">
+    <div class="more-grid" id="more-grid">
+        <button class="more-item" type="button" data-more="emoji-shop">
+            <i class="fas fa-store"></i>
+            <span>表情包商店</span>
+        </button>
+        <button class="more-item" type="button" data-more="theme-shop">
+            <i class="fas fa-palette"></i>
+            <span>主題商店</span>
+        </button>
+        <button class="more-item" type="button" data-more="gift-shop">
+            <i class="fas fa-gift"></i>
+            <span>禮物券商店</span>
+        </button>
+        <button class="more-item" type="button" data-more="payment-code">
+            <i class="fas fa-qrcode"></i>
+            <span>支付條碼</span>
+        </button>
+    </div>
+
+    <div class="more-panel" id="theme-shop-panel">
+        <div class="more-panel-header">
+            <button class="panel-back" type="button" id="theme-shop-back">
+                <i class="fas fa-chevron-left"></i>
+                返回
+            </button>
+            <span>主題商店</span>
+        </div>
+        <iframe class="more-panel-frame" src="../theme-shop/theme-shop.html" title="主題商店" scrolling="no"></iframe>
+    </div>
+
+    <div class="more-panel" id="gift-shop-panel">
+        <div class="more-panel-header">
+            <button class="panel-back" type="button" id="gift-shop-back">
+                <i class="fas fa-chevron-left"></i>
+                返回
+            </button>
+            <span>禮物券商店</span>
+        </div>
+        <iframe class="more-panel-frame" src="../gift-shop/gift-shop.html" title="禮物券商店" scrolling="no"></iframe>
+    </div>
+
+    <div class="more-panel" id="payment-code-panel">
+        <div class="more-panel-header">
+            <button class="panel-back" type="button" id="payment-code-back">
+                <i class="fas fa-chevron-left"></i>
+                返回
+            </button>
+            <span>支付條碼</span>
+        </div>
+        <iframe class="more-panel-frame" src="../payment-code/payment-code.html" title="支付條碼" scrolling="no"></iframe>
+    </div>
+</div>
+
+<nav class="kakao-bottom-tabs">
+    <button class="kakao-bottom-tab active" data-tab="chats" aria-label="聊天">
+        <i class="fas fa-comments"></i>
+        <span>聊天</span>
+    </button>
+    <button class="kakao-bottom-tab" data-tab="friends" aria-label="好友">
+        <i class="fas fa-user"></i>
+        <span>好友</span>
+    </button>
+    <button class="kakao-bottom-tab" data-tab="more" aria-label="更多">
+        <i class="fas fa-ellipsis-h"></i>
+        <span>更多</span>
+    </button>
+</nav>
+
+<div class="chat-list-actions" id="chat-list-actions">
+    <button class="action-btn" id="chat-hide-btn">隱藏</button>
+    <button class="action-btn btn-danger" id="chat-delete-btn">刪除</button>
+</div>
+
+<button class="chat-detail-back" id="back-to-list">
+    <i class="fas fa-chevron-left"></i>
+</button>
+
+<div class="chat-detail-title" id="chat-detail-title"></div>
+
+<button class="chat-detail-menu" id="open-menu">
+    <i class="fas fa-bars"></i>
+</button>
+
+<section class="chat-detail hidden" id="chat-detail-view">
+    <main class="message-flow" id="chat-flow">
+        <div class="system-notice">現在正與 <span id="hint-name">null</span> 對話中</div>
+    </main>
+
+    <div class="input-area">
+        <button class="icon-btn" id="plus-btn"><i class="fas fa-plus"></i></button>
+        
+        <div class="input-wrapper">
+            <textarea id="msg-input" placeholder="傳送訊息..." rows="1"></textarea>
+            <button class="gen-btn" id="generate-trigger">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+        
+        <button class="send-btn" id="send-trigger">傳送</button>
+    </div>
+
+    <div id="plus-menu" class="plus-menu">
+        <div class="menu-grid">
+            <div class="menu-item" data-action="emoji"><div class="menu-icon"><i class="fas fa-smile"></i></div><span>顏文字</span></div>
+            <div class="menu-item" data-action="sticker"><div class="menu-icon"><i class="fas fa-sticky-note"></i></div><span>選擇貼圖</span></div>
+            <div class="menu-item" data-action="location"><div class="menu-icon"><i class="fas fa-map-marker-alt"></i></div><span>發送位置</span></div>
+            <div class="menu-item" data-action="image"><div class="menu-icon"><i class="fas fa-image"></i></div><span>發送圖片</span></div>
+            <div class="menu-item" data-action="generate-image"><div class="menu-icon"><i class="fas fa-paint-brush"></i></div><span>生成圖片</span></div>
+            <div class="menu-item" data-action="transfer"><div class="menu-icon"><i class="fas fa-wallet"></i></div><span>轉帳收款</span></div>
+            <div class="menu-item" data-action="generate-diary"><div class="menu-icon"><i class="fas fa-book"></i></div><span>生成日記</span></div>
+            <div class="menu-item" data-action="check-phone"><div class="menu-icon"><i class="fas fa-mobile-alt"></i></div><span>查手機</span></div>
+            <div class="menu-item" data-action="inner-voice"><div class="menu-icon"><i class="fas fa-brain"></i></div><span>偷看心聲</span></div>
+            <div class="menu-item" data-action="voice-call"><div class="menu-icon"><i class="fas fa-phone"></i></div><span>撥打電話</span></div>
+            <div class="menu-item" data-action="voice-message"><div class="menu-icon"><i class="fas fa-microphone"></i></div><span>語音訊息</span></div>
+            <div class="menu-item" data-action="recommend-product"><div class="menu-icon"><i class="fas fa-shopping-bag"></i></div><span>推薦商品</span></div>
+            <div class="menu-item" data-action="memory-table"><div class="menu-icon"><i class="fas fa-table"></i></div><span>生成記憶表格</span></div>
+            <div class="menu-item" data-action="phone-appearance"><div class="menu-icon"><i class="fas fa-mobile"></i></div><span>手機外觀</span></div>
+        </div>
+    </div>
+
+    <div class="emoji-panel" id="emoji-panel">
+        <button type="button" class="panel-back" id="emoji-back">
+            <i class="fas fa-chevron-left"></i>
+            返回
+        </button>
+        <div class="emoji-row" id="emoji-row"></div>
+    </div>
+
+    <div class="location-panel" id="location-panel">
+        <div class="location-modal" id="location-modal">
+            <div class="location-header">
+                <i class="fas fa-map-marker-alt"></i>
+                分享位置
+            </div>
+            <div class="location-map-preview">
+                <div class="location-map-pin"></div>
+            </div>
+            <input type="text" id="location-input" placeholder="輸入地點">
+            <button class="action-btn" id="send-location">送出位置</button>
+        </div>
+    </div>
+
+    <div class="transfer-panel" id="transfer-panel">
+        <div class="transfer-modal" id="transfer-modal">
+            <div class="transfer-header">
+                <i class="fas fa-wallet"></i>
+                轉帳收款
+            </div>
+            <div class="transfer-wallets" id="transfer-wallets"></div>
+            <div class="transfer-grid">
+                <label for="transfer-type">類型</label>
+                <select id="transfer-type">
+                    <option value="transfer">轉帳</option>
+                    <option value="envelope">紅包</option>
+                    <option value="request">收款</option>
+                </select>
+
+                <label for="transfer-direction">方向</label>
+                <select id="transfer-direction">
+                    <option value="user_to_char">我 → 角色</option>
+                    <option value="char_to_user">角色 → 我</option>
+                </select>
+
+                <label for="transfer-amount">金額 (NT$)</label>
+                <input type="number" id="transfer-amount" min="1" step="1" placeholder="例如 520">
+
+                <label for="transfer-note">備註</label>
+                <input type="text" id="transfer-note" maxlength="28" placeholder="例如：晚餐分攤、生日紅包">
+
+                <div class="envelope-style-section hidden" id="envelope-style-section">
+                    <label>紅包封面樣式</label>
+                    <div class="envelope-styles" id="envelope-styles">
+                        <div class="envelope-style-item selected" data-style="default" data-bg="linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)">
+                            <div class="envelope-preview default"></div>
+                            <span>經典紅</span>
+                        </div>
+                        <div class="envelope-style-item" data-style="gold" data-bg="linear-gradient(135deg, #f39c12 0%, #d68910 100%)">
+                            <div class="envelope-preview gold"></div>
+                            <span>金色喜慶</span>
+                        </div>
+                        <div class="envelope-style-item" data-style="pink" data-bg="linear-gradient(135deg, #e91e63 0%, #ad1457 100%)">
+                            <div class="envelope-preview pink"></div>
+                            <span>粉色浪漫</span>
+                        </div>
+                        <div class="envelope-style-item" data-style="custom" data-bg="">
+                            <div class="envelope-preview custom">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <span>自訂圖片</span>
+                        </div>
+                    </div>
+                    <div class="envelope-custom-upload hidden" id="envelope-custom-upload">
+                        <input type="file" id="envelope-custom-file" accept="image/*" hidden>
+                        <button class="action-btn" onclick="document.getElementById('envelope-custom-file').click()" style="font-size:12px;padding:8px;">上傳紅包封面</button>
+                        <div class="envelope-custom-preview" id="envelope-custom-preview"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="action-btn" id="send-transfer">送出交易</button>
+        </div>
+    </div>
+
+    <input type="file" id="image-upload" accept="image/*" hidden>
+
+    <div class="diary-panel" id="diary-panel">
+        <div class="diary-modal" id="diary-modal">
+            <div class="diary-header">
+                <i class="fas fa-book"></i>
+                生成日記
+            </div>
+            <div class="diary-settings">
+                <label for="diary-time">日記時間</label>
+                <input type="time" id="diary-time" value="22:00">
+                <label for="diary-date">日記日期</label>
+                <input type="date" id="diary-date">
+                <p class="diary-hint">將根據當天的聊天內容自動生成日記</p>
+            </div>
+            <div class="diary-preview" id="diary-preview"></div>
+            <div class="diary-actions">
+                <button class="action-btn secondary" id="diary-cancel">取消</button>
+                <button class="action-btn primary" id="diary-generate">生成日記</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="check-phone-panel" id="check-phone-panel">
+        <div class="check-phone-modal" id="check-phone-modal">
+            <div class="check-phone-header">
+                <i class="fas fa-mobile-alt"></i>
+                <span id="check-phone-char-name">角色的手機</span>
+                <button class="check-phone-close-btn" id="check-phone-close-header">&times;</button>
+            </div>
+            <div class="check-phone-apps" id="check-phone-apps">
+                <div class="check-phone-section">
+                    <div class="section-title">社交應用</div>
+                    <div class="app-grid">
+                        <div class="phone-app-item" data-app="facebook" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fab fa-facebook-f"></i></div>
+                            <span>Facebook</span>
+                        </div>
+                        <div class="phone-app-item" data-app="instagram" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fab fa-instagram"></i></div>
+                            <span>Instagram</span>
+                        </div>
+                        <div class="phone-app-item" data-app="twitter" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fab fa-twitter"></i></div>
+                            <span>Twitter</span>
+                        </div>
+                        <div class="phone-app-item" data-app="weverse" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-heart"></i></div>
+                            <span>Weverse</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="check-phone-section">
+                    <div class="section-title">生活應用</div>
+                    <div class="app-grid">
+                        <div class="phone-app-item" data-app="kakaopay" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-wallet"></i></div>
+                            <span>KakaoPay</span>
+                        </div>
+                        <div class="phone-app-item" data-app="weather" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-cloud-sun"></i></div>
+                            <span>天氣</span>
+                        </div>
+                        <div class="phone-app-item" data-app="music" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-music"></i></div>
+                            <span>音樂</span>
+                        </div>
+                        <div class="phone-app-item" data-app="chrome" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fab fa-chrome"></i></div>
+                            <span>Chrome</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="check-phone-section">
+                    <div class="section-title">個人內容</div>
+                    <div class="app-grid">
+                        <div class="phone-app-item" data-app="album" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-images"></i></div>
+                            <span>相簿</span>
+                        </div>
+                        <div class="phone-app-item" data-app="diary" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-book"></i></div>
+                            <span>日記</span>
+                        </div>
+                        <div class="phone-app-item" data-app="notes" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-sticky-note"></i></div>
+                            <span>備忘錄</span>
+                        </div>
+                        <div class="phone-app-item" data-app="settings" data-char-view="true">
+                            <div class="phone-app-icon"><i class="fas fa-cog"></i></div>
+                            <span>設定</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="check-phone-footer">
+                <button class="action-btn" id="check-phone-close">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="char-app-viewer" id="char-app-viewer">
+        <div class="char-app-header">
+            <button class="back-to-phone-btn" id="back-to-phone-btn">
+                <i class="fas fa-chevron-left"></i>
+                返回
+            </button>
+            <span class="char-app-title" id="char-app-title">應用程式</span>
+        </div>
+        <div class="char-app-frame-container">
+            <iframe id="char-app-frame" src="" title="Char App"></iframe>
+        </div>
+    </div>
+
+    <div class="inner-voice-panel" id="inner-voice-panel">
+        <div class="inner-voice-modal" id="inner-voice-modal">
+            <div class="inner-voice-header">
+                <i class="fas fa-brain"></i>
+                偷看心聲
+            </div>
+            <div class="inner-voice-loading" id="inner-voice-loading">
+                <div class="voice-spinner"></div>
+                <span>正在潛入意識深處...</span>
+            </div>
+            <div class="inner-voice-content" id="inner-voice-content"></div>
+            <div class="inner-voice-actions">
+                <button class="action-btn secondary" id="inner-voice-close">關閉</button>
+                <button class="action-btn primary" id="inner-voice-regen">重新生成</button>
+                <button class="action-btn" id="inner-voice-history" title="查看歷史"><i class="fas fa-history"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="inner-voice-history-panel" id="inner-voice-history-panel">
+        <div class="inner-voice-history-modal" id="inner-voice-history-modal">
+            <div class="inner-voice-history-header">
+                <i class="fas fa-history"></i>
+                <span>歷史心聲</span>
+                <button class="history-close-btn" id="inner-voice-history-close">&times;</button>
+            </div>
+            <div class="inner-voice-history-list" id="inner-voice-history-list">
+                <div class="history-empty">尚未有歷史記錄</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="voice-call-panel" id="voice-call-panel">
+        <div class="voice-call-modal" id="voice-call-modal">
+            <div class="voice-call-header">
+                <i class="fas fa-phone"></i>
+                <span id="voice-call-title">撥打電話</span>
+            </div>
+            <div class="voice-call-status" id="voice-call-status">
+                <div class="call-status-icon" id="call-status-icon">
+                    <i class="fas fa-phone"></i>
+                </div>
+                <div class="call-status-text" id="call-status-text">準備中...</div>
+                <div class="call-timer" id="call-timer">00:00</div>
+            </div>
+            <div class="voice-call-visualizer" id="voice-call-visualizer">
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+                <div class="visualizer-bar"></div>
+            </div>
+            <div class="voice-call-transcript" id="voice-call-transcript">
+                <div class="transcript-empty">通話內容將顯示在這裡</div>
+            </div>
+            <div class="voice-call-actions" id="voice-call-actions">
+                <button class="action-btn call-btn" id="voice-call-start">
+                    <i class="fas fa-phone"></i>
+                    開始通話
+                </button>
+                <button class="action-btn end-btn hidden" id="voice-call-end">
+                    <i class="fas fa-phone-slash"></i>
+                    結束通話
+                </button>
+            </div>
+            <div class="voice-call-settings-hint" id="voice-call-settings-hint">
+                <i class="fas fa-info-circle"></i>
+                <span>請先到 Settings 設定 STT/TTS 服務</span>
+                <button class="action-btn small" id="voice-goto-settings">前往設定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="voice-message-panel" id="voice-message-panel">
+        <div class="voice-message-modal" id="voice-message-modal">
+            <div class="voice-message-header">
+                <i class="fas fa-microphone"></i>
+                <span>語音訊息</span>
+                <button class="voice-message-close" id="voice-message-close">&times;</button>
+            </div>
+            <div class="voice-message-tabs">
+                <button class="voice-msg-tab active" data-tab="record-tab">錄音發送</button>
+                <button class="voice-msg-tab" data-tab="text-tab">文字轉語音</button>
+            </div>
+            <div class="voice-message-content">
+                <div class="voice-msg-panel active" id="record-tab">
+                    <div class="voice-record-status" id="voice-record-status">
+                        <div class="record-waveform" id="record-waveform">
+                            <div class="waveform-bar"></div>
+                            <div class="waveform-bar"></div>
+                            <div class="waveform-bar"></div>
+                            <div class="waveform-bar"></div>
+                            <div class="waveform-bar"></div>
+                        </div>
+                        <span id="record-time">00:00</span>
+                    </div>
+                    <div class="voice-record-hint" id="voice-record-hint">點擊麥克風開始錄音</div>
+                    <div class="voice-record-actions">
+                        <button class="record-btn" id="voice-record-btn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                    <div class="voice-record-preview hidden" id="voice-record-preview">
+                        <div class="preview-audio">
+                            <button class="preview-play-btn" id="preview-play-btn"><i class="fas fa-play"></i></button>
+                            <span id="preview-duration">00:00</span>
+                        </div>
+                        <div class="preview-text" id="preview-transcript-text"></div>
+                        <div class="preview-actions">
+                            <button class="action-btn secondary" id="voice-cancel-btn">取消</button>
+                            <button class="action-btn primary" id="voice-send-btn">發送</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="voice-msg-panel" id="text-tab">
+                    <div class="text-to-voice-input">
+                        <textarea id="text-to-voice-text" placeholder="輸入文字，將轉換為語音訊息發送..."></textarea>
+                    </div>
+                    <div class="text-to-voice-options">
+                        <label>
+                            <input type="checkbox" id="show-text-bubble" checked>
+                            <span>同時顯示文字氣泡</span>
+                        </label>
+                    </div>
+                    <div class="text-to-voice-actions">
+                        <button class="action-btn secondary" id="text-voice-cancel-btn">取消</button>
+                        <button class="action-btn primary" id="text-voice-send-btn">發送語音</button>
+                    </div>
+                </div>
+            </div>
+            <div class="voice-message-settings-hint hidden" id="voice-message-settings-hint">
+                <i class="fas fa-info-circle"></i>
+                <span>錄音功能需要 STT 服務，請先到 Settings 設定</span>
+                <button class="action-btn small" id="voice-msg-goto-settings">前往設定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="product-recommend-panel" id="product-recommend-panel">
+        <div class="product-recommend-modal">
+            <div class="product-recommend-header">
+                <i class="fas fa-shopping-bag"></i>
+                <span id="product-recommend-title">推薦商品</span>
+                <button class="panel-close-btn" id="product-recommend-close">&times;</button>
+            </div>
+            <div class="product-recommend-options">
+                <label>
+                    <input type="radio" name="recommend-type" value="recommend" checked>
+                    <span>推薦商品</span>
+                </label>
+                <label>
+                    <input type="radio" name="recommend-type" value="order">
+                    <span>直接下單</span>
+                </label>
+            </div>
+            <div class="product-recommend-list" id="product-recommend-list"></div>
+            <div class="product-recommend-actions">
+                <button class="action-btn secondary" id="product-recommend-cancel">取消</button>
+                <button class="action-btn primary" id="product-recommend-send">發送推薦</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="memory-table-panel" id="memory-table-panel">
+        <div class="memory-table-modal" id="memory-table-modal">
+            <div class="memory-table-header">
+                <i class="fas fa-table"></i>
+                <span>記憶表格</span>
+                <button class="memory-table-close" id="memory-table-close">&times;</button>
+            </div>
+            <div class="memory-table-settings">
+                <div class="memory-setting-row">
+                    <label>
+                        <input type="checkbox" id="auto-memory-toggle">
+                        <span>自動生成記憶表格</span>
+                    </label>
+                </div>
+                <div class="memory-setting-row" id="auto-memory-rounds-row">
+                    <label for="auto-memory-rounds">每 <input type="number" id="auto-memory-rounds" min="5" max="100" value="20"> 輪對話自動生成</label>
+                </div>
+                <div class="memory-setting-row">
+                    <label for="memory-rounds-input">手動生成：最近 <input type="number" id="memory-rounds-input" min="5" max="100" value="30"> 輪對話</label>
+                </div>
+            </div>
+            <div class="memory-table-preview" id="memory-table-preview">
+                <div class="memory-table-empty">點擊「生成記憶表格」開始</div>
+            </div>
+            <div class="memory-table-actions">
+                <button class="action-btn secondary" id="memory-generate-btn">生成記憶表格</button>
+                <button class="action-btn primary" id="memory-add-btn" disabled>加入長期記憶</button>
+            </div>
+            <div class="memory-export-section">
+                <div class="memory-export-header">匯出記憶表格</div>
+                <div class="memory-export-actions">
+                    <button class="action-btn" id="memory-export-html"><i class="fas fa-code"></i> 匯出 HTML</button>
+                    <button class="action-btn" id="memory-export-txt"><i class="fas fa-file-alt"></i> 匯出 TXT</button>
+                </div>
+            </div>
+            <div class="memory-saved-list" id="memory-saved-list">
+                <div class="memory-saved-header">已儲存的記憶表格</div>
+                <div class="memory-saved-items" id="memory-saved-items"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="config-drawer">
+        <div class="drawer-header">聊天室設定</div>
+    <div class="drawer-content">
+        <div class="accordion-item">
+            <div class="accordion-header">當前對話角色 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="preset-row">
+                    <label>從 Settings 匯入角色</label>
+                    <select id="char-preset-select"></select>
+                </div>
+                <label for="avatar-file">角色頭像</label>
+                <div class="avatar-edit-box" style="display: flex; align-items: center; gap: 15px;">
+                    <img id="preview-avatar" src="" alt="" style="width: 60px; height: 60px; background: #eee; border-radius: 18px; object-fit: cover;">
+                    <input type="file" id="avatar-file" hidden accept="image/*">
+                    <button class="action-btn" onclick="document.getElementById('avatar-file').click()" style="flex: 1;">更換頭像</button>
+                </div>
+                <label for="set-name">角色名稱</label>
+                <input type="text" id="set-name" placeholder="請輸入角色名稱">
+                <label for="set-personality">性格描述</label>
+                <textarea id="set-personality" placeholder="描述角色的性格與說話方式"></textarea>
+                <label for="set-background">背景故事</label>
+                <textarea id="set-background" placeholder="角色的背景設定與故事"></textarea>
+                <button class="action-btn btn-save" id="save-char">套用角色設定</button>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">
+                世界書掛載 (World Info)
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="accordion-body">
+                <div class="wb-label">掛載已存在的世界書</div>
+
+                <div class="wb-dropdown">
+                    <button type="button" class="wb-dropdown-toggle" id="wb-dropdown-toggle">
+                        選擇世界書（可多選）
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="wb-dropdown-menu" id="worldbook-mount-list"></div>
+                </div>
+
+                <div class="wb-hint-box">
+                    <p>
+                        * 勾選後 AI 才會讀取該書。內容會根據 <b>Top (優先度高) / Mid / Bottom</b> 順序插入。
+                    </p>
+                </div>
+
+                <div class="wb-actions">
+                    <button class="action-btn" id="load-worldbook-mounts">載入世界書</button>
+                    <button class="action-btn btn-save" id="save-worldbook-mounts">確認掛載設定</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">當前用戶面具 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="preset-row">
+                    <label>從 Settings 匯入用戶</label>
+                    <select id="user-preset-select"></select>
+                </div>
+                <label for="user-avatar-file">你的聊天頭貼</label>
+                <div class="avatar-edit-box" style="display: flex; align-items: center; gap: 15px;">
+                    <img id="preview-user-avatar" src="" alt="" style="width: 60px; height: 60px; background: #eee; border-radius: 18px; object-fit: cover;">
+                    <input type="file" id="user-avatar-file" hidden accept="image/*">
+                    <button class="action-btn" onclick="document.getElementById('user-avatar-file').click()" style="flex: 1;">更換你的頭貼</button>
+                </div>
+                <label for="set-user-name">你的稱呼 / 身分</label>
+                <input type="text" id="set-user-name" placeholder="請輸入你的名稱">
+                <label for="set-user-background">簡易背景故事</label>
+                <textarea id="set-user-background" placeholder="你的身分背景與設定"></textarea>
+                <button class="action-btn btn-save" id="save-mask">套用面具設定</button>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">重要個人設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <label for="set-likes">個人偏好與愛好 (Likes)</label>
+                <textarea id="set-likes" placeholder="偏好與愛好內容"></textarea>
+                <label for="set-taboos">禁忌與過敏限制 (Restrictions)</label>
+                <textarea id="set-taboos" placeholder="禁忌、過敏或需要避開的話題"></textarea>
+                <label for="set-status">身體數值與狀態</label>
+                <textarea id="set-status" placeholder="目前的身體狀態或相關數值"></textarea>
+                <button class="action-btn btn-save" id="save-prefs">更新個人設定</button>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">手機檢查事件 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">允許角色檢查手機</div>
+                        <div class="toggle-sub" id="phone-check-status">關閉時不會觸發</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="phone-check-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="phone-check-settings" style="margin-top: 12px;">
+                    <label for="phone-check-min-delay">觸發間隔（分鐘）</label>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="number" id="phone-check-min-delay" min="1" max="1440" value="5" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span>~</span>
+                        <input type="number" id="phone-check-max-delay" min="1" max="1440" value="60" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                    </div>
+                    <label for="phone-check-duration">檢查持續時間（分鐘）</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="phone-check-min-duration" min="1" max="30" value="2" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span>~</span>
+                        <input type="number" id="phone-check-max-duration" min="1" max="30" value="5" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                    </div>
+                </div>
+                <p class="toggle-hint">啟用後會在隨機時間觸發，期間無法操作手機。評論將根據角色性格由 AI 生成。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">Passkey 控制權 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">啟用 Passkey 控制權</div>
+                        <div class="toggle-sub" id="passkey-control-status">關閉時不會自動交接</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="passkey-control-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="toggle-hint">開啟後，偵測到 NSFW 話題將自動交由角色接管操作權。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">約會邀請設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">啟用約會邀請</div>
+                        <div class="toggle-sub" id="dating-invite-status">關閉時不會自動發起</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="dating-invite-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="dating-invite-settings" style="margin-top: 12px;">
+                    <label for="dating-invite-probability">觸發機率（%）</label>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="number" id="dating-invite-probability" min="0" max="100" value="30" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span style="font-size: 12px; color: #666;">每次檢查時觸發的機率</span>
+                    </div>
+                    <label for="dating-invite-min-interval">觸發間隔（分鐘）</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="dating-invite-min-interval" min="1" max="1440" value="30" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span>~</span>
+                        <input type="number" id="dating-invite-max-interval" min="1" max="1440" value="120" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                    </div>
+                </div>
+                <p class="toggle-hint">角色會在對話中隨機發起約會邀請，可選擇接受或婉拒。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">關係距離設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">允許提及線下見面</div>
+                        <div class="toggle-sub" id="meetup-mention-status">關閉時角色不會主動提見面</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="meetup-mention-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="meetup-settings" style="margin-top: 12px;">
+                    <label for="relationship-distance">關係距離偏好</label>
+                    <select id="relationship-distance" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #ddd; margin-top: 4px;">
+                        <option value="close">親密距離 - 可以討論見面、約會、同居等話題</option>
+                        <option value="moderate" selected>適中距離 - 偶爾提及見面，但不過於頻繁</option>
+                        <option value="distant">遠距離 - 維持線上關係，避免提及線下見面</option>
+                        <option value="strict-online">純線上 - 嚴格禁止任何見面相關話題</option>
+                    </select>
+                </div>
+                <p class="toggle-hint">設定您與角色的關係距離偏好。選擇「遠距離」或「純線上」時，角色會避免提及線下見面、約會地點等可能讓您感到不安的話題。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">隨機問候設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="toggle-row">
+                    <div class="toggle-text">
+                        <div class="toggle-title">啟用隨機問候</div>
+                        <div class="toggle-sub" id="greeting-status">關閉時不會主動發送</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="greeting-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="greeting-settings" style="margin-top: 12px;">
+                    <label for="greeting-probability">問候機率（%）</label>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="number" id="greeting-probability" min="0" max="100" value="30" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span style="font-size: 12px; color: #666;">每次檢查時觸發的機率</span>
+                    </div>
+                    <label for="greeting-min-interval">問候間隔（分鐘）</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="number" id="greeting-min-interval" min="1" max="1440" value="30" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <span>~</span>
+                        <input type="number" id="greeting-max-interval" min="1" max="1440" value="120" style="width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #ddd;">
+                    </div>
+                </div>
+                <p class="toggle-hint">角色會根據個性隨機發送問候訊息，或在用戶長時間未回覆時提醒。</p>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">生成模式設定 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <div class="generation-mode-section">
+                    <label>選擇 AI 回覆生成模式</label>
+                    <div class="generation-mode-options">
+                        <label class="mode-option">
+                            <input type="radio" name="generation-mode" value="full">
+                            <div class="mode-option-content">
+                                <div class="mode-title">完整模式</div>
+                                <div class="mode-desc">包含動作描寫與對話（如 *微笑*、*嘆氣*）</div>
+                            </div>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="generation-mode" value="dialogue" checked>
+                            <div class="mode-option-content">
+                                <div class="mode-title">純對話模式</div>
+                                <div class="mode-desc">僅生成文字對話，不含動作描寫</div>
+                            </div>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="generation-mode" value="narrative">
+                            <div class="mode-option-content">
+                                <div class="mode-title">敘事模式</div>
+                                <div class="mode-desc">以第三人稱敘事為主，詳細描寫場景與心理</div>
+                            </div>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="generation-mode" value="multi">
+                            <div class="mode-option-content">
+                                <div class="mode-title">多條消息模式</div>
+                                <div class="mode-desc">AI 回覆會分成多條訊息發送，更自然</div>
+                            </div>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="generation-mode" value="multi-text">
+                            <div class="mode-option-content">
+                                <div class="mode-title">純文字多條消息</div>
+                                <div class="mode-desc">純文字對話分成多條訊息發送，無動作描寫</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <div class="accordion-header">對話與記憶管理 <i class="fas fa-chevron-down"></i></div>
+            <div class="accordion-body">
+                <label for="history-range">回憶深度 (對話輪數)</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" id="history-range" min="5" max="50" value="30" oninput="this.nextElementSibling.value = this.value">
+                    <output style="font-size:12px; font-weight:bold; color:#fbe100; min-width: 20px;">30</output>
+                </div>
+
+                <label for="chat-font-range" style="margin-top: 12px;">字體大小</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" id="chat-font-range" min="12" max="20" value="14" oninput="this.nextElementSibling.value = this.value">
+                    <output id="chat-font-output" style="font-size:12px; font-weight:bold; color:#fbe100; min-width: 20px;">14</output>
+                </div>
+
+                <button class="action-btn btn-danger" style="margin-top:15px;" id="clear-chat">清除當前對話</button>
+                <button class="action-btn btn-danger" id="delete-chat">刪除對話</button>
+                <button class="action-btn btn-danger" id="clear-memory">清理記憶</button>
+                <button class="action-btn btn-danger" id="block-char">拉黑角色 (1hr)</button>
+            </div>
+        </div>
+    </div>
+    <button class="action-btn" id="close-menu" style="background:#eee; margin:10px; width:calc(100% - 20px); color: #333; font-weight: bold;">關閉選單</button>
+    <button class="action-btn" id="save-chat-settings" style="background:#34C759; margin:10px; width:calc(100% - 20px); color: #fff; font-weight: bold;">儲存聊天室設定</button>
+</div>
+</section>
+
+<div class="more-panel" id="emoji-shop-panel">
+    <div class="more-panel-header">
+        <button class="panel-back" type="button" id="emoji-shop-back">
+            <i class="fas fa-chevron-left"></i>
+            返回
+        </button>
+        <span>表情包商店</span>
+    </div>
+    <iframe class="more-panel-frame" src="../emoji-shop/emoji-shop.html" title="表情包商店" scrolling="no"></iframe>
+</div>
+</div>
+<link rel="stylesheet" href="dating-invitation.css">
+<link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+<script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/memory-store.js"></script>
+<script src="../scripts/short-term-memory.js"></script>
+<script src="../scripts/embedding-engine.js"></script>
+<script src="../scripts/app-memory-helper.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="dating-invitation.js"></script>
+<script src="chat.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof SxAppAppearance !== 'undefined') {
+        SxAppAppearance.initAppearanceForApp('chat');
+    }
+});
+</script>
+</body>
+</html>

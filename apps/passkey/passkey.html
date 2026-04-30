@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Passkey</title>
+  <link rel="stylesheet" href="passkey.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="passkey-app">
+    <!-- 頂部標題 -->
+    <div class="app-header">
+      <button class="back-btn" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <h1>Passkey</h1>
+      <button class="back-btn" id="appearance-btn" aria-label="外觀設定">
+        <i class="fas fa-palette"></i>
+      </button>
+    </div>
+
+    <!-- 主要內容區域 -->
+    <div class="main-content">
+      <!-- 角色選擇 -->
+      <div class="character-control">
+        <div class="control-section">
+          <h4>角色控制設定</h4>
+          <div class="character-selector">
+            <label for="character-select">選擇控制角色:</label>
+            <select id="character-select" onchange="PasskeyApp.onCharacterSelectChange(this)">
+              <option value="">-- 選擇角色 --</option>
+            </select>
+            <button class="control-btn" onclick="PasskeyApp.loadCharactersFromWorldbook()">
+              <i class="fas fa-sync-alt"></i> 從世界書載入
+            </button>
+            <button class="control-btn" onclick="PasskeyApp.loadCharactersFromSettings()">
+              <i class="fas fa-sync-alt"></i> 從設定載入
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 設備狀態 -->
+      <div class="device-status">
+        <div class="status-indicator">
+          <i class="status-icon fas fa-bluetooth"></i>
+          <span class="status-text" id="connection-status">未連接</span>
+        </div>
+        <div class="connected-device" id="connected-device" style="display: none;">
+          <span>已連接: <strong id="device-name">-</strong></span>
+          <button class="disconnect-btn" onclick="disconnectDevice()">
+            <i class="fas fa-unlink"></i> 斷開連接
+          </button>
+        </div>
+      </div>
+
+      <!-- 搜尋控制 -->
+      <div class="search-controls">
+        <button class="search-btn" id="search-btn" onclick="startScanning()">
+          <i class="fas fa-search"></i> 搜尋藍牙設備
+        </button>
+        <button class="stop-search-btn" id="stop-search-btn" onclick="stopScanning()" style="display: none;">
+          <i class="fas fa-stop"></i> 停止搜尋
+        </button>
+        <button class="search-btn" id="test-connection-btn" onclick="testConnection()">
+          <i class="fas fa-plug"></i> 測試連接
+        </button>
+      </div>
+
+      <!-- 設備列表 -->
+      <div class="device-list" id="device-list">
+        <div class="empty-state">
+          <i class="fas fa-bluetooth fa-2x"></i>
+          <p>點擊上方按鈕搜尋藍牙設備</p>
+        </div>
+      </div>
+
+      <!-- 控制面板 -->
+      <div class="control-panel" id="control-panel" style="display: none;">
+        <h3>設備控制</h3>
+        <div class="control-section">
+          <h4>通用控制</h4>
+          <div class="control-buttons">
+            <button class="control-btn" onclick="sendCommand('power_on')">
+              <i class="fas fa-power-off"></i> 開機
+            </button>
+            <button class="control-btn" onclick="sendCommand('power_off')">
+              <i class="fas fa-power-off"></i> 關機
+            </button>
+            <button class="control-btn" onclick="sendCommand('volume_up')">
+              <i class="fas fa-volume-up"></i> 音量+
+            </button>
+            <button class="control-btn" onclick="sendCommand('volume_down')">
+              <i class="fas fa-volume-down"></i> 音量-
+            </button>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h4>特殊功能</h4>
+          <div class="control-sliders">
+            <div class="slider-group">
+              <label>強度</label>
+              <input type="range" id="intensity-slider" min="0" max="100" value="50" 
+                     onchange="sendIntensity(this.value)">
+              <span id="intensity-value">50%</span>
+            </div>
+            <div class="slider-group">
+              <label>頻率</label>
+              <input type="range" id="frequency-slider" min="0" max="100" value="50" 
+                     onchange="sendFrequency(this.value)">
+              <span id="frequency-value">50%</span>
+            </div>
+          </div>
+          <div class="special-buttons">
+            <button class="special-btn" onclick="sendCommand('pattern_1')">
+              <i class="fas fa-wave-square"></i> 模式1
+            </button>
+            <button class="special-btn" onclick="sendCommand('pattern_2')">
+              <i class="fas fa-wave-square"></i> 模式2
+            </button>
+            <button class="special-btn" onclick="sendCommand('pattern_3')">
+              <i class="fas fa-wave-square"></i> 模式3
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 掃描指示器 -->
+    <div class="scanning-indicator" id="scanning-indicator" style="display: none;">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>搜尋中...</span>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="passkey.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('passkey');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('passkey', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

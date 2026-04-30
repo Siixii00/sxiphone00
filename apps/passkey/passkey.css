@@ -1,0 +1,466 @@
+.passkey-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000000;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden; /* 防止出現滾動條 */
+}
+
+/* 隱藏所有滾動條 */
+* {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 46px 16px 16px 16px; /* 上邊距增加30px */
+  background: #000000;
+  border-bottom: 1px solid #2c2c2e;
+  position: relative; /* 添加定位上下文 */
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #0a84ff;
+  font-size: 18px;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1; /* 確保按鈕在標題上方 */
+}
+
+.back-btn:hover {
+  background: #3a3a3c;
+}
+
+.header-spacer {
+  flex: 1;
+  visibility: hidden; /* 保持空間但隱藏元素，確保標題居中 */
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px; /* 增大字體 10px */
+  font-weight: 400; /* 調整字體粗細以更好地匹配字體特性 */
+  color: #ffffff;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-family: 'Great Vibes', cursive; /* 使用與 dating 應用程式相同的字體 */
+  letter-spacing: 1px; /* 添加字母間距以更好地匹配樣式 */
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.main-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.device-status {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.status-icon {
+  font-size: 28px; /* 稍微增大圖標 */
+  color: #34c759;
+}
+
+.status-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.character-control {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.character-control h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8e8e93;
+}
+
+.character-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.character-selector label {
+  font-size: 13px;
+  color: #8e8e93;
+}
+
+.character-selector select {
+  background: #3a3a3c;
+  color: white;
+  border: 1px solid #48484a;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.character-selector button {
+  background: #3a3a3c;
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.character-selector button:hover {
+  background: #48484a;
+  transform: translateY(-1px);
+}
+
+.character-selector button:active {
+  transform: translateY(0);
+}
+
+.connected-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2c2c2e;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.disconnect-btn {
+  background: #ff3b30;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.disconnect-btn:hover {
+  background: #ff4f45;
+}
+
+.search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.search-btn, .stop-search-btn, #test-connection-btn {
+  flex: 1;
+  min-width: calc(50% - 4px); /* 使兩個按鈕在一行，或三個按鈕分兩行 */
+  background: #3a3a3c;
+  border: none;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.search-btn:hover, .stop-search-btn:hover, #test-connection-btn:hover {
+  background: #48484a;
+  transform: translateY(-1px);
+}
+
+.search-btn:active, .stop-search-btn:active, #test-connection-btn:active {
+  transform: translateY(0);
+}
+
+@media (min-width: 480px) {
+  .search-btn, .stop-search-btn, #test-connection-btn {
+    min-width: calc(33.333% - 5.333px); /* 三個按鈕在較大屏幕上平均分配 */
+  }
+}
+
+.device-list {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.device-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8e8e93;
+}
+
+.empty-state i {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #2c2c2e;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.device-item:hover {
+  background: #3a3a3c;
+  transform: translateX(4px);
+}
+
+.device-item:last-child {
+  margin-bottom: 0;
+}
+
+.device-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.device-icon {
+  font-size: 20px;
+  color: #ffffff;
+}
+
+.device-name {
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.device-type {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8e8e93;
+  letter-spacing: 0.3px;
+}
+
+.device-rssi {
+  font-size: 12px;
+  color: #8e8e93;
+}
+
+.connect-btn {
+  background: #0a84ff;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.connect-btn:hover {
+  background: #3d9eff;
+}
+
+.control-panel {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.control-panel h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.control-section {
+  margin-bottom: 16px;
+}
+
+.control-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8e8e93;
+}
+
+.control-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.control-btn {
+  background: #3a3a3c;
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #48484a;
+  transform: translateY(-1px);
+}
+
+.control-btn:active {
+  transform: translateY(0);
+}
+
+.control-sliders {
+  margin-bottom: 12px;
+}
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.slider-group label {
+  font-size: 13px;
+  color: #8e8e93;
+  min-width: 40px;
+}
+
+.slider-group input[type="range"] {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #48484a;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0a84ff;
+  cursor: pointer;
+}
+
+.slider-group span {
+  font-size: 12px;
+  color: #8e8e93;
+  min-width: 30px;
+  text-align: right;
+}
+
+.special-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.special-btn {
+  background: #5856d6;
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.special-btn:hover {
+  background: #6d6dd6;
+  transform: translateY(-1px);
+}
+
+.scanning-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #1c1c1e;
+  color: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  border: 1px solid #2c2c2e;
+}
+
+@media (max-width: 480px) {
+  .control-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .special-buttons {
+    grid-template-columns: 1fr;
+  }
+}

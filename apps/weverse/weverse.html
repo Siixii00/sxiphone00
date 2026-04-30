@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>weverse</title>
+  <link rel="stylesheet" href="weverse.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="weverse-app">
+    <header class="wv-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1>weverse</h1>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="role-toggle" aria-label="切換成藝人介面">
+          <i class="fas fa-user-star"></i>
+        </button>
+        <button class="icon-btn" id="user-settings-btn" aria-label="開啟使用者設定">
+          <i class="fas fa-user-cog"></i>
+        </button>
+        <button class="icon-btn" id="artist-settings-btn" aria-label="開啟藝人設定">
+          <i class="fas fa-id-badge"></i>
+        </button>
+        <button class="icon-btn" id="reset-btn" aria-label="重設社群列表">
+          <i class="fas fa-rotate-left"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="wv-main">
+      <section class="card community-card" id="community-card">
+        <div class="hero-cover">
+          <span id="active-group-type" class="type-badge">--</span>
+          <span id="role-pill" class="role-pill">Fan Mode</span>
+          <h2 id="active-group-name">尚未選擇社群</h2>
+          <p id="active-group-bio">先選擇既有社群，或建立自己的團體。</p>
+          <div class="hero-meta">
+            <span id="member-count">0 成員</span>
+            <span id="online-count">0 在線</span>
+          </div>
+        </div>
+
+        <div class="quick-tabs">
+          <button class="tab-btn active" type="button">Feed</button>
+          <button class="tab-btn" type="button">Media</button>
+          <button class="tab-btn" type="button">Live</button>
+        </div>
+
+        <div class="story-strip" id="story-strip"></div>
+
+        <div class="feed" id="community-feed"></div>
+
+        <div class="composer">
+          <input id="post-input" type="text" placeholder="在社群裡發布貼文...">
+          <button id="post-btn" type="button">發布</button>
+        </div>
+      </section>
+    </main>
+
+    <section class="artist-settings-page hidden" id="artist-settings-page" aria-hidden="true">
+      <header class="settings-header">
+        <button class="icon-btn" id="artist-settings-back" aria-label="返回社群">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h3>藝人設定</h3>
+        <button class="primary-btn settings-save-btn" id="artist-settings-save" type="button">儲存</button>
+      </header>
+
+      <div class="settings-body">
+        <section class="card settings-card">
+          <h4>團體資料</h4>
+          <label>
+            團體名稱
+            <input id="artist-group-name" type="text" placeholder="例如：LUMEN OFFICIAL">
+          </label>
+          <label>
+            官方簡介
+            <textarea id="artist-group-bio" rows="3" placeholder="例如：我們是來自台北的三人團體。"></textarea>
+          </label>
+          <label>
+            AI 成員發文來源
+            <select id="ai-source-type">
+              <option value="all">all</option>
+              <option value="char">char</option>
+              <option value="user">user</option>
+              <option value="npc">npc</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="card settings-card">
+          <h4>新增成員</h4>
+          <label>
+            成員名稱
+            <input id="new-member-name" type="text" placeholder="例如：Ari">
+          </label>
+          <label>
+            成員類型
+            <select id="new-member-source-type">
+              <option value="char">char</option>
+              <option value="user">user</option>
+              <option value="npc">npc</option>
+            </select>
+          </label>
+          <label>
+            個性設定
+            <textarea id="new-member-persona" rows="2" placeholder="例如：溫柔、喜歡分享練習日常、會用表情符號"></textarea>
+          </label>
+          <label>
+            頭貼文字（1-2 字，選填）
+            <input id="new-member-avatar" type="text" placeholder="例如：A">
+          </label>
+          <label>
+            頭貼上傳
+            <input id="new-member-avatar-file" type="file" accept="image/*">
+          </label>
+          <div class="avatar-upload-preview" id="avatar-upload-preview">未上傳頭貼</div>
+          <button class="secondary-btn" id="add-member-btn" type="button">加入成員</button>
+        </section>
+
+        <section class="card settings-card">
+          <h4>成員列表</h4>
+          <div class="member-editor-list" id="member-editor-list"></div>
+        </section>
+
+        <section class="card settings-card">
+          <h4>備份與導出</h4>
+          <p class="settings-note" id="settings-save-status">尚未儲存變更</p>
+          <button class="secondary-btn" id="export-settings-btn" type="button">匯出設定備份</button>
+        </section>
+      </div>
+    </section>
+
+    <section class="user-settings-page hidden" id="user-settings-page" aria-hidden="true">
+      <header class="settings-header user-settings-header">
+        <button class="icon-btn" id="user-settings-back" aria-label="返回社群">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h3>使用者設定</h3>
+        <button class="primary-btn settings-save-btn user-settings-apply" id="user-settings-apply" type="button">套用</button>
+      </header>
+
+      <div class="settings-body">
+        <section class="card settings-card">
+          <h4>觀看團體設定</h4>
+          <label>
+            選擇團體
+            <select id="user-group-select"></select>
+          </label>
+          <div id="user-custom-group-fields" class="hidden">
+            <label>
+              自訂團體名稱
+              <input id="user-custom-group-name" type="text" placeholder="例如：LUMEN">
+            </label>
+            <label>
+              類型
+              <select id="user-custom-group-type">
+                <option value="K-POP">K-POP</option>
+                <option value="Band">Band</option>
+                <option value="Solo">Solo</option>
+                <option value="Creator">Creator</option>
+              </select>
+            </label>
+            <label>
+              簡介
+              <textarea id="user-custom-group-bio" rows="2" placeholder="輸入你想看的團體介紹"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="card settings-card">
+          <h4>AI 成員導入</h4>
+          <label>
+            成員來源
+            <select id="user-ai-source-type">
+              <option value="all">all</option>
+              <option value="char">char</option>
+              <option value="user">user</option>
+              <option value="npc">npc</option>
+            </select>
+          </label>
+          <button class="secondary-btn" id="import-ai-members-btn" type="button">從 AI 導入成員資料</button>
+          <p class="settings-note" id="user-settings-status">尚未導入 AI 成員資料</p>
+        </section>
+
+        <section class="card settings-card">
+          <h4>公開貼文導入</h4>
+          <label>
+            公開來源 URL
+            <input id="public-post-source-url" type="text" placeholder="貼上 weverse 公開頁面或你的 API 來源">
+          </label>
+          <label>
+            來源格式
+            <select id="public-post-source-format">
+              <option value="json">json</option>
+              <option value="text">text</option>
+            </select>
+          </label>
+          <button class="secondary-btn" id="import-public-posts-btn" type="button">AI 導入公開貼文</button>
+          <p class="settings-note" id="public-posts-status">尚未導入公開貼文</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="explore-groups-page hidden" id="explore-groups-page" aria-hidden="true">
+      <header class="settings-header explore-header">
+        <button class="icon-btn" id="explore-groups-back" aria-label="返回社群">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <h3>探索社群</h3>
+      </header>
+
+      <div class="settings-body">
+        <div class="explore-groups-list" id="explore-groups-list"></div>
+      </div>
+    </section>
+
+    <div class="story-viewer" id="story-viewer">
+      <div class="story-progress-bar">
+        <div class="story-progress-fill" id="story-progress-fill"></div>
+      </div>
+      <div class="story-viewer-header">
+        <span class="story-viewer-avatar" id="story-viewer-avatar"></span>
+        <div class="story-viewer-info">
+          <div class="story-viewer-name" id="story-viewer-name"></div>
+          <div class="story-viewer-time" id="story-viewer-time"></div>
+        </div>
+        <button class="story-viewer-close" id="story-viewer-close" aria-label="關閉">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="story-viewer-content" id="story-viewer-content"></div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="weverse.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('weverse');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('weverse', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

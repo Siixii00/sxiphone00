@@ -1,0 +1,132 @@
+/* RPG風格載入動畫 */
+.dating-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.dating-loading.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #e91e63;
+  margin-bottom: 40px;
+  text-shadow: 0 0 20px rgba(233, 30, 99, 0.5);
+  animation: titlePulse 2s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.loading-hearts {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 30px;
+  justify-content: center;
+}
+
+.loading-heart {
+  font-size: 40px;
+  color: #e91e63;
+  animation: heartBeat 1.2s ease-in-out infinite;
+}
+
+.loading-heart:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+@keyframes heartBeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.3);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.loading-bar-container {
+  width: 300px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(233, 30, 99, 0.5);
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loading-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #e91e63 0%, #ff6b9d 100%);
+  width: 0%;
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.loading-text {
+  margin-top: 20px;
+  color: #aaa;
+  font-size: 14px;
+  animation: textFade 1.5s ease-in-out infinite;
+}
+
+@keyframes textFade {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.loading-tips {
+  margin-top: 30px;
+  color: #888;
+  font-size: 12px;
+  max-width: 300px;
+  text-align: center;
+  line-height: 1.6;
+}

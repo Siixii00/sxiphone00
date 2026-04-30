@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <title>sxiphone00</title>
+
+    <!-- PWA 支援 -->
+    <link rel="manifest" href="manifest.json" id="manifest-link" crossorigin="use-credentials">
+    <meta name="theme-color" content="#0b0c12" id="theme-color-meta" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#0b0c12" id="theme-color-meta-light" media="(prefers-color-scheme: light)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="sxiphone">
+    <meta name="description" content="iOS 風格的手機介面模擬器，提供聊天、設定等多種應用功能">
+    
+    <!-- iOS Safari 支援 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="sxiphone" id="apple-web-app-title">
+    <meta name="apple-mobile-web-app-orientations" content="portrait">
+    <link rel="apple-touch-icon" href="apps/screenshots/apple-touch-icon.png" id="apple-touch-icon">
+    <link rel="apple-touch-icon" sizes="57x57" href="apps/screenshots/icon-48x48.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="apps/screenshots/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="apps/screenshots/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="apps/screenshots/icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="apps/screenshots/icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="apps/screenshots/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="apps/screenshots/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apps/screenshots/apple-touch-icon.png">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="format-detection" content="email=no">
+    <meta name="format-detection" content="address=no">
+    
+    <!-- Android Chrome 支援 -->
+    <link rel="icon" type="image/png" sizes="48x48" href="apps/screenshots/icon-48x48.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="apps/screenshots/icon-72x72.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="apps/screenshots/icon-96x96.png">
+    <link rel="icon" type="image/png" sizes="120x120" href="apps/screenshots/icon-120x120.png">
+    <link rel="icon" type="image/png" sizes="144x144" href="apps/screenshots/icon-152x152.png">
+    <link rel="icon" type="image/png" sizes="152x152" href="apps/screenshots/icon-152x152.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="apps/screenshots/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="apps/screenshots/current.png">
+    
+    <!-- Edge/IE 支援 -->
+    <meta name="msapplication-TileColor" content="#0b0c12">
+    <meta name="msapplication-TileImage" content="apps/screenshots/icon-152x152.png">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="msapplication-starturl" content="/">
+    <meta name="msapplication-navbutton-color" content="#0b0c12">
+    <meta name="msapplication-window" content="width=device-width;height=device-height">
+    <meta name="msapplication-tooltip" content="sxiphone - iOS 風格手機介面">
+    <meta name="msapplication-task" content="name=聊天;action-uri=/?app=chat;icon-uri=apps/screenshots/icon-192x192.png">
+    <meta name="msapplication-task" content="name=設定;action-uri=/?app=settings;icon-uri=apps/screenshots/icon-192x192.png">
+    
+    <!-- Samsung Internet 支援 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- 通用移動瀏覽器優化 -->
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="full-screen" content="yes">
+    <meta name="browsermode" content="application">
+    
+    <!-- UC Browser 支援 -->
+    <meta name="screen-orientation" content="portrait">
+    <meta name="full-screen" content="yes">
+    <meta name="browsermode" content="application">
+    
+    <!-- QQ Browser 支援 -->
+    <meta name="x5-page-mode" content="app">
+    
+    <!-- PWA 安裝提示優化 -->
+    <meta name="installable" content="true">
+    
+    <link rel="icon" type="image/png" sizes="32x32" href="apps/screenshots/icon-48x48.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="apps/screenshots/icon-48x48.png">
+    <link rel="shortcut icon" href="apps/screenshots/icon-192x192.png">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    
+    <script src="apps/scripts/memory-store.js"></script>
+    <script src="apps/scripts/embedding-engine.js"></script>
+    <script src="apps/scripts/search-engine.js"></script>
+    <script src="apps/scripts/decay-engine.js"></script>
+    <script src="apps/scripts/emotion-tagger.js"></script>
+    <script src="apps/scripts/memory-classifier.js"></script>
+    <script src="apps/scripts/dimension-encoder.js"></script>
+    <script src="apps/scripts/sleep-engine.js"></script>
+    <script src="apps/scripts/memory-standardizer.js"></script>
+    <script src="apps/scripts/memory-manager.js"></script>
+    <script src="apps/scripts/short-term-memory.js"></script>
+    <script src="apps/scripts/memory-pool.js"></script>
+    <script src="apps/scripts/unified-memory-system.js"></script>
+    <script src="apps/scripts/memory-helper.js"></script>
+    <script src="apps/scripts/daily-awakening.js"></script>
+    <script src="apps/scripts/global-memory-system.js"></script>
+    <script src="apps/scripts/wiki-engine.js"></script>
+    <script src="apps/scripts/background-keepalive.js"></script>
+    <script src="apps/scripts/sx-notification.js"></script>
+    <script src="apps/scripts/chat-notification-engine.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@200;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div id="phone-container">
+        <div id="wallpaper-bg"></div>
+        
+        <div id="wallpaper-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1); z-index:2; pointer-events:none;"></div>
+
+        <div id="splash-screen" class="splash-screen" aria-hidden="true">
+            <div class="splash-bg"></div>
+            <div class="splash-stars"></div>
+            <div class="splash-decorations" id="splash-decorations"></div>
+            <div class="splash-content">
+                <div class="splash-tagline">Meet you<br>in my world</div>
+                <div class="splash-signature">-Sxiphone-</div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span id="status-time">09:41</span>
+            <div class="status-icons">
+                <i class="fas fa-signal"></i> 
+                <i class="fas fa-wifi"></i> 
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <div id="app-viewport">
+            <iframe id="app-frame" src="" title="App Content"></iframe>
+        </div>
+
+        <div id="phone-check-overlay" class="phone-check-overlay hidden" aria-live="polite">
+            <div class="phone-check-card">
+                <div class="phone-check-title">正在查看你的手機…</div>
+                <div class="phone-check-message" id="phone-check-message">我只是隨便看看，不要緊張。</div>
+                <div class="phone-check-timer" id="phone-check-timer">剩餘 02:30</div>
+            </div>
+        </div>
+
+        <div id="floating-ball" class="floating-ball hidden" aria-label="懸浮球">
+            <div class="floating-ball-inner"></div>
+        </div>
+
+        <div id="floating-panel" class="floating-panel hidden" aria-label="懸浮球面板">
+            <div class="floating-panel-grid" id="floating-panel-grid"></div>
+        </div>
+
+        <div id="appearance-picker" class="appearance-picker hidden" aria-label="外觀選擇">
+            <div class="appearance-picker-card">
+                <div class="appearance-picker-title">選擇外觀</div>
+                <div class="appearance-picker-grid">
+                    <button class="appearance-option" data-mode="light" data-custom="false">
+                        <div class="appearance-icon light-icon">
+                            <span class="material-symbols-rounded">light_mode</span>
+                        </div>
+                        <span class="appearance-label">預設淺色</span>
+                    </button>
+                    <button class="appearance-option" data-mode="dark" data-custom="false">
+                        <div class="appearance-icon dark-icon">
+                            <span class="material-symbols-rounded">dark_mode</span>
+                        </div>
+                        <span class="appearance-label">預設深色</span>
+                    </button>
+                    <button class="appearance-option" data-mode="light" data-custom="true">
+                        <div class="appearance-icon custom-light-icon">
+                            <span class="material-symbols-rounded">palette</span>
+                        </div>
+                        <span class="appearance-label">自訂淺色</span>
+                    </button>
+                    <button class="appearance-option" data-mode="dark" data-custom="true">
+                        <div class="appearance-icon custom-dark-icon">
+                            <span class="material-symbols-rounded">palette</span>
+                        </div>
+                        <span class="appearance-label">自訂深色</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="lock-screen" class="screen">
+            <div id="lock-content" style="height:100%; display:flex; flex-direction:column; justify-content:space-between; align-items:center; padding:60px 20px 60px; color:white; text-align:center; box-sizing: border-box; background: rgba(0,0,0,0.2);">
+                <div>
+                    <h1 id="time" style="font-size:var(--sx-time-size, 80px); font-weight:200; margin:0; font-family:var(--sx-font-lock-time);">09:41</h1>
+                    <p id="date" style="font-size:var(--sx-date-size, 16px);">1月9日 星期五</p>
+                </div>
+                <div class="unlock-hint" style="opacity:0.8; animation: bounce 2s infinite;">
+                    <i class="fas fa-chevron-up"></i>
+                    <p id="unlock-text" style="margin-top:10px;">向上滑動以解鎖</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="home-screen" class="screen">
+            <div id="home-scroll" class="home-scroll"></div>
+            <div id="home-page-dots" class="home-page-dots"></div>
+
+            <div class="widget-picker hidden" id="widget-picker">
+                <div class="widget-picker-header">新增小工具</div>
+                <div class="widget-picker-grid">
+                    <button class="widget-option" data-widget-type="clock">時鐘</button>
+                    <button class="widget-option" data-widget-type="weather">天氣</button>
+                    <button class="widget-option" data-widget-type="music">音樂</button>
+                    <button class="widget-option" data-widget-type="photo">相片</button>
+                    <button class="widget-option" data-widget-type="calendar">行事曆</button>
+                    <button class="widget-option" data-widget-type="quote">語錄</button>
+                </div>
+            </div>
+
+            <div class="app-grid source-grid" id="app-grid-source">
+                <div class="app-icon" onclick="launchApp('chat')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#4facfe,#00f2fe);"><span class="material-symbols-rounded">chat_bubble</span></div>
+                    <span class="app-label">聊天</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('settings')">
+                    <div class="icon-box" style="background:#8e8e93;"><span class="material-symbols-rounded">settings</span></div>
+                    <span class="app-label">設定</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('album')">
+                    <div id="album-icon" class="icon-box" style="background:linear-gradient(135deg,#ff9a9e,#fecfef);"><span class="material-symbols-rounded">photo_library</span></div>
+                    <span class="app-label">相簿</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('touch')">
+                    <div class="icon-box" style="background:#444;"><span class="material-symbols-rounded">touch_app</span></div>
+                    <span class="app-label">輔助觸控</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('worldbook')">
+                    <div class="icon-box" style="background: linear-gradient(145deg, #5856D6, #3634A3);"><span class="material-symbols-rounded">menu_book</span></div>
+                    <span class="app-label">世界書</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('pomodoro')">
+                    <div class="icon-box" style="background:#f25f5c;"><span class="material-symbols-rounded">timer</span></div>
+                    <span class="app-label">番茄鐘</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('weather')">
+                    <div class="icon-box" style="background:#4facfe;"><span class="material-symbols-rounded">partly_cloudy_day</span></div>
+                    <span class="app-label">天氣</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('twitter')">
+                    <div class="icon-box" style="background:#1da1f2;"><span class="material-symbols-rounded">alternate_email</span></div>
+                    <span class="app-label">推特</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('facebook')">
+                    <div class="icon-box" style="background:#1877f2;"><span class="material-symbols-rounded">group</span></div>
+                    <span class="app-label">臉書</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('chrome')">
+                    <div class="icon-box" style="background:#fbbc05;"><span class="material-symbols-rounded">language</span></div>
+                    <span class="app-label">Chrome</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('bilibili')" data-app-id="bilibili">
+                    <div class="icon-box" style="background:#00a1d6;"><span class="material-symbols-rounded">live_tv</span></div>
+                    <span class="app-label">bilibili</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('youtube')" data-app-id="youtube">
+                    <div class="icon-box" style="background:#ff0000;"><span class="material-symbols-rounded">play_circle</span></div>
+                    <span class="app-label">YouTube</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('exchange-diary')">
+                    <div class="icon-box" style="background:#9c27b0;"><span class="material-symbols-rounded">auto_stories</span></div>
+                    <span class="app-label">交換日記</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('lofter')">
+                    <div class="icon-box" style="background:#4e9a51;"><span class="material-symbols-rounded">edit</span></div>
+                    <span class="app-label">lofter</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('drift-bottle')">
+                    <div class="icon-box" style="background:#2d9cdb;"><span class="material-symbols-rounded">sailing</span></div>
+                    <span class="app-label">漂流瓶</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('match-3')">
+                    <div class="icon-box" style="background:#ff8a3d;"><span class="material-symbols-rounded">extension</span></div>
+                    <span class="app-label">消消樂</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('bubbles')">
+                    <div class="icon-box" style="background:#6c63ff;"><span class="material-symbols-rounded">chat</span></div>
+                    <span class="app-label">bubbles</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('weverse')">
+                    <div class="icon-box" style="background:#20c997;"><span class="material-symbols-rounded">diversity_3</span></div>
+                    <span class="app-label">weverse</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('daily-recipe')">
+                    <div class="icon-box" style="background:#ffb347;"><span class="material-symbols-rounded">restaurant</span></div>
+                    <span class="app-label">每日食譜</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('music')">
+                    <div class="icon-box" style="background:#ff5f9f;"><span class="material-symbols-rounded">music_note</span></div>
+                    <span class="app-label">音樂</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('delivery')">
+                    <div class="icon-box" style="background:#ff7043;"><span class="material-symbols-rounded">delivery_dining</span></div>
+                    <span class="app-label">外送</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('taobao')" data-app-id="taobao">
+                    <div class="icon-box" style="background:#6366f1;"><span class="material-symbols-rounded">shopping_bag</span></div>
+                    <span class="app-label">購物</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('dating')">
+                    <div class="icon-box" style="background:#e91e63;"><span class="material-symbols-rounded">favorite</span></div>
+                    <span class="app-label">約會</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('home')">
+                    <div class="icon-box" style="background:#7c4dff;"><span class="material-symbols-rounded">home</span></div>
+                    <span class="app-label">宅家</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('guzi-guide')">
+                    <div class="icon-box" style="background:#7cb342;"><span class="material-symbols-rounded">eco</span></div>
+                    <span class="app-label">谷子圖鑒</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('smart-painter')">
+                    <div class="icon-box" style="background:#8e44ad;"><span class="material-symbols-rounded">palette</span></div>
+                    <span class="app-label">照相館</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('instagram')">
+                    <div class="icon-box" style="background:#c13584;"><span class="material-symbols-rounded">photo_camera</span></div>
+                    <span class="app-label">Instagram</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('timetree')">
+                    <div class="icon-box" style="background:#2ecc71;"><span class="material-symbols-rounded">event</span></div>
+                    <span class="app-label">timetree</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('pub')">
+                    <div class="icon-box" style="background:#c49b45;"><span class="material-symbols-rounded">local_bar</span></div>
+                    <span class="app-label">酒館</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('kakaopay')">
+                    <div class="icon-box" style="background:#f7d300;"><span class="material-symbols-rounded">wallet</span></div>
+                    <span class="app-label">kakaopay</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('widget')">
+                    <div class="icon-box" style="background:#5561ff;"><span class="material-symbols-rounded">widgets</span></div>
+                    <span class="app-label">widget</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('twitch')">
+                    <div class="icon-box" style="background:#9146ff;"><span class="material-symbols-rounded">videogame_asset</span></div>
+                    <span class="app-label">twitch</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('appearance')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#5B8DEF,#A855F7);"><span class="material-symbols-rounded">styler</span></div>
+                    <span class="app-label">外觀</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('ao3')" data-app-id="ao3">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#ff5f6d,#ffc371);"><span class="material-symbols-rounded">auto_stories</span></div>
+                    <span class="app-label">AO3</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('phone')" data-app-id="phone">
+                    <div class="icon-box" style="background:#1ec06b;"><span class="material-symbols-rounded">call</span></div>
+                    <span class="app-label">電話</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('passkey')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#6a11cb,#2575fc);"><span class="material-symbols-rounded">bluetooth_connected</span></div>
+                    <span class="app-label">Passkey</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('theater')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#e50914,#b20710);"><span class="material-symbols-rounded">theater_comedy</span></div>
+                    <span class="app-label">劇場</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('arcade')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);"><span class="material-symbols-rounded">joystick</span></div>
+                    <span class="app-label">街機廳</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('personal-wiki')">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"><span class="material-symbols-rounded">book</span></div>
+                    <span class="app-label">Wiki</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="auth-modal" class="hidden">
+            <div class="github-overlay" id="github-overlay">
+                <div class="github-card">
+                    <i class="fab fa-github github-icon"></i>
+                    <h3 class="github-title">連接 GitHub</h3>
+                    <p class="github-desc">使用 GitHub 帳號登入，自動建立私有備份儲存庫，跨裝置同步所有資料。</p>
+                    <div class="github-steps" id="github-steps-connect">
+                        <div class="github-field">
+                            <label for="github-token">Personal Access Token</label>
+                            <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+                            <span class="github-hint">至 GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic)，勾選 <b>repo</b> 權限。</span>
+                        </div>
+                        <button class="github-btn" id="github-connect-btn" onclick="connectGitHub()">連接並建立備份</button>
+                        <div class="github-divider"><span>或</span></div>
+                        <button class="github-btn guest-btn" id="github-guest-btn" onclick="guestLogin()">使用遊客身分登入</button>
+                    </div>
+                    <div class="github-steps hidden" id="github-steps-loading">
+                        <div class="github-spinner"></div>
+                        <p id="github-status">正在驗證...</p>
+                    </div>
+                    <div class="github-steps hidden" id="github-steps-done">
+                        <i class="fas fa-check-circle" style="font-size:32px;color:#34C759;"></i>
+                        <p>連接成功！備份儲存庫已就緒。</p>
+                    </div>
+                    <div class="github-steps hidden" id="github-steps-error">
+                        <p class="github-error-msg" id="github-error-msg"></p>
+                        <div class="github-error-actions">
+                            <button class="github-btn" onclick="resetGitHubFlow()">重試</button>
+                            <button class="github-btn guest-btn" onclick="guestLogin()">以遊客身分繼續</button>
+                        </div>
+                    </div>
+                    <div class="github-steps hidden" id="github-steps-guest-confirm">
+                        <div class="guest-confirm-icon">⚠️</div>
+                        <p class="guest-confirm-text">確定不連接雲端使用備份？</p>
+                        <p class="guest-confirm-hint">遊客模式無法跨裝置同步，資料僅存於本機瀏瀏覽器。隨時可在設定中連接 GitHub。</p>
+                        <div class="guest-confirm-actions">
+                            <button class="github-btn ghost" onclick="cancelGuest()">返回</button>
+                            <button class="github-btn guest-btn" onclick="confirmGuest()">確定，繼續使用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="global-home-indicator" onclick="closeApp()"></div>
+
+        <div id="sx-notification-stack" class="sx-notification-stack" aria-live="polite"></div>
+        
+        <div id="sx-notification-center" class="sx-notification-center" aria-label="通知中心">
+            <div class="sx-notification-center-header">
+                <span class="sx-notification-center-title">通知</span>
+                <button class="sx-notification-clear-btn" onclick="window.SxNotification?.clearAll()">清除全部</button>
+            </div>
+            <div id="sx-notification-center-content"></div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script> 
+    <script>
+        // 確保 Lucide 圖示正確渲染
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+
+        // 註冊 Service Worker (PWA 安裝支援)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((registration) => {
+                        console.log('[PWA] Service Worker 註冊成功:', registration.scope);
+                        
+                        // 檢查更新
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] 新版本可用，請重新整理頁面');
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.warn('[PWA] Service Worker 註冊失敗:', error);
+                    });
+            });
+        }
+
+        // PWA 安裝提示處理
+        let deferredInstallPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            console.log('[PWA] beforeinstallprompt 事件觸發');
+            event.preventDefault();
+            deferredInstallPrompt = event;
+            // 顯示安裝提示（可選）
+            showInstallPrompt();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] 應用已安裝到桌面');
+            deferredInstallPrompt = null;
+            hideInstallPrompt();
+        });
+
+        // 顯示安裝提示
+        function showInstallPrompt() {
+            // 可以在這裡添加自訂安裝 UI
+            console.log('[PWA] 可以顯示安裝按鈕');
+        }
+
+        // 隱藏安裝提示
+        function hideInstallPrompt() {
+            console.log('[PWA] 隱藏安裝提示');
+        }
+
+        // 提供全域安裝方法
+        window.installPWA = () => {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('[PWA] 用戶同意安裝');
+                    } else {
+                        console.log('[PWA] 用戶拒絕安裝');
+                    }
+                    deferredInstallPrompt = null;
+                });
+            } else {
+                // 檢測瀏覽器類型並提供相應提示
+                const isEdge = /Edg/i.test(navigator.userAgent);
+                const isChrome = /Chrome/i.test(navigator.userAgent) && !isEdge;
+                const isSafari = /Safari/i.test(navigator.userAgent) && !isChrome && !isEdge;
+                const isFirefox = /Firefox/i.test(navigator.userAgent);
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                
+                let message = '請使用瀏覽器選單中的「添加到主屏幕」或「安裝應用」功能';
+                
+                if (isEdge && isAndroid) {
+                    message = '請點擊瀏覽器選單 (⋮) → 「添加到手機」或「安裝應用」';
+                } else if (isEdge && isIOS) {
+                    message = '請點擊分享按鈕 (↑) → 「添加到主屏幕」';
+                } else if (isChrome && isAndroid) {
+                    message = '請點擊瀏覽器選單 (⋮) → 「安裝應用」或「添加到主屏幕」';
+                } else if (isSafari && isIOS) {
+                    message = '請點擊分享按鈕 (↑) → 「添加到主屏幕」';
+                } else if (isFirefox && isAndroid) {
+                    message = '請點擊瀏覽器選單 (⋮) → 「安裝」';
+                }
+                
+                console.log('[PWA] 安裝提示不可用:', message);
+                alert(message);
+            }
+        };
+        
+        // 檢測是否已安裝為 PWA
+        window.isPWA = () => {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.matchMedia('(display-mode: fullscreen)').matches ||
+                   window.matchMedia('(display-mode: minimal-ui)').matches ||
+                   window.navigator.standalone === true;
+        };
+        
+        // 檢測是否支援 PWA 安裝
+        window.canInstallPWA = () => {
+            return deferredInstallPrompt !== null;
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包商店</title>
+    <link rel="stylesheet" href="emoji-shop.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="shop-container">
+        <header class="shop-header">
+            <div class="shop-title">表情包商店</div>
+            <div class="shop-subtitle">上傳 JSON 或貼上 GIF 連結</div>
+        </header>
+
+        <section class="shop-card">
+            <div class="card-title">上傳表情包 JSON</div>
+            <p class="card-desc">格式：陣列，元素可為字串 URL 或物件 {"name":"","url":""}</p>
+            <div class="row">
+                <input type="file" id="emoji-json-file" accept="application/json">
+                <button class="primary-btn" id="import-json">匯入 JSON</button>
+            </div>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">用圖床導入 GIF</div>
+            <p class="card-desc">支援 catbox 等公開圖床網址</p>
+            <div class="row">
+                <input type="text" id="gif-url" placeholder="貼上 GIF 連結">
+                <button class="primary-btn" id="add-gif">新增 GIF</button>
+            </div>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">已匯入表情包</div>
+            <div class="emoji-grid" id="emoji-grid"></div>
+            <button class="danger-btn" id="clear-emoji">清空表情包</button>
+        </section>
+    </div>
+
+    <script src="emoji-shop.js"></script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>臉書</title>
+  <link rel="stylesheet" href="facebook.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="fb-app">
+    <header class="fb-topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="fb-logo">
+          <i class="fab fa-facebook-f"></i>
+        </div>
+      </div>
+      <div class="topbar-search">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="搜尋 Facebook" aria-label="搜尋 Facebook">
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="ai-generate-btn" aria-label="AI生成貼文"><i class="fas fa-sync-alt"></i></button>
+        <button class="icon-btn" aria-label="通知"><i class="far fa-bell"></i></button>
+        <button class="icon-btn" id="toggle-right-sidebar" aria-label="切換右側選單"><i class="fas fa-bars"></i></button>
+        <button class="profile-entry-btn" id="profile-entry-btn" aria-label="個人頁面設定">
+          <div class="avatar-sm profile-avatar-bind"></div>
+        </button>
+      </div>
+    </header>
+
+    <main class="fb-layout">
+      <aside class="fb-sidebar">
+        <div class="sidebar-section">
+          <button class="nav-item active"><div class="avatar-sm"></div><span>你的動態消息</span></button>
+          <button class="nav-item"><i class="fas fa-user-friends"></i><span>朋友</span></button>
+          <button class="nav-item"><i class="fas fa-users"></i><span>社團</span></button>
+          <button class="nav-item"><i class="fas fa-store"></i><span>Marketplace</span></button>
+          <button class="nav-item"><i class="fas fa-clock"></i><span>回憶</span></button>
+          <button class="nav-item"><i class="far fa-bookmark"></i><span>已儲存</span></button>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-title">捷徑</div>
+          <button class="nav-item"><i class="fas fa-flag"></i><span>粉絲專頁</span></button>
+          <button class="nav-item"><i class="fas fa-calendar-check"></i><span>活動</span></button>
+          <button class="nav-item"><i class="fas fa-gamepad"></i><span>遊戲</span></button>
+        </div>
+      </aside>
+
+      <section class="fb-feed">
+        <div class="stories card">
+          <div class="stories-track" id="stories-track">
+            <div class="story create" id="create-story-btn">
+              <div class="story-bg"></div>
+              <div class="story-add"><i class="fas fa-plus"></i></div>
+              <div class="story-label">建立限時動態</div>
+            </div>
+          </div>
+        </div>
+
+        <section class="composer card">
+          <div class="composer-row">
+            <div class="avatar profile-avatar-bind"></div>
+            <textarea id="post-input" placeholder="想說些什麼？" readonly></textarea>
+          </div>
+        </section>
+
+        <section class="feed" id="feed"></section>
+      </section>
+
+      <aside class="fb-right" id="fb-right">
+        <div class="card" id="sponsored-card">
+          <div class="section-title">贊助內容</div>
+          <div id="sponsored-list"></div>
+        </div>
+
+        <div class="card contacts">
+          <div class="section-title">聯絡人</div>
+          <div id="online-friends-list"></div>
+        </div>
+
+        <button class="right-sidebar-settings-btn" id="right-sidebar-settings">
+          <i class="fas fa-cog"></i>
+          <span>設定</span>
+        </button>
+        <button class="right-sidebar-settings-btn" id="right-sidebar-appearance">
+          <i class="fas fa-palette"></i>
+          <span>外觀</span>
+        </button>
+      </aside>
+    </main>
+  </div>
+
+  <div class="right-sidebar-backdrop" id="right-sidebar-backdrop"></div>
+
+  <div class="compose-modal hidden" id="compose-modal" role="dialog" aria-modal="true" aria-label="建立貼文">
+    <div class="compose-sheet card">
+      <div class="compose-header">
+        <button class="icon-btn" id="compose-close" aria-label="關閉"><i class="fas fa-xmark"></i></button>
+        <h3>建立貼文</h3>
+        <button class="primary-btn" id="post-btn" type="button">發布</button>
+      </div>
+      <div class="composer-row">
+        <div class="avatar profile-avatar-bind" id="composer-avatar"></div>
+        <textarea id="compose-input" placeholder="想說些什麼？"></textarea>
+      </div>
+      <div class="composer-options">
+        <div class="composer-account">
+          <label for="account-select">發文帳號：</label>
+          <select id="account-select" class="account-select">
+            <option value="user">你</option>
+          </select>
+        </div>
+        <div class="composer-visibility">
+          <label for="compose-visibility">公開範圍：</label>
+          <select id="compose-visibility">
+            <option value="public">公開</option>
+            <option value="friends">好友限定</option>
+          </select>
+        </div>
+      </div>
+      <div class="composer-actions">
+        <button class="action-btn" type="button"><i class="far fa-image"></i><span>照片 / 影片</span></button>
+        <button class="action-btn" type="button"><i class="fas fa-user-tag"></i><span>標註朋友</span></button>
+        <button class="action-btn" type="button"><i class="far fa-face-smile"></i><span>感受 / 活動</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="facebook.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('facebook');
+      }
+  });
+  </script>
+</body>
+</html>
+

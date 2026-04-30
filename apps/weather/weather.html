@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>天氣</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="weather.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body class="dark-mode">
+    <div class="page active">
+        <header class="ios-header">
+            <button class="ios-back-btn" onclick="handleBack()">
+                <i class="fas fa-chevron-left"></i> 返回
+            </button>
+            <h1 class="menu-title">天氣預報</h1>
+            <button class="ios-header-btn settings-btn" id="appearance-btn" aria-label="外觀設定">
+                <i class="fas fa-gear"></i>
+            </button>
+        </header>
+
+        <section class="weather-panel">
+            <div class="location-row">
+                <input id="location-input" type="text" placeholder="輸入地區，例如：台北" autocomplete="off">
+                <button id="search-btn" class="primary-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="status-row">
+                <span id="location-display">尚未設定地區</span>
+                <span id="update-time">--</span>
+            </div>
+            <div id="current-card" class="current-card">
+                <div class="current-main">
+                    <div class="temp" id="current-temp">--°</div>
+                    <div class="desc" id="current-desc">請輸入地區</div>
+                </div>
+                <div class="current-meta">
+                    <div><i class="fas fa-wind"></i><span id="current-wind">--</span></div>
+                    <div><i class="fas fa-tint"></i><span id="current-humidity">--</span></div>
+                    <div><i class="fas fa-umbrella"></i><span id="current-precip">--</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="forecast-section">
+            <h2>每日預報</h2>
+            <div id="daily-forecast" class="forecast-grid"></div>
+        </section>
+
+        <section class="forecast-section">
+            <h2>每週預報</h2>
+            <div id="weekly-forecast" class="forecast-list"></div>
+        </section>
+
+        <section class="char-section">
+            <h2>提醒角色</h2>
+            <div class="char-card">
+                <div class="char-avatar" id="char-avatar">?</div>
+                <div class="char-info">
+                    <div id="char-name">尚未設定角色</div>
+                    <div id="char-note">此區塊預留給角色提醒內容</div>
+                </div>
+            </div>
+            <div class="char-placeholder" id="char-placeholder">
+                <p>請到 chats 設定角色，天氣提醒將顯示在此。</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="../scripts/shared-settings.js"></script>
+    <script src="../scripts/app-appearance-settings.js"></script>
+    <script src="weather.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('weather');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('weather', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

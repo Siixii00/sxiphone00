@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Facebook 個人設定</title>
+  <link rel="stylesheet" href="facebook-profile.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="profile-page">
+    <header class="profile-topbar">
+      <button class="back-btn" id="profile-back" aria-label="返回 Facebook">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>個人頁面設定</h1>
+      <div class="spacer"></div>
+    </header>
+
+    <main class="profile-main">
+      <section class="card">
+        <h2>角色 / User 套用</h2>
+        <label>角色 (char)
+          <select id="profile-char-select"></select>
+        </label>
+        <label>User
+          <select id="profile-user-select"></select>
+        </label>
+        <button id="profile-bind-btn" type="button">套用人物設定到 Facebook</button>
+      </section>
+
+      <section class="card">
+        <h2>User 設定</h2>
+        <label>名稱<input id="profile-user-name" type="text" placeholder="例如：小魚"></label>
+        <label>頭像 URL<input id="profile-avatar-url" type="text" placeholder="https://..."></label>
+        <label>個性<textarea id="profile-personality" rows="2" placeholder="例如：活潑、外向"></textarea></label>
+        <label>背景<textarea id="profile-background" rows="2" placeholder="例如：台北、設計師、喜歡攝影"></textarea></label>
+        <button class="primary-btn" id="profile-save-btn" type="button">儲存 User 設定</button>
+      </section>
+
+      <section class="card">
+        <h2>好友管理</h2>
+        <div class="row">
+          <input id="friend-name-input" type="text" placeholder="輸入好友名稱">
+          <button id="friend-add-btn" type="button">新增</button>
+        </div>
+        <ul id="friend-list" class="list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>世界書掛載</h2>
+        <label>世界書
+          <select id="fb-worldbook-select"></select>
+        </label>
+        <label>掛載位置
+          <select id="fb-worldbook-position">
+            <option value="top">前</option>
+            <option value="mid" selected>中</option>
+            <option value="bottom">後</option>
+          </select>
+        </label>
+        <button id="fb-worldbook-add" type="button">加入掛載</button>
+        <ul id="fb-worldbook-list" class="list"></ul>
+        <div class="switch-row">
+          <button class="primary-btn" id="fb-switch-alt" type="button">切換成小帳</button>
+          <button class="primary-btn" id="fb-switch-char" type="button">切換成 char 帳號</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="facebook-profile.js"></script>
+</body>
+</html>
+

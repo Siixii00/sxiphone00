@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="instagram.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+    <div class="ig-app">
+        <header class="ig-header">
+            <button class="icon-btn" id="open-camera" aria-label="返回">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <h1 class="logo">Instagram</h1>
+            <div class="header-actions">
+                <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+                <button class="icon-btn" id="open-inbox" aria-label="Direct">
+                    <i class="fa-regular fa-paper-plane"></i>
+                    <span class="badge" id="dm-badge">4</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="stories" aria-label="Stories">
+            <button class="story camera" aria-label="Add Story">
+                <div class="avatar">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <span>你的限動</span>
+            </button>
+            <div class="stories-track" id="stories-track"></div>
+        </section>
+
+        <main class="feed" id="feed" aria-live="polite"></main>
+
+        <nav class="bottom-nav" aria-label="主要導覽">
+            <button class="nav-btn active" data-tab="home"><i class="fa-solid fa-house"></i></button>
+            <button class="nav-btn" data-tab="search"><i class="fa-regular fa-compass"></i></button>
+            <button class="nav-btn" data-tab="reels"><i class="fa-solid fa-clapperboard"></i></button>
+            <button class="nav-btn" data-tab="shop"><i class="fa-regular fa-bag-shopping"></i></button>
+            <button class="nav-btn" data-tab="profile" id="profile-btn">
+                <span class="nav-avatar"></span>
+            </button>
+        </nav>
+    </div>
+
+    <aside id="settings-sheet" class="settings-sheet is-hidden" aria-hidden="true">
+        <div class="settings-mask" data-close-settings="true"></div>
+        <div class="settings-card">
+            <header class="settings-header">
+                <h2>個人設定</h2>
+                <button class="icon-btn" type="button" data-close-settings="true"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="settings-content">
+                <section class="settings-section">
+                    <h3>自定義內容</h3>
+                    <p class="settings-desc">設定你的 Instagram 個人資料和貼文內容</p>
+                </section>
+
+                <section class="settings-section">
+                    <h4>個人資料</h4>
+                    <div class="settings-form">
+                        <label>
+                            使用者名稱
+                            <input id="settings-username" type="text" placeholder="your_username">
+                        </label>
+                        <label>
+                            個人簡介
+                            <textarea id="settings-bio" rows="3" placeholder="寫點關於你的事情..."></textarea>
+                        </label>
+                        <label>
+                            頭像圖片網址
+                            <input id="settings-avatar" type="url" placeholder="https://example.com/avatar.jpg">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <h4>限時動態</h4>
+                    <div class="settings-form">
+                        <label>
+                            限時動態名稱（用逗號分隔）
+                            <input id="settings-stories" type="text" placeholder="friend_1, friend_2, friend_3">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <h4>貼文設定</h4>
+                    <div class="settings-form">
+                        <div class="post-editor" id="post-editor">
+                            <div class="post-list" id="custom-posts-list"></div>
+                            <button class="settings-btn" id="add-custom-post" type="button">
+                                <i class="fa-solid fa-plus"></i> 新增貼文
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="settings-actions">
+                    <button class="settings-btn primary" id="save-settings-btn" type="button">
+                        <i class="fa-solid fa-floppy-disk"></i> 儲存設定
+                    </button>
+                    <button class="settings-btn" id="reset-settings-btn" type="button">
+                        <i class="fa-solid fa-rotate-left"></i> 重置為預設
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script src="../scripts/shared-settings.js"></script>
+    <script src="../scripts/app-appearance-settings.js"></script>
+    <script src="instagram.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('instagram');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('instagram', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>
