@@ -27,14 +27,25 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+        // Cache files individually to handle failures gracefully
+        return Promise.allSettled(
+          STATIC_ASSETS.map((asset) =>
+            cache.add(asset).catch((err) => {
+              console.warn(`[SW] Failed to cache: ${asset}`, err.message);
+              throw err; // Re-throw to mark as rejected in allSettled
+            })
+          )
+        );
       })
-      .then(() => {
+      .then((results) => {
+        const failed = results.filter((r) => r.status === 'rejected');
+        const succeeded = results.filter((r) => r.status === 'fulfilled');
+        console.log(`[SW] Cached ${succeeded.length} assets, ${failed.length} failed`);
+        if (failed.length > 0) {
+          console.warn('[SW] Some assets failed to cache, but continuing installation');
+        }
         console.log('[SW] Skip waiting');
         return self.skipWaiting();
-      })
-      .catch((err) => {
-        console.warn('[SW] Cache addAll failed:', err);
       })
   );
 });

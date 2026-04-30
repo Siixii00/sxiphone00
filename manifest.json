@@ -104,6 +104,7 @@
   "share_target": {
     "action": "./index.html?app=chat",
     "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
     "params": {
       "title": "title",
       "text": "text",
