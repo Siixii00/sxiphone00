@@ -1217,10 +1217,28 @@ window.addEventListener('message', (event) => {
 bindEvents();
 userTweets = loadUserTweets();
 renderTweets();
-startNotificationSystem();
 
 const PENDING_REACTIONS_KEY = 'sx_twitter_pending_reactions';
 const NOTIFICATIONS_KEY = 'sx_twitter_notifications';
+
+let notificationInterval = null;
+
+function startNotificationSystem() {
+  if (notificationInterval) return;
+  notificationInterval = setInterval(processPendingReactions, 10000);
+  processPendingReactions();
+}
+
+function stopNotificationSystem() {
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = null;
+  }
+}
+
+window.addEventListener('pagehide', stopNotificationSystem);
+
+startNotificationSystem();
 
 function getPendingReactions() {
   const raw = localStorage.getItem(PENDING_REACTIONS_KEY);
@@ -1353,23 +1371,6 @@ function executeReaction(reaction) {
       break;
   }
 }
-
-let notificationInterval = null;
-
-function startNotificationSystem() {
-  if (notificationInterval) return;
-  notificationInterval = setInterval(processPendingReactions, 10000);
-  processPendingReactions();
-}
-
-function stopNotificationSystem() {
-  if (notificationInterval) {
-    clearInterval(notificationInterval);
-    notificationInterval = null;
-  }
-}
-
-window.addEventListener('pagehide', stopNotificationSystem);
 
 function updateNotificationBadge() {
   const raw = localStorage.getItem(NOTIFICATIONS_KEY);
