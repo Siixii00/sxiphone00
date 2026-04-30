@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sxiphone-v9';
+const CACHE_NAME = 'sxiphone-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',
