@@ -135,6 +135,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isAppSubdirectory = url.pathname.startsWith('/apps/');
+  if (isAppSubdirectory) {
+    return;
+  }
+
   if (request.mode === 'navigate') {
     event.respondWith(
       caches.match('./index.html')
