@@ -2,8 +2,8 @@
   "name": "sxiphone - iOS 風格手機介面",
   "short_name": "sxiphone",
   "description": "iOS 風格的手機介面模擬器，提供聊天、設定等多種應用功能",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "orientation": "portrait-primary",
@@ -90,19 +90,19 @@
       "name": "聊天",
       "short_name": "聊天",
       "description": "開啟聊天應用",
-      "url": "./index.html?app=chat",
+      "url": "/?app=chat",
       "icons": [{ "src": "apps/screenshots/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "設定",
       "short_name": "設定",
       "description": "開啟設定",
-      "url": "./index.html?app=settings",
+      "url": "/?app=settings",
       "icons": [{ "src": "apps/screenshots/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "share_target": {
-    "action": "./index.html?app=chat",
+    "action": "/?app=chat",
     "method": "GET",
     "params": {
       "title": "title",
@@ -113,9 +113,9 @@
   "protocol_handlers": [
     {
       "protocol": "web+sxi",
-      "url": "./index.html?app=%s"
+      "url": "/?app=%s"
     }
   ],
   "related_applications": [],
-  "id": "./index.html"
+  "id": "/"
 }

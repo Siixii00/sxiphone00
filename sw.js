@@ -1,18 +1,18 @@
-const CACHE_NAME = 'sxiphone-v10';
+const CACHE_NAME = 'sxiphone-v11';
 const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './style.css',
-  './main.js',
-  './dock.js',
-  './dock.css',
-  './apps/screenshots/icon-192x192.png',
-  './apps/screenshots/apple-touch-icon.png',
-  './apps/screenshots/icon-48x48.png',
-  './apps/screenshots/icon-120x120.png',
-  './apps/screenshots/icon-152x152.png',
-  './apps/screenshots/current.png'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/style.css',
+  '/main.js',
+  '/dock.js',
+  '/dock.css',
+  '/apps/screenshots/icon-192x192.png',
+  '/apps/screenshots/apple-touch-icon.png',
+  '/apps/screenshots/icon-48x48.png',
+  '/apps/screenshots/icon-120x120.png',
+  '/apps/screenshots/icon-152x152.png',
+  '/apps/screenshots/current.png'
 ];
 
 const CACHE_STRATEGIES = {
@@ -131,7 +131,7 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('./index.html')
+      caches.match('/index.html')
         .then((cachedResponse) => {
           if (cachedResponse) {
             return cachedResponse;
@@ -141,13 +141,13 @@ self.addEventListener('fetch', (event) => {
               if (response.ok) {
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => {
-                  cache.put('./index.html', responseClone);
+                  cache.put('/index.html', responseClone);
                 });
               }
               return response;
             })
             .catch(() => {
-              return caches.match('./index.html');
+              return caches.match('/index.html');
             });
         })
     );
