@@ -142,23 +142,25 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html')
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put('/index.html', responseClone);
+            });
           }
-          return fetch(request)
-            .then((response) => {
-              if (response.ok) {
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                  cache.put('/index.html', responseClone);
-                });
+          return response;
+        })
+        .catch(() => {
+          return caches.match('/index.html')
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse;
               }
-              return response;
-            })
-            .catch(() => {
-              return caches.match('/index.html');
+              return new Response('<html><body><h1>Loading...</h1><p>Please wait or refresh.</p></body></html>', {
+                headers: { 'Content-Type': 'text/html' }
+              });
             });
         })
     );

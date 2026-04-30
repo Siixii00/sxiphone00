@@ -468,7 +468,7 @@
         // 註冊 Service Worker (PWA 安裝支援)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then((registration) => {
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
                         
