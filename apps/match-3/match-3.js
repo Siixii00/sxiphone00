@@ -51,7 +51,7 @@ const SHAPES = [
   ]
 ];
 
-const FRUITS = ['🍎', '🍌', '🍇', '🍓', '🍊', '🍐'];
+const FRUITS = ['??', '??', '??', '??', '??', '??'];
 const SPECIAL_TYPES = {
   NONE: 0,
   BOMB: 1,
@@ -94,10 +94,10 @@ const difficultyConfig = {
 };
 
 const WORLDS = [
-  { id: 1, title: '世界 1', theme: '水果果盤', icon: '🍓', levels: 1 },
-  { id: 2, title: '世界 2', theme: '蔬菜樂園', icon: '🥦', levels: 1 },
-  { id: 3, title: '世界 3', theme: '熱帶海島', icon: '🍍', levels: 1 },
-  { id: 4, title: '世界 4', theme: '甜點工坊', icon: '🧁', levels: 1 }
+  { id: 1, title: '世�? 1', theme: '水�??�盤', icon: '??', levels: 1 },
+  { id: 2, title: '世�? 2', theme: '?��?樂�?', icon: '?��', levels: 1 },
+  { id: 3, title: '世�? 3', theme: '?�帶海島', icon: '??', levels: 1 },
+  { id: 4, title: '世�? 4', theme: '?��?工�?', icon: '??', levels: 1 }
 ];
 
 function getRandomFruit(fruitCount) {
@@ -193,16 +193,16 @@ function renderBoard() {
       tile.disabled = true;
     } else {
       let content = cell.fruit || '';
-      if (cell.special === SPECIAL_TYPES.BOMB) content = '💣';
-      else if (cell.special === SPECIAL_TYPES.LINE_H) content = '➡️';
-      else if (cell.special === SPECIAL_TYPES.LINE_V) content = '⬇️';
-      else if (cell.special === SPECIAL_TYPES.COLOR_BOMB) content = '🌈';
+      if (cell.special === SPECIAL_TYPES.BOMB) content = '?��';
+      else if (cell.special === SPECIAL_TYPES.LINE_H) content = '?��?';
+      else if (cell.special === SPECIAL_TYPES.LINE_V) content = '⬇�?';
+      else if (cell.special === SPECIAL_TYPES.COLOR_BOMB) content = '??';
       
       tile.textContent = content;
       
       if (cell.ice > 0) {
         tile.classList.add('ice');
-        tile.innerHTML = `<span class="ice-overlay">🧊</span>${content}`;
+        tile.innerHTML = `<span class="ice-overlay">??</span>${content}`;
       }
       
       if (cell.special !== SPECIAL_TYPES.NONE) {
@@ -250,7 +250,7 @@ function buildWorlds() {
       const bestScore = scoreMap[level]?.score || 0;
       const levelTarget = scoreMap[level]?.target || (difficultyConfig.normal.target + level * 5);
       const stars = calcStars(bestScore, levelTarget);
-      const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+      const starText = '??.repeat(stars) + '??.repeat(3 - stars);
       levelButtons.push(`
         <button class="world-level-btn" type="button" data-level="${level}" data-stars="${stars}">
           <div class="level-label">${world.id}-${subIndex}</div>
@@ -263,7 +263,7 @@ function buildWorlds() {
         <div class="world-header">
           <div>
             <div class="world-title">${world.icon} ${world.title}</div>
-            <div class="world-theme">主題：${world.theme}</div>
+            <div class="world-theme">主�?�?{world.theme}</div>
           </div>
           <span class="world-theme">${startLevel}-${endLevel}</span>
         </div>
@@ -297,9 +297,9 @@ function updateStatus() {
   
   let statusText = '';
   if (score >= target) {
-    statusText = '🎉 達成目標！';
+    statusText = '?? ?��??��?�?;
   } else if (moves <= 0) {
-    statusText = '😢 步數用盡，再試一次！';
+    statusText = '?�� 步數?�盡，�?試�?次�?';
   }
   
   const goalsText = levelGoals.map(g => {
@@ -307,7 +307,7 @@ function updateStatus() {
     return `${g.fruit}${collected}/${g.count}`;
   }).join(' ');
   
-  levelStatus.innerHTML = `${statusText}${goalsText ? '<br>收集目標：' + goalsText : ''}`;
+  levelStatus.innerHTML = `${statusText}${goalsText ? '<br>?��??��?�? + goalsText : ''}`;
 }
 
 function loadLevels() {
@@ -343,7 +343,7 @@ const levelData = loadLevels() || generateLevels();
 
 function populateLevelSelect() {
   if (!levelSelect) return;
-  levelSelect.innerHTML = levelData.map(data => `<option value="${data.level}">第 ${data.level} 關</option>`).join('');
+  levelSelect.innerHTML = levelData.map(data => `<option value="${data.level}">�?${data.level} ??/option>`).join('');
 }
 
 function generateLevelGoals(level) {
@@ -783,10 +783,10 @@ generateBtn?.addEventListener('click', () => {
   const count = Math.max(1, Math.min(30, Number(genCountInput?.value || 1)));
   const theme = genThemeSelect?.value || 'fruit';
   const themeMap = {
-    fruit: { theme: '水果果盤', icon: '🍓' },
-    veggie: { theme: '蔬菜樂園', icon: '🥦' },
-    tropical: { theme: '熱帶海島', icon: '🍍' },
-    dessert: { theme: '甜點工坊', icon: '🧁' }
+    fruit: { theme: '水�??�盤', icon: '??' },
+    veggie: { theme: '?��?樂�?', icon: '?��' },
+    tropical: { theme: '?�帶海島', icon: '??' },
+    dessert: { theme: '?��?工�?', icon: '??' }
   };
   const targetWorld = WORLDS.find(world => world.theme === themeMap[theme]?.theme);
   const startLevel = currentLevel;
@@ -905,34 +905,32 @@ const generateCharComment = async (context) => {
 
   const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-  const systemPrompt = `你是一個正在陪玩家玩消消樂遊戲的角色，請根據角色性格生成一句簡短的評論或鼓勵。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
-輸出格式為 JSON: {"comment": "一句話"}`;
+  const systemPrompt = `你是一?�正?�陪?�家?��?消�??�戲?��??��?請根?��??�性格?��?一?�簡?��?評�??��??��?請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"comment": "一?�話"}`;
 
-  let contextText = `# 角色設定\n名稱: ${charName}\n`;
-  if (charPersonality) contextText += `性格: ${charPersonality}\n`;
-  if (charBackground) contextText += `背景: ${charBackground}\n`;
-  contextText += `\n# 遊戲狀況\n`;
-  contextText += `關卡: ${context.level || 1}\n`;
-  contextText += `分數: ${context.score || 0}\n`;
-  contextText += `目標: ${context.target || 800}\n`;
-  contextText += `剩餘步數: ${context.moves || 0}\n`;
-  if (context.combo) contextText += `連擊數: ${context.combo}\n`;
-  contextText += `事件: ${context.event || '進行中'}\n`;
+  let contextText = `# 角色設�?\n?�稱: ${charName}\n`;
+  if (charPersonality) contextText += `?�格: ${charPersonality}\n`;
+  if (charBackground) contextText += `?�景: ${charBackground}\n`;
+  contextText += `\n# ?�戲?�況\n`;
+  contextText += `?�卡: ${context.level || 1}\n`;
+  contextText += `?�數: ${context.score || 0}\n`;
+  contextText += `?��?: ${context.target || 800}\n`;
+  contextText += `?��?步數: ${context.moves || 0}\n`;
+  if (context.combo) contextText += `????? ${context.combo}\n`;
+  contextText += `事件: ${context.event || '?��?�?}\n`;
 
   const prompt = `${contextText}
 
-請生成一句角色在看到這個遊戲狀況時會說的話，要求：
-1. 符合角色性格
-2. 簡短自然（10-30字）
-3. 可以是鼓勵、評論、驚嘆或吐槽
+請�??��??��??�在?�到?�個�??��?況�??�說?�話，�?求�?
+1. 符�?角色?�格
+2. 簡短?�然�?0-30字�?
+3. ?�以?��??�、�?論、�??��??�槽
 
-輸出 JSON 格式。`;
+輸出 JSON ?��??�`;
 
   try {
     let content = '';
     
-    // Gemini 原生 API 格式
+    // Gemini ?��? API ?��?
     if (apiType === 'gemini') {
       const model = config.model || 'gemini-1.5-flash';
       const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
@@ -954,8 +952,7 @@ const generateCharComment = async (context) => {
       if (data.error) return generateFallbackComment(context);
       content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     } else {
-      // OpenAI 相容格式或自訂端點
-      let endpoint;
+      // OpenAI ?�容?��??�自訂端�?      let endpoint;
       if (apiType === 'custom') {
         endpoint = config.url;
       } else {
@@ -1009,66 +1006,66 @@ const generateFallbackComment = (context) => {
   
   const comments = {
     combo: [
-      '哇！連擊！繼續加油！',
-      '太厲害了！連消！',
-      '這個連擊不錯喔！',
-      '繼續保持！'
+      '?��????！繼續�?油�?',
+      '太厲害�?！�??�?,
+      '?�個�??不錯?��?',
+      '繼�?保�?�?
     ],
     pass: [
-      '恭喜過關！你真厲害！',
-      '太棒了！這關過了！',
-      '我就知道你可以的！',
-      '下一關也沒問題的！'
+      '?��??��?！�??�厲害�?',
+      '太�?了�??��??��?�?,
+      '?�就?��?你可以�?�?,
+      '下�??��?沒�?題�?�?
     ],
     fail: [
-      '沒關係，再試一次！',
-      '別灰心，你可以的！',
-      '這關有點難，加油！',
-      '我相信你下次一定行！'
+      '沒�?係�??�試一次�?',
+      '?�灰心�?你可以�?�?,
+      '?��??��?????�油�?,
+      '?�相信�?下次一定�?�?
     ],
     progress: [
-      '這步不錯！',
-      '繼續加油！',
-      '快達成目標了！',
-      '還有機會！'
+      '?�步不錯�?,
+      '繼�??�油�?,
+      '快�??�目標�?�?,
+      '?��?機�?�?
     ],
     start: [
-      '開始吧！我看好你！',
-      '這關應該難不倒你！',
-      '一起加油！',
-      '準備好了嗎？'
+      '?��??��??��?好�?�?,
+      '?��??�該????��?�?,
+      '一起�?油�?',
+      '準�?好�??��?'
     ]
   };
 
-  const spicy = ['佔有', '控制', '病嬌', '嫉妒', '冷淡', '腹黑', '強勢', '霸道'];
-  const gentle = ['溫柔', '體貼', '善良', '暖', '可愛', '樂觀'];
-  const playful = ['調皮', '愛鬧', '搞笑', '活潑', '俏皮'];
+  const spicy = ['佔�?', '?�制', '?��?', '嫉�?', '?�淡', '?��?', '強勢', '?��?'];
+  const gentle = ['溫�?', '體貼', '?�良', '??, '?��?', '樂�?'];
+  const playful = ['調皮', '?�鬧', '?��?', '活�?', '俏皮'];
 
   let pool = comments[context.event] || comments.progress;
 
   if (spicy.some(key => personality.includes(key))) {
     pool = {
-      combo: ['哼，還不錯嘛。', '這點程度而已？', '別得意太早。', '繼續。'],
-      pass: ['勉強過關了。', '哼，我就說你可以。', '別驕傲，下一關更難。', '還算可以。'],
-      fail: ['這樣就不行了？', '再試一次，別讓我失望。', '你應該能做得更好。', '別放棄。'],
-      progress: ['繼續。', '還差得遠。', '專心點。', '別分心。'],
-      start: ['開始吧。', '別拖拖拉拉。', '準備好了嗎？', '我等著看你的表現。']
+      combo: ['?��??��??��???, '?��?程度?�已�?, '?��??�太?��?, '繼�???],
+      pass: ['?�強?��?了�?, '?��??�就說�??�以??, '?��??��?下�??�更??�?, '?��??�以??],
+      fail: ['?�樣就�?行�?�?, '?�試一次�??��??�失?��?, '你�?該能?��??�好??, '?�放棄�?],
+      progress: ['繼�???, '?�差得�???, '專�?點�?, '?��?心�?],
+      start: ['?��??��?, '?��??��??��?, '準�?好�??��?', '?��??��?你�?表現??]
     }[context.event] || comments.progress;
   } else if (gentle.some(key => personality.includes(key))) {
     pool = {
-      combo: ['哇！好厲害！', '連擊！太棒了！', '你真棒！', '繼續加油喔！'],
-      pass: ['恭喜過關！辛苦了！', '太好了！你做到了！', '我就知道你行的！', '休息一下再繼續？'],
-      fail: ['沒關係，慢慢來。', '別難過，再試一次？', '這關有點難呢。', '我相信你的！'],
-      progress: ['加油！你快到了！', '不錯喔！繼續！', '再努力一下！', '你可以的！'],
-      start: ['加油喔！', '我會陪著你的！', '一起努力吧！', '準備好了嗎？']
+      combo: ['?��?好厲害�?', '???！太棒�?�?, '你�?棒�?', '繼�??�油?��?'],
+      pass: ['?��??��?！�??��?�?, '太好了�?你�??��?�?, '?�就?��?你�??��?', '休息一下�?繼�?�?],
+      fail: ['沒�?係�??�慢來�?, '?�難?��??�試一次�?', '?��??��???��??, '?�相信�??��?'],
+      progress: ['?�油！�?快到了�?', '不錯?��?繼�?�?, '?�努?��?下�?', '你可以�?�?],
+      start: ['?�油?��?', '?��??��?你�?�?, '一起努?�吧�?, '準�?好�??��?']
     }[context.event] || comments.progress;
   } else if (playful.some(key => personality.includes(key))) {
     pool = {
-      combo: ['嘿嘿，連擊！', '哇喔！好厲害！', '這個不錯！', '再來再來！'],
-      pass: ['過關啦！耶！', '太棒了！慶祝一下！', '下一關！下一關！', '你超強的！'],
-      fail: ['哎呀，差一點！', '沒事沒事，再來！', '這次運氣不好啦！', '下次一定行！'],
-      progress: ['快快快！', '加油加油！', '衝啊！', '你可以的！'],
-      start: ['開始開始！', '好期待喔！', '來玩吧！', '衝衝衝！']
+      combo: ['?�嘿，�??�?, '?��?！好?�害�?, '?�個�??��?', '?��??��?�?],
+      pass: ['?��??��??��?', '太�?了�??��?一下�?', '下�??��?下�??��?', '你�?強�?�?],
+      fail: ['?��?，差一點�?', '沒�?沒�?，�?來�?', '?�次?�氣不好?��?', '下次一定�?�?],
+      progress: ['快快快�?', '?�油?�油�?, '衝�?�?, '你可以�?�?],
+      start: ['?��??��?�?, '好�?待�?�?, '來玩?��?', '衝�?衝�?']
     }[context.event] || comments.progress;
   }
 
@@ -1130,13 +1127,13 @@ const initCharCompanion = () => {
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (frequencySelect) frequencySelect.value = charCommentFrequency;
   
-  // 載入角色列表
+  // 載入角色?�表
   const loadCharList = () => {
     const raw = localStorage.getItem('sx_characters') || '[]';
     try {
       const list = JSON.parse(raw);
       if (!Array.isArray(list) || list.length === 0) {
-        if (charSelect) charSelect.innerHTML = '<option value="">尚未建立角色</option>';
+        if (charSelect) charSelect.innerHTML = '<option value="">尚未建�?角色</option>';
         panel?.classList.add('hidden');
         return;
       }
@@ -1148,14 +1145,14 @@ const initCharCompanion = () => {
         ).join('');
       }
       
-      // 更新當前角色資料
+      // ?�新?��?角色資�?
       updateCharDisplay();
     } catch (e) {
-      if (charSelect) charSelect.innerHTML = '<option value="">載入失敗</option>';
+      if (charSelect) charSelect.innerHTML = '<option value="">載入失�?</option>';
     }
   };
   
-  // 更新角色顯示
+  // ?�新角色顯示
   const updateCharDisplay = () => {
     const char = getCharData();
     charData = char;
@@ -1181,13 +1178,13 @@ const initCharCompanion = () => {
       }
     }
     
-    // 清空預設評論，等待 AI 生成
+    // 清空?�設評�?，�?�?AI ?��?
     if (charCommentEl) charCommentEl.textContent = '';
     
     updateCharProgressUI();
   };
   
-  // 角色選擇變更
+  // 角色?��?變更
   charSelect?.addEventListener('change', () => {
     const index = parseInt(charSelect.value);
     const raw = localStorage.getItem('sx_characters') || '[]';
@@ -1196,13 +1193,13 @@ const initCharCompanion = () => {
       if (list[index]) {
         localStorage.setItem('sx_char_name', list[index].name);
         updateCharDisplay();
-        // 生成新的評論
+        // ?��??��?評�?
         if (charCompanionEnabled) {
           showCharComment({ event: 'start', level: currentLevel });
         }
       }
     } catch (e) {
-      console.error('[match-3] 切換角色失敗:', e);
+      console.error('[match-3] ?��?角色失�?:', e);
     }
   });
   
@@ -1212,8 +1209,7 @@ const initCharCompanion = () => {
     panel?.classList.add('hidden');
   }
   
-  // 載入上次保存的位置
-  const savedPosition = localStorage.getItem(CHAR_PANEL_POSITION_KEY);
+  // 載入上次保�??��?�?  const savedPosition = localStorage.getItem(CHAR_PANEL_POSITION_KEY);
   if (savedPosition && panel) {
     try {
       const pos = JSON.parse(savedPosition);
@@ -1224,11 +1220,11 @@ const initCharCompanion = () => {
         panel.style.bottom = 'auto';
       }
     } catch (e) {
-      console.warn('[match-3] 無法解析保存的位置:', e);
+      console.warn('[match-3] ?��?�??保�??��?�?', e);
     }
   }
   
-  // 拖曳功能
+  // ?�曳?�能
   let isDragging = false;
   let dragStartX = 0;
   let dragStartY = 0;
@@ -1236,7 +1232,7 @@ const initCharCompanion = () => {
   let panelStartY = 0;
   
   const handleDragStart = (e) => {
-    // 如果點擊的是設定按鈕，不啟動拖曳
+    // 如�?點�??�是設�??��?，�??��??�曳
     if (e.target.closest('.char-toggle-btn')) return;
     
     isDragging = true;
@@ -1252,8 +1248,7 @@ const initCharCompanion = () => {
     panelStartX = rect.left;
     panelStartY = rect.top;
     
-    // 切換到絕對定位
-    panel.style.right = 'auto';
+    // ?��??��?對�?�?    panel.style.right = 'auto';
     panel.style.bottom = 'auto';
     panel.style.left = `${panelStartX}px`;
     panel.style.top = `${panelStartY}px`;
@@ -1273,7 +1268,7 @@ const initCharCompanion = () => {
     let newX = panelStartX + deltaX;
     let newY = panelStartY + deltaY;
     
-    // 限制在視窗範圍內
+    // ?�制?��?窗�??�內
     const panelRect = panel.getBoundingClientRect();
     const maxX = window.innerWidth - panelRect.width;
     const maxY = window.innerHeight - panelRect.height;
@@ -1292,14 +1287,14 @@ const initCharCompanion = () => {
     isDragging = false;
     panel.classList.remove('dragging');
     
-    // 保存位置
+    // 保�?位置
     localStorage.setItem(CHAR_PANEL_POSITION_KEY, JSON.stringify({
       left: panel.style.left,
       top: panel.style.top
     }));
   };
   
-  // 綁定拖曳事件
+  // 綁�??�曳事件
   panel?.addEventListener('mousedown', handleDragStart);
   panel?.addEventListener('touchstart', handleDragStart, { passive: false });
   

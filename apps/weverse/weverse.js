@@ -67,9 +67,9 @@ const WEVERSE_SETTINGS_KEY = 'weverse_artist_settings_v1';
 const saveWeverseData = () => {
     try {
         const settings = localStorage.getItem(WEVERSE_SETTINGS_KEY);
-        console.log("Weverse數據已保存至 localStorage");
+        console.log("Weverse?��?已�?存至 localStorage");
     } catch (e) {
-        console.error("保存Weverse數據失敗:", e);
+        console.error("保�?Weverse?��?失�?:", e);
     }
 };
 
@@ -85,9 +85,9 @@ const saveToPersistentStorage = async () => {
                     weverse_artist_settings_v1: JSON.parse(settings)
                 });
             }
-            console.log("Weverse數據已保存至 IndexedDB");
+            console.log("Weverse?��?已�?存至 IndexedDB");
         } catch (e) {
-            console.error("IndexedDB 保存失敗:", e);
+            console.error("IndexedDB 保�?失�?:", e);
         }
     }
 };
@@ -123,7 +123,7 @@ function saveJoinedGroups() {
   try {
     localStorage.setItem(WEVERSE_JOINED_GROUPS_KEY, JSON.stringify(joinedGroupIds));
   } catch (e) {
-    console.error('保存已加入團體失敗:', e);
+    console.error('保�?已�??��?體失??', e);
   }
 }
 
@@ -150,7 +150,7 @@ function loadArtistGroups() {
       return JSON.parse(raw);
     }
   } catch (e) {
-    console.error('載入藝人團體失敗:', e);
+    console.error('載入?�人?��?失�?:', e);
   }
   return [];
 }
@@ -159,7 +159,7 @@ function saveArtistGroups() {
   try {
     localStorage.setItem(ARTIST_GROUPS_KEY, JSON.stringify(groups));
   } catch (e) {
-    console.error('保存藝人團體失敗:', e);
+    console.error('保�??�人?��?失�?:', e);
   }
 }
 
@@ -168,7 +168,7 @@ function createArtistGroup(name, type, bio) {
     id: `artist-${Date.now()}`,
     name: name.trim(),
     type: type || 'K-POP',
-    bio: bio.trim() || `${name} 的官方社群`,
+    bio: bio.trim() || `${name} ?��??�社群`,
     members: 0,
     online: 0,
     artistProfile: {
@@ -196,8 +196,8 @@ const baseGroups = [];
 
 const ARTIST_GROUPS_KEY = 'weverse_artist_groups_v1';
 
-const aiPostStarters = ['今天練習結束了', '剛剛彩排回來', '想來打個招呼', '晚安前留個訊息'];
-const aiPostClosers = ['你們今天也辛苦了', '等等見', '記得吃飯', '我會再來'];
+const aiPostStarters = ['今天練�?結�?�?, '?��?彩�??��?', '?��??�個�???, '?��??��??��???];
+const aiPostClosers = ['你們�?天�?辛苦�?, '等�?�?, '記�??�飯', '?��??��?'];
 
 let groups = JSON.parse(JSON.stringify(baseGroups));
 let activeGroupId = '';
@@ -246,14 +246,14 @@ function saveSettingsToStorage() {
     localStorage.setItem(WEVERSE_SETTINGS_KEY, JSON.stringify(payload));
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
-    setSaveStatus(`已儲存 ${new Date(payload.savedAt).toLocaleString(localeCode)}`);
+    setSaveStatus(`已儲�?${new Date(payload.savedAt).toLocaleString(localeCode)}`);
   } catch (error) {
-    setSaveStatus('儲存失敗，請重試');
+    setSaveStatus('?��?失�?，�??�試');
   }
 }
 
 function scheduleSettingsSave() {
-  setSaveStatus('有未儲存變更...');
+  setSaveStatus('?�未?��?變更...');
   if (saveTimer) {
     clearTimeout(saveTimer);
   }
@@ -295,7 +295,7 @@ function loadSettingsFromStorage() {
   try {
     const raw = localStorage.getItem(WEVERSE_SETTINGS_KEY);
     if (!raw) {
-      setSaveStatus('目前使用預設設定');
+      setSaveStatus('?��?使用?�設設�?');
       return;
     }
 
@@ -305,12 +305,12 @@ function loadSettingsFromStorage() {
     if (parsed.savedAt) {
       const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
       const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
-      setSaveStatus(`已載入備份 ${new Date(parsed.savedAt).toLocaleString(localeCode)}`);
+      setSaveStatus(`已�??��?�?${new Date(parsed.savedAt).toLocaleString(localeCode)}`);
     } else {
-      setSaveStatus('已載入本機設定');
+      setSaveStatus('已�??�本機設�?);
     }
   } catch (error) {
-    setSaveStatus('載入備份失敗，改用預設設定');
+    setSaveStatus('載入?�份失�?，改?��?設設�?);
   }
 }
 
@@ -328,7 +328,7 @@ function exportSettingsBackup() {
   URL.revokeObjectURL(url);
   const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
   const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
-  setSaveStatus(`已匯出備份 ${new Date(snapshot.savedAt).toLocaleString(localeCode)}`);
+  setSaveStatus(`已匯?��?�?${new Date(snapshot.savedAt).toLocaleString(localeCode)}`);
 }
 
 function ensureArtistProfile(group) {
@@ -346,7 +346,7 @@ function ensureArtistProfile(group) {
 
 function getArtistMembersText(group) {
   ensureArtistProfile(group);
-  if (!group.artistProfile.members.length) return '尚未設定成員';
+  if (!group.artistProfile.members.length) return '尚未設�??�員';
   return group.artistProfile.members.map((member) => member.name).join(' / ');
 }
 
@@ -358,7 +358,7 @@ function renderGroupList() {
       const group = getActiveGroup();
       groupListEl.innerHTML = `
         <button class="group-chip back-btn" id="artist-back-to-cards-btn" type="button">
-          <i class="fas fa-chevron-left"></i> 返回列表
+          <i class="fas fa-chevron-left"></i> 返�??�表
         </button>
         <button class="group-chip active" type="button">${group?.name || ''}</button>
       `;
@@ -369,13 +369,13 @@ function renderGroupList() {
     const joinedGroups = groups.filter((group) => joinedGroupIds.includes(group.id));
     
     if (joinedGroups.length === 0) {
-      groupListEl.innerHTML = `<button class="group-chip explore-btn" id="explore-groups-btn" type="button">探索社群</button>`;
+      groupListEl.innerHTML = `<button class="group-chip explore-btn" id="explore-groups-btn" type="button">?�索社群</button>`;
     } else {
       groupListEl.innerHTML = joinedGroups.map((group) => `
         <button class="group-chip ${group.id === activeGroupId ? 'active' : ''}" data-group-id="${group.id}" type="button">
           ${group.name}
         </button>
-      `).join('') + `<button class="group-chip explore-btn" id="explore-groups-btn" type="button">+ 探索</button>`;
+      `).join('') + `<button class="group-chip explore-btn" id="explore-groups-btn" type="button">+ ?�索</button>`;
     }
   }
 }
@@ -403,8 +403,8 @@ function renderStories(group) {
   
   if (storyItems.length === 0) {
     const defaultStories = [
-      { id: 'default-1', name: '官方', avatar: '官', avatarImage: '', color: 'var(--wv-accent)', hasContent: true, content: null },
-      { id: 'default-2', name: '成員', avatar: '成', avatarImage: '', color: '#f09433', hasContent: true, content: null }
+      { id: 'default-1', name: '官方', avatar: '�?, avatarImage: '', color: 'var(--wv-accent)', hasContent: true, content: null },
+      { id: 'default-2', name: '?�員', avatar: '??, avatarImage: '', color: '#f09433', hasContent: true, content: null }
     ];
     storyStripEl.innerHTML = defaultStories.map((story) => `
       <article class="story-item" data-story-id="${story.id}" data-story-name="${story.name}">
@@ -427,8 +427,8 @@ function renderFeed(group) {
   if (!isArtistMode && !isGroupJoined(group.id)) {
     feedEl.innerHTML = `
       <div class="join-prompt">
-        <p>加入此社群後才能查看發文內容</p>
-        <button class="join-group-btn" data-group-id="${group.id}" type="button">加入社群</button>
+        <p>?�入此社群�??�能?��??��??�容</p>
+        <button class="join-group-btn" data-group-id="${group.id}" type="button">?�入社群</button>
       </div>
     `;
     feedEl.scrollTop = 0;
@@ -438,7 +438,7 @@ function renderFeed(group) {
   if (!group.posts || group.posts.length === 0) {
     feedEl.innerHTML = `
       <div class="empty-feed">
-        <p>目前還沒有發文</p>
+        <p>?��??��??�發??/p>
       </div>
     `;
     feedEl.scrollTop = 0;
@@ -453,8 +453,8 @@ function renderFeed(group) {
       </div>
       <div class="post-text">${post.text}</div>
       <div class="post-actions">
-        <span>讚 ${formatCompact(post.likes || 0)}</span>
-        <span>留言 ${formatCompact(post.comments || 0)}</span>
+        <span>�?${formatCompact(post.likes || 0)}</span>
+        <span>?��? ${formatCompact(post.comments || 0)}</span>
       </div>
     </article>
   `).join('');
@@ -467,7 +467,7 @@ function renderArtistPreview(group) {
 function renderMemberEditorList(group) {
   ensureArtistProfile(group);
   if (!group.artistProfile.members.length) {
-    memberEditorListEl.innerHTML = '<div class="empty-members">目前沒有成員，先新增至少一位成員。</div>';
+    memberEditorListEl.innerHTML = '<div class="empty-members">?��?沒�??�員，�??��??��?一位�??��?/div>';
     return;
   }
 
@@ -476,7 +476,7 @@ function renderMemberEditorList(group) {
       <span class="member-avatar ${member.avatarImage ? 'has-image' : ''}" ${member.avatarImage ? `style="background-image:url('${member.avatarImage}')"` : ''}>${(member.avatar || member.name || '?').slice(0, 2).toUpperCase()}</span>
       <div class="member-text">
         <strong>${member.name}<span class="member-source">${member.sourceType || 'char'}</span></strong>
-        <span>${member.persona || '未設定個性'}</span>
+        <span>${member.persona || '?�設定個�?}</span>
       </div>
       <button class="remove-member-btn" type="button" data-remove-member-id="${member.id}">移除</button>
     </article>
@@ -488,8 +488,8 @@ function renderActiveCommunity() {
   
   if (isArtistMode) {
     if (!activeGroupId) {
-      activeNameEl.textContent = '藝人工作台';
-      activeBioEl.textContent = '建立並管理你的團體社群';
+      activeNameEl.textContent = '?�人工�???;
+      activeBioEl.textContent = '建�?並管?��??��?體社�?;
       activeTypeEl.textContent = '';
       memberCountEl.textContent = '';
       onlineCountEl.textContent = '';
@@ -508,8 +508,8 @@ function renderActiveCommunity() {
     activeNameEl.textContent = group.name;
     activeBioEl.textContent = group.bio;
     activeTypeEl.textContent = group.type;
-    memberCountEl.textContent = `${formatCompact(group.members || 0)} 成員`;
-    onlineCountEl.textContent = `${formatCompact(group.online || 0)} 在線`;
+    memberCountEl.textContent = `${formatCompact(group.members || 0)} ?�員`;
+    onlineCountEl.textContent = `${formatCompact(group.online || 0)} ?��?`;
     renderStories(group);
     renderFeed(group);
     renderArtistPreview(group);
@@ -517,16 +517,16 @@ function renderActiveCommunity() {
   }
   
   if (joinedGroupIds.length === 0) {
-    activeNameEl.textContent = '歡迎來到 Weverse';
-    activeBioEl.textContent = '探索並加入你喜歡的藝人社群，開始追蹤他們的動態！';
+    activeNameEl.textContent = '歡�?來到 Weverse';
+    activeBioEl.textContent = '?�索並�??��??�歡?��?人社群�??��?追蹤他們�??��?�?;
     activeTypeEl.textContent = '';
     memberCountEl.textContent = '';
     onlineCountEl.textContent = '';
     storyStripEl.innerHTML = '';
     feedEl.innerHTML = `
       <div class="welcome-prompt">
-        <p>選擇你喜歡的藝人社群加入吧！</p>
-        <button class="primary-btn" id="welcome-explore-btn" type="button">探索社群</button>
+        <p>?��?你�?歡�??�人社群?�入?��?</p>
+        <button class="primary-btn" id="welcome-explore-btn" type="button">?�索社群</button>
       </div>
     `;
     return;
@@ -544,8 +544,8 @@ function renderActiveCommunity() {
   activeBioEl.textContent = group.bio;
   activeTypeEl.textContent = group.type;
 
-  memberCountEl.textContent = `${formatCompact(group.members || 0)} 成員`;
-  onlineCountEl.textContent = `${formatCompact(group.online || 0)} 在線`;
+  memberCountEl.textContent = `${formatCompact(group.members || 0)} ?�員`;
+  onlineCountEl.textContent = `${formatCompact(group.online || 0)} ?��?`;
 
   renderStories(group);
   renderFeed(group);
@@ -556,8 +556,8 @@ function renderArtistGroupCards() {
   if (groups.length === 0) {
     feedEl.innerHTML = `
       <div class="artist-empty-state">
-        <p>尚未建立任何團體</p>
-        <button class="primary-btn" id="create-artist-group-btn" type="button">建立新團體</button>
+        <p>尚未建�?任�??��?</p>
+        <button class="primary-btn" id="create-artist-group-btn" type="button">建�??��?�?/button>
       </div>
     `;
     return;
@@ -571,13 +571,13 @@ function renderArtistGroupCards() {
       </div>
       <p class="artist-card-bio">${group.bio}</p>
       <div class="artist-card-meta">
-        <span>${formatCompact(group.members || 0)} 成員</span>
-        <span>${formatCompact(group.online || 0)} 在線</span>
+        <span>${formatCompact(group.members || 0)} ?�員</span>
+        <span>${formatCompact(group.online || 0)} ?��?</span>
       </div>
       <div class="artist-card-members">
         ${group.artistProfile?.members?.length > 0 
-          ? `已設定 ${group.artistProfile.members.length} 位成員` 
-          : '尚未設定成員'}
+          ? `已設�?${group.artistProfile.members.length} 位�??�` 
+          : '尚未設�??�員'}
       </div>
       <button class="delete-group-btn" data-group-id="${group.id}" type="button">
         <i class="fas fa-trash"></i>
@@ -588,8 +588,7 @@ function renderArtistGroupCards() {
   feedEl.innerHTML = `
     <div class="artist-group-cards">${cardsHtml}</div>
     <button class="secondary-btn create-group-btn" id="create-artist-group-btn" type="button">
-      <i class="fas fa-plus"></i> 建立新團體
-    </button>
+      <i class="fas fa-plus"></i> 建�??��?�?    </button>
   `;
 }
 
@@ -603,9 +602,9 @@ function renderRoleUI() {
   if (isArtistMode) {
     appRootEl?.classList.add('artist-mode');
     rolePillEl.textContent = 'Artist Mode';
-    postInput.placeholder = '以藝人身分向粉絲發文...';
-    postBtn.textContent = '官方發布';
-    roleToggleBtn?.setAttribute('aria-label', '切換成粉絲介面');
+    postInput.placeholder = '以�?人身?��?粉絲?��?...';
+    postBtn.textContent = '官方?��?';
+    roleToggleBtn?.setAttribute('aria-label', '?��??��?絲�???);
     userSettingsBtn?.classList.add('hidden');
     artistSettingsBtn?.classList.remove('hidden');
     closeUserSettingsPage();
@@ -615,9 +614,9 @@ function renderRoleUI() {
 
   appRootEl?.classList.remove('artist-mode');
   rolePillEl.textContent = 'Fan Mode';
-  postInput.placeholder = '在社群裡發布貼文...';
-  postBtn.textContent = '發布';
-  roleToggleBtn?.setAttribute('aria-label', '切換成藝人介面');
+  postInput.placeholder = '?�社群裡?��?貼�?...';
+  postBtn.textContent = '?��?';
+  roleToggleBtn?.setAttribute('aria-label', '?��??��?人�???);
   userSettingsBtn?.classList.remove('hidden');
   artistSettingsBtn?.classList.add('hidden');
   closeArtistSettingsPage();
@@ -655,11 +654,11 @@ function renderExploreGroupsList() {
           <span class="explore-group-type">${group.type}</span>
           <p>${group.bio}</p>
           <div class="explore-group-meta">
-            <span>${formatCompact(group.members || 0)} 成員</span>
+            <span>${formatCompact(group.members || 0)} ?�員</span>
           </div>
         </div>
         <button class="${isJoined ? 'leave-btn' : 'join-btn'}" data-group-id="${group.id}" type="button">
-          ${isJoined ? '已加入' : '加入'}
+          ${isJoined ? '已�??? : '?�入'}
         </button>
       </article>
     `;
@@ -702,7 +701,7 @@ function buildUserGroupSelect() {
     .map((group) => `<option value="${group.id}">${group.name}</option>`)
     .join('');
 
-  userGroupSelect.innerHTML = `${options}<option value="custom">自訂團體</option>`;
+  userGroupSelect.innerHTML = `${options}<option value="custom">?��??��?</option>`;
 
   if (viewerSettings.selectedGroupId === 'custom-viewer-group') {
     userGroupSelect.value = 'custom';
@@ -725,7 +724,7 @@ function hydrateUserSettingsPage() {
   userCustomGroupName.value = customGroup?.name || '';
   userCustomGroupType.value = customGroup?.type || 'K-POP';
   userCustomGroupBio.value = customGroup?.bio || '';
-  setUserSettingsStatus('可調整觀看團體與 AI 成員來源');
+  setUserSettingsStatus('?�調?��??��?體�? AI ?�員來�?');
 }
 
 function openUserSettingsPage() {
@@ -754,7 +753,7 @@ function upsertCustomViewerGroup() {
     id: 'custom-viewer-group',
     name,
     type: userCustomGroupType.value || 'K-POP',
-    bio: userCustomGroupBio.value.trim() || '自訂觀看團體',
+    bio: userCustomGroupBio.value.trim() || '?��?觀?��?�?,
     members: 0,
     online: 0,
     artistProfile: {
@@ -782,7 +781,7 @@ function applyUserSettings() {
   if (selected === 'custom') {
     const customId = upsertCustomViewerGroup();
     if (!customId) {
-      setUserSettingsStatus('請先輸入自訂團體名稱');
+      setUserSettingsStatus('請�?輸入?��??��??�稱');
       return;
     }
     viewerSettings.selectedGroupId = customId;
@@ -794,23 +793,23 @@ function applyUserSettings() {
   renderGroupList();
   renderActiveCommunity();
   scheduleSettingsSave();
-  setUserSettingsStatus('已套用觀看團體設定');
+  setUserSettingsStatus('已�??��??��?體設�?);
   closeUserSettingsPage();
 }
 
 function buildAIMembersBySource(sourceType) {
   const templates = {
     char: [
-      { name: 'Ari', persona: '細膩且會分享排練心情' },
-      { name: 'Nox', persona: '冷靜風格，語氣簡短有力' }
+      { name: 'Ari', persona: '細膩且�??�享?�練心�?' },
+      { name: 'Nox', persona: '?��?風格，�?�?��?��??? }
     ],
     user: [
-      { name: 'FanHost', persona: '互動感強，常回覆粉絲留言' },
-      { name: 'Mina', persona: '親切自然，喜歡用生活語氣' }
+      { name: 'FanHost', persona: '互�??�強，常?��?粉絲?��?' },
+      { name: 'Mina', persona: '親�??�然，�?歡用?�活語氣' }
     ],
     npc: [
-      { name: 'Manager Kim', persona: '公告導向，資訊整理清楚' },
-      { name: 'Staff Lee', persona: '溫和提醒，常給活動預告' }
+      { name: 'Manager Kim', persona: '?��?導�?，�?訊整?��?�? },
+      { name: 'Staff Lee', persona: '溫�??��?，常給活?��??? }
     ]
   };
 
@@ -832,7 +831,7 @@ function importAIMembersToCurrentGroup() {
   const sourceType = userAiSourceType?.value || 'all';
   const imported = buildAIMembersBySource(sourceType);
   if (!imported.length) {
-    setUserSettingsStatus('沒有可導入的 AI 成員資料');
+    setUserSettingsStatus('沒�??��??��? AI ?�員資�?');
     return;
   }
 
@@ -852,7 +851,7 @@ function importAIMembersToCurrentGroup() {
   viewerSettings.aiSourceType = sourceType;
   renderArtistPreview(group);
   scheduleSettingsSave();
-  setUserSettingsStatus(`已導入 ${sourceType} 成員資料`);
+  setUserSettingsStatus(`已�???${sourceType} ?�員資�?`);
 }
 
 function normalizeImportedPosts(rawItems, groupName) {
@@ -906,21 +905,21 @@ async function importPublicPosts() {
   const format = publicPostSourceFormatInput?.value || 'json';
 
   if (!url) {
-    setPublicPostsStatus('請先填入公開來源 URL');
+    setPublicPostsStatus('請�?填入?��?來�? URL');
     return;
   }
 
   if (!/^https?:\/\//i.test(url)) {
-    setPublicPostsStatus('URL 格式錯誤，需以 http:// 或 https:// 開頭');
+    setPublicPostsStatus('URL ?��??�誤，�?�?http:// ??https:// ?�頭');
     return;
   }
 
-  setPublicPostsStatus('導入中...');
+  setPublicPostsStatus('導入�?..');
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      setPublicPostsStatus(`導入失敗：HTTP ${response.status}`);
+      setPublicPostsStatus(`導入失�?：HTTP ${response.status}`);
       return;
     }
 
@@ -936,16 +935,16 @@ async function importPublicPosts() {
     }
 
     if (!importedPosts.length) {
-      setPublicPostsStatus('沒有可導入的公開貼文');
+      setPublicPostsStatus('沒�??��??��??��?貼�?');
       return;
     }
 
     group.posts = [...importedPosts, ...group.posts].slice(0, 120);
     renderFeed(group);
     scheduleSettingsSave();
-    setPublicPostsStatus(`已導入 ${importedPosts.length} 則公開貼文`);
+    setPublicPostsStatus(`已�???${importedPosts.length} ?�公?�貼?�`);
   } catch (error) {
-    setPublicPostsStatus('導入失敗，請確認來源可公開存取且支援 CORS');
+    setPublicPostsStatus('導入失�?，�?確�?來�??�公?��??��??�援 CORS');
   }
 }
 
@@ -957,9 +956,9 @@ function addPost() {
   ensureArtistProfile(group);
 
   group.posts.unshift({
-    author: isArtistMode ? (group.artistProfile.name || `${group.name} Official`) : '你',
+    author: isArtistMode ? (group.artistProfile.name || `${group.name} Official`) : '�?,
     text,
-    time: '剛剛',
+    time: '?��?',
     likes: 0,
     comments: 0
   });
@@ -983,13 +982,13 @@ function simulateMemberPost() {
   if (!candidateMembers.length) return;
 
   const member = randomFrom(candidateMembers);
-  const moodText = member.persona ? `（${member.persona.split('，')[0]}）` : '';
-  const text = `${randomFrom(aiPostStarters)} ${moodText}，${randomFrom(aiPostClosers)}。`;
+  const moodText = member.persona ? `�?{member.persona.split('�?)[0]}）` : '';
+  const text = `${randomFrom(aiPostStarters)} ${moodText}�?{randomFrom(aiPostClosers)}?�`;
 
   group.posts.unshift({
     author: `${member.name} · ${group.artistProfile.name}`,
     text,
-    time: '剛剛',
+    time: '?��?',
     likes: Math.floor(Math.random() * 80),
     comments: Math.floor(Math.random() * 20)
   });
@@ -1073,7 +1072,7 @@ function resetAvatarUploadPreview() {
   if (avatarUploadPreviewEl) {
     avatarUploadPreviewEl.classList.remove('has-image');
     avatarUploadPreviewEl.style.backgroundImage = '';
-    avatarUploadPreviewEl.textContent = '未上傳頭貼';
+    avatarUploadPreviewEl.textContent = '?��??�頭�?;
   }
 }
 
@@ -1090,7 +1089,7 @@ function handleAvatarFileChange() {
     if (!pendingAvatarImageData) return;
     avatarUploadPreviewEl.classList.add('has-image');
     avatarUploadPreviewEl.style.backgroundImage = `url('${pendingAvatarImageData}')`;
-    avatarUploadPreviewEl.textContent = '已上傳';
+    avatarUploadPreviewEl.textContent = '已�???;
   };
   reader.readAsDataURL(file);
 }
@@ -1156,13 +1155,13 @@ function openCreateGroupModal() {
   modal.className = 'create-group-modal';
   modal.innerHTML = `
     <div class="modal-content">
-      <h3>建立新團體</h3>
+      <h3>建�??��?�?/h3>
       <label>
-        <span>團體名稱</span>
-        <input type="text" id="new-group-name" placeholder="例如：LUMEN">
+        <span>?��??�稱</span>
+        <input type="text" id="new-group-name" placeholder="例�?：LUMEN">
       </label>
       <label>
-        <span>類型</span>
+        <span>類�?</span>
         <select id="new-group-type">
           <option value="K-POP">K-POP</option>
           <option value="J-POP">J-POP</option>
@@ -1172,12 +1171,12 @@ function openCreateGroupModal() {
         </select>
       </label>
       <label>
-        <span>簡介</span>
-        <textarea id="new-group-bio" rows="2" placeholder="輸入團體介紹"></textarea>
+        <span>簡�?</span>
+        <textarea id="new-group-bio" rows="2" placeholder="輸入?��?介紹"></textarea>
       </label>
       <div class="modal-actions">
-        <button class="secondary-btn" id="cancel-create-group" type="button">取消</button>
-        <button class="primary-btn" id="confirm-create-group" type="button">建立</button>
+        <button class="secondary-btn" id="cancel-create-group" type="button">?��?</button>
+        <button class="primary-btn" id="confirm-create-group" type="button">建�?</button>
       </div>
     </div>
   `;
@@ -1193,7 +1192,7 @@ function openCreateGroupModal() {
     const bio = modal.querySelector('#new-group-bio')?.value.trim();
     
     if (!name) {
-      alert('請輸入團體名稱');
+      alert('請輸?��?體�?�?);
       return;
     }
     
@@ -1267,7 +1266,7 @@ function bindEvents() {
     const deleteGroupBtn = event.target.closest('.delete-group-btn');
     if (deleteGroupBtn) {
       const groupId = deleteGroupBtn.dataset.groupId;
-      if (groupId && confirm('確定要刪除此團體嗎？')) {
+      if (groupId && confirm('確�?要刪?�此?��??��?')) {
         deleteArtistGroup(groupId);
         renderActiveCommunity();
       }
@@ -1435,12 +1434,12 @@ function getWeverseWorldbookContext() {
     if (list && list.length > 0) {
       list.slice(0, 5).forEach(e => {
         if (e.title && e.content) {
-          entries.push(`【${e.title}】${e.content.slice(0, 200)}`);
+          entries.push(`??{e.title}??{e.content.slice(0, 200)}`);
         }
       });
     }
   }
-  return entries.length > 0 ? entries.join('\n') : '無世界書設定';
+  return entries.length > 0 ? entries.join('\n') : '?��??�書設�?';
 }
 
 function getWeverseCharacterData(name) {
@@ -1481,7 +1480,7 @@ function getWeverseChatHistory(limit = 15) {
 
 function getWeverseChatHistoryContext() {
   const history = getWeverseChatHistory(15);
-  if (history.length === 0) return '無聊天記錄';
+  if (history.length === 0) return '?��?天�???;
   const user = getWeverseUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
@@ -1504,12 +1503,12 @@ function getWeverseApiConfig() {
 async function callWeverseAIAPI(messages, temperature = 0.85) {
   const config = getWeverseApiConfig();
   if (!config || !config.url) {
-    throw new Error('尚未設定 API');
+    throw new Error('尚未設�? API');
   }
 
   const apiType = config.type || 'openai';
   
-  // Gemini 原生 API 格式
+  // Gemini ?��? API ?��?
   if (apiType === 'gemini') {
     const model = config.model || 'gemini-1.5-flash';
     const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
@@ -1544,7 +1543,7 @@ async function callWeverseAIAPI(messages, temperature = 0.85) {
     });
     
     if (!response.ok) {
-      throw new Error('Gemini API 錯誤 (' + response.status + ')');
+      throw new Error('Gemini API ?�誤 (' + response.status + ')');
     }
     
     const data = await response.json();
@@ -1552,8 +1551,7 @@ async function callWeverseAIAPI(messages, temperature = 0.85) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   
-  // OpenAI 相容格式或自訂端點
-  let endpoint;
+  // OpenAI ?�容?��??�自訂端�?  let endpoint;
   if (apiType === 'custom') {
     endpoint = config.url;
   } else {
@@ -1578,7 +1576,7 @@ async function callWeverseAIAPI(messages, temperature = 0.85) {
   });
 
   if (!response.ok) {
-    throw new Error(`API 錯誤 (${response.status})`);
+    throw new Error(`API ?�誤 (${response.status})`);
   }
 
   const data = await response.json();
@@ -1591,20 +1589,20 @@ function buildWeverseContext() {
   const worldbook = getWeverseWorldbookContext();
   const chatHistory = getWeverseChatHistoryContext();
 
-  let context = `# 使用者設定\n名稱: ${user.name}\n`;
-  if (user.personality) context += `性格: ${user.personality}\n`;
-  if (user.background) context += `背景: ${user.background}\n`;
+  let context = `# 使用?�設定\n?�稱: ${user.name}\n`;
+  if (user.personality) context += `?�格: ${user.personality}\n`;
+  if (user.background) context += `?�景: ${user.background}\n`;
 
   if (char) {
-    context += `\n# 角色設定\n名稱: ${char.name}\n`;
-    if (char.personality) context += `性格: ${char.personality}\n`;
-    if (char.background) context += `背景: ${char.background}\n`;
+    context += `\n# 角色設�?\n?�稱: ${char.name}\n`;
+    if (char.personality) context += `?�格: ${char.personality}\n`;
+    if (char.background) context += `?�景: ${char.background}\n`;
   }
 
-  context += `\n# 世界書\n${worldbook}\n`;
+  context += `\n# 世�??�\n${worldbook}\n`;
 
-  if (chatHistory !== '無聊天記錄') {
-    context += `\n# 近期對話\n${chatHistory}\n`;
+  if (chatHistory !== '?��?天�???) {
+    context += `\n# 近�?對話\n${chatHistory}\n`;
   }
 
   return context;
@@ -1614,7 +1612,7 @@ let isGeneratingWeversePosts = false;
 
 async function generateWeverseAIPosts() {
   if (isGeneratingWeversePosts) {
-    alert('正在生成中，請稍候...');
+    alert('�?��?��?中�?請�???..');
     return;
   }
 
@@ -1623,27 +1621,22 @@ async function generateWeverseAIPosts() {
   try {
     const group = getActiveGroup();
     if (!group) {
-      alert('請先選擇一個社群');
+      alert('請�??��?一?�社�?);
       return;
     }
 
     const context = buildWeverseContext();
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-    const systemPrompt = `你是一位 K-POP 社群內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的社群貼文。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
-輸出格式為 JSON: {"posts": [{"author": "作者名稱", "text": "貼文內容", "likes": 隨機讚數, "comments": 隨機留言數}]}`;
+    const systemPrompt = `你是一�?K-POP 社群?�容?��??��??�長?��?角色設�??�使?�者�??�創作符?�人?�性格?�社群貼?��?請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"posts": [{"author": "作者�?�?, "text": "貼�??�容", "likes": ?��?讚數, "comments": ?��??��??�}]}`;
 
     const prompt = `${context}
 
 社群: ${group.name}
-請生成 3 則 Weverse 社群貼文，要求：
-1. 符合角色性格和使用者設定
-2. 自然融入世界書設定
-3. 可以是藝人發文或粉絲留言風格
-4. 語氣親切、有互動感
-
-輸出 JSON 格式。`;
+請�???3 ??Weverse 社群貼�?，�?求�?
+1. 符�?角色?�格?�使?�者設�?2. ?�然?�入世�??�設�?3. ?�以?��?人發?��?粉絲?��?風格
+4. 語氣親�??��?互�???
+輸出 JSON ?��??�`;
 
     const result = await callWeverseAIAPI([
       { role: 'system', content: systemPrompt },
@@ -1663,9 +1656,9 @@ async function generateWeverseAIPosts() {
     posts.forEach(post => {
       if (post.text) {
         group.posts.unshift({
-          author: post.author || 'AI 內容',
+          author: post.author || 'AI ?�容',
           text: post.text,
-          time: '剛剛',
+          time: '?��?',
           likes: post.likes || Math.floor(Math.random() * 100),
           comments: post.comments || Math.floor(Math.random() * 30)
         });
@@ -1676,10 +1669,10 @@ async function generateWeverseAIPosts() {
       renderFeed(group);
       scheduleSettingsSave();
     } else {
-      alert('生成失敗，請稍後重試');
+      alert('?��?失�?，�?稍�??�試');
     }
   } catch (err) {
-    alert(`生成失敗: ${err.message}`);
+    alert(`?��?失�?: ${err.message}`);
   } finally {
     isGeneratingWeversePosts = false;
   }
@@ -1723,7 +1716,7 @@ function openStoryViewer(storyName, storyId) {
   }
   
   storyViewerName.textContent = storyName;
-  storyViewerTime.textContent = latestPost.time || '剛剛';
+  storyViewerTime.textContent = latestPost.time || '?��?';
   
   storyViewerContent.innerHTML = `
     <div class="story-viewer-text">

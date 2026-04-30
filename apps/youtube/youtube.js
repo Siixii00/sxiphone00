@@ -80,9 +80,9 @@ const saveYoutubeData = () => {
         saveToStorage(STORAGE_KEY_COLLECTIONS, currentCollections);
         saveToStorage(STORAGE_KEY_MY_VIDEOS, myVideos);
         saveToStorage(STORAGE_KEY_LIKED, likedVideos);
-        console.log("YouTube數據已保存至 localStorage");
+        console.log("YouTube?��?已�?存至 localStorage");
     } catch (e) {
-        console.error("保存YouTube數據失敗:", e);
+        console.error("保�?YouTube?��?失�?:", e);
     }
 };
 
@@ -98,9 +98,9 @@ const saveToPersistentStorage = async () => {
                 sx_youtube_my_videos: myVideos,
                 sx_youtube_liked: likedVideos
             });
-            console.log("YouTube數據已保存至 IndexedDB");
+            console.log("YouTube?��?已�?存至 IndexedDB");
         } catch (e) {
-            console.error("IndexedDB 保存失敗:", e);
+            console.error("IndexedDB 保�?失�?:", e);
         }
     }
 };
@@ -127,12 +127,12 @@ function randomPick(list) {
 }
 
 function randomViews() {
-  const values = ['1.2萬', '3.8萬', '7.6萬', '10.2萬', '18.8萬', '25.6萬', '32萬', '56萬', '102萬'];
+  const values = ['1.2??, '3.8??, '7.6??, '10.2??, '18.8??, '25.6??, '32??, '56??, '102??];
   return randomPick(values);
 }
 
 function randomTime() {
-  const values = ['剛剛', '1 小時前', '3 小時前', '6 小時前', '1 天前', '2 天前', '3 天前', '1 週前'];
+  const values = ['?��?', '1 小�???, '3 小�???, '6 小�???, '1 天�?', '2 天�?', '3 天�?', '1 ?��?'];
   return randomPick(values);
 }
 
@@ -198,10 +198,10 @@ function renderFeed() {
     feedEl.innerHTML = `
       <div class="yt-empty-state">
         <i class="fas fa-video-slash"></i>
-        <div class="yt-empty-state-title">尚無影片內容</div>
-        <div class="yt-empty-state-desc">點擊下方按鈕讓 AI 生成符合角色興趣的影片</div>
+        <div class="yt-empty-state-title">尚無影�??�容</div>
+        <div class="yt-empty-state-desc">點�?下方?��?�?AI ?��?符�?角色?�趣?�影??/div>
         <button class="yt-primary-btn" id="yt-ai-generate-btn">
-          <i class="fas fa-magic"></i> AI 生成影片
+          <i class="fas fa-magic"></i> AI ?��?影�?
         </button>
       </div>
     `;
@@ -223,7 +223,7 @@ function renderFeed() {
           <div class="yt-title">${video.title}</div>
           <div class="yt-info">${video.channel} · ${video.views} · ${video.time}</div>
         </div>
-        <button class="yt-more" type="button" aria-label="更多">
+        <button class="yt-more" type="button" aria-label="?��?">
           <i class="fas fa-ellipsis-v"></i>
         </button>
       </div>
@@ -237,8 +237,8 @@ function renderCollections() {
     collectionsList.innerHTML = `
       <div class="yt-collection-empty">
         <i class="fas fa-folder-open"></i>
-        <div>尚未建立收藏夾</div>
-        <div style="font-size:12px;margin-top:8px;">點擊右上角 + 新增收藏夾</div>
+        <div>尚未建�??��?�?/div>
+        <div style="font-size:12px;margin-top:8px;">點�??��?�?+ ?��??��?�?/div>
       </div>
     `;
     return;
@@ -247,9 +247,9 @@ function renderCollections() {
     <div class="yt-collection-item" data-collection-index="${index}">
       <div>
         <div class="yt-collection-name">${col.name}</div>
-        <div class="yt-collection-count">${col.videos.length} 部影片</div>
+        <div class="yt-collection-count">${col.videos.length} ?�影??/div>
       </div>
-      <button class="yt-collection-delete" data-action="delete-collection" data-index="${index}" aria-label="刪除">
+      <button class="yt-collection-delete" data-action="delete-collection" data-index="${index}" aria-label="?�除">
         <i class="fas fa-trash"></i>
       </button>
     </div>
@@ -274,7 +274,7 @@ function renderMeView() {
   
   if (meVideos) {
     if (myVideos.length === 0) {
-      meVideos.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">尚未創建影片</div>`;
+      meVideos.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:20px;text-align:center;">尚未?�建影�?</div>`;
     } else {
       meVideos.innerHTML = myVideos.slice(0, 4).map(v => `
         <div class="yt-me-video">
@@ -313,7 +313,7 @@ function renderCharSelect() {
   if (!charSelect) return;
   const chars = loadChars();
   if (!chars.length) {
-    charSelect.innerHTML = '<option value="">尚未建立角色</option>';
+    charSelect.innerHTML = '<option value="">尚未建�?角色</option>';
     return;
   }
   charSelect.innerHTML = chars.map((char, index) => {
@@ -339,19 +339,15 @@ async function buildCharFeed(char, count = 5) {
     const context = buildYouTubeContext();
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-    const systemPrompt = `你是一位專業的 YouTube 內容分析師，擅長根據角色性格、背景和興趣，推測該角色可能會搜尋和觀看的影片類型。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
-輸出格式為 JSON: {"history": [{"title": "搜尋標題", "query": "搜尋關鍵字", "summary": "簡短描述"}]}`;
+    const systemPrompt = `你是一位�?業�? YouTube ?�容?��?師�??�長?��?角色?�格?��??��??�趣，推測該角色?�能?��?尋�?觀?��?影�?類�???請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"history": [{"title": "?��?標�?", "query": "?��??�鍵�?, "summary": "簡短?�述"}]}`;
 
     const prompt = `${context}
 
-請根據以上角色設定，生成 ${count} 個該角色可能會搜尋的 YouTube 影片瀏覽紀錄，要求：
-1. 符合角色的性格、背景和興趣
-2. 搜尋標題要有吸引力且符合角色會關注的主題
-3. 可以是 VLOG、音樂、遊戲、科技、教學、生活等類型
-4. 每個搜尋紀錄都要有合理的搜尋關鍵字和簡短描述
-
-輸出 JSON 格式。`;
+請根?�以上�??�設定�??��? ${count} ?�該角色?�能?��?尋�? YouTube 影�??�覽紀?��?要�?�?1. 符�?角色?�性格?��??��??�趣
+2. ?��?標�?要�??��??��?符�?角色?��?注�?主�?
+3. ?�以??VLOG?�音樂、�??�、�??�?��?學、�?活�?類�?
+4. 每個�?尋�??�都要�??��??��?尋�??��??�簡?��?�?
+輸出 JSON ?��??�`;
 
     const result = await callAIAPI([
       { role: 'system', content: systemPrompt },
@@ -370,13 +366,13 @@ async function buildCharFeed(char, count = 5) {
 
     return history.map((item, index) => ({
       id: `char-feed-${char.name}-${Date.now()}-${index}`,
-      title: item.title || '未知搜尋',
+      title: item.title || '?�知?��?',
       query: item.query || '',
       summary: item.summary || '',
-      time: '剛剛'
+      time: '?��?'
     }));
   } catch (err) {
-    console.error('生成角色視角失敗:', err);
+    console.error('?��?角色視�?失�?:', err);
     return [];
   } finally {
     isGeneratingCharFeed = false;
@@ -388,16 +384,16 @@ async function renderCharFeed(index) {
   const chars = loadChars();
   const char = chars[Number(index)];
   if (!char) {
-    charList.innerHTML = '<div class="yt-char-empty">尚未建立角色或找不到角色資料。</div>';
+    charList.innerHTML = '<div class="yt-char-empty">尚未建�?角色?�找不到角色資�???/div>';
     return;
   }
   
-  charList.innerHTML = '<div class="yt-char-loading"><i class="fas fa-spinner fa-spin"></i> AI 正在生成角色視角...</div>';
+  charList.innerHTML = '<div class="yt-char-loading"><i class="fas fa-spinner fa-spin"></i> AI �?��?��?角色視�?...</div>';
   
   const items = await buildCharFeed(char);
   
   if (items.length === 0) {
-    charList.innerHTML = '<div class="yt-char-empty">無法生成角色視角，請確認 API 設定正確。</div>';
+    charList.innerHTML = '<div class="yt-char-empty">?��??��?角色視�?，�?確�? API 設�?�?��??/div>';
     return;
   }
   
@@ -418,10 +414,10 @@ function renderCharWatchSelect() {
   if (!select) return;
   const chars = loadChars();
   if (!chars.length) {
-    select.innerHTML = '<option value="">尚未建立角色</option>';
+    select.innerHTML = '<option value="">尚未建�?角色</option>';
     return;
   }
-  select.innerHTML = '<option value="">選擇角色</option>' + 
+  select.innerHTML = '<option value="">?��?角色</option>' + 
     chars.map((char, index) => {
       const name = char?.name || `角色 ${index + 1}`;
       return `<option value="${index}">${name}</option>`;
@@ -452,7 +448,7 @@ function loadCharacterMemory(charName) {
     }
     return charMessages.slice(-30);
   } catch (e) {
-    console.warn('[youtube] 無法載入角色記憶:', e);
+    console.warn('[youtube] ?��?載入角色記憶:', e);
     return [];
   }
 }
@@ -461,10 +457,10 @@ function getCharReaction(char, video) {
   const personality = (char?.personality || '').trim();
   const background = (char?.background || '').trim();
   const name = char?.name || '角色';
-  const title = video?.title || '這部影片';
+  const title = video?.title || '?�部影�?';
 
   if (!personality && !background) {
-    return `${title}看起來不錯呢。`;
+    return `${title}?�起來�??�呢?�`;
   }
 
   const combinedText = `${personality} ${background}`.toLowerCase();
@@ -473,29 +469,29 @@ function getCharReaction(char, video) {
 
   const sentences = [];
 
-  const personalityParts = personality.split(/[，,、。；;\s]+/).filter(p => p.trim());
-  const bgParts = background.split(/[，,、。；;\s]+/).filter(p => p.trim());
+  const personalityParts = personality.split(/[�??�。�?;\s]+/).filter(p => p.trim());
+  const bgParts = background.split(/[�??�。�?;\s]+/).filter(p => p.trim());
 
   if (personalityParts.length > 0) {
     const randomTrait = personalityParts[Math.floor(Math.random() * personalityParts.length)];
-    sentences.push(`以我${randomTrait}的個性來看，${title}挺有意思的。`);
+    sentences.push(`以�?${randomTrait}?�個性�??��?${title}?��??�思�??�`);
   }
 
   if (bgParts.length > 0 && Math.random() > 0.5) {
     const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
-    sentences.push(`${randomBg}的我，覺得這影片很有感覺。`);
+    sentences.push(`${randomBg}?��?，覺得這影?��??��?覺。`);
   }
 
   if (memory && memory.length > 0 && Math.random() > 0.6) {
     const recentMsg = memory[memory.length - 1];
     if (recentMsg && recentMsg.content) {
       const recentKeywords = recentMsg.content.slice(0, 15);
-      sentences.push(`剛才你說「${recentKeywords}...」，這影片有讓你想到什麼嗎？`);
+      sentences.push(`?��?你說??{recentKeywords}...?��??�影?��?讓�??�到什麼�?？`);
     }
   }
 
   if (sentences.length === 0) {
-    sentences.push(`${title}看起來挺有趣的。`);
+    sentences.push(`${title}?�起來挺?�趣?�。`);
   }
 
   return sentences.join(' ');
@@ -507,7 +503,7 @@ function getCharLiveComment(char, video) {
   const name = char?.name || '角色';
 
   if (!personality && !background) {
-    return '這個影片不錯呢。';
+    return '?�個影?��??�呢??;
   }
 
   const combinedText = `${personality} ${background}`.toLowerCase();
@@ -516,36 +512,36 @@ function getCharLiveComment(char, video) {
 
   const sentences = [];
 
-  const personalityParts = personality.split(/[，,、。；;\s]+/).filter(p => p.trim());
-  const bgParts = background.split(/[，,、。；;\s]+/).filter(p => p.trim());
+  const personalityParts = personality.split(/[�??�。�?;\s]+/).filter(p => p.trim());
+  const bgParts = background.split(/[�??�。�?;\s]+/).filter(p => p.trim());
 
-  const videoKeywords = ['畫面', '內容', '音樂', '劇情', '節奏', '風格', '氛圍', '主題', '解說', '呈現'];
-  const reactions = ['不錯', '有趣', '特別', '精彩', '吸引人', '有意思', '很棒', '有深度'];
+  const videoKeywords = ['?�面', '?�容', '?��?', '?��?', '節�?, '風格', '氛�?', '主�?', '�?��', '?�現'];
+  const reactions = ['不錯', '?�趣', '?�別', '精彩', '?��?�?, '?��???, '很�?', '?�深�?];
 
   if (personalityParts.length > 0) {
     const randomTrait = personalityParts[Math.floor(Math.random() * personalityParts.length)];
     const randomKeyword = videoKeywords[Math.floor(Math.random() * videoKeywords.length)];
     const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-    sentences.push(`以我${randomTrait}的個性來看，這${randomKeyword}挺${randomReaction}的。`);
+    sentences.push(`以�?${randomTrait}?�個性�??��???{randomKeyword}??{randomReaction}?�。`);
   }
 
   if (bgParts.length > 0 && Math.random() > 0.5) {
     const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
-    sentences.push(`${randomBg}的我，覺得這部分很有感覺。`);
+    sentences.push(`${randomBg}?��?，覺得這部?��??��?覺。`);
   }
 
   if (memory && memory.length > 0 && Math.random() > 0.6) {
     const recentMsg = memory[memory.length - 1];
     if (recentMsg && recentMsg.content) {
       const recentKeywords = recentMsg.content.slice(0, 15);
-      sentences.push(`剛才你說「${recentKeywords}...」，這裡有讓你想到什麼嗎？`);
+      sentences.push(`?��?你說??{recentKeywords}...?��??�裡?��?你想?��?麼�?？`);
     }
   }
 
   if (sentences.length === 0) {
     const randomKeyword = videoKeywords[Math.floor(Math.random() * videoKeywords.length)];
     const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-    sentences.push(`這${randomKeyword}${randomReaction}呢。`);
+    sentences.push(`??{randomKeyword}${randomReaction}?�。`);
   }
 
   return sentences.join(' ');
@@ -556,15 +552,15 @@ function calculateCommentInterval(char) {
 
   let baseInterval = 10000;
 
-  if (personality.includes('活潑') || personality.includes('調皮') || personality.includes('開朗') || personality.includes('熱情')) {
+  if (personality.includes('活�?') || personality.includes('調皮') || personality.includes('?��?') || personality.includes('?��?')) {
     baseInterval = 6000;
-  } else if (personality.includes('高冷') || personality.includes('冷淡') || personality.includes('酷') || personality.includes('冷靜')) {
+  } else if (personality.includes('高冷') || personality.includes('?�淡') || personality.includes('??) || personality.includes('?��?')) {
     baseInterval = 15000;
-  } else if (personality.includes('病嬌') || personality.includes('佔有') || personality.includes('嫉妒') || personality.includes('腹黑')) {
+  } else if (personality.includes('?��?') || personality.includes('佔�?') || personality.includes('嫉�?') || personality.includes('?��?')) {
     baseInterval = 7000;
-  } else if (personality.includes('溫柔') || personality.includes('體貼') || personality.includes('善良')) {
+  } else if (personality.includes('溫�?') || personality.includes('體貼') || personality.includes('?�良')) {
     baseInterval = 9000;
-  } else if (personality.includes('激動') || personality.includes('熱血')) {
+  } else if (personality.includes('激??) || personality.includes('?��?')) {
     baseInterval = 5000;
   }
 
@@ -636,22 +632,22 @@ function stopCharCompanion() {
 }
 
 const adTexts = [
-  '🔥 限時優惠！立即點擊查看！',
-  '🎁 獨家折扣碼：YOUTUBE2026',
-  '⚡️ 熱銷商品，錯過不再！',
-  '💎 VIP 會員專屬福利等你領',
-  '🚀 立即下載 APP 享受更多優惠',
-  '💰 賺錢秘訣大公開，點擊了解！',
-  '📱 全新遊戲上線，首儲送大獎！',
-  '🏥 健康保健，專家推薦！'
+  '?�� ?��??��?！�??��??�查?��?',
+  '?? ?�家?�扣碼�?YOUTUBE2026',
+  '?��? ?�銷?��?，錯?��??��?',
+  '?? VIP ?�員專屬福利等�???,
+  '?? 立即下�? APP 享�??��??��?',
+  '?�� 賺錢秘訣大公?��?點�?了解�?,
+  '?�� ?�新?�戲上�?，�??�送大?��?',
+  '?�� ?�康保健，�?家推?��?'
 ];
 
 const adPopupMessages = [
-  { icon: '🎉', title: '恭喜你中獎了！', text: '你是今日第 1000 位訪客，獲得特別獎勵！' },
-  { icon: '⚠️', title: '警告！', text: '你的裝置可能存在風險，請立即掃描！' },
-  { icon: '📱', title: '更新可用', text: '有新版本可供下載，立即更新享受新功能！' },
-  { icon: '🔔', title: '提醒', text: '你有 3 則未讀通知，點擊查看詳情。' },
-  { icon: '💰', title: '賺錢機會', text: '在家工作月入 10 萬！立即了解更多！' }
+  { icon: '??', title: '?��?你中?��?�?, text: '你是今日�?1000 位訪客�??��??�別?�勵�? },
+  { icon: '?��?', title: '警�?�?, text: '你�?裝置?�能存在風險，�?立即?��?�? },
+  { icon: '?��', title: '?�新?�用', text: '?�新?�本?��?下�?，�??�更?�享?�新?�能�? },
+  { icon: '??', title: '?��?', text: '你�? 3 ?�未讀?�知，�??�查?�詳?��? },
+  { icon: '?��', title: '賺錢機�?', text: '?�家工�??�入 10 ?��?立即了解?��?�? }
 ];
 
 function showAd() {
@@ -734,8 +730,8 @@ function showAdPopup() {
       <div class="yt-ad-popup-title">${msg.title}</div>
       <div class="yt-ad-popup-text">${msg.text}</div>
       <div class="yt-ad-popup-actions">
-        <button class="yt-ad-popup-btn primary" data-action="ad-continue">繼續觀看</button>
-        <button class="yt-ad-popup-btn secondary" data-action="ad-learn-more">了解更多</button>
+        <button class="yt-ad-popup-btn primary" data-action="ad-continue">繼�?觀??/button>
+        <button class="yt-ad-popup-btn secondary" data-action="ad-learn-more">了解?��?</button>
       </div>
     </div>
   `;
@@ -759,15 +755,15 @@ function updateCharWatchUI(char, video) {
   
   if (char) {
     if (nameEl) nameEl.textContent = char.name || '角色';
-    if (statusEl) statusEl.textContent = `正在觀看「${video?.title || '影片'}」`;
+    if (statusEl) statusEl.textContent = `�?��觀?��?{video?.title || '影�?'}?�`;
     if (avatarEl && char.avatar) {
       avatarEl.style.backgroundImage = `url('${char.avatar}')`;
       avatarEl.style.backgroundSize = 'cover';
       avatarEl.style.backgroundPosition = 'center';
     }
   } else {
-    if (nameEl) nameEl.textContent = '選擇角色';
-    if (statusEl) statusEl.textContent = '點擊上方選擇角色一起觀看';
+    if (nameEl) nameEl.textContent = '?��?角色';
+    if (statusEl) statusEl.textContent = '點�?上方?��?角色一起�???;
     if (avatarEl) avatarEl.style.backgroundImage = '';
   }
 }
@@ -809,7 +805,7 @@ function renderCharWatchHistory() {
   if (!list) return;
   
   if (charWatchHistory.length === 0) {
-    list.innerHTML = '<div class="yt-char-empty">尚無觀看紀錄</div>';
+    list.innerHTML = '<div class="yt-char-empty">尚無觀?��???/div>';
     return;
   }
   
@@ -833,11 +829,11 @@ function openCharWatchHistory() {
     historyView.className = 'yt-char-watch-history';
     historyView.innerHTML = `
       <header class="yt-char-history-topbar">
-        <button class="yt-icon" data-action="close-char-history" aria-label="返回">
+        <button class="yt-icon" data-action="close-char-history" aria-label="返�?">
           <i class="fas fa-chevron-left"></i>
         </button>
-        <div class="yt-char-history-title">角色觀看紀錄</div>
-        <button class="yt-icon" aria-label="更多"><i class="fas fa-ellipsis-v"></i></button>
+        <div class="yt-char-history-title">角色觀?��???/div>
+        <button class="yt-icon" aria-label="?��?"><i class="fas fa-ellipsis-v"></i></button>
       </header>
       <div class="yt-char-history-list"></div>
     `;
@@ -927,7 +923,7 @@ function openAddModal() {
   if (addThumbPreview) {
     addThumbPreview.style.backgroundImage = '';
     addThumbPreview.classList.remove('has-image');
-    addThumbPreview.innerHTML = '<i class="fas fa-image"></i><span>點擊上傳封面</span>';
+    addThumbPreview.innerHTML = '<i class="fas fa-image"></i><span>點�?上傳封面</span>';
   }
   addTitleInput.focus();
 }
@@ -942,7 +938,7 @@ function handleThumbUpload(event) {
   if (!file) return;
   
   if (!file.type.startsWith('image/')) {
-    alert('請選擇圖片檔案');
+    alert('請選?��??��?�?);
     return;
   }
   
@@ -964,7 +960,7 @@ function clearThumbUpload() {
   if (addThumbPreview) {
     addThumbPreview.style.backgroundImage = '';
     addThumbPreview.classList.remove('has-image');
-    addThumbPreview.innerHTML = '<i class="fas fa-image"></i><span>點擊上傳封面</span>';
+    addThumbPreview.innerHTML = '<i class="fas fa-image"></i><span>點�?上傳封面</span>';
   }
 }
 
@@ -990,16 +986,16 @@ function closeSaveModal() {
 }
 
 function addVideo() {
-  const title = addTitleInput.value.trim() || '我的影片';
+  const title = addTitleInput.value.trim() || '?��?影�?';
   const url = addUrlInput.value.trim();
   const tag = addTagSelect.value;
   
   const newVideo = {
     id: `vid_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     title,
-    channel: localStorage.getItem('sx_user_name') || '我的頻道',
-    views: '新上架',
-    time: '剛剛',
+    channel: localStorage.getItem('sx_user_name') || '?��??��?',
+    views: '?��???,
+    time: '?��?',
     duration: randomDuration(),
     tag: tag === 'all' ? randomPick(['live', 'music', 'game', 'tech', 'diy']) : tag,
     url,
@@ -1020,7 +1016,7 @@ function addVideo() {
 }
 
 function createCollection() {
-  const name = collectionNameInput.value.trim() || '我的收藏';
+  const name = collectionNameInput.value.trim() || '?��??��?';
   const newCollection = {
     id: `col_${Date.now()}`,
     name,
@@ -1091,10 +1087,10 @@ function generateAITitle() {
 
 function generateAIDescription() {
   const descriptions = [
-    '在這部影片中，我將分享一些實用的技巧和心得，希望能幫助到大家！',
-    '這是我最近的一些發現和體驗，歡迎在留言區分享你的想法！',
-    '感謝大家的支持！這部影片花了很多時間製作，希望你們喜歡。',
-    '今天要來跟大家聊聊一個有趣的話題，一起來看看吧！'
+    '?�這部影�?中�??��??�享一些實?��??�巧�?心�?，�??�能幫助?�大家�?',
+    '?�是?��?近�?一些發?��?體�?，歡迎在?��??�?�享你�??��?�?,
+    '?��?大家?�支?��??�部影�??��?很�??��?製�?，�??��??��?歡�?,
+    '今天要�?跟大家�??��??��?�??話�?，�?起�??��??��?'
   ];
 }
 
@@ -1104,11 +1100,11 @@ function playUrl() {
   
   const video = {
     id: `vid_${Date.now()}`,
-    title: '自訂影片',
-    channel: '未知頻道',
-    views: '—',
-    time: '剛剛',
-    duration: '—',
+    title: '?��?影�?',
+    channel: '?�知?��?',
+    views: '??,
+    time: '?��?',
+    duration: '??,
     tag: 'all',
     url,
     thumb: '',
@@ -1406,12 +1402,12 @@ function getWorldbookContext() {
     if (list && list.length > 0) {
       list.slice(0, 5).forEach(e => {
         if (e.title && e.content) {
-          entries.push(`【${e.title}】${e.content.slice(0, 200)}`);
+          entries.push(`??{e.title}??{e.content.slice(0, 200)}`);
         }
       });
     }
   }
-  return entries.length > 0 ? entries.join('\n') : '無世界書設定';
+  return entries.length > 0 ? entries.join('\n') : '?��??�書設�?';
 }
 
 function getCharacterData(name) {
@@ -1452,7 +1448,7 @@ function getChatHistory(limit = 15) {
 
 function getChatHistoryContext() {
   const history = getChatHistory(15);
-  if (history.length === 0) return '無聊天記錄';
+  if (history.length === 0) return '?��?天�???;
   const user = getUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
@@ -1475,12 +1471,12 @@ function getApiConfig() {
 async function callAIAPI(messages, temperature = 0.85) {
   const config = getApiConfig();
   if (!config || !config.url) {
-    throw new Error('尚未設定 API');
+    throw new Error('尚未設�? API');
   }
 
   const apiType = config.type || 'openai';
   
-  // Gemini 原生 API 格式
+  // Gemini ?��? API ?��?
   if (apiType === 'gemini') {
     const model = config.model || 'gemini-1.5-flash';
     const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
@@ -1515,7 +1511,7 @@ async function callAIAPI(messages, temperature = 0.85) {
     });
     
     if (!response.ok) {
-      throw new Error(`Gemini API 錯誤 (${response.status})`);
+      throw new Error(`Gemini API ?�誤 (${response.status})`);
     }
     
     const data = await response.json();
@@ -1523,8 +1519,7 @@ async function callAIAPI(messages, temperature = 0.85) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   
-  // OpenAI 相容格式或自訂端點
-  let endpoint;
+  // OpenAI ?�容?��??�自訂端�?  let endpoint;
   if (apiType === 'custom') {
     endpoint = config.url;
   } else {
@@ -1549,7 +1544,7 @@ async function callAIAPI(messages, temperature = 0.85) {
   });
 
   if (!response.ok) {
-    throw new Error(`API 錯誤 (${response.status})`);
+    throw new Error(`API ?�誤 (${response.status})`);
   }
 
   const data = await response.json();
@@ -1562,20 +1557,20 @@ function buildYouTubeContext() {
   const worldbook = getWorldbookContext();
   const chatHistory = getChatHistoryContext();
 
-  let context = `# 使用者設定\n名稱: ${user.name}\n`;
-  if (user.personality) context += `性格: ${user.personality}\n`;
-  if (user.background) context += `背景: ${user.background}\n`;
+  let context = `# 使用?�設定\n?�稱: ${user.name}\n`;
+  if (user.personality) context += `?�格: ${user.personality}\n`;
+  if (user.background) context += `?�景: ${user.background}\n`;
 
   if (char) {
-    context += `\n# 角色設定\n名稱: ${char.name}\n`;
-    if (char.personality) context += `性格: ${char.personality}\n`;
-    if (char.background) context += `背景: ${char.background}\n`;
+    context += `\n# 角色設�?\n?�稱: ${char.name}\n`;
+    if (char.personality) context += `?�格: ${char.personality}\n`;
+    if (char.background) context += `?�景: ${char.background}\n`;
   }
 
-  context += `\n# 世界書\n${worldbook}\n`;
+  context += `\n# 世�??�\n${worldbook}\n`;
 
-  if (chatHistory !== '無聊天記錄') {
-    context += `\n# 近期對話\n${chatHistory}\n`;
+  if (chatHistory !== '?��?天�???) {
+    context += `\n# 近�?對話\n${chatHistory}\n`;
   }
 
   return context;
@@ -1585,7 +1580,7 @@ let isGeneratingVideos = false;
 
 async function generateAIVideos() {
   if (isGeneratingVideos) {
-    alert('正在生成中，請稍候...');
+    alert('�?��?��?中�?請�???..');
     return;
   }
 
@@ -1595,19 +1590,13 @@ async function generateAIVideos() {
     const context = buildYouTubeContext();
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-    const systemPrompt = `你是一位專業的影片內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的影片標題和描述。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
-輸出格式為 JSON: {"videos": [{"title": "影片標題", "channel": "頻道名稱", "views": "觀看次數", "duration": "時長"}]}`;
+    const systemPrompt = `你是一位�?業�?影�??�容?��??��??�長?��?角色設�??�使?�者�??�創作符?�人?�性格?�影?��?題�??�述??請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�寫??輸出?��???JSON: {"videos": [{"title": "影�?標�?", "channel": "?��??�稱", "views": "觀?�次??, "duration": "?�長"}]}`;
 
     const prompt = `${context}
 
-請生成 3 個 YouTube 影片，要求：
-1. 符合角色性格和使用者設定
-2. 自然融入世界書設定
-3. 標題要有吸引力
-4. 可以是音樂、遊戲、教學、Vlog 等類型
-
-輸出 JSON 格式。`;
+請�???3 ??YouTube 影�?，�?求�?
+1. 符�?角色?�格?�使?�者設�?2. ?�然?�入世�??�設�?3. 標�?要�??��???4. ?�以?�音樂、�??�、�?學、Vlog 等�???
+輸出 JSON ?��??�`;
 
     const result = await callAIAPI([
       { role: 'system', content: systemPrompt },
@@ -1646,10 +1635,10 @@ async function generateAIVideos() {
       renderFeed();
       saveToStorage(STORAGE_KEY_FEED, currentFeed);
     } else {
-      alert('生成失敗，請稍後重試');
+      alert('?��?失�?，�?稍�??�試');
     }
   } catch (err) {
-    alert(`生成失敗: ${err.message}`);
+    alert(`?��?失�?: ${err.message}`);
   } finally {
     isGeneratingVideos = false;
   }

@@ -1999,9 +1999,6 @@ function renderApis() {
         if (type === 'openai') {
             hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">OpenAI 相容格式：輸入 Base URL（如 https://openrouter.ai/api/v1），系統會自動加上 /chat/completions</span>';
             urlInput.placeholder = 'https://api.openai.com/v1';
-        } else if (type === 'gemini') {
-            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">Gemini 原生 API：輸入 API Key 即可，URL 會自動設定。模型名稱如 gemini-1.5-flash、gemini-pro</span>';
-            urlInput.placeholder = '留空（自動使用 Gemini API）';
         } else if (type === 'custom') {
             hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">自訂端點：輸入完整的 API URL，系統不會自動添加任何路徑</span>';
             urlInput.placeholder = 'https://your-api.com/your-endpoint';
@@ -2018,47 +2015,10 @@ function renderApis() {
         let url = urlInput.value.trim().replace(/\/$/, '');
         const key = keyInput.value.trim();
 
-        // Gemini 類型：自動設定 URL
-        if (type === 'gemini') {
-            url = 'https://generativelanguage.googleapis.com/v1beta';
-            if (!key) return alert("Gemini API 需要 API Key");
-        }
-
-        if (!url && type !== 'gemini') return alert("請輸入 API 網址");
+        if (!url) return alert("請輸入 API 網址");
 
         if (action === 'fetchModels' || action === 'test') {
             try {
-                // Gemini 不支援 /models 端點列表，跳過或使用固定列表
-                if (type === 'gemini') {
-                    if (action === 'fetchModels') {
-                        // Gemini 常用模型列表
-                        const geminiModels = [
-                            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-                            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-                            { id: 'gemini-pro', name: 'Gemini Pro' },
-                            { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash (Experimental)' }
-                        ];
-                        modelSelect.innerHTML = geminiModels.map(m => 
-                            `<option value="${m.id}">${m.name}</option>`
-                        ).join('');
-                        alert(`✅ 已載入 ${geminiModels.length} 個 Gemini 模型！`);
-                    } else {
-                        // 測試 Gemini API
-                        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
-                        const res = await fetch(testUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
-                        });
-                        if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.error?.message || `HTTP ${res.status}`);
-                        }
-                        alert("✅ Gemini API 連接測試成功！");
-                    }
-                    return;
-                }
-
                 // OpenAI 相容格式的處理
                 const headers = { 'Content-Type': 'application/json' };
                 if (key) headers['Authorization'] = `Bearer ${key}`;

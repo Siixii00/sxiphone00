@@ -5,7 +5,7 @@ const defaultCharacter = {
     name: 'Silly Assistant',
     tags: ['default', 'chat'],
     avatar: '',
-    systemPrompt: '你是一位專業的角色扮演聊天助手。使用繁體中文回覆。'
+    systemPrompt: '你是一位�?業�?角色?��??�天?��??�使?��?體中?��?覆�?
 };
 
 const defaults = {
@@ -182,7 +182,7 @@ function renderWorldbookEntries() {
         item.innerHTML = `
             <div class="worldbook-item-head">
                 <strong>${(entry.keywords || []).join(', ')}</strong>
-                <button type="button" class="worldbook-delete" data-index="${index}">刪除</button>
+                <button type="button" class="worldbook-delete" data-index="${index}">?�除</button>
             </div>
             <div>${entry.content}</div>
         `;
@@ -249,7 +249,7 @@ function updateHeader() {
         els.charAvatar.style.backgroundSize = 'cover';
         els.charAvatar.style.backgroundPosition = 'center';
     }
-    if (els.activeModel) els.activeModel.textContent = state.settings.model || '未設定模型';
+    if (els.activeModel) els.activeModel.textContent = state.settings.model || '?�設定模??;
     if (els.charPrompt) els.charPrompt.value = active.systemPrompt || '';
 }
 
@@ -264,7 +264,7 @@ function renderMessages() {
     if (!messages.length) {
         const empty = document.createElement('div');
         empty.className = 'bubble bot';
-        empty.textContent = '角色已就緒，輸入第一句開始。';
+        empty.textContent = '角色已就緒�?輸入第�??��?始�?;
         empty.style.opacity = '0.72';
         els.chatLog.appendChild(empty);
         return;
@@ -306,7 +306,7 @@ function syncSettingsForm() {
     if (els.genMaxContext) els.genMaxContext.value = state.settings.generation.maxContext;
     if (els.genMaxContextVal) els.genMaxContextVal.textContent = String(state.settings.generation.maxContext);
 
-    setConnState(state.settings.apiKey ? '已配置' : '離線');
+    setConnState(state.settings.apiKey ? '已�?�? : '?��?');
 }
 
 function getModelPayloadMessages() {
@@ -330,10 +330,10 @@ function getModelPayloadMessages() {
 async function requestCompletion() {
     const apiType = state.settings.apiType || 'openai';
     
-    // Gemini 原生 API 格式
+    // Gemini ?��? API ?��?
     if (apiType === 'gemini') {
         if (!state.settings.apiKey) {
-            return '尚未設定 API Key，請先於左側設定。';
+            return '尚未設�? API Key，�??�於左側設�???;
         }
         
         const model = state.settings.model || 'gemini-1.5-flash';
@@ -379,12 +379,11 @@ async function requestCompletion() {
         
         const data = await res.json();
         if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '模型未回傳可顯示內容。';
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '模�??��??�可顯示?�容??;
     }
     
-    // OpenAI 相容格式或自訂端點
-    if (!state.settings.apiKey) {
-        return '尚未設定 API Key，請先於左側設定。';
+    // OpenAI ?�容?��??�自訂端�?    if (!state.settings.apiKey) {
+        return '尚未設�? API Key，�??�於左側設�???;
     }
 
     const payload = {
@@ -397,7 +396,7 @@ async function requestCompletion() {
     const isProxy = state.settings.connectionMode === 'proxy' && state.settings.proxyEndpoint;
     let requestUrl = isProxy ? state.settings.proxyEndpoint : state.settings.baseUrl;
     
-    // 自訂端點使用完整 URL，否則自動加上 /chat/completions
+    // ?��?端�?使用完整 URL，否?�自?��?�?/chat/completions
     if (apiType !== 'custom' && !isProxy) {
         requestUrl = requestUrl.endsWith('/chat/completions')
             ? requestUrl
@@ -433,7 +432,7 @@ async function requestCompletion() {
 
     const data = await res.json();
     const source = data?.choices ? data : data?.result || data?.data || {};
-    return source?.choices?.[0]?.message?.content?.trim() || '模型未回傳可顯示內容。';
+    return source?.choices?.[0]?.message?.content?.trim() || '模�??��??�可顯示?�容??;
 }
 
 async function sendMessage() {
@@ -444,15 +443,15 @@ async function sendMessage() {
     if (els.composer) els.composer.value = '';
 
     if (els.sendBtn) els.sendBtn.disabled = true;
-    setConnState('連線中...');
+    setConnState('???�?..');
 
     try {
         const reply = await requestCompletion();
         appendMessage('bot', reply);
-        setConnState('已連線');
+        setConnState('已�??');
     } catch (error) {
-        appendMessage('bot', `⚠️ 回覆失敗：${error.message}`);
-        setConnState('錯誤');
+        appendMessage('bot', `?��? ?��?失�?�?{error.message}`);
+        setConnState('?�誤');
     } finally {
         if (els.sendBtn) els.sendBtn.disabled = false;
     }
@@ -461,33 +460,33 @@ async function sendMessage() {
 async function regenLast() {
     const messages = getActiveMessages();
     if (!messages.some((m) => m.role === 'user')) {
-        appendMessage('bot', '沒有可重寫的使用者訊息。');
+        appendMessage('bot', '沒�??��?寫�?使用?��??��?);
         return;
     }
     if (els.sendBtn) els.sendBtn.disabled = true;
-    setConnState('重寫中...');
+    setConnState('?�寫�?..');
     try {
         const reply = await requestCompletion();
         appendMessage('bot', reply);
-        setConnState('已連線');
+        setConnState('已�??');
     } catch (error) {
-        appendMessage('bot', `⚠️ 重寫失敗：${error.message}`);
-        setConnState('錯誤');
+        appendMessage('bot', `?��? ?�寫失�?�?{error.message}`);
+        setConnState('?�誤');
     } finally {
         if (els.sendBtn) els.sendBtn.disabled = false;
     }
 }
 
 function createCharacter() {
-    const name = prompt('角色名稱');
+    const name = prompt('角色?�稱');
     if (!name) return;
-    const tagsRaw = prompt('角色標籤（逗號分隔）', 'rp, custom') || '';
+    const tagsRaw = prompt('角色標籤（逗�??��?�?, 'rp, custom') || '';
     const newChar = {
         id: uid('char'),
         name: name.trim(),
         tags: tagsRaw.split(',').map((v) => v.trim()).filter(Boolean),
         avatar: '',
-        systemPrompt: `你是 ${name.trim()}，請以角色口吻回覆。`
+        systemPrompt: `你是 ${name.trim()}，�?以�??�口?��?覆。`
     };
     state.characters.push(newChar);
     state.activeCharacterId = newChar.id;
@@ -500,7 +499,7 @@ function createCharacter() {
 
 function deleteActiveCharacter() {
     if (state.characters.length <= 1) {
-        appendMessage('bot', '至少要保留一個角色。');
+        appendMessage('bot', '?��?要�??��??��??��?);
         return;
     }
     const active = getActiveCharacter();
@@ -597,7 +596,7 @@ function bindEvents() {
         state.settings.model = (els.modelName?.value || '').trim() || defaults.settings.model;
         saveState();
         updateHeader();
-        setConnState(state.settings.apiKey ? '已配置' : '離線');
+        setConnState(state.settings.apiKey ? '已�?�? : '?��?');
     });
 
     const bindRange = (inputEl, valueEl, key) => {

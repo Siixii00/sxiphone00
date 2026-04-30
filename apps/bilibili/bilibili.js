@@ -1546,49 +1546,6 @@ async function callAIAPI(messages, temperature = 0.85) {
 
   const apiType = config.type || 'openai';
   
-  // Gemini 原生 API 格式
-  if (apiType === 'gemini') {
-    const model = config.model || 'gemini-1.5-flash';
-    const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
-    
-    const contents = [];
-    let systemInstruction = '';
-    
-    for (const msg of messages) {
-      if (msg.role === 'system') {
-        systemInstruction = msg.content;
-      } else {
-        contents.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        });
-      }
-    }
-    
-    const geminiPayload = {
-      contents,
-      generationConfig: { temperature, maxOutputTokens: 2048 }
-    };
-    
-    if (systemInstruction) {
-      geminiPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
-    }
-    
-    const response = await (window.geminiFetch || fetch)(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiPayload)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Gemini API 錯誤 (${response.status})`);
-    }
-    
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  }
-  
   // OpenAI 相容格式或自訂端點
   let endpoint;
   if (apiType === 'custom') {

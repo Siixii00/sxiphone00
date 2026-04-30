@@ -231,21 +231,6 @@ class EmbeddingEngine {
       return data.data[0].embedding;
     }
 
-    if (provider === 'gemini') {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model || 'text-embedding-004'}:embedContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: { parts: [{ text }] } })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gemini API 錯誤: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.embedding.values;
-    }
-
     if (provider === 'custom' && url) {
       const response = await fetch(url, {
         method: 'POST',

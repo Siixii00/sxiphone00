@@ -33,7 +33,7 @@ const ACTIVE_USER_KEY = 'sx_user_name';
 
 const state = {
   profile: {
-    userName: localStorage.getItem('sx_user_name') || '你',
+    userName: localStorage.getItem('sx_user_name') || '�?,
     avatar: localStorage.getItem('sx_user_avatar') || ''
   },
   charProfile: null,
@@ -82,7 +82,7 @@ const saveFacebookData = () => {
     localStorage.setItem(FB_POST_REACTIONS_KEY, JSON.stringify(state.postReactions));
     localStorage.setItem(FB_POST_COMMENTS_KEY, JSON.stringify(state.postComments));
   } catch (e) {
-    console.error('保存 Facebook 數據失敗:', e);
+    console.error('保�? Facebook ?��?失�?:', e);
   }
 };
 
@@ -116,9 +116,9 @@ const escapeHTML = (str = '') => String(str)
 function normalizePost(post) {
   return {
     id: post?.id || `post_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    author: post?.author || '匿名',
+    author: post?.author || '?��?',
     authorType: post?.authorType || 'user',
-    time: post?.time || '剛剛',
+    time: post?.time || '?��?',
     text: post?.text || '',
     visibility: post?.visibility || 'public',
     stats: {
@@ -188,32 +188,32 @@ function getCommunityContext() {
   const haterProfiles = getHaterProfiles();
   
   const toneMap = {
-    friendly: '社群氛圍友善溫和，大多數用戶禮貌互動',
-    neutral: '社群氛圍中立正常，混合各種態度',
-    hostile: '社群氛圍充滿爭議，容易引發筆戰和攻擊',
-    toxic: '社群氛圍惡意，會有罵人、攻擊性言論'
+    friendly: '社群氛�??��?溫�?，大多數?�戶禮�?互�?',
+    neutral: '社群氛�?中�?�?��，混?��?種�?�?,
+    hostile: '社群氛�??�滿?�議，容?��??��??��??��?',
+    toxic: '社群氛�??��?，�??�罵人、攻?�性�?�?
   };
   
-  let context = `# 社群氛圍\n${toneMap[tone] || toneMap.neutral}\n`;
+  let context = `# 社群氛�?\n${toneMap[tone] || toneMap.neutral}\n`;
   
   const allowedTypes = [];
-  if (flags.criticism) allowedTypes.push('批評言論');
-  if (flags.sarcasm) allowedTypes.push('諷刺嘲諷');
-  if (flags.arguments) allowedTypes.push('筆戰爭吵');
-  if (flags.trolling) allowedTypes.push('釣魚引戰');
+  if (flags.criticism) allowedTypes.push('?��?言�?);
+  if (flags.sarcasm) allowedTypes.push('諷刺?�諷');
+  if (flags.arguments) allowedTypes.push('筆戰?�吵');
+  if (flags.trolling) allowedTypes.push('???引戰');
   
   if (allowedTypes.length > 0) {
-    context += `允許的內容類型: ${allowedTypes.join('、')}\n`;
+    context += `?�許?�內容�??? ${allowedTypes.join('??)}\n`;
   }
   
   if (npcPersonality) {
-    context += `\n# NPC 回應者個性\n${npcPersonality}\n`;
+    context += `\n# NPC ?��??�個性\n${npcPersonality}\n`;
   }
   
   if (hatersEnabled && haterProfiles) {
-    context += `\n# 負面回應者設定\n${haterProfiles}\n`;
+    context += `\n# 負面?��??�設定\n${haterProfiles}\n`;
   } else if (!hatersEnabled) {
-    context += `\n# 負面回應者設定\n已關閉，不會出現罵人或攻擊性用戶\n`;
+    context += `\n# 負面?��??�設定\n已�??��?不�??�現罵人?�攻?�性用?�\n`;
   }
   
   return context;
@@ -281,7 +281,7 @@ function updateAccountSelectors() {
   const userProfile = loadJSON(FB_USER_PROFILES_KEY, {});
   const charProfiles = loadJSON(FB_CHAR_PROFILES_KEY, {});
   
-  const userName = userProfile?.name || user.name || '你';
+  const userName = userProfile?.name || user.name || '�?;
   const options = [`<option value="user">${escapeHTML(userName)}</option>`];
 
   state.friends.forEach(friendName => {
@@ -317,7 +317,7 @@ function getAccountInfo(accountValue) {
     const user = getUserData();
     const profile = userProfile || {};
     return {
-      name: profile.name || user.name || '你',
+      name: profile.name || user.name || '�?,
       avatar: profile.avatar || user.avatar || '',
       type: 'user'
     };
@@ -361,10 +361,10 @@ function updateComposerAvatar() {
   });
   
   if (postInput) {
-    postInput.placeholder = `${accountInfo.name}，想說些什麼？`;
+    postInput.placeholder = `${accountInfo.name}，想說�?什麼�?`;
   }
   if (composeInput) {
-    composeInput.placeholder = `${accountInfo.name}，想說些什麼？`;
+    composeInput.placeholder = `${accountInfo.name}，想說�?什麼�?`;
   }
   
   const drawerUserName = document.getElementById('drawer-user-name');
@@ -388,14 +388,14 @@ function updateProfileAvatars() {
   });
 
   if (postInput) {
-    postInput.placeholder = `${state.profile.userName || '你'}，想說些什麼？`;
+    postInput.placeholder = `${state.profile.userName || '�?}，想說�?什麼�?`;
   }
   if (composeInput) {
-    composeInput.placeholder = `${state.profile.userName || '你'}，想說些什麼？`;
+    composeInput.placeholder = `${state.profile.userName || '�?}，想說�?什麼�?`;
   }
   const drawerUserName = document.getElementById('drawer-user-name');
   if (drawerUserName) {
-    drawerUserName.textContent = state.profile.userName || '你';
+    drawerUserName.textContent = state.profile.userName || '�?;
   }
 }
 
@@ -435,7 +435,7 @@ function renderFriendsSidebar() {
 
   const allFriends = [...state.friends, ...state.npcFriends];
   if (allFriends.length === 0) {
-    container.innerHTML = '<div class="muted-text">尚未新增好友</div>';
+    container.innerHTML = '<div class="muted-text">尚未?��?好�?</div>';
     return;
   }
 
@@ -453,7 +453,7 @@ function renderOnlineFriends() {
 
   const allFriends = [...state.friends, ...state.npcFriends];
   if (allFriends.length === 0) {
-    container.innerHTML = '<div class="muted-text">沒有線上好友</div>';
+    container.innerHTML = '<div class="muted-text">沒�?線�?好�?</div>';
     return;
   }
 
@@ -478,7 +478,7 @@ function renderStories() {
     <div class="story create" id="create-story-btn">
       <div class="story-bg"></div>
       <div class="story-add"><i class="fas fa-plus"></i></div>
-      <div class="story-label">建立限時動態</div>
+      <div class="story-label">建�??��??��?</div>
     </div>
   `;
 
@@ -537,7 +537,7 @@ function addPostMemory(post) {
   if (existingMemory) return;
   
   const date = new Date(post.timestamp || Date.now());
-  const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  const dateStr = `${date.getFullYear()}�?{date.getMonth() + 1}??{date.getDate()}?�`;
   
   state.postMemories.push({
     id: post.id,
@@ -592,7 +592,7 @@ function renderPosts() {
   displayPosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
   if (displayPosts.length === 0) {
-    feedEl.innerHTML = '<div class="card muted">尚無貼文，請在設定中加入好友或生成貼文</div>';
+    feedEl.innerHTML = '<div class="card muted">尚無貼�?，�??�設定中?�入好�??��??�貼??/div>';
     return;
   }
 
@@ -604,9 +604,9 @@ function renderPosts() {
       : '';
     
     const visibilityIcon = post.visibility === 'friends' 
-      ? '<i class="fas fa-user-friends" title="好友限定"></i>'
+      ? '<i class="fas fa-user-friends" title="好�??��?"></i>'
       : post.visibility === 'private'
-      ? '<i class="fas fa-lock" title="僅自己"></i>'
+      ? '<i class="fas fa-lock" title="?�自�?></i>'
       : '';
 
     const bookmarkIcon = isSaved 
@@ -643,7 +643,7 @@ function renderPosts() {
               <div class="post-author">${escapeHTML(post.author)} ${visibilityIcon}</div>
               <div class="post-meta">${escapeHTML(post.time)}</div>
             </div>
-            <button class="icon-btn" aria-label="更多"><i class="fas fa-ellipsis-h"></i></button>
+            <button class="icon-btn" aria-label="?��?"><i class="fas fa-ellipsis-h"></i></button>
           </div>
           <div class="post-body">${escapeHTML(post.text)}</div>
           ${totalReactions > 0 ? `<div class="post-reactions-summary">${renderReactionSummary(reactionCounts)}</div>` : ''}
@@ -654,18 +654,18 @@ function renderPosts() {
             <button type="button" data-action="bookmark" data-saved="${isSaved}">${bookmarkIcon}</button>
           </div>
           <div class="reaction-picker hidden" data-post-id="${post.id}">
-            <button type="button" data-reaction-type="like" title="讚"><i class="fas fa-thumbs-up"></i></button>
-            <button type="button" data-reaction-type="love" title="愛心"><i class="fas fa-heart"></i></button>
-            <button type="button" data-reaction-type="care" title="關心"><i class="fas fa-hand-holding-heart"></i></button>
-            <button type="button" data-reaction-type="haha" title="哈哈"><i class="fas fa-laugh-squint"></i></button>
-            <button type="button" data-reaction-type="wow" title="哇"><i class="fas fa-surprise"></i></button>
-            <button type="button" data-reaction-type="sad" title="傷心"><i class="fas fa-sad-tear"></i></button>
-            <button type="button" data-reaction-type="angry" title="生氣"><i class="fas fa-angry"></i></button>
+            <button type="button" data-reaction-type="like" title="�?><i class="fas fa-thumbs-up"></i></button>
+            <button type="button" data-reaction-type="love" title="?��?"><i class="fas fa-heart"></i></button>
+            <button type="button" data-reaction-type="care" title="?��?"><i class="fas fa-hand-holding-heart"></i></button>
+            <button type="button" data-reaction-type="haha" title="?��?"><i class="fas fa-laugh-squint"></i></button>
+            <button type="button" data-reaction-type="wow" title="??><i class="fas fa-surprise"></i></button>
+            <button type="button" data-reaction-type="sad" title="?��?"><i class="fas fa-sad-tear"></i></button>
+            <button type="button" data-reaction-type="angry" title="?�氣"><i class="fas fa-angry"></i></button>
           </div>
           <div class="comments-section hidden" data-post-id="${post.id}">
             <div class="comments-list">${renderComments(comments)}</div>
             <div class="comment-input-row">
-              <input type="text" class="comment-input" placeholder="留言..." data-post-id="${post.id}">
+              <input type="text" class="comment-input" placeholder="?��?..." data-post-id="${post.id}">
               <button class="comment-submit-btn" data-post-id="${post.id}"><i class="fas fa-paper-plane"></i></button>
             </div>
           </div>
@@ -710,7 +710,7 @@ function renderComments(comments) {
     <div class="comment-item">
       <div class="comment-author">${escapeHTML(c.author)}</div>
       <div class="comment-text">${escapeHTML(c.text)}</div>
-      <div class="comment-time">${escapeHTML(c.time || '剛剛')}</div>
+      <div class="comment-time">${escapeHTML(c.time || '?��?')}</div>
     </div>
   `).join('');
 }
@@ -769,7 +769,7 @@ function bindPostEvents() {
         author: accountInfo.name,
         authorType: accountInfo.type,
         text,
-        time: '剛剛',
+        time: '?��?',
         timestamp: Date.now()
       });
       saveFacebookData();
@@ -802,8 +802,8 @@ function bindPostEvents() {
       const sharedPost = normalizePost({
         author: accountInfo.name,
         authorType: accountInfo.type,
-        time: '剛剛',
-        text: `${originalPost.text}\n\n—— 分享自 ${originalPost.author}`,
+        time: '?��?',
+        text: `${originalPost.text}\n\n?��??�享??${originalPost.author}`,
         visibility: 'public',
         stats: { like: 0, comment: 0, share: 0 },
         timestamp: Date.now(),
@@ -845,7 +845,7 @@ function renderSavedPosts() {
   const savedPosts = allPosts.filter(post => state.savedPosts.includes(post.id));
 
   if (savedPosts.length === 0) {
-    feedEl.innerHTML = '<div class="card muted">尚未儲存任何貼文</div>';
+    feedEl.innerHTML = '<div class="card muted">尚未?��?任�?貼�?</div>';
     return;
   }
 
@@ -858,9 +858,9 @@ function renderSavedPosts() {
       : '';
     
     const visibilityIcon = post.visibility === 'friends' 
-      ? '<i class="fas fa-user-friends" title="好友限定"></i>'
+      ? '<i class="fas fa-user-friends" title="好�??��?"></i>'
       : post.visibility === 'private'
-      ? '<i class="fas fa-lock" title="僅自己"></i>'
+      ? '<i class="fas fa-lock" title="?�自�?></i>'
       : '';
 
     return `
@@ -872,7 +872,7 @@ function renderSavedPosts() {
               <div class="post-author">${escapeHTML(post.author)} ${visibilityIcon}</div>
               <div class="post-meta">${escapeHTML(post.time)}</div>
             </div>
-            <button class="icon-btn" aria-label="更多"><i class="fas fa-ellipsis-h"></i></button>
+            <button class="icon-btn" aria-label="?��?"><i class="fas fa-ellipsis-h"></i></button>
           </div>
           <div class="post-body">${escapeHTML(post.text)}</div>
           <div class="post-actions">
@@ -899,7 +899,7 @@ function addPost(content, visibility = 'public') {
   const post = normalizePost({
     author: accountInfo.name,
     authorType: accountInfo.type,
-    time: '剛剛',
+    time: '?��?',
     text: trimmed,
     visibility,
     stats: { like: 0, comment: 0, share: 0 },
@@ -930,12 +930,12 @@ function renderCharFriendsList() {
 
   const charList = getCharacterList();
   if (charList.length === 0) {
-    container.innerHTML = '<div class="muted-text">尚未建立角色，請先到設定建立</div>';
+    container.innerHTML = '<div class="muted-text">尚未建�?角色，�??�到設�?建�?</div>';
     return;
   }
 
   container.innerHTML = charList.map(char => {
-    const name = char.name || '未命名';
+    const name = char.name || '?�命??;
     const isFriend = state.friends.includes(name);
     return `
       <div class="friend-select-item">
@@ -972,12 +972,12 @@ function renderNpcFriendsList() {
 
   const npcList = getNpcList();
   if (npcList.length === 0) {
-    container.innerHTML = '<div class="muted-text">尚未建立 NPC，請先到設定建立</div>';
+    container.innerHTML = '<div class="muted-text">尚未建�? NPC，�??�到設�?建�?</div>';
     return;
   }
 
   container.innerHTML = npcList.map(npc => {
-    const name = npc.name || '未命名';
+    const name = npc.name || '?�命??;
     const isFriend = state.npcFriends.includes(name);
     return `
       <div class="friend-select-item">
@@ -1023,10 +1023,10 @@ function renderWorldbookMountList() {
   const index = getWorldbookIndex();
   const mounts = getWorldbookMounts();
   const mountMap = new Map(mounts.map(item => [item.name, item]));
-  const items = index.length ? index : [{ title: '通用常識庫' }];
+  const items = index.length ? index : [{ title: '?�用常�?�? }];
 
   container.innerHTML = items.map(entry => {
-    const name = entry.title || entry.name || '未命名世界書';
+    const name = entry.title || entry.name || '?�命?��??�書';
     const mount = mountMap.get(name) || {};
     const enabled = mount.enabled ?? false;
     const position = mount.position || 'mid';
@@ -1037,9 +1037,9 @@ function renderWorldbookMountList() {
           <span>${escapeHTML(name)}</span>
         </label>
         <select class="wb-mount-position" data-wb-name="${escapeHTML(name)}">
-          <option value="top" ${position === 'top' ? 'selected' : ''}>前</option>
-          <option value="mid" ${position === 'mid' ? 'selected' : ''}>中</option>
-          <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>後</option>
+          <option value="top" ${position === 'top' ? 'selected' : ''}>??/option>
+          <option value="mid" ${position === 'mid' ? 'selected' : ''}>�?/option>
+          <option value="bottom" ${position === 'bottom' ? 'selected' : ''}>�?/option>
         </select>
       </div>
     `;
@@ -1069,8 +1069,8 @@ function saveWorldbookMounts() {
   
   const saveBtn = document.getElementById('wb-save');
   if (saveBtn) {
-    saveBtn.textContent = '已儲存';
-    setTimeout(() => { saveBtn.textContent = '儲存掛載設定'; }, 1200);
+    saveBtn.textContent = '已儲�?;
+    setTimeout(() => { saveBtn.textContent = '?��??��?設�?'; }, 1200);
   }
 }
 
@@ -1106,32 +1106,32 @@ function getActiveApiConfig() {
 
 function getChatHistoryContext() {
   const raw = localStorage.getItem('sx_chat_history');
-  if (!raw) return '無聊天記錄';
+  if (!raw) return '?��?天�???;
   try {
     const history = JSON.parse(raw);
     const recent = history.slice(-15);
-    if (recent.length === 0) return '無聊天記錄';
+    if (recent.length === 0) return '?��?天�???;
     const userName = localStorage.getItem('sx_user_name') || 'User';
     return recent.map(msg => {
       const role = msg.role === 'user' ? userName : '角色';
       return `${role}: ${msg.content.slice(0, 100)}`;
     }).join('\n');
   } catch {
-    return '無聊天記錄';
+    return '?��?天�???;
   }
 }
 
 async function generateAIPosts() {
   const apiConfig = getActiveApiConfig();
   if (!apiConfig?.url) {
-    alert('尚未設定 API，請先到設定頁面配置');
+    alert('尚未設�? API，�??�到設�??�面?�置');
     return;
   }
 
   const generateBtn = document.getElementById('ai-generate-btn');
   if (generateBtn) {
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ?��?�?..';
   }
 
   try {
@@ -1156,43 +1156,34 @@ async function generateAIPosts() {
     });
 
     if (authors.length === 0) {
-      alert('請至少選擇一個要生成貼文的對象');
+      alert('請至少選?��??��??��?貼�??��?�?);
       return;
     }
 
     const apiType = apiConfig.type || 'openai';
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     const communityContext = getCommunityContext();
-    const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定創作符合人物性格的 Facebook 貼文。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰撰寫。
-輸出格式為 JSON: {"posts":[{"author":"","text":"","visibility":"public|friends","like":0,"comment":0,"share":0}]}
+    const systemPrompt = `你是一位�?業�?社群媒�??�容?��??��??�長?��?角色設�??��?符�?人物?�格??Facebook 貼�???請使??${window.getAIReadableLangName?.(lang) || '繁�?中�?'} ?�撰寫�?輸出?��???JSON: {"posts":[{"author":"","text":"","visibility":"public|friends","like":0,"comment":0,"share":0}]}
 
-visibility 說明：
-- public: 公開貼文，所有人可見
-- friends: 好友限定貼文，只有好友可見
+visibility 說�?�?- public: ?��?貼�?，�??�人?��?
+- friends: 好�??��?貼�?，只?�好?�可�?
+請為每個�??��???1-2 ?�貼?�。`;
 
-請為每個作者生成 1-2 則貼文。`;
-
-    const contextStr = `使用者: ${JSON.stringify(user, null, 2)}
+    const contextStr = `使用?? ${JSON.stringify(user, null, 2)}
 ${char ? `角色: ${JSON.stringify(char, null, 2)}` : ''}
-世界書: ${worldbooks.length > 0 ? worldbooks.map(w => `【${w.title}】${w.content}`).join('\n') : '無'}
-聊天記錄: ${chatHistory}
+世�??? ${worldbooks.length > 0 ? worldbooks.map(w => `??{w.title}??{w.content}`).join('\n') : '??}
+?�天記�?: ${chatHistory}
 
 ${communityContext}
 
-要生成貼文的作者: ${authors.map(a => a.name).join('、')}
+要�??�貼?��?作�? ${authors.map(a => a.name).join('??)}
 
-要求：
-1. 符合各角色性格和設定
-2. 自然融入世界書內容
-3. 每則貼文 30-100 字
-4. 語氣自然、有互動感
-5. 好友的貼文可以設定為 friends 限制
-6. 根據社群氛圍調整回應風格`;
+要�?�?1. 符�??��??�性格?�設�?2. ?�然?�入世�??�內�?3. 每�?貼�? 30-100 �?4. 語氣?�然?��?互�???5. 好�??�貼?�可以設定為 friends ?�制
+6. ?��?社群氛�?調整?��?風格`;
 
     let content = '';
     
-    // Gemini 原生 API 格式
+    // Gemini ?��? API ?��?
     if (apiType === 'gemini') {
       const model = apiConfig.model || 'gemini-1.5-flash';
       const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiConfig.key}`;
@@ -1213,15 +1204,14 @@ ${communityContext}
       });
       
       if (!response.ok) {
-        throw new Error(`Gemini API 錯誤 (${response.status})`);
+        throw new Error(`Gemini API ?�誤 (${response.status})`);
       }
       
       const data = await response.json();
       if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
       content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     } else {
-      // OpenAI 相容格式或自訂端點
-      let endpoint;
+      // OpenAI ?�容?��??�自訂端�?      let endpoint;
       if (apiType === 'custom') {
         endpoint = apiConfig.url;
       } else {
@@ -1247,7 +1237,7 @@ ${communityContext}
       });
 
       if (!response.ok) {
-        throw new Error(`API 錯誤 (${response.status})`);
+        throw new Error(`API ?�誤 (${response.status})`);
       }
 
       const data = await response.json();
@@ -1270,7 +1260,7 @@ ${communityContext}
         const post = normalizePost({
           author: p.author || user.name,
           authorType: authorInfo.type,
-          time: '剛剛',
+          time: '?��?',
           text: p.text,
           visibility: p.visibility || 'public',
           stats: {
@@ -1289,14 +1279,14 @@ ${communityContext}
     renderPosts();
 
     if (posts.length === 0) {
-      alert('生成失敗，請稍後重試');
+      alert('?��?失�?，�?稍�??�試');
     }
   } catch (err) {
-    alert(`生成失敗: ${err.message}`);
+    alert(`?��?失�?: ${err.message}`);
   } finally {
     if (generateBtn) {
       generateBtn.disabled = false;
-      generateBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI 生成貼文';
+      generateBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> AI ?��?貼�?';
     }
   }
 }
@@ -1402,8 +1392,8 @@ function loadCommunitySettings() {
       state.communitySettings.haterProfiles = haterProfilesInput.value.trim();
     }
     saveFacebookData();
-    communitySaveBtn.textContent = '已儲存';
-    setTimeout(() => { communitySaveBtn.textContent = '儲存社群設定'; }, 1200);
+    communitySaveBtn.textContent = '已儲�?;
+    setTimeout(() => { communitySaveBtn.textContent = '?��?社群設�?'; }, 1200);
   });
 }
 
@@ -1531,7 +1521,7 @@ function showProfilePage(accountValue) {
     profile = charProfiles[accountValue] || {};
   }
 
-  const name = profile.name || accountInfo.name || '未知';
+  const name = profile.name || accountInfo.name || '?�知';
   const avatar = profile.avatar || accountInfo.avatar || '';
   const cover = profile.cover || '';
   const bio = profile.bio || '';
@@ -1545,21 +1535,21 @@ function showProfilePage(accountValue) {
   const userPosts = allPosts.filter(post => post.author === name);
 
   const relationshipLabels = {
-    'single': '單身',
-    'in-relationship': '交往中',
-    'engaged': '已訂婚',
-    'married': '已婚',
-    'complicated': '關係複雜',
-    'separated': '分居中',
-    'divorced': '已離婚',
-    'widowed': '喪偶'
+    'single': '?�身',
+    'in-relationship': '交�?�?,
+    'engaged': '已�?�?,
+    'married': '已�?',
+    'complicated': '?��?複�?',
+    'separated': '?��?�?,
+    'divorced': '已離�?,
+    'widowed': '?�偶'
   };
 
   let relationshipText = '';
   if (relationship && relationshipLabels[relationship]) {
     relationshipText = relationshipLabels[relationship];
     if (relationshipWith && relationship !== 'single') {
-      relationshipText += ` - 與 ${relationshipWith}`;
+      relationshipText += ` - ??${relationshipWith}`;
     }
   }
 
@@ -1581,7 +1571,7 @@ function showProfilePage(accountValue) {
       </div>
       <div class="profile-posts-section">
         <div class="card">
-          <div class="section-title">貼文</div>
+          <div class="section-title">貼�?</div>
         </div>
         <div class="profile-posts-list" id="profile-posts-list"></div>
       </div>
@@ -1590,16 +1580,16 @@ function showProfilePage(accountValue) {
 
   const postsList = document.getElementById('profile-posts-list');
   if (userPosts.length === 0) {
-    postsList.innerHTML = '<div class="card muted">尚無貼文</div>';
+    postsList.innerHTML = '<div class="card muted">尚無貼�?</div>';
   } else {
     userPosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     postsList.innerHTML = userPosts.map(post => {
       const isSaved = state.savedPosts.includes(post.id);
       const bookmarkIcon = isSaved ? '<i class="fas fa-bookmark"></i>' : '<i class="far fa-bookmark"></i>';
       const visibilityIcon = post.visibility === 'friends' 
-        ? '<i class="fas fa-user-friends" title="好友限定"></i>'
+        ? '<i class="fas fa-user-friends" title="好�??��?"></i>'
         : post.visibility === 'private'
-        ? '<i class="fas fa-lock" title="僅自己"></i>'
+        ? '<i class="fas fa-lock" title="?�自�?></i>'
         : '';
 
       const reactions = state.postReactions[post.id] || {};
@@ -1650,7 +1640,7 @@ updateAccountSelectors();
 updateComposerAvatar();
 
 if (state.isCharView && state.charViewName) {
-  document.title = `${state.charViewName} 查看臉書`;
+  document.title = `${state.charViewName} ?��??�書`;
 }
 
 console.log('Loaded app: facebook');

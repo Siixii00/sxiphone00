@@ -6,32 +6,32 @@
   const CHAR_STORAGE_KEY = 'sx_characters';
 
   const MOOD_OPTIONS = [
-    { id: 'sunny', label: '晴朗', icon: '🌤️', note: '亮亮的充電日' },
-    { id: 'rainy', label: '雨露', icon: '🌧️', note: '適合被擁抱' },
-    { id: 'starry', label: '星夜', icon: '🌙', note: '悄悄話模式' },
-    { id: 'cozy', label: '暖被', icon: '🫖', note: '療癒系小憩' },
-    { id: 'wild', label: '冒險', icon: '🧭', note: '有點小激動' }
+    { id: 'sunny', label: '?��?', icon: '?���?, note: '亮亮?��??�日' },
+    { id: 'rainy', label: '?�露', icon: '?���?, note: '?��?被�??? },
+    { id: 'starry', label: '?��?', icon: '??', note: '?��?話模�? },
+    { id: 'cozy', label: '?�被', icon: '??', note: '?��?系�??? },
+    { id: 'wild', label: '?�險', icon: '?��', note: '?��?小�??? }
   ];
 
   const SEAL_OPTIONS = [
-    { id: 'secret', label: '祕密', icon: '🔒' },
-    { id: 'gratitude', label: '感謝', icon: '💐' },
-    { id: 'courage', label: '勇氣', icon: '🔥' },
-    { id: 'dream', label: '夢話', icon: '🌙' },
-    { id: 'routine', label: '碎念', icon: '📎' }
+    { id: 'secret', label: '祕�?', icon: '??' },
+    { id: 'gratitude', label: '?��?', icon: '??' },
+    { id: 'courage', label: '?�氣', icon: '?��' },
+    { id: 'dream', label: '夢話', icon: '??' },
+    { id: 'routine', label: '碎念', icon: '??' }
   ];
 
   const PROMPTS = [
-    '今天有什麼只想讓 NPC 知道的祕密？',
-    '描述一個你們共同擁有的默契或小暗號。',
-    '把最近一次笑到流眼淚的瞬間畫成文字照片。',
-    '寫下你最想收到 NPC 哪一句安慰。',
-    '如果把今天的心情寫成歌詞，第一句會是什麼？',
-    '說說你最近想完成的小任務，請 NPC 監督。',
-    '把一則夢境偷偷地交給 NPC 保管。',
-    '寫封信感謝 NPC 曾經陪伴的一刻。',
-    '把一個還沒告訴別人的靈感寫進來。',
-    '描述你們下一次想一起完成的冒險。'
+    '今天?��?麼只?��? NPC ?��??��?密�?',
+    '?�述一?��??�共?��??��?默�??��??��???,
+    '?��?近�?次�??��??��??�瞬?�畫?��?字照?��?,
+    '寫�?你�??�收??NPC ?��??��??��?,
+    '如�??��?天�?心�?寫�?歌�?，第一?��??��?麼�?',
+    '說說你�?近想完�??��?任�?，�? NPC ??��??,
+    '?��??�夢境偷?�地交給 NPC 保管??,
+    '寫�?信�?�?NPC ?��??�伴?��??��?,
+    '?��??��?沒�?訴別人�??��?寫進�???,
+    '?�述你們�?一次想一起�??��??�險??
   ];
 
   const state = {
@@ -39,7 +39,7 @@
     activeBook: null,
     npcs: [],
     activeNpc: null,
-    user: { name: '我', avatar: '', personality: '', background: '' },
+    user: { name: '??, avatar: '', personality: '', background: '' },
     selectedMood: 'sunny',
     selectedSeals: new Set(),
     promptIndex: 0,
@@ -54,9 +54,9 @@
       if (state.activeBook) {
         localStorage.setItem(ACTIVE_BOOK_KEY, state.activeBook.id);
       }
-      console.log("日記數據已保存至 localStorage");
+      console.log("?��??��?已�?存至 localStorage");
     } catch (e) {
-      console.error("保存日記數據失敗:", e);
+      console.error("保�??��??��?失�?:", e);
     }
   };
 
@@ -70,9 +70,9 @@
           sx_exchange_diary_books: state.books,
           sx_exchange_diary_active_book: state.activeBook?.id || null
         });
-        console.log("日記數據已保存至 IndexedDB");
+        console.log("?��??��?已�?存至 IndexedDB");
       } catch (e) {
-        console.error("IndexedDB 保存失敗:", e);
+        console.error("IndexedDB 保�?失�?:", e);
       }
     }
   };
@@ -157,7 +157,7 @@
     ui.renameDiaryBtn?.addEventListener('click', () => {
       if (!state.activeBook) return;
       const current = state.activeBook.title || '';
-      const next = window.prompt('輸入新的日記書名', current);
+      const next = window.prompt('輸入?��??��??��?', current);
       if (next === null) return;
       const trimmed = next.trim();
       if (!trimmed) return;
@@ -189,10 +189,10 @@
     const btn = event.currentTarget;
     btn.disabled = true;
     const original = btn.textContent;
-    btn.textContent = '同步中…';
+    btn.textContent = '?�步中�?;
     setTimeout(() => {
       refreshNpcs();
-      btn.textContent = '已刷新';
+      btn.textContent = '已刷??;
       setTimeout(() => {
         btn.textContent = original;
         btn.disabled = false;
@@ -218,7 +218,7 @@
 
   function loadUserProfile() {
     return {
-      name: localStorage.getItem('sx_user_name') || '我',
+      name: localStorage.getItem('sx_user_name') || '??,
       avatar: localStorage.getItem('sx_user_avatar') || '',
       personality: localStorage.getItem('sx_user_personality') || '',
       background: localStorage.getItem('sx_user_background') || ''
@@ -231,7 +231,7 @@
       if (!Array.isArray(raw)) return [];
       return raw.map(normalizeEntry).sort((a, b) => new Date(a.date) - new Date(b.date));
     } catch (err) {
-      console.warn('無法解析交換日記資料', err);
+      console.warn('?��?�??交�??��?資�?', err);
       return [];
     }
   }
@@ -261,7 +261,7 @@
       if (!Array.isArray(parsed)) return [];
       return parsed.map(normalizeBook);
     } catch (err) {
-      console.warn('無法解析交換日記書本資料', err);
+      console.warn('?��?�??交�??��??�本資�?', err);
       return [];
     }
   }
@@ -274,7 +274,7 @@
     const archivedPages = Array.isArray(book?.archivedPages) ? book.archivedPages : [];
     return {
       id: book?.id || `book-${Math.random().toString(16).slice(2)}`,
-      title: book?.title || '未命名日記',
+      title: book?.title || '?�命?�日�?,
       npcIds: upgradedIds,
       activeNpcId: activeId,
       entries: entries.sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -297,7 +297,7 @@
     const npcIds = Array.from(new Set(legacyEntries.map(entry => normalizePartnerId(entry.npcId)).filter(Boolean)));
     const book = {
       id: `book-${Date.now()}`,
-      title: '紙間悄悄話',
+      title: '紙�??��?�?,
       npcIds,
       activeNpcId: npcIds[0] || '',
       entries: legacyEntries
@@ -347,7 +347,7 @@
   function renderShelf() {
     if (!ui.diaryShelf) return;
     if (!state.books.length) {
-      ui.diaryShelf.innerHTML = '<div class="empty-state"><p>還沒有日記，先建立一本吧。</p></div>';
+      ui.diaryShelf.innerHTML = '<div class="empty-state"><p>?��??�日記�??�建立�??�吧??/p></div>';
       return;
     }
     ui.diaryShelf.innerHTML = '';
@@ -357,10 +357,10 @@
       card.className = 'shelf-card';
       card.innerHTML = `
         <div class="spine-title">${book.title}</div>
-        <div class="spine-meta">${book.entries.length} 頁</div>
+        <div class="spine-meta">${book.entries.length} ??/div>
         <div class="spine-dots">${book.npcIds.slice(0, 3).map(id => {
           const npc = state.npcs.find(n => n.id === id);
-          const letter = (npc?.name || '夥').trim().slice(0, 1);
+          const letter = (npc?.name || '�?).trim().slice(0, 1);
           return `<span>${letter}</span>`;
         }).join('')}</div>
       `;
@@ -373,7 +373,7 @@
     const index = state.books.length + 1;
     const book = normalizeBook({
       id: `book-${Date.now()}`,
-      title: `交換日記 ${index}`,
+      title: `交�??��? ${index}`,
       npcIds: [],
       activeNpcId: '',
       entries: []
@@ -424,7 +424,7 @@
         background: char?.background || ''
       }));
     } catch (err) {
-      console.warn('無法解析角色資料', err);
+      console.warn('?��?�??角色資�?', err);
       return [];
     }
   }
@@ -441,7 +441,7 @@
         background: npc?.background || ''
       }));
     } catch (err) {
-      console.warn('無法解析 NPC 資料', err);
+      console.warn('?��?�?? NPC 資�?', err);
       return [];
     }
   }
@@ -469,7 +469,7 @@
 
   function renderScene() {
     if (ui.diaryTitle) {
-      ui.diaryTitle.textContent = state.activeBook?.title || '交換日記';
+      ui.diaryTitle.textContent = state.activeBook?.title || '交�??��?';
     }
     renderNpcManage();
     renderNpcPanel();
@@ -484,7 +484,7 @@
   function renderNpcManage() {
     if (!ui.npcManageList) return;
     if (!state.npcs.length) {
-      ui.npcManageList.innerHTML = '<p class="npc-placeholder">目前沒有夥伴名單</p>';
+      ui.npcManageList.innerHTML = '<p class="npc-placeholder">?��?沒�?夥伴?�單</p>';
       return;
     }
     const selected = new Set(state.activeBook?.npcIds || []);
@@ -519,7 +519,7 @@
   function renderNpcPanel() {
     if (!ui.activeNpcCard || !ui.npcList) return;
     if (!state.activeNpc) {
-      ui.activeNpcCard.innerHTML = '<p class="npc-placeholder">尚未選擇夥伴，建立一位願意與你交換日記的角色吧。</p>';
+      ui.activeNpcCard.innerHTML = '<p class="npc-placeholder">尚未?��?夥伴，建立�?位�??��?你交?�日記�?角色?��?/p>';
     } else {
       const { name, avatar } = state.activeNpc;
       ui.activeNpcCard.innerHTML = '';
@@ -530,7 +530,7 @@
       const meta = document.createElement('div');
       meta.className = 'npc-meta';
       const title = document.createElement('h3');
-      title.textContent = name || '未命名夥伴';
+      title.textContent = name || '?�命?�夥�?;
       meta.appendChild(title);
 
       ui.activeNpcCard.appendChild(avatarBox);
@@ -539,7 +539,7 @@
 
     const availableNpcs = state.activeBook ? state.npcs.filter(npc => state.activeBook.npcIds.includes(npc.id)) : [];
     if (!availableNpcs.length) {
-      ui.npcList.innerHTML = '<p class="npc-placeholder">目前沒有夥伴名單</p>';
+      ui.npcList.innerHTML = '<p class="npc-placeholder">?��?沒�?夥伴?�單</p>';
       return;
     }
 
@@ -628,7 +628,7 @@
       ? state.activeBook.entries.filter((entry) => entry.npcId === targetNpcId)
       : [];
     if (!entries.length) {
-      ui.entryList.innerHTML = '<div class="empty-state"><p>目前還沒有任何頁面，寫下第一封信吧！</p></div>';
+      ui.entryList.innerHTML = '<div class="empty-state"><p>?��??��??�任何�??��?寫�?第�?封信?��?</p></div>';
       return;
     }
 
@@ -652,7 +652,7 @@
     const info = document.createElement('div');
     info.className = 'entry-info';
     const nameEl = document.createElement('h4');
-    nameEl.textContent = entry.authorName || (entry.author === 'npc' ? (state.activeNpc?.name || 'NPC') : state.user.name || '我');
+    nameEl.textContent = entry.authorName || (entry.author === 'npc' ? (state.activeNpc?.name || 'NPC') : state.user.name || '??);
     const dateEl = document.createElement('span');
     dateEl.textContent = formatDate(entry.date);
     info.appendChild(nameEl);
@@ -697,13 +697,13 @@
     }
     
     if (state.activeBook.isArchived) {
-      alert('這本日記已歸檔，無法繼續編輯。');
+      alert('?�本?��?已歸檔�??��?繼�?編輯??);
       return;
     }
     
     const content = ui.entryContent?.value.trim();
     if (!content) {
-      setNpcStatus('請寫下一點內容再寄出。');
+      setNpcStatus('請寫下�?點內容�?寄出??);
       return;
     }
     const tags = Array.from(state.selectedSeals);
@@ -711,7 +711,7 @@
       id: `entry-${Date.now()}`,
       npcId: state.activeNpc.id,
       author: 'user',
-      authorName: state.user.name || '我',
+      authorName: state.user.name || '??,
       avatar: state.user.avatar || '',
       mood: state.selectedMood,
       tags,
@@ -728,14 +728,14 @@
     renderTimeline();
     updateSummary();
     updatePageIndicator();
-    setNpcStatus('頁面已寄出，NPC 正在拆信…');
+    setNpcStatus('?�面已�??��?NPC �?��?�信??);
     scheduleNpcReply(entry);
   }
 
   function scheduleNpcReply(latestEntry) {
     if (!state.activeNpc || !state.activeBook) return;
     state.isNpcWriting = true;
-    setNpcStatus(`${state.activeNpc.name || 'NPC'} 正在回覆中……`);
+    setNpcStatus(`${state.activeNpc.name || 'NPC'} �?��?��?中……`);
     if (state.replyTimer) clearTimeout(state.replyTimer);
     state.replyTimer = setTimeout(async () => {
       try {
@@ -756,9 +756,9 @@
         saveBooks();
         renderTimeline();
         updateSummary();
-        setNpcStatus('換你了，翻開新的頁面吧。');
+        setNpcStatus('?��?了�?翻�??��??�面?��?);
       } catch (err) {
-        console.error('NPC 回覆生成失敗:', err);
+        console.error('NPC ?��??��?失�?:', err);
         const fallbackContent = generateNpcReply(latestEntry);
         const npcEntry = {
           id: `entry-npc-${Date.now()}`,
@@ -776,7 +776,7 @@
         saveBooks();
         renderTimeline();
         updateSummary();
-        setNpcStatus('換你了，翻開新的頁面吧。');
+        setNpcStatus('?��?了�?翻�??��??�面?��?);
       } finally {
         state.isNpcWriting = false;
       }
@@ -796,7 +796,7 @@
         apiKey = api.key || '';
         modelName = api.model || '';
         apiType = api.type || 'openai';
-        console.log('[ExchangeDiary] 使用統一 API:', api.name || '未命名', '模型:', modelName, '類型:', apiType);
+        console.log('[ExchangeDiary] 使用統�? API:', api.name || '?�命??, '模�?:', modelName, '類�?:', apiType);
       }
     }
     
@@ -807,12 +807,12 @@
     }
     
     if (!apiUrl || !apiKey) {
-      console.log('[ExchangeDiary] 未設定 API，使用靜態回應');
+      console.log('[ExchangeDiary] ?�設�?API，使?��??��???);
       return generateNpcReply(userEntry);
     }
     
     const npc = state.activeNpc;
-    const userName = state.user.name || '你';
+    const userName = state.user.name || '�?;
     const npcName = npc?.name || '夥伴';
     
     const npcPersonality = npc?.personality || '';
@@ -831,12 +831,12 @@
     
     let content = '';
     
-    // Gemini 原生 API 格式
+    // Gemini ?��? API ?��?
     if (apiType === 'gemini') {
       const model = modelName || 'gemini-1.5-flash';
       const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
       
-      console.log('[ExchangeDiary] 呼叫 Gemini API, 模型:', model);
+      console.log('[ExchangeDiary] ?�叫 Gemini API, 模�?:', model);
       
       const geminiPayload = {
         contents: [{ role: 'user', parts: [{ text: userMessage }] }],
@@ -852,23 +852,22 @@
       
       if (!geminiRes.ok) {
         const errorText = await geminiRes.text();
-        console.error('[ExchangeDiary] Gemini API 錯誤:', geminiRes.status, errorText);
-        throw new Error('Gemini API 請求失敗: ' + geminiRes.status);
+        console.error('[ExchangeDiary] Gemini API ?�誤:', geminiRes.status, errorText);
+        throw new Error('Gemini API 請�?失�?: ' + geminiRes.status);
       }
       
       const geminiData = await geminiRes.json();
       if (geminiData.error) throw new Error(geminiData.error.message || JSON.stringify(geminiData.error));
       content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     } else {
-      // OpenAI 相容格式或自訂端點
-      let endpoint;
+      // OpenAI ?�容?��??�自訂端�?      let endpoint;
       if (apiType === 'custom') {
         endpoint = apiUrl;
       } else {
         endpoint = apiUrl.endsWith('/chat/completions') ? apiUrl : apiUrl.replace(/\/$/, '') + '/chat/completions';
       }
       
-      console.log('[ExchangeDiary] 呼叫 API:', endpoint, '模型:', modelName || 'default');
+      console.log('[ExchangeDiary] ?�叫 API:', endpoint, '模�?:', modelName || 'default');
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -889,8 +888,8 @@
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[ExchangeDiary] API 錯誤:', response.status, errorText);
-        throw new Error('API 請求失敗: ' + response.status);
+        console.error('[ExchangeDiary] API ?�誤:', response.status, errorText);
+        throw new Error('API 請�?失�?: ' + response.status);
       }
       
       const data = await response.json();
@@ -898,11 +897,11 @@
     }
     
     if (!content) {
-      console.log('[ExchangeDiary] API 回應為空，使用靜態回應');
+      console.log('[ExchangeDiary] API ?��??�空，使?��??��???);
       return generateNpcReply(userEntry);
     }
     
-    console.log('[ExchangeDiary] API 回應成功:', content.substring(0, 50) + '...');
+    console.log('[ExchangeDiary] API ?��??��?:', content.substring(0, 50) + '...');
     return content;
   }
   
@@ -911,56 +910,48 @@
     
     let personalitySection = '';
     if (personality && personality.trim()) {
-      personalitySection = `你的個性與背景：
-${personality.trim()}`;
+      personalitySection = `你�??�性�??�景�?${personality.trim()}`;
     } else {
-      personalitySection = `你的個性與背景：
-請根據你的名字和與 ${userName} 的關係，自然地展現你的個性。用真誠的方式回應。`;
+      personalitySection = `你�??�性�??�景�?請根?��??��?字�???${userName} ?��?係�??�然?��??��??�個性。用?��??�方式�??�。`;
     }
     
     const memory = loadCharacterMemory(npcName);
     let memoryContext = '';
     if (memory && memory.length > 0) {
-      const recentMessages = memory.slice(-5).map(m => m.content.slice(0, 50)).join('；');
+      const recentMessages = memory.slice(-5).map(m => m.content.slice(0, 50)).join('�?);
       memoryContext = `
 
-你們最近的對話回顧：
-${recentMessages}`;
+你們�?近�?對話?�顧�?${recentMessages}`;
     }
     
-    const basePrompt = `你是 ${npcName}，是一位${sourceDesc}，正在和 ${userName} 交換日記。
-
+    const basePrompt = `你是 ${npcName}，是一�?{sourceDesc}，正?��? ${userName} 交�??��???
 ${personalitySection}${memoryContext}
 
-交換日記規則：
-1. 用繁體中文回覆，語氣要自然親切
-2. 回應 ${userName} 寫的日記內容，展現你的關心和理解
-3. 可以分享你的想法、感受或建議
-4. 回應長度約 100-200 字，像在寫信給好朋友
-5. 不要使用過於正式或機械化的語言
-6. 根據你的個性特質來回應，不要使用預設的模板文字
-7. 用第一人稱「我」來稱呼自己，用「你」來稱呼 ${userName}
-8. 回應要具體，可以引用 ${userName} 寫的內容來回應
-9. 如果你有特定的個性描述，請在回應中展現出來`;
+交�??��?規�?�?1. ?��?體中?��?覆�?語氣要自?�親??2. ?��? ${userName} 寫�??��??�容，�??��??��?心�??�解
+3. ?�以?�享你�??��??��??��?建議
+4. ?��??�度�?100-200 字�??�在寫信給好?��?
+5. 不�?使用?�於�???��?械�??��?言
+6. ?��?你�??�性特質�??��?，�?要使?��?設�?模板?��?
+7. ?�第一人稱?��??��?稱呼?�己，用?��??��?稱呼 ${userName}
+8. ?��?要具體�??�以引用 ${userName} 寫�??�容來�???9. 如�?你�??��??�個性�?述�?請在?��?中�??�出來`;
     
     return basePrompt;
   }
   
   function buildUserMessage(userEntry, userName) {
     const mood = MOOD_OPTIONS.find(m => m.id === userEntry?.mood);
-    const moodDesc = mood ? `${mood.icon} ${mood.label}` : '普通';
+    const moodDesc = mood ? `${mood.icon} ${mood.label}` : '?��?;
     const tags = userEntry?.tags?.map(tagId => {
       const opt = SEAL_OPTIONS.find(o => o.id === tagId);
       return opt ? `${opt.icon} ${opt.label}` : tagId;
-    }).join('、') || '無';
+    }).join('??) || '??;
     
-    return `${userName} 今天的心情：${moodDesc}
-貼紙標籤：${tags}
+    return `${userName} 今天?��??��?${moodDesc}
+貼�?標籤�?{tags}
 
-日記內容：
-${userEntry?.content || '（空白）'}
+?��??�容�?${userEntry?.content || '（空?��?'}
 
-請以 ${userName} 的日記夥伴身分，用溫暖真誠的語氣回覆這篇日記。`;
+請以 ${userName} ?�日記夥伴身?��??�溫?��?誠�?語氣?��??��??��??�`;
   }
 
   function pickNpcMood(userMood) {
@@ -994,14 +985,14 @@ ${userEntry?.content || '（空白）'}
       }
       return charMessages.slice(-30);
     } catch (e) {
-      console.warn('[exchange-diary] 無法載入角色記憶:', e);
+      console.warn('[exchange-diary] ?��?載入角色記憶:', e);
       return [];
     }
   }
 
   function generateNpcReply(userEntry) {
     const npc = state.activeNpc;
-    const userName = state.user.name || '你';
+    const userName = state.user.name || '�?;
     const npcName = npc?.name || '夥伴';
     
     const personality = (npc?.personality || '').trim();
@@ -1012,49 +1003,49 @@ ${userEntry?.content || '（空白）'}
     
     const sentences = [];
     
-    const personalityParts = personality.split(/[，,、。；;\s]+/).filter(p => p.trim());
-    const bgParts = background.split(/[，,、。；;\s]+/).filter(p => p.trim());
-    const notesParts = notes.split(/[，,、。；;\s]+/).filter(p => p.trim());
+    const personalityParts = personality.split(/[�??�。�?;\s]+/).filter(p => p.trim());
+    const bgParts = background.split(/[�??�。�?;\s]+/).filter(p => p.trim());
+    const notesParts = notes.split(/[�??�。�?;\s]+/).filter(p => p.trim());
     
     const userContent = userEntry?.content || '';
     const snippet = userContent.length > 30 ? userContent.slice(0, 30) + '...' : userContent;
     
     if (personalityParts.length > 0) {
       const randomTrait = personalityParts[Math.floor(Math.random() * personalityParts.length)];
-      sentences.push(`以我${randomTrait}的個性來說，你寫的「${snippet}」讓我很有感觸。`);
+      sentences.push(`以�?${randomTrait}?�個性�?說�?你寫?��?{snippet}?��??��??��?觸。`);
     } else if (bgParts.length > 0) {
       const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
-      sentences.push(`${randomBg}的我，讀完你寫的內容，心裡有些話想說。`);
+      sentences.push(`${randomBg}?��?，�?完�?寫�??�容，�?裡�?些話?�說?�`);
     } else if (notesParts.length > 0) {
       const randomNote = notesParts[Math.floor(Math.random() * notesParts.length)];
-      sentences.push(`${randomNote}的我，覺得你今天的日記很特別。`);
+      sentences.push(`${randomNote}?��?，覺得�?今天?�日記�??�別?�`);
     }
     
     if (bgParts.length > 0 && Math.random() > 0.5) {
       const randomBg = bgParts[Math.floor(Math.random() * bgParts.length)];
-      sentences.push(`因為${randomBg}的關係，我特別能理解你的感受。`);
+      sentences.push(`?�為${randomBg}?��?係�??�特?�能?�解你�??��??�`);
     }
     
     if (memory && memory.length > 0 && Math.random() > 0.6) {
       const recentMsg = memory[memory.length - 1];
       if (recentMsg && recentMsg.content) {
         const recentKeywords = recentMsg.content.slice(0, 20);
-        sentences.push(`之前你說過「${recentKeywords}...」，現在看到這篇日記，我更懂你了。`);
+        sentences.push(`之�?你說?��?{recentKeywords}...?��??�在?�到?��??��?，�??��?你�??�`);
       }
     }
     
     const tags = userEntry?.tags || [];
     if (tags.length > 0) {
       const tagLabels = tags.map(tagId => findLabel(tagId));
-      sentences.push(`你貼的${tagLabels.join('、')}，我會好好收藏。`);
+      sentences.push(`你貼??{tagLabels.join('??)}，�??�好好收?�。`);
     }
     
     if (sentences.length === 0) {
-      sentences.push(`讀完你寫的「${snippet}」，我有些話想回應你。`);
-      sentences.push(`謝謝你願意和我分享這些。`);
+      sentences.push(`讀完�?寫�???{snippet}?��??��?些話?��??��??�`);
+      sentences.push(`謝�?你�??��??��?享這�??�`);
     }
     
-    sentences.push(`—— ${npcName}`);
+    sentences.push(`?��?${npcName}`);
     
     return sentences.join('\n');
   }
@@ -1064,11 +1055,11 @@ ${userEntry?.content || '（空白）'}
   }
 
   function describeSnippet(text) {
-    if (!text) return '空白頁也值得珍藏。';
+    if (!text) return '空白?��??��??��???;
     const normalized = text.replace(/\s+/g, ' ').trim();
-    if (!normalized) return '空白頁也值得珍藏。';
-    const clip = normalized.length > 42 ? `${normalized.slice(0, 42)}…` : normalized;
-    return `「${clip}」`; 
+    if (!normalized) return '空白?��??��??��???;
+    const clip = normalized.length > 42 ? `${normalized.slice(0, 42)}?�` : normalized;
+    return `??{clip}?�`; 
   }
 
   function findLabel(tagId) {
@@ -1099,7 +1090,7 @@ ${userEntry?.content || '（空白）'}
   function updateSummary() {
     if (!ui.entrySummary) return;
     const count = state.activeBook ? state.activeBook.entries.length : 0;
-    ui.entrySummary.textContent = count ? `${count} 則交換頁面` : '還沒有頁面';
+    ui.entrySummary.textContent = count ? `${count} ?�交?��??�` : '?��??��???;
   }
 
   function updateNpcHint() {
@@ -1126,16 +1117,16 @@ ${userEntry?.content || '（空白）'}
       return;
     }
     if (!state.activeBook || !state.activeNpc) {
-      ui.npcStatus.textContent = '等待夥伴名單同步。';
+      ui.npcStatus.textContent = '等�?夥伴?�單?�步??;
     } else if (state.isNpcWriting) {
-      ui.npcStatus.textContent = `${state.activeNpc.name || '夥伴'} 正在回覆中……`;
+      ui.npcStatus.textContent = `${state.activeNpc.name || '夥伴'} �?��?��?中……`;
     } else {
-      ui.npcStatus.textContent = `📖 ${state.activeNpc.name || '夥伴'} 在對頁等你。`;
+      ui.npcStatus.textContent = `?? ${state.activeNpc.name || '夥伴'} ?��??��?你。`;
     }
   }
 
   function getMoodIcon(id) {
-    return MOOD_OPTIONS.find((option) => option.id === id)?.icon || '📘';
+    return MOOD_OPTIONS.find((option) => option.id === id)?.icon || '??';
   }
 
   function formatDate(input) {
@@ -1151,7 +1142,7 @@ ${userEntry?.content || '（空白）'}
 
   function handleDeleteDiary() {
     if (!state.activeBook) return;
-    const confirmed = confirm(`確定要刪除「${state.activeBook.title}」嗎？此操作無法復原。`);
+    const confirmed = confirm(`確�?要刪?��?{state.activeBook.title}?��?？此?��??��?復�??�`);
     if (!confirmed) return;
     
     const bookId = state.activeBook.id;
@@ -1170,7 +1161,7 @@ ${userEntry?.content || '（空白）'}
 
   function handleArchivePage() {
     if (!state.activeBook || !state.activeBook.entries.length) {
-      alert('目前沒有頁面可以歸檔。');
+      alert('?��?沒�??�面?�以歸�???);
       return;
     }
     
@@ -1188,7 +1179,7 @@ ${userEntry?.content || '（空白）'}
     });
     
     if (!oldEntries.length) {
-      alert('沒有需要歸檔的舊頁面。');
+      alert('沒�??�要歸檔�??��??��?);
       return;
     }
     
@@ -1211,7 +1202,7 @@ ${userEntry?.content || '（空白）'}
     renderTimeline();
     updateSummary();
     updatePageIndicator();
-    alert(`已歸檔 ${oldEntries.length} 則舊頁面。`);
+    alert(`已歸�?${oldEntries.length} ?��??�面?�`);
   }
 
   function checkPageTurn() {
@@ -1254,8 +1245,8 @@ ${userEntry?.content || '（空白）'}
     const archivedCount = (state.activeBook.archivedPages || []).length;
     
     ui.pageIndicator.innerHTML = `
-      <span class="page-current">今日 ${todayCount} 則</span>
-      ${archivedCount ? `<span class="page-archived">已歸檔 ${archivedCount} 頁</span>` : ''}
+      <span class="page-current">今日 ${todayCount} ??/span>
+      ${archivedCount ? `<span class="page-archived">已歸�?${archivedCount} ??/span>` : ''}
     `;
   }
 
