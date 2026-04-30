@@ -1,3 +1,5 @@
+import { trigrams, hexagrams } from './iching-data.js';
+
 const homeView = document.getElementById('fortune-home');
 const introOverlay = document.getElementById('drift-intro');
 const categoryButtons = document.querySelectorAll('.segment');
@@ -2256,11 +2258,76 @@ function pickBySeed(list, seed) {
   return list[seed % list.length];
 }
 
-function generateSimpleReading(methodKey, question) {
-  const seed = computeSeed(`${methodKey}|${question}|${new Date().toDateString()}`);
-  const score = 52 + (seed % 45);
-  const text = pickBySeed(fortuneTemplates[methodKey], seed);
-  return `運勢指數 ${score}/100。${text}`;
+async function generateSimpleReading(methodKey, question) {
+  const config = getApiConfig();
+  
+  if (!config?.url) {
+    const seed = computeSeed(`${methodKey}|${question}|${new Date().toDateString()}`);
+    const score = 52 + (seed % 45);
+    const text = pickBySeed(fortuneTemplates[methodKey], seed);
+    return `運勢指數 ${score}/100。${text}`;
+  }
+  
+  const methodLabels = {
+    ziwei: '紫微斗數',
+    meihua: '梅花易數',
+    flow: '流年流月流日',
+    astrology: '西洋占星',
+    tarot: '塔羅占卜'
+  };
+  
+  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const methodName = methodLabels[methodKey] || '占卜';
+  
+  const systemPrompt = `你是專業的${methodName}占卜師，請根據使用者的問題給出詳細且有建設性的占卜解讀。
+請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
+回答應包含：
+1. 整體運勢評估（給出運勢指數，範圍 1-100）
+2. 具體解讀與分析
+3. 建議與提醒
+回答要溫暖、專業且具有實用價值。`;
+
+  const userPrompt = `我想要進行${methodName}占卜。
+我的問題是：${question}
+請給我詳細的占卜解讀與建議。`;
+
+  try {
+    const targetUrl = config.url.endsWith('/chat/completions')
+      ? config.url
+      : `${config.url.replace(/\/$/, '')}/chat/completions`;
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.key ? { Authorization: `Bearer ${config.key}` } : {})
+      },
+      body: JSON.stringify({
+        model: config.model || 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.8
+      })
+    });
+
+    if (!response.ok) {
+      const seed = computeSeed(`${methodKey}|${question}|${new Date().toDateString()}`);
+      const score = 52 + (seed % 45);
+      const text = pickBySeed(fortuneTemplates[methodKey], seed);
+      return `運勢指數 ${score}/100。${text}`;
+    }
+
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    return content || `運勢指數 70。${pickBySeed(fortuneTemplates[methodKey], 0)}`;
+  } catch (err) {
+    const seed = computeSeed(`${methodKey}|${question}|${new Date().toDateString()}`);
+    const score = 52 + (seed % 45);
+    const text = pickBySeed(fortuneTemplates[methodKey], seed);
+    return `運勢指數 ${score}/100。${text}`;
+  }
 }
 
 const flowYearHints = [
@@ -2549,6 +2616,10 @@ function renderMeihuaReading() {
     meihuaCastNote.textContent = result.error;
     meihuaResultEl.textContent = '尚未起卦';
     meihuaDetailEl.textContent = '尚未起卦';
+    const baseGuaEl = document.getElementById('meihua-base-gua');
+    const changedGuaEl = document.getElementById('meihua-changed-gua');
+    if (baseGuaEl) baseGuaEl.innerHTML = '';
+    if (changedGuaEl) changedGuaEl.innerHTML = '';
     return;
   }
 
@@ -2556,6 +2627,8 @@ function renderMeihuaReading() {
   const changedHexagram = `${result.changedUpper.symbol}${result.changedLower.symbol}（${result.changedUpper.name}上${result.changedLower.name}下）`;
   meihuaCastNote.textContent = `${result.basisText}，第 ${result.movingLine} 爻動。`;
   meihuaResultEl.textContent = `本卦 ${baseHexagram}，變卦 ${changedHexagram}。${result.relation.message}`;
+
+  renderMeihuaHexagramVisual(result);
 
   const baseVisual = [
     formatYaoLine(result.baseLines[5]),
@@ -2588,6 +2661,55 @@ function renderMeihuaReading() {
     '變卦（上 -> 下）',
     ...changedVisual
   ].join('\n');
+}
+
+function renderYao(isYang, isMoving) {
+  if (isYang) {
+    return `<div class="yao-row ${isMoving ? 'moving-row' : ''}">
+      <div class="yang"></div>
+    </div>`;
+  } else {
+    return `<div class="yao-row ${isMoving ? 'moving-row' : ''}">
+      <div class="yin-l"></div><div class="yin-gap"></div><div class="yin-l"></div>
+    </div>`;
+  }
+}
+
+function renderMeihuaHexagramVisual(result) {
+  const baseGuaEl = document.getElementById('meihua-base-gua');
+  const changedGuaEl = document.getElementById('meihua-changed-gua');
+  const baseNameEl = document.getElementById('meihua-base-name');
+  const changedNameEl = document.getElementById('meihua-changed-name');
+  const movingIndicator = document.getElementById('meihua-moving-indicator');
+
+  if (!baseGuaEl || !changedGuaEl) return;
+
+  const movingLine = result.movingLine;
+
+  let baseHtml = '';
+  for (let i = 5; i >= 0; i--) {
+    const isYang = result.baseLines[i] === 1;
+    const isMoving = (i === movingLine - 1);
+    baseHtml += renderYao(isYang, isMoving);
+  }
+  baseGuaEl.innerHTML = baseHtml;
+
+  let changedHtml = '';
+  for (let i = 5; i >= 0; i--) {
+    const isYang = result.changedLines[i] === 1;
+    changedHtml += renderYao(isYang, false);
+  }
+  changedGuaEl.innerHTML = changedHtml;
+
+  if (baseNameEl) {
+    baseNameEl.textContent = `${result.upper.name}${result.lower.name}`;
+  }
+  if (changedNameEl) {
+    changedNameEl.textContent = `${result.changedUpper.name}${result.changedLower.name}`;
+  }
+  if (movingIndicator) {
+    movingIndicator.textContent = `第${movingLine}爻動`;
+  }
 }
 
 function updateMeihuaInputVisibility() {
@@ -3487,7 +3609,7 @@ function bindEvents() {
   });
 
   generateButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       const methodKey = button.dataset.method;
       if (methodKey === 'ziwei') {
         renderZiweiBoard();
@@ -3498,7 +3620,8 @@ function bindEvents() {
       const resultEl = document.getElementById(`r-${methodKey}`);
       if (!resultEl) return;
       const question = inputEl?.value?.trim() || '近期整體運勢如何？';
-      resultEl.textContent = generateSimpleReading(methodKey, question);
+      resultEl.textContent = '占卜中...';
+      resultEl.textContent = await generateSimpleReading(methodKey, question);
     });
   });
 
@@ -3702,14 +3825,6 @@ function playIntroAnimation() {
   }, 1700);
 }
 
-renderMethods();
-showHome();
-bindEvents();
-playIntroAnimation();
-startOceanSound();
-initCharCompanion();
-console.log('Loaded app: drift-bottle');
-
 const FORTUNE_MEMORY_KEY = 'sx_fortune_memory';
 const CHAR_COMPANION_ENABLED_KEY = 'sx_fortune_char_enabled';
 const FORTUNE_MEMORY_ENABLED_KEY = 'sx_fortune_memory_enabled';
@@ -3719,6 +3834,14 @@ let charCompanionEnabled = true;
 let fortuneMemoryEnabled = true;
 let selectedCharData = null;
 let lastCommentTime = 0;
+
+renderMethods();
+showHome();
+bindEvents();
+playIntroAnimation();
+startOceanSound();
+initCharCompanion();
+console.log('Loaded app: drift-bottle');
 
 function getCharacters() {
   const raw = localStorage.getItem('sx_characters');
