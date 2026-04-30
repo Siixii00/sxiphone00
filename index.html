@@ -6,7 +6,7 @@
     <title>sxiphone00</title>
 
     <!-- PWA 支援 -->
-    <link rel="manifest" href="manifest.json" id="manifest-link" crossorigin="use-credentials">
+    <link rel="manifest" href="./manifest.json" id="manifest-link" crossorigin="use-credentials">
     <meta name="theme-color" content="#0b0c12" id="theme-color-meta" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#0b0c12" id="theme-color-meta-light" media="(prefers-color-scheme: light)">
     <meta name="mobile-web-app-capable" content="yes">
@@ -468,7 +468,7 @@
         // 註冊 Service Worker (PWA 安裝支援)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
                     .then((registration) => {
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
                         

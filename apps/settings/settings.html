@@ -968,6 +968,186 @@
         </details>
     </section>
 
+    <!-- 自動備份設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="clock"></i>
+                    <span>自動備份設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">睡眠後自動備份</span>
+                    <p class="ios-caption">每次記憶睡眠流程完成後，自動將資料備份到已連接的服務。</p>
+                    
+                    <div class="ios-toggle-row">
+                        <span class="toggle-label">啟用自動備份</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="auto-backup-enabled" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="ios-toggle-row">
+                        <span class="toggle-label">備份到 GitHub</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="auto-backup-github">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="ios-toggle-row">
+                        <span class="toggle-label">備份到 Supabase</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="auto-backup-supabase">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="ios-toggle-row">
+                        <span class="toggle-label">本地檔案備份</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="auto-backup-local">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <p class="ios-caption" id="auto-backup-status"></p>
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn" id="auto-backup-save" type="button">儲存設定</button>
+                        <button class="ios-btn" id="auto-backup-now" type="button">立即備份</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- 本地檔案備援 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="hard-drive"></i>
+                    <span>本地檔案備援</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">本地檔案系統備份</span>
+                    <p class="ios-caption">將備份保存到本地資料夾，或從本地檔案還原。適用於離線環境或雲端備份失敗時。</p>
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn primary" id="local-folder-export" type="button">匯出到資料夾</button>
+                        <button class="ios-btn" id="local-folder-import" type="button">從資料夾匯入</button>
+                    </div>
+                    
+                    <p class="ios-caption" id="local-folder-status"></p>
+                    
+                    <div class="cell-v" style="margin-top:12px;">
+                        <span class="cell-label">快速備份（下載檔案）</span>
+                        <div class="btn-row">
+                            <button class="ios-btn" id="quick-backup-full" type="button">完整備份</button>
+                            <button class="ios-btn" id="quick-backup-minimal" type="button">最小備份</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- Supabase 自動備份（一鍵設定） -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="cloud-upload"></i>
+                    <span>Supabase 自動備份</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">一鍵設定自動備份</span>
+                    <p class="ios-caption">填入 Supabase 專案 URL 和 anon key，系統將每 10 則對話自動備份。</p>
+                    
+                    <label class="cell-label" for="supabase-quick-url">專案 URL</label>
+                    <input id="supabase-quick-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
+                    
+                    <label class="cell-label" for="supabase-quick-key">Anon Key</label>
+                    <input id="supabase-quick-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+                    
+                    <div class="ios-toggle-row" style="margin-top:12px;">
+                        <span class="toggle-label">啟用自動備份</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="supabase-auto-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn primary" id="supabase-quick-enable" type="button">一鍵啟用</button>
+                        <button class="ios-btn" id="supabase-quick-test" type="button">測試連線</button>
+                    </div>
+                    
+                    <p class="ios-caption" id="supabase-quick-status">尚未設定</p>
+                    
+                    <div class="cell-v" style="margin-top:12px; padding:8px; background:#f5f5f5; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
+                            <span>上次備份：<span id="supabase-last-sync">-</span></span>
+                            <span>備份次數：<span id="supabase-backup-count">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- Supabase 緊急備援 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="cloud"></i>
+                    <span>Supabase 緊急備援</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">Supabase 雲端備份</span>
+                    <p class="ios-caption">當 GitHub 備份無法使用時的緊急備援方案。需要 Supabase 專案的 URL 和 anon key。</p>
+                    
+                    <label class="cell-label" for="supabase-url">Supabase URL</label>
+                    <input id="supabase-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
+                    
+                    <label class="cell-label" for="supabase-key">Anon Key</label>
+                    <input id="supabase-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+                    
+                    <label class="cell-label" for="supabase-table">資料表名稱</label>
+                    <input id="supabase-table" class="ios-input" type="text" placeholder="backups" value="sxiphone_backups">
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn" id="supabase-save" type="button">儲存設定</button>
+                        <button class="ios-btn primary" id="supabase-push" type="button">推送備份</button>
+                        <button class="ios-btn" id="supabase-pull" type="button">拉取還原</button>
+                    </div>
+                    
+                    <p class="ios-caption" id="supabase-status">尚未設定</p>
+                    
+                    <div class="btn-row" style="margin-top:8px;">
+                        <button class="ios-btn" id="supabase-test" type="button">測試連線</button>
+                        <button class="ios-btn" id="supabase-clear" type="button" style="color:#FF453A;">清除設定</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
     <!-- 外觀與視覺 -->
         
 

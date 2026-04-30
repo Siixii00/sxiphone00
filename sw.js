@@ -1,13 +1,18 @@
-const CACHE_NAME = 'sxiphone-v8';
+const CACHE_NAME = 'sxiphone-v9';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/style.css',
-  '/main.js',
-  '/sw.js',
-  '/apps/screenshots/icon-192x192.png',
-  '/apps/screenshots/apple-touch-icon.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './style.css',
+  './main.js',
+  './dock.js',
+  './dock.css',
+  './apps/screenshots/icon-192x192.png',
+  './apps/screenshots/apple-touch-icon.png',
+  './apps/screenshots/icon-48x48.png',
+  './apps/screenshots/icon-120x120.png',
+  './apps/screenshots/icon-152x152.png',
+  './apps/screenshots/current.png'
 ];
 
 const CACHE_STRATEGIES = {
@@ -121,26 +126,33 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+      caches.match('./index.html')
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
-          return response;
-        })
-        .catch(() => {
-          return caches.match('/index.html');
+          return fetch(request)
+            .then((response) => {
+              if (response.ok) {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put('./index.html', responseClone);
+                });
+              }
+              return response;
+            })
+            .catch(() => {
+              return caches.match('./index.html');
+            });
         })
     );
     return;
   }
 
   const isStaticAsset = STATIC_ASSETS.some(asset => {
-    const normalizedAsset = asset.startsWith('/') ? asset : '/' + asset;
-    return url.pathname === normalizedAsset;
+    const normalizedRequest = url.pathname.startsWith('/') ? url.pathname : '/' + url.pathname;
+    const normalizedAsset = asset.startsWith('./') ? asset.replace('./', '/') : (asset.startsWith('/') ? asset : '/' + asset);
+    return normalizedRequest === normalizedAsset || normalizedRequest === asset;
   });
   
   if (isStaticAsset) {
