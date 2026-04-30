@@ -1160,14 +1160,11 @@ async function generateAIPosts() {
       return;
     }
 
-    const endpoint = apiConfig.url.endsWith('/chat/completions')
-      ? apiConfig.url
-      : `${apiConfig.url.replace(/\/$/, '')}/chat/completions`;
-
+    const apiType = apiConfig.type || 'openai';
     const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     const communityContext = getCommunityContext();
     const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定創作符合人物性格的 Facebook 貼文。
-請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
+請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰撰寫。
 輸出格式為 JSON: {"posts":[{"author":"","text":"","visibility":"public|friends","like":0,"comment":0,"share":0}]}
 
 visibility 說明：
@@ -1193,28 +1190,69 @@ ${communityContext}
 5. 好友的貼文可以設定為 friends 限制
 6. 根據社群氛圍調整回應風格`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(apiConfig.key ? { Authorization: `Bearer ${apiConfig.key}` } : {})
-      },
-      body: JSON.stringify({
-        model: apiConfig.model || 'gpt-4o-mini',
-        temperature: 0.85,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: contextStr }
-        ]
-      })
-    });
+    let content = '';
+    
+    // Gemini 原生 API 格式
+    if (apiType === 'gemini') {
+      const model = apiConfig.model || 'gemini-1.5-flash';
+      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiConfig.key}`;
+      
+      const geminiPayload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: `${systemPrompt}\n\n${contextStr}` }]
+        }],
+        generationConfig: { temperature: 0.85, maxOutputTokens: 4096 },
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+      
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(geminiPayload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Gemini API 錯誤 (${response.status})`);
+      }
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      // OpenAI 相容格式或自訂端點
+      let endpoint;
+      if (apiType === 'custom') {
+        endpoint = apiConfig.url;
+      } else {
+        endpoint = apiConfig.url.endsWith('/chat/completions')
+          ? apiConfig.url
+          : `${apiConfig.url.replace(/\/$/, '')}/chat/completions`;
+      }
 
-    if (!response.ok) {
-      throw new Error(`API 錯誤 (${response.status})`);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiConfig.key ? { Authorization: `Bearer ${apiConfig.key}` } : {})
+        },
+        body: JSON.stringify({
+          model: apiConfig.model || 'gpt-4o-mini',
+          temperature: 0.85,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: contextStr }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API 錯誤 (${response.status})`);
+      }
+
+      const data = await response.json();
+      content = data?.choices?.[0]?.message?.content || '';
     }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content || '';
 
     let parsed = null;
     try {

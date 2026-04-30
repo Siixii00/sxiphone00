@@ -2063,6 +2063,12 @@ function renderApis() {
                 const headers = { 'Content-Type': 'application/json' };
                 if (key) headers['Authorization'] = `Bearer ${key}`;
                 
+                // OpenRouter 需要額外的 headers
+                if (url && url.includes('openrouter.ai')) {
+                    headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
+                    headers['X-Title'] = 'SX iPhone App';
+                }
+                
                 // 自訂端點可能不支援 /models
                 let modelsUrl = type === 'custom' ? url : `${url}/models`;
                 

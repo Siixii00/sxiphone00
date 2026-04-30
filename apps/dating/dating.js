@@ -1334,7 +1334,48 @@ async function callAIAPI(systemPrompt) {
         return null;
     }
     
-    let targetUrl = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+    const apiType = config.type || 'openai';
+    
+    // Gemini 原生 API 格式
+    if (apiType === 'gemini') {
+        const model = config.model || 'gemini-1.5-flash';
+        const targetUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + config.key;
+        
+        try {
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: '請回應' }] }],
+                    generationConfig: { temperature: 0.8, maxOutputTokens: 100 },
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                })
+            });
+            
+            if (!response.ok) {
+                console.warn('Gemini API 回應失敗:', response.status);
+                return null;
+            }
+            
+            const data = await response.json();
+            if (data.error) {
+                console.warn('Gemini API 錯誤:', data.error);
+                return null;
+            }
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+        } catch (e) {
+            console.warn('Gemini API 調用失敗:', e);
+            return null;
+        }
+    }
+    
+    // OpenAI 相容格式或自訂端點
+    let targetUrl;
+    if (apiType === 'custom') {
+        targetUrl = config.url;
+    } else {
+        targetUrl = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+    }
     
     try {
         const response = await fetch(targetUrl, {

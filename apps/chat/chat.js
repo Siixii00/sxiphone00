@@ -10,6 +10,18 @@ const UserEnv = {
     }
 };
 
+function buildApiHeaders(config) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
+    
+    if (config.url && config.url.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
+        headers['X-Title'] = 'SX iPhone App';
+    }
+    
+    return headers;
+}
+
 function getActiveConfig() {
     const charName = localStorage.getItem('sx_char_name');
     const charAvatar = localStorage.getItem('sx_char_avatar');
@@ -3409,13 +3421,21 @@ ${lastCharContent || '（尚未有對話）'}
             const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
             const config = apis[validIndex] || apis[0];
             
-            if (!config || !config.url) {
+            const apiType = config?.type || 'openai';
+            
+            // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+            if (!config || (!config.url && apiType !== 'gemini')) {
                 innerVoiceContent.innerHTML = '<div class="inner-voice-empty">請先設定 API</div>';
                 innerVoiceLoading.classList.remove('active');
                 return;
             }
             
-            const apiType = config.type || 'openai';
+            // Gemini 需要 key 檢查
+            if (apiType === 'gemini' && !config.key) {
+                innerVoiceContent.innerHTML = '<div class="inner-voice-empty">Gemini API 需要 API Key</div>';
+                innerVoiceLoading.classList.remove('active');
+                return;
+            }
             let innerVoiceText;
             
             // Gemini 原生 API 格式
@@ -3448,10 +3468,7 @@ ${lastCharContent || '（尚未有對話）'}
                         : config.url.replace(/\/$/, '') + '/chat/completions';
                 }
                 
-                const headers = {
-                    'Content-Type': 'application/json'
-                };
-                if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
+                const headers = buildApiHeaders(config);
                 
                 const response = await fetch(targetUrl, {
                     method: 'POST',
@@ -4286,12 +4303,19 @@ ${lastCharContent || '（尚未有對話）'}
         const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
         const config = apis[validIndex] || apis[0];
         
-        if (!config || !config.url) {
+        const apiType = config?.type || 'openai';
+        
+        // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+        if (!config || (!config.url && apiType !== 'gemini')) {
             addTranscript('char', '(未設定 API)');
             return;
         }
-
-        const apiType = config.type || 'openai';
+        
+        // Gemini 需要 key 檢查
+        if (apiType === 'gemini' && !config.key) {
+            addTranscript('char', '(Gemini API 需要 API Key)');
+            return;
+        }
         const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const activeChar = currentChars[0] || {};
         const charName = activeChar.name || 'AI 助理';
@@ -4354,10 +4378,7 @@ ${lastCharContent || '（尚未有對話）'}
                         : config.url.replace(/\/$/, '') + '/chat/completions';
                 }
 
-                const headers = {
-                    'Content-Type': 'application/json'
-                };
-                if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
+                const headers = buildApiHeaders(config);
 
                 const response = await fetch(targetUrl, {
                     method: 'POST',
@@ -6274,9 +6295,13 @@ async function callAIAPI(payload) {
         config = apis[validIndex] || apis[0];
     }
     
-    if (!config || !config.url) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
-
-    const apiType = config.type || 'openai';  // 預設為 OpenAI 相容格式
+    const apiType = config?.type || 'openai';
+    
+    // Gemini 不需要 url 檢查，因為 URL 是自動設定的
+    if (!config || (!config.url && apiType !== 'gemini')) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
+    
+    // Gemini 需要 key 檢查
+    if (apiType === 'gemini' && !config.key) return "（錯誤：Gemini API 需要 API Key）";
     
     try {
         // Gemini 原生 API 格式
@@ -6337,14 +6362,7 @@ async function callAIAPI(payload) {
                 : config.url.replace(/\/$/, '') + '/chat/completions';
         }
         
-        const headers = { 
-            "Content-Type": "application/json"
-        };
-        
-        // 添加 Authorization header
-        if (config.key) {
-            headers["Authorization"] = `Bearer ${config.key}`;
-        }
+        const headers = buildApiHeaders(config);
         
         const response = await fetch(targetUrl, {
             method: "POST",

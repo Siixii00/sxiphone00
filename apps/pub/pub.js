@@ -328,6 +328,61 @@ function getModelPayloadMessages() {
 }
 
 async function requestCompletion() {
+    const apiType = state.settings.apiType || 'openai';
+    
+    // Gemini 原生 API 格式
+    if (apiType === 'gemini') {
+        if (!state.settings.apiKey) {
+            return '尚未設定 API Key，請先於左側設定。';
+        }
+        
+        const model = state.settings.model || 'gemini-1.5-flash';
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.settings.apiKey}`;
+        
+        const messages = getModelPayloadMessages();
+        const contents = [];
+        let systemInstruction = '';
+        
+        for (const msg of messages) {
+            if (msg.role === 'system') {
+                systemInstruction = msg.content;
+            } else {
+                contents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                });
+            }
+        }
+        
+        const geminiPayload = {
+            contents,
+            generationConfig: {
+                temperature: Number(state.settings.generation.temperature),
+                maxOutputTokens: Number(state.settings.generation.maxTokens)
+            }
+        };
+        
+        if (systemInstruction) {
+            geminiPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+        }
+        
+        const res = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geminiPayload)
+        });
+        
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Gemini API ${res.status}: ${errText.slice(0, 220)}`);
+        }
+        
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '模型未回傳可顯示內容。';
+    }
+    
+    // OpenAI 相容格式或自訂端點
     if (!state.settings.apiKey) {
         return '尚未設定 API Key，請先於左側設定。';
     }
@@ -340,7 +395,15 @@ async function requestCompletion() {
     };
 
     const isProxy = state.settings.connectionMode === 'proxy' && state.settings.proxyEndpoint;
-    const requestUrl = isProxy ? state.settings.proxyEndpoint : state.settings.baseUrl;
+    let requestUrl = isProxy ? state.settings.proxyEndpoint : state.settings.baseUrl;
+    
+    // 自訂端點使用完整 URL，否則自動加上 /chat/completions
+    if (apiType !== 'custom' && !isProxy) {
+        requestUrl = requestUrl.endsWith('/chat/completions')
+            ? requestUrl
+            : requestUrl.replace(/\/$/, '') + '/chat/completions';
+    }
+    
     const requestBody = isProxy
         ? {
             target: state.settings.baseUrl,
@@ -625,10 +688,11 @@ function loadSettingsFromSxSettings() {
     if (settings.apis && settings.apis.length > 0) {
         const activeApi = settings.activeApi;
         if (activeApi) {
-            state.settings.baseUrl = activeApi.baseUrl || state.settings.baseUrl;
-            state.settings.apiKey = activeApi.apiKey || state.settings.apiKey;
+            state.settings.baseUrl = activeApi.url || state.settings.baseUrl;
+            state.settings.apiKey = activeApi.key || state.settings.apiKey;
             state.settings.model = activeApi.model || state.settings.model;
-            console.log('[pub] Loaded API config from settings:', activeApi.name || 'default');
+            state.settings.apiType = activeApi.type || 'openai';
+            console.log('[pub] Loaded API config from settings:', activeApi.name || 'default', 'type:', activeApi.type);
         }
     }
     
