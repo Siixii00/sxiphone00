@@ -714,16 +714,33 @@ function migrateLegacyHistory() {
     try {
         const legacyHistory = JSON.parse(legacyRaw);
         if (!Array.isArray(legacyHistory) || legacyHistory.length === 0) return;
+        
         const sessions = loadChatSessions();
-        if (sessions.length === 0) {
+        const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
+        const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+        const charPersonality = localStorage.getItem('sx_char_personality') || '';
+        const charBackground = localStorage.getItem('sx_char_background') || '';
+        
+        // 檢查是否已有包含此歷史的 session
+        const existingSession = sessions.find(s => 
+            s.history && s.history.length === legacyHistory.length &&
+            JSON.stringify(s.history) === JSON.stringify(legacyHistory)
+        );
+        
+        if (!existingSession) {
             const newId = `chat_${Date.now()}`;
-            sessions.push({
+            sessions.unshift({
                 id: newId,
-                title: 'AI 助理',
+                title: charName,
+                charName: charName,
+                charAvatar: charAvatar,
+                charPersonality: charPersonality,
+                charBackground: charBackground,
                 history: legacyHistory
             });
             saveChatSessions(sessions);
             localStorage.setItem('sx_chat_active', newId);
+            console.log('[Chat] 已遷移舊聊天紀錄到新 session:', newId);
         }
     } catch (e) {
         console.warn('遷移舊聊天紀錄失敗', e);
