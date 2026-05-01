@@ -480,10 +480,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fields = {
         'regionInput': 'sxiphone_region',
         'langSelect': 'sxiphone_lang',
-        'maskNameInput': 'sx_user_name',
-        'avatarUrlInput': 'sx_user_avatar',
-        'maskPersonality': 'sx_user_personality',
-        'maskBackground': 'sx_user_background',
+        'user-name-input': 'sx_user_name',
+        'user-avatar-input': 'sx_user_avatar',
+        'user-personality-input': 'sx_user_personality',
+        'user-background-input': 'sx_user_background',
         'novaApiUrl': 'sx_nova_api_url',
         'novaApiKey': 'sx_nova_api_key',
         'memory-interval': 'sx_memory_interval',
@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // 如果是頭像欄位，同步更新預覽
-            if (id === 'avatarUrlInput' && savedValue) {
+            if (id === 'user-avatar-input' && savedValue) {
                 updateAvatarPreview(savedValue);
             }
         }
