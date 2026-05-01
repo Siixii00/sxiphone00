@@ -968,6 +968,10 @@ function updateActiveMask(field, value) {
         localStorage.setItem('sx_char_name', value);
     } else if (field === 'avatar') {
         localStorage.setItem('sx_char_avatar', value);
+    } else if (field === 'personality') {
+        localStorage.setItem('sx_char_personality', value);
+    } else if (field === 'background') {
+        localStorage.setItem('sx_char_background', value);
     }
     
     if (typeof charConfig !== 'undefined') {
