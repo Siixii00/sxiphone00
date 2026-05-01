@@ -358,6 +358,7 @@ async function loadChatSessionsAsync() {
 }
 
 function saveChatSessions(sessions) {
+    console.log('[saveChatSessions] 保存 sessions:', sessions.length, sessions.map(s => ({ id: s.id, historyLen: s.history?.length || 0 })));
     localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
 }
 
@@ -2160,6 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chatListView) return;
         chatListView.innerHTML = '';
         const sessions = loadChatSessions();
+        console.log('[renderChatListFromStorage] sessions:', sessions.length, sessions.map(s => ({ id: s.id, historyLen: s.history?.length || 0 })));
         sessions.forEach(session => {
             const history = session.history || [];
             const lastMsg = history[history.length - 1];
@@ -7317,6 +7319,8 @@ function handleJustSend() {
     let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     history.push({ role: "user", content: val, timestamp: Date.now() });
     localStorage.setItem('sx_chat_history', JSON.stringify(history));
+    console.log('[handleJustSend] sx_chat_history 已更新, 長度:', history.length);
+    
     window.parent?.postMessage({
         type: 'MEMORY_CHAT_EVENT',
         payload: { role: 'user', content: val, source: 'chat:manual' }
@@ -7328,6 +7332,7 @@ function handleJustSend() {
 
     let activeId = getActiveChatId();
     let sessions = loadChatSessions();
+    console.log('[handleJustSend] activeId:', activeId, 'sessions:', sessions.length);
     
     if (!activeId || !sessions.find(s => s.id === activeId)) {
         let charName = localStorage.getItem('sx_char_name');
@@ -7347,6 +7352,7 @@ function handleJustSend() {
         saveChatSessions(sessions);
         setActiveChatId(newSession.id);
         activeId = newSession.id;
+        console.log('[handleJustSend] 創建新 session:', newSession.id);
     } else {
         const target = sessions.find(s => s.id === activeId);
         if (target) {
@@ -7355,6 +7361,7 @@ function handleJustSend() {
                 target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
             }
             saveChatSessions(sessions);
+            console.log('[handleJustSend] 更新現有 session:', activeId, 'history 長度:', history.length);
         }
     }
 }
