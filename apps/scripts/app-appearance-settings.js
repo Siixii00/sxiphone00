@@ -6,6 +6,9 @@
     const CUSTOM_DARK_KEY = 'sx_app_interface_custom_dark';
     const THEME_MODE_KEY = 'sx_theme_mode';
     const GLOBAL_APPEARANCE_SAVED = 'sx_global_appearance_saved';
+    const APP_CONFIG_REGISTRY_KEY = 'sx_app_config_registry';
+
+    const appConfigRegistry = {};
 
     const defaultLightSettings = {
         bgColor: '#f2f2f7',
@@ -294,6 +297,8 @@
         const settings = getAppSettings(appId);
         const useGlobal = appId !== 'global' ? getUseGlobal(appId) : false;
         const isGlobal = appId === 'global';
+        const appConfig = getAppConfig(appId);
+        const hasAppSpecific = appConfig && Object.keys(appConfig.settings || {}).length > 0;
 
         let themeTypeLabel = '';
         if (isGlobal) {
@@ -302,6 +307,8 @@
             else if (mode === 'light') themeTypeLabel = '淺色（預設）';
             else themeTypeLabel = '深色（預設）';
         }
+        
+        const appSpecificHTML = hasAppSpecific ? createAppSpecificPanelHTML(appId) : '';
 
         return `
             <div class="sx-app-appearance-panel" id="sx-app-appearance-panel">
@@ -435,6 +442,8 @@
                             </select>
                         </label>
                         
+                        ${hasAppSpecific ? appSpecificHTML : ''}
+                        
                         <div class="sx-section-title">進階設定</div>
                         <label class="sx-field">
                             <span>自訂 CSS</span>
@@ -459,6 +468,15 @@
         const resetBtn = panel.querySelector('#sx-reset-btn');
         const saveBtn = panel.querySelector('#sx-save-btn');
         const applyBtn = panel.querySelector('#sx-apply-btn');
+        const appConfig = getAppConfig(appId);
+
+        const applyPreview = () => {
+            const newSettings = collectSettings(panel);
+            const appSpecificSettings = collectAppSpecificSettings(appId, panel);
+            const mergedSettings = { ...newSettings, ...appSpecificSettings };
+            applySettingsToElement(null, mergedSettings);
+            applyAppSpecificCss(appId, mergedSettings);
+        };
 
         const rangeInputs = [
             { id: 'sx-font-size', valId: 'sx-font-size-val', suffix: 'px' },
@@ -479,9 +497,57 @@
             if (input && valSpan) {
                 input.addEventListener('input', () => {
                     valSpan.textContent = input.value + suffix;
+                    applyPreview();
                 });
             }
         });
+
+        const colorInputs = [
+            'sx-bg-color', 'sx-card-bg-color', 'sx-text-color', 'sx-muted-color',
+            'sx-border-color', 'sx-accent-color'
+        ];
+        colorInputs.forEach(id => {
+            const input = panel.querySelector(`#${id}`);
+            if (input) {
+                input.addEventListener('input', applyPreview);
+            }
+        });
+
+        const selectInputs = ['sx-font-family', 'sx-animation-speed'];
+        selectInputs.forEach(id => {
+            const select = panel.querySelector(`#${id}`);
+            if (select) {
+                select.addEventListener('change', applyPreview);
+            }
+        });
+
+        const customCss = panel.querySelector('#sx-custom-css');
+        if (customCss) {
+            customCss.addEventListener('input', applyPreview);
+        }
+
+        if (appConfig && appConfig.settings) {
+            Object.keys(appConfig.settings).forEach(key => {
+                const settingDef = appConfig.settings[key];
+                const input = panel.querySelector(`#sx-app-${key}`);
+                const valSpan = panel.querySelector(`#sx-app-${key}-val`);
+                if (input) {
+                    if (settingDef.type === 'range') {
+                        input.addEventListener('input', () => {
+                            if (valSpan) {
+                                valSpan.textContent = input.value + (settingDef.unit || '');
+                            }
+                            applyPreview();
+                        });
+                    } else if (settingDef.type === 'color' || settingDef.type === 'select') {
+                        input.addEventListener('input', applyPreview);
+                        input.addEventListener('change', applyPreview);
+                    } else if (settingDef.type === 'toggle') {
+                        input.addEventListener('change', applyPreview);
+                    }
+                }
+            });
+        }
 
         if (useGlobalCheckbox && settingsArea) {
             useGlobalCheckbox.addEventListener('change', () => {
@@ -491,7 +557,9 @@
                 if (useGlobal) {
                     const currentSettings = getCurrentSettings();
                     populateSettings(panel, currentSettings);
+                    populateAppSpecificSettings(appId, panel, currentSettings);
                     applySettingsToElement(null, currentSettings);
+                    applyAppSpecificCss(appId, currentSettings);
                 }
             });
         }
@@ -513,24 +581,35 @@
                 resetAppSettings(appId);
                 const settings = appId === 'global' ? getCurrentSettings() : getAppSettings(appId);
                 populateSettings(panel, settings);
+                populateAppSpecificSettings(appId, panel, settings);
                 applySettingsToElement(null, settings);
+                applyAppSpecificCss(appId, settings);
             });
         }
 
         if (applyBtn) {
             applyBtn.addEventListener('click', () => {
                 const newSettings = collectSettings(panel);
+                const appSpecificSettings = collectAppSpecificSettings(appId, panel);
+                const mergedSettings = { ...newSettings, ...appSpecificSettings };
                 const mode = getThemeMode();
-                saveAppSettings(appId, newSettings, mode);
-                applySettingsToElement(null, newSettings);
+                saveAppSettings(appId, mergedSettings, mode);
+                applySettingsToElement(null, mergedSettings);
+                applyAppSpecificCss(appId, mergedSettings);
                 
                 if (appId === 'global' && (mode === 'custom-light' || mode === 'custom-dark')) {
                     window.parent?.postMessage({ 
                         type: 'CUSTOM_THEME_UPDATED', 
                         mode: mode,
-                        settings: newSettings 
+                        settings: mergedSettings 
                     }, '*');
                 }
+                
+                window.parent?.postMessage({
+                    type: 'APP_APPEARANCE_UPDATED',
+                    appId: appId,
+                    settings: mergedSettings
+                }, '*');
                 
                 if (onClose) onClose();
             });
@@ -539,18 +618,27 @@
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 const newSettings = collectSettings(panel);
+                const appSpecificSettings = collectAppSpecificSettings(appId, panel);
+                const mergedSettings = { ...newSettings, ...appSpecificSettings };
                 const mode = getThemeMode();
-                saveGlobalAppearance(newSettings);
-                saveAppSettings(appId, newSettings, mode);
-                applySettingsToElement(null, newSettings);
+                saveGlobalAppearance(mergedSettings);
+                saveAppSettings(appId, mergedSettings, mode);
+                applySettingsToElement(null, mergedSettings);
+                applyAppSpecificCss(appId, mergedSettings);
                 
                 if (appId === 'global') {
                     window.parent?.postMessage({ 
                         type: 'GLOBAL_APPEARANCE_SAVED', 
                         mode: mode,
-                        settings: newSettings 
+                        settings: mergedSettings 
                     }, '*');
                 }
+                
+                window.parent?.postMessage({
+                    type: 'APP_APPEARANCE_UPDATED',
+                    appId: appId,
+                    settings: mergedSettings
+                }, '*');
                 
                 const toast = document.createElement('div');
                 toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#34C759;color:#fff;padding:12px 24px;border-radius:20px;font-size:14px;z-index:10000;animation:fadeIn 0.3s;';
@@ -666,24 +754,197 @@
     const initAppearanceForApp = (appId) => {
         const settings = getAppSettings(appId);
         applySettingsToElement(null, settings);
+        applyAppSpecificCss(appId, settings);
         
         window.addEventListener('message', (event) => {
             const data = event.data;
             if (!data || typeof data !== 'object') return;
             
             if (data.type === 'THEME_MODE_CHANGED') {
-                // 如果帶有 settings，直接使用
                 if (data.settings && getUseGlobal(appId)) {
                     applySettingsToElement(null, data.settings);
+                    applyAppSpecificCss(appId, data.settings);
                 } else if (getUseGlobal(appId)) {
                     const newSettings = getCurrentSettings();
                     applySettingsToElement(null, newSettings);
+                    applyAppSpecificCss(appId, newSettings);
                 }
             }
             
             if (data.type === 'CUSTOM_THEME_UPDATED') {
                 if (getUseGlobal(appId)) {
                     applySettingsToElement(null, data.settings);
+                    applyAppSpecificCss(appId, data.settings);
+                }
+            }
+            
+            if (data.type === 'APP_APPEARANCE_UPDATED' && data.appId === appId) {
+                applySettingsToElement(null, data.settings);
+                applyAppSpecificCss(appId, data.settings);
+            }
+        });
+    };
+
+    const registerAppConfig = (appId, config) => {
+        if (!appId || !config) return;
+        appConfigRegistry[appId] = {
+            name: config.name || appId,
+            settings: config.settings || {}
+        };
+    };
+
+    const getAppConfig = (appId) => {
+        return appConfigRegistry[appId] || null;
+    };
+
+    const getAllAppConfigs = () => {
+        return { ...appConfigRegistry };
+    };
+
+    const getMergedSettings = (appId) => {
+        const globalSettings = getCurrentSettings();
+        const appConfig = getAppConfig(appId);
+        
+        if (!appConfig || getUseGlobal(appId)) {
+            return globalSettings;
+        }
+        
+        const appSettings = getAppSettings(appId);
+        const merged = { ...globalSettings, ...appSettings };
+        
+        if (appConfig.settings) {
+            Object.keys(appConfig.settings).forEach(key => {
+                const settingDef = appConfig.settings[key];
+                if (settingDef.cssVar && merged[key] !== undefined) {
+                    merged[`_cssVar_${key}`] = settingDef.cssVar;
+                }
+            });
+        }
+        
+        return merged;
+    };
+
+    const applyAppSpecificCss = (appId, settings) => {
+        const appConfig = getAppConfig(appId);
+        if (!appConfig || !appConfig.settings) return;
+        
+        let customCss = '';
+        Object.keys(appConfig.settings).forEach(key => {
+            const settingDef = appConfig.settings[key];
+            if (settingDef.cssVar && settings[key] !== undefined) {
+                let value = settings[key];
+                if (settingDef.unit) {
+                    value = value + settingDef.unit;
+                }
+                customCss += `${settingDef.cssVar}: ${value};\n`;
+            }
+        });
+        
+        if (customCss) {
+            let styleEl = document.getElementById('sx-app-specific-styles');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'sx-app-specific-styles';
+                document.head.appendChild(styleEl);
+            }
+            styleEl.textContent = `:root {\n${customCss}}`;
+        }
+    };
+
+    const createAppSpecificPanelHTML = (appId) => {
+        const appConfig = getAppConfig(appId);
+        if (!appConfig || !appConfig.settings) return '';
+        
+        let html = '<div class="sx-section-title">應用程式專屬設定</div>';
+        
+        Object.keys(appConfig.settings).forEach(key => {
+            const settingDef = appConfig.settings[key];
+            const currentValue = getAppSettings(appId)[key] || settingDef.default;
+            
+            switch (settingDef.type) {
+                case 'color':
+                    html += `
+                        <label class="sx-field sx-field-row">
+                            <span>${settingDef.label}</span>
+                            <input type="color" id="sx-app-${key}" value="${currentValue}">
+                        </label>
+                    `;
+                    break;
+                case 'range':
+                    html += `
+                        <label class="sx-field sx-field-row">
+                            <span>${settingDef.label}</span>
+                            <input type="range" id="sx-app-${key}" min="${settingDef.min || 0}" max="${settingDef.max || 100}" step="${settingDef.step || 1}" value="${currentValue}">
+                            <span class="sx-range-val" id="sx-app-${key}-val">${currentValue}${settingDef.unit || ''}</span>
+                        </label>
+                    `;
+                    break;
+                case 'select':
+                    let options = '';
+                    (settingDef.options || []).forEach(opt => {
+                        options += `<option value="${opt.value}" ${currentValue === opt.value ? 'selected' : ''}>${opt.label}</option>`;
+                    });
+                    html += `
+                        <label class="sx-field sx-field-row">
+                            <span>${settingDef.label}</span>
+                            <select id="sx-app-${key}">${options}</select>
+                        </label>
+                    `;
+                    break;
+                case 'toggle':
+                    html += `
+                        <div class="sx-toggle-row">
+                            <label>
+                                <span>${settingDef.label}</span>
+                                <input type="checkbox" id="sx-app-${key}" ${currentValue ? 'checked' : ''}>
+                            </label>
+                        </div>
+                    `;
+                    break;
+            }
+        });
+        
+        return html;
+    };
+
+    const collectAppSpecificSettings = (appId, panel) => {
+        const appConfig = getAppConfig(appId);
+        if (!appConfig || !appConfig.settings) return {};
+        
+        const settings = {};
+        Object.keys(appConfig.settings).forEach(key => {
+            const el = panel.querySelector(`#sx-app-${key}`);
+            if (el) {
+                const settingDef = appConfig.settings[key];
+                if (settingDef.type === 'toggle') {
+                    settings[key] = el.checked;
+                } else if (settingDef.type === 'range') {
+                    settings[key] = parseFloat(el.value);
+                } else {
+                    settings[key] = el.value;
+                }
+            }
+        });
+        
+        return settings;
+    };
+
+    const populateAppSpecificSettings = (appId, panel, settings) => {
+        const appConfig = getAppConfig(appId);
+        if (!appConfig || !appConfig.settings) return;
+        
+        Object.keys(appConfig.settings).forEach(key => {
+            const el = panel.querySelector(`#sx-app-${key}`);
+            const valEl = panel.querySelector(`#sx-app-${key}-val`);
+            if (el && settings[key] !== undefined) {
+                const settingDef = appConfig.settings[key];
+                if (settingDef.type === 'toggle') {
+                    el.checked = settings[key];
+                } else {
+                    el.value = settings[key];
+                }
+                if (valEl) {
+                    valEl.textContent = settings[key] + (settingDef.unit || '');
                 }
             }
         });
@@ -710,7 +971,15 @@
         getSavedGlobalAppearance,
         clearSavedGlobalAppearance,
         defaultLightSettings,
-        defaultDarkSettings
+        defaultDarkSettings,
+        registerAppConfig,
+        getAppConfig,
+        getAllAppConfigs,
+        getMergedSettings,
+        applyAppSpecificCss,
+        createAppSpecificPanelHTML,
+        collectAppSpecificSettings,
+        populateAppSpecificSettings
     };
 
 })(typeof window !== 'undefined' ? window : globalThis);

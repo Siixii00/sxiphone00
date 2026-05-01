@@ -451,11 +451,16 @@
     </div>
   </div>
 
-  <script src="../scripts/shared-settings.js"></script>
-  <script src="home.js"></script>
+<script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="home.js"></script>
   <script>
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
+    }
+    if (typeof SxAppAppearance !== 'undefined') {
+      SxAppAppearance.initAppearanceForApp('home');
     }
   </script>
 </body>

@@ -707,7 +707,15 @@ in my world</div>
     </main>
 
     <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
-    <script src="../scripts/app-appearance-settings.js"></script>
-    <script src="appearance.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="appearance.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('global');
+        }
+    });
+    </script>
 </body>
 </html>
