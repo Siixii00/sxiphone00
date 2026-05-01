@@ -3122,3 +3122,443 @@ sxiphone/
 - 所有小手機使用者
 - 參與測試的人員
 - 給予回饋和等待的人
+
+---
+
+## API 連接完整指南
+
+本節詳細說明 Sxiphone 的 API 連接機制，包含各種 API 類型的設定方式、多 API 管理策略、以及常見問題排除。
+
+### 支援的 API 類型
+
+Sxiphone 支援三種 API 類型，以適應不同的 AI 服務：
+
+#### OpenAI 相容格式
+
+大多數 AI API 都支援 OpenAI 格式，這是 Sxiphone 的預設選項。
+
+| 項目 | 說明 |
+|------|------|
+| **端點格式** | 輸入 Base URL，系統自動加上 `/chat/completions` |
+| **適用服務** | OpenAI、OpenRouter、DeepSeek、Kimi、GLM、MiniMax、Grok 等 |
+| **請求格式** | 標準 OpenAI Chat Completions API |
+
+**設定範例**：
+
+```
+API 類型：OpenAI 相容
+Base URL：https://openrouter.ai/api/v1
+API Key：sk-or-v1-xxxxx
+模型：anthropic/claude-sonnet-4
+```
+
+**端點處理邏輯**：
+
+```javascript
+// 輸入：https://openrouter.ai/api/v1
+// 實際請求：https://openrouter.ai/api/v1/chat/completions
+const endpoint = apiUrl.endsWith('/chat/completions') 
+    ? apiUrl 
+    : apiUrl.replace(/\/$/, '') + '/chat/completions';
+```
+
+#### Gemini 格式
+
+Google Gemini 使用專屬的 API 格式。
+
+| 項目 | 說明 |
+|------|------|
+| **端點格式** | 需要完整的 Gemini API URL |
+| **API Key 位置** | 放在 URL 參數中，而非 Header |
+| **請求格式** | Google Generative AI 格式 |
+
+**設定範例**：
+
+```
+API 類型：Gemini
+端點：https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=YOUR_API_KEY
+模型：gemini-pro
+```
+
+#### 自訂端點
+
+用於不支援 OpenAI 格式的特殊 API 或自建服務。
+
+| 項目 | 說明 |
+|------|------|
+| **端點格式** | 輸入完整 URL，系統不會修改 |
+| **適用場景** | 自建 API、特殊格式服務 |
+| **注意事項** | 需自行確保端點可正確回應 |
+
+### API 設定步驟
+
+#### 基本設定流程
+
+1. 開啟「設定」→「API 設定」
+2. 點擊「新增 API」
+3. 選擇 API 類型（OpenAI 相容 / Gemini / 自訂）
+4. 填寫設定資訊
+5. 點擊「拉取模型」或手動輸入模型名稱
+6. 點擊「測試連接」確認設定正確
+7. 儲存設定
+
+#### 各欄位說明
+
+| 欄位 | 說明 | 範例 |
+|------|------|------|
+| **API 類型** | 選擇 API 格式類型 | OpenAI 相容 |
+| **端點 URL** | API Base URL 或完整端點 | `https://api.openai.com/v1` |
+| **API Key** | 認證金鑰 | `sk-xxxxx` |
+| **模型** | 使用的模型名稱 | `gpt-4o` |
+
+#### 模型拉取功能
+
+點擊「拉取模型」按鈕可自動獲取該 API 支援的模型清單：
+
+- 系統會向 `{Base URL}/models` 發送 GET 請求
+- OpenRouter 需要額外的 Headers：`HTTP-Referer` 和 `X-Title`
+- 自訂端點可能不支援模型清單功能
+
+### 多 API 管理
+
+#### 新增與切換 API
+
+Sxiphone 支援同時儲存多組 API 設定：
+
+- **新增 API**：在 API 設定頁面點擊「新增 API」
+- **切換 API**：點擊已儲存 API 旁的「啟用」按鈕
+- **刪除 API**：點擊「刪除」按鈕移除不需要的設定
+
+#### 為角色指定 API
+
+每個角色可以指定專屬的 API：
+
+1. 開啟「設定」→「角色管理」
+2. 編輯目標角色
+3. 在「記憶 API」欄位選擇該角色使用的 API
+
+#### API 優先順序
+
+當角色沒有指定 API 時，系統使用以下優先順序：
+
+1. 角色專屬 API 設定
+2. 目前啟用的 API
+3. 備用 API（透過 `getActiveApiWithFallback` 取得）
+
+### 各應用程式的 API 使用
+
+#### 聊天應用（chat.js）
+
+聊天應用是 API 的主要使用者，用於角色對話生成：
+
+```javascript
+// 取得 API 設定
+const api = window.SettingsReader.getActiveApiWithFallback();
+const endpoint = api.url + '/chat/completions';
+
+// 發送請求
+const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${api.key}`
+    },
+    body: JSON.stringify({
+        model: api.model,
+        messages: [...],
+        temperature: 0.85,
+        max_tokens: 500
+    })
+});
+```
+
+#### 日記生成功能
+
+聊天應用包含 `generateDiaryFromAI` 函式，用於生成角色日記：
+
+- 使用聊天記錄和記憶作為上下文
+- 以角色第一人稱視角撰寫日記
+- 支援多語言（根據 `sxiphone_lang` 設定）
+
+#### 交換日記（exchange-diary.js）
+
+交換日記功能使用 API 生成日記內容，支援：
+
+- 多角色日記生成
+- 日記主題設定
+- 情感分析整合
+
+#### 個人維基（personal-wiki.js）
+
+個人維基使用 API 進行：
+
+- 知識問答
+- 內容生成
+- 資訊整理
+
+#### 漂流瓶（drift-bottle.js）
+
+漂流瓶功能使用 API 生成：
+
+- 瓶中信內容
+- 回覆建議
+
+### 各模型特性與推薦設定
+
+#### Claude 系列
+
+| 模型 | 特性 | 推薦用途 |
+|------|------|----------|
+| Claude 4.2 | 最新版本，效能最佳 | 複雜對話、創作 |
+| Claude Opus | 最強推理能力 | 深度分析、角色扮演 |
+| Claude Sonnet | 平衡效能與成本 | 日常對話 |
+
+**推薦參數**：
+- `temperature`: 0.85 - 1.0
+- `max_tokens`: 500 - 2000
+
+#### GPT 系列
+
+| 模型 | 特性 | 推薦用途 |
+|------|------|----------|
+| GPT-4o | 多模態支援 | 圖文對話 |
+| GPT-4o-mini | 高效低成本 | 日常對話 |
+
+**推薦參數**：
+- `temperature`: 0.8 - 1.0
+- `max_tokens`: 500 - 1500
+
+#### Gemini 系列
+
+| 模型 | 特性 | 推薦用途 |
+|------|------|----------|
+| Gemini Pro | 平衡效能 | 一般對話 |
+| Gemini Ultra | 最強效能 | 複雜任務 |
+
+**注意事項**：
+- API Key 放在 URL 參數中
+- 使用不同的請求格式
+
+#### DeepSeek
+
+| 模型 | 特性 | 推薦用途 |
+|------|------|----------|
+| DeepSeek Chat | 通用對話 | 日常使用 |
+| DeepSeek Coder | 程式碼專精 | 技術對話 |
+
+**推薦參數**：
+- `temperature`: 0.7 - 0.9
+
+#### 本地模型（Ollama / LM Studio）
+
+| 項目 | 說明 |
+|------|------|
+| **端點** | `http://localhost:11434/v1`（Ollama）|
+| **優點** | 免費、隱私、可離線使用 |
+| **缺點** | 效能取決於硬體 |
+
+**設定範例**：
+
+```
+API 類型：OpenAI 相容
+Base URL：http://localhost:11434/v1
+API Key：（留空或任意值）
+模型：llama3
+```
+
+### 常見問題排除
+
+#### CORS 錯誤
+
+**症狀**：控制台顯示 CORS 相關錯誤
+
+**解決方案**：
+1. 使用支援 CORS 的 API 服務（如 OpenRouter）
+2. 設定本地代理伺服器
+3. 使用瀏覽器擴充功能繞過 CORS（僅限開發測試）
+
+#### API Key 錯誤
+
+**症狀**：401 Unauthorized 錯錯誤
+
+**檢查項目**：
+- API Key 是否正確複製（無多餘空格）
+- API Key 是否有效（未過期）
+- API Key 是否有足夠權限
+
+#### 模型不存在
+
+**症狀**：模型名稱錯誤
+
+**解決方案**：
+1. 使用「拉取模型」功能獲取正確名稱
+2. 檢查 API 文件確認模型名稱格式
+3. 部分服務需要特定格式的模型名稱（如 `anthropic/claude-sonnet-4`）
+
+#### 連線逾時
+
+**症狀**：請求長時間無回應
+
+**可能原因**：
+- 網路連線問題
+- API 伺服器負載過高
+- 本地模型運行緩慢
+
+**解決方案**：
+- 檢查網路連線
+- 嘗試其他 API 端點
+- 減少 `max_tokens` 參數
+
+#### 回應格式錯誤
+
+**症狀**：無法解析 API 回應
+
+**可能原因**：
+- 使用了錯誤的 API 類型設定
+- API 不支援 OpenAI 格式
+
+**解決方案**：
+- 確認 API 類型設定正確
+- 若使用特殊 API，選擇「自訂端點」類型
+
+---
+
+## 技術架構概覽
+
+本節說明 Sxiphone 的技術架構，供開發者和進階使用者參考。
+
+### 資料儲存結構
+
+Sxiphone 使用瀏覽器的本地儲存機制來保存所有資料：
+
+#### localStorage
+
+用於儲存設定和小型資料：
+
+- 容量限制：約 5MB
+- 存取方式：同步操作
+- 資料格式：字串（需 JSON 序列化）
+
+#### localForage / IndexedDB
+
+用於儲存大量資料：
+
+- 容量限制：視瀏覽器而定（通常數百 MB 以上）
+- 存取方式：非同步操作
+- 適用資料：聊天記錄、記憶資料、媒體檔案
+
+### 主要 localStorage Key 清單
+
+所有 Sxiphone 使用的 localStorage key 都以 `sx_` 開頭：
+
+#### 核心設定
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_user_name` | 使用者名稱 | 字串 |
+| `sx_user_avatar` | 使用者頭像 | 字串（URL/Base64）|
+| `sx_user_personality` | 使用者性格 | 字串 |
+| `sx_user_background` | 使用者背景 | 字串 |
+
+#### 角色資料
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_characters` | 角色清單 | JSON 陣列 |
+| `sx_char_name` | 目前角色名稱 | 字串 |
+| `sx_char_avatar` | 目前角色頭像 | 字串 |
+| `sx_char_personality` | 目前角色性格 | 字串 |
+| `sx_char_background` | 目前角色背景 | 字串 |
+| `sx_char_examples` | 對話範例 | 字串 |
+
+#### API 設定
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `apis` | API 設定清單 | JSON 陣列 |
+| `sx_active_api` | 啟用的 API 索引 | 數字字串 |
+
+#### 世界書
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_worldbook_cot` | CoT 條目 | JSON 陣列 |
+| `sx_worldbook_style` | 風格條目 | JSON 陣列 |
+| `sx_worldbook_global` | 全域條目 | JSON 陣列 |
+| `sx_worldbook_keywords` | 關鍵字條目 | JSON 陣列 |
+| `sx_worldbook_backend` | 後端條目 | JSON 陣列 |
+| `sx_worldbook_theater` | 劇場條目 | JSON 陣列 |
+
+#### 記憶系統
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_short_term_memory` | 短期記憶 | JSON 陣列 |
+| `sx_memory_interval` | 記憶整理間隔 | 數字字串 |
+| `sx_ai_sleep_start` | AI 睡眠開始時間 | 字串（HH:MM）|
+| `sx_ai_sleep_end` | AI 睡眠結束時間 | 字串（HH:MM）|
+| `sx_ai_sleep_enabled` | AI 睡眠功能啟用 | 布林字串 |
+| `sx_ai_sleep_tasks` | 睡眠時執行的任務 | JSON 物件 |
+
+#### 備份設定
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_github_pat` | GitHub Personal Access Token | 字串 |
+| `sx_github_user` | GitHub 使用者名稱 | 字串 |
+| `sx_github_repo` | GitHub 儲存庫名稱 | 字串 |
+| `sx_github_backup_file` | 備份檔案名稱 | 字串 |
+| `sx_auto_backup_enabled` | 自動備份啟用 | 布林字串 |
+| `sx_auto_backup_github` | GitHub 自動備份 | 布林字串 |
+| `sx_auto_backup_supabase` | Supabase 自動備份 | 布林字串 |
+| `sx_auto_backup_local` | 本地自動備份 | 布林字串 |
+
+#### 外觀設定
+
+| Key | 用途 | 類型 |
+|-----|------|------|
+| `sx_masks` | 外觀主題清單 | JSON 陣列 |
+| `sxiphone_lang` | 介面語言 | 字串 |
+
+### 應用程式架構
+
+#### 目錄結構
+
+```
+apps/
+├── chat/           # 聊天應用
+│   ├── chat.js     # 主要邏輯
+│   ├── chat.css    # 樣式
+│   └── index.html  # 頁面
+├── settings/       # 設定應用
+│   └── settings.js # 設定邏邏輯
+├── diary/          # 日記應用
+├── gallery/        # 照相館
+├── worldbook/      # 世界書
+└── scripts/        # 共用腳本
+    └── unified-storage-manager.js
+```
+
+#### 共用腳本
+
+| 腳本 | 用途 |
+|------|------|
+| `unified-storage-manager.js` | 統一儲存管理 |
+| `SettingsReader` | 讀取設定和 API 資訊 |
+
+#### 外觀設定繼承機制
+
+外觀設定採用繼承機制：
+
+1. **全域設定**：在設定應用中配置
+2. **角色設定**：可覆寫全域設定
+3. **優先順序**：角色設定 > 全域設定 > 預設值
+
+#### 模組載入方式
+
+應用程式採用動態載入：
+
+1. 主頁面載入核心框架
+2. 點擊應用圖示時動態載入該應用的 JS/CSS
+3. 應用初始化時讀取 localStorage 設定
+4. 關閉應用時保留狀態到 localStorage
