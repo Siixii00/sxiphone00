@@ -5638,8 +5638,6 @@ ${lastCharContent || '（尚未有對話）'}
         });
     }
 
-        }
-
     const PHONE_APPEARANCE_KEY = 'sx_phone_appearance_config';
 
     const getDefaultPhoneAppearanceConfig = () => ({
