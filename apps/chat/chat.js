@@ -1,136 +1,3 @@
-const CHAT_HISTORY_KEY = 'sx_chat_history';
-const CHAT_HISTORY_CACHE_KEY = 'sx_chat_history_cache';
-const CHAT_CACHE_SIZE = 10;
-
-let _chatHistoryCache = null;
-let _chatHistoryCachePromise = null;
-
-async function getChatHistory() {
-    if (_chatHistoryCache !== null) {
-        return _chatHistoryCache;
-    }
-    
-    if (_chatHistoryCachePromise) {
-        return _chatHistoryCachePromise;
-    }
-    
-    _chatHistoryCachePromise = (async () => {
-        if (typeof storageAdapter !== 'undefined') {
-            await storageAdapter.ready();
-            const history = await storageAdapter.getJSON(CHAT_HISTORY_KEY);
-            if (history && Array.isArray(history)) {
-                _chatHistoryCache = history;
-                return history;
-            }
-        }
-        
-        const raw = localStorage.getItem(CHAT_HISTORY_KEY);
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    _chatHistoryCache = parsed;
-                    return parsed;
-                }
-            } catch (e) {
-                console.warn('[ChatHistory] 解析失敗:', e);
-            }
-        }
-        
-        _chatHistoryCache = [];
-        return [];
-    })();
-    
-    return _chatHistoryCachePromise;
-}
-
-async function saveChatHistory(history) {
-    if (!Array.isArray(history)) return;
-    
-    _chatHistoryCache = history;
-    
-    if (typeof storageAdapter !== 'undefined') {
-        await storageAdapter.ready();
-        await storageAdapter.setJSON(CHAT_HISTORY_KEY, history);
-        
-        if (UserEnv.isIOS() && history.length > CHAT_CACHE_SIZE) {
-            const cache = history.slice(-CHAT_CACHE_SIZE);
-            try {
-                localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(cache));
-            } catch (e) {
-                console.warn('[ChatHistory] 快取寫入失敗:', e);
-            }
-        }
-    } else {
-        try {
-            localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-        } catch (e) {
-            console.error('[ChatHistory] localStorage 寫入失敗:', e);
-        }
-    }
-}
-
-function getChatHistorySync() {
-    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
-    if (raw) {
-        try {
-            return JSON.parse(raw);
-        } catch (e) {
-            return [];
-        }
-    }
-    return [];
-}
-
-function saveChatHistorySync(history) {
-    if (!Array.isArray(history)) return;
-    _chatHistoryCache = history;
-    
-    try {
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(history));
-    } catch (e) {
-        console.error('[ChatHistory] localStorage 寫入失敗:', e);
-    }
-    
-    if (typeof storageAdapter !== 'undefined' && storageAdapter._localforageReady) {
-        storageAdapter.setJSON(CHAT_HISTORY_KEY, history).catch(e => {
-            console.warn('[ChatHistory] IndexedDB 非同步寫入失敗:', e);
-        });
-    }
-}
-
-async function migrateChatHistoryToIndexedDB() {
-    if (typeof storageAdapter === 'undefined') return;
-    
-    await storageAdapter.ready();
-    
-    const localRaw = localStorage.getItem(CHAT_HISTORY_KEY);
-    if (!localRaw) return;
-    
-    try {
-        const localData = JSON.parse(localRaw);
-        if (!Array.isArray(localData) || localData.length === 0) return;
-        
-        const existingData = await storageAdapter.getJSON(CHAT_HISTORY_KEY);
-        if (existingData && Array.isArray(existingData) && existingData.length > 0) {
-            console.log('[ChatHistory] IndexedDB 已有資料，跳過遷移');
-            return;
-        }
-        
-        await storageAdapter.setJSON(CHAT_HISTORY_KEY, localData);
-        console.log('[ChatHistory] 已遷移至 IndexedDB，共', localData.length, '筆');
-        
-        if (UserEnv.isIOS()) {
-            const cache = localData.slice(-CHAT_CACHE_SIZE);
-            localStorage.setItem(CHAT_HISTORY_CACHE_KEY, JSON.stringify(cache));
-            localStorage.removeItem(CHAT_HISTORY_KEY);
-            console.log('[ChatHistory] iOS: 已清除 localStorage 大型資料');
-        }
-    } catch (e) {
-        console.error('[ChatHistory] 遷移失敗:', e);
-    }
-}
-
 const UserEnv = {
     isIOS() {
         return /iP(ad|hone|od)/.test(navigator.userAgent);
@@ -863,14 +730,6 @@ function migrateLegacyHistory() {
     }
 }
 
-async function initStorageAndMigrate() {
-    if (typeof storageAdapter !== 'undefined') {
-        await storageAdapter.ready();
-        await migrateChatHistoryToIndexedDB();
-        console.log('[Chat] 儲存初始化完成');
-    }
-}
-
 function getActiveChatId() {
     return localStorage.getItem('sx_chat_active') || '';
 }
@@ -1152,7 +1011,9 @@ function getTodayDateString() {
 
 function loadCharMemoryForDiary(charName) {
     try {
-        const history = getChatHistorySync();
+        const raw = localStorage.getItem('sx_chat_history');
+        if (!raw) return [];
+        const history = JSON.parse(raw);
         if (!Array.isArray(history) || history.length === 0) return [];
 
         const charMessages = [];
@@ -1434,9 +1295,9 @@ function getTodayYMD() {
 }
 
 function appendHistoryAndSession(role, content) {
-    const history = getChatHistorySync();
+    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     history.push({ role, content });
-    saveChatHistorySync(history);
+    localStorage.setItem('sx_chat_history', JSON.stringify(history));
     const activeId = getActiveChatId();
     if (activeId) {
         const sessions = loadChatSessions();
@@ -2165,7 +2026,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (existingSession) {
                     setActiveChatId(existingSession.id);
-                    saveChatHistorySync(existingSession.history || []);
+                    localStorage.setItem('sx_chat_history', JSON.stringify(existingSession.history || []));
                     if (existingSession.charName) localStorage.setItem('sx_char_name', existingSession.charName);
                     if (existingSession.charAvatar) localStorage.setItem('sx_char_avatar', existingSession.charAvatar);
                     if (existingSession.charPersonality) localStorage.setItem('sx_char_personality', existingSession.charPersonality);
@@ -2200,7 +2061,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveChatSessions(sessions);
                     setActiveChatId(newSession.id);
                     renderChatListFromStorage();
-                    saveChatHistorySync(newSession.history);
+                    localStorage.setItem('sx_chat_history', JSON.stringify(newSession.history));
                     if (chatTitleEl) chatTitleEl.innerText = charName;
                     showChatDetail();
                     renderHistory();
@@ -2352,7 +2213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (target) {
             setActiveChatId(target.id);
-            saveChatHistorySync(target.history || []);
+            localStorage.setItem('sx_chat_history', JSON.stringify(target.history || []));
             
             if (target.charName) {
                 localStorage.setItem('sx_char_name', target.charName);
@@ -2502,14 +2363,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveChatId(newSession.id);
         renderChatListFromStorage();
         renderFriendsList();
-        saveChatHistorySync(newSession.history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(newSession.history));
         if (chatTitleEl) chatTitleEl.innerText = charName;
         showChatDetail();
         renderHistory();
     });
 
     migrateLegacyHistory();
-    initStorageAndMigrate();
     renderChatListFromStorage();
     renderFriendsList();
     const activeSession = getActiveSession();
@@ -2606,9 +2466,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 發送圖片表情
             appendMsg('mine', '', { type: 'image', url: data.emoji.url, name: data.emoji.name });
-            const history = getChatHistorySync();
+            const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             history.push({ role: "user", content: `[表情: ${data.emoji.name}]`, imageUrl: data.emoji.url });
-            saveChatHistorySync(history);
+            localStorage.setItem('sx_chat_history', JSON.stringify(history));
             const activeId = getActiveChatId();
             if (activeId) {
                 const sessions = loadChatSessions();
@@ -2782,7 +2642,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[Chat] 刪除前 sessions 數量:', sessions.length, '刪除後:', newSessions.length);
             
             saveChatSessions(newSessions);
-            saveChatHistorySync([]);
+            localStorage.removeItem('sx_chat_history');
             localStorage.removeItem('sx_chat_active'); // 修復: 清除活躍對話 ID
             
             renderHistory();
@@ -2797,7 +2657,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearChatBtn) {
         clearChatBtn.onclick = () => {
             if (!confirm('只清除當前對話內容？（記憶摘要不會被清掉）')) return;
-            saveChatHistorySync([]);
+            localStorage.setItem('sx_chat_history', JSON.stringify([]));
             const activeId = getActiveChatId();
             if (activeId) {
                 const sessions = loadChatSessions();
@@ -3700,7 +3560,7 @@ function initSideDrawer() {
     };
 
     const handleGenerateDiary = async () => {
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
         const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         
@@ -3948,7 +3808,7 @@ function initSideDrawer() {
         const userName = localStorage.getItem('sx_user_name') || 'User';
         const userBio = document.getElementById('set-user-background')?.value || '';
         
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         const recentHistory = history.slice(-10);
         const historyText = recentHistory.map(m => {
             const role = m.role === 'user' ? userName : charName;
@@ -4476,10 +4336,10 @@ ${lastCharContent || '（尚未有對話）'}
         
         appendMsg('mine', voiceBubbleHtml);
         
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         const contentText = transcript || '[語音訊息]';
         history.push({ role: 'user', content: contentText });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
         
         const activeId = getActiveChatId();
         if (activeId) {
@@ -4496,9 +4356,9 @@ ${lastCharContent || '（尚未有對話）'}
         const charReply = await getAIReplyForVoice(contentText);
         if (charReply) {
             appendMsg('other', charReply);
-            const updatedHistory = getChatHistorySync();
+            const updatedHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             updatedHistory.push({ role: 'assistant', content: charReply });
-            saveChatHistorySync(updatedHistory);
+            localStorage.setItem('sx_chat_history', JSON.stringify(updatedHistory));
             if (activeId) {
                 const sessions = loadChatSessions();
                 const target = sessions.find(s => s.id === activeId);
@@ -4562,9 +4422,9 @@ ${lastCharContent || '（尚未有對話）'}
         
         appendMsg('mine', voiceBubbleHtml);
         
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         history.push({ role: 'user', content: text });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
         
         const activeId = getActiveChatId();
         if (activeId) {
@@ -4581,9 +4441,9 @@ ${lastCharContent || '（尚未有對話）'}
         const charReply = await getAIReplyForVoice(text);
         if (charReply) {
             appendMsg('other', charReply);
-            const updatedHistory = getChatHistorySync();
+            const updatedHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             updatedHistory.push({ role: 'assistant', content: charReply });
-            saveChatHistorySync(updatedHistory);
+            localStorage.setItem('sx_chat_history', JSON.stringify(updatedHistory));
             if (activeId) {
                 const sessions = loadChatSessions();
                 const target = sessions.find(s => s.id === activeId);
@@ -4881,9 +4741,9 @@ ${lastCharContent || '（尚未有對話）'}
     const processUserSpeech = async (text) => {
         if (callState !== 'in-call') return;
 
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         history.push({ role: 'user', content: text });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
         const settings = getVoiceSettings();
         const delay = (settings.voiceThinkDelay || 1.5) * 1000;
@@ -4988,7 +4848,7 @@ ${lastCharContent || '（尚未有對話）'}
             }
             
             history.push({ role: 'assistant', content: reply });
-            saveChatHistorySync(history);
+            localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
             addTranscript('char', reply);
 
@@ -5445,9 +5305,9 @@ ${lastCharContent || '（尚未有對話）'}
             btn.textContent = item;
             btn.addEventListener('click', () => {
                 appendMsg('mine', item);
-                const history = getChatHistorySync();
+                const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                 history.push({ role: "user", content: item });
-                saveChatHistorySync(history);
+                localStorage.setItem('sx_chat_history', JSON.stringify(history));
                 const activeId = getActiveChatId();
                 if (activeId) {
                     const sessions = loadChatSessions();
@@ -5478,9 +5338,9 @@ ${lastCharContent || '（尚未有對話）'}
                 btn.title = item.name || 'sticker';
                 btn.addEventListener('click', () => {
                     appendMsg('mine', '', { type: 'image', url: item.url, name: item.name });
-                    const history = getChatHistorySync();
+                    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                     history.push({ role: "user", content: `[表情: ${item.name || 'sticker'}]`, imageUrl: item.url });
-                    saveChatHistorySync(history);
+                    localStorage.setItem('sx_chat_history', JSON.stringify(history));
                     const activeId = getActiveChatId();
                     if (activeId) {
                         const sessions = loadChatSessions();
@@ -5658,9 +5518,9 @@ ${lastCharContent || '（尚未有對話）'}
                 </div>
             `;
             appendMsg('mine', mapMessage);
-            const history = getChatHistorySync();
+            const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             history.push({ role: "user", content: mapMessage });
-            saveChatHistorySync(history);
+            localStorage.setItem('sx_chat_history', JSON.stringify(history));
             const activeId = getActiveChatId();
             if (activeId) {
                 const sessions = loadChatSessions();
@@ -5706,9 +5566,9 @@ ${lastCharContent || '（尚未有對話）'}
                 }
                 
                 appendMsg('mine', imgHtml);
-                const history = getChatHistorySync();
+                const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                 history.push({ role: "user", content: imgHtml });
-                saveChatHistorySync(history);
+                localStorage.setItem('sx_chat_history', JSON.stringify(history));
                 const activeId = getActiveChatId();
                 if (activeId) {
                     const sessions = loadChatSessions();
@@ -6181,7 +6041,7 @@ const ChatEngine = {
     },
     getHistorySlice() {
         const depth = parseInt(localStorage.getItem('chat_history_range')) || 30;
-        let history = getChatHistorySync();
+        let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         return history.slice(-depth);
     },
     // 獲取關係距離設定
@@ -7319,7 +7179,7 @@ function renderHistory() {
     notice.innerHTML = `現在正與 <span id="hint-name">${activeName}</span> 對話中`;
     chatFlow.appendChild(notice);
     
-    const history = getChatHistorySync();
+    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     if (history.length === 0) {
         window.parent?.postMessage({
             type: 'MEMORY_REQUEST_HISTORY',
@@ -7361,9 +7221,9 @@ function handleJustSend() {
     appendMsg('mine', val, { timestamp: Date.now() });
     msgInput.value = '';
 
-    let history = getChatHistorySync();
+    let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     history.push({ role: "user", content: val, timestamp: Date.now() });
-    saveChatHistorySync(history);
+    localStorage.setItem('sx_chat_history', JSON.stringify(history));
     window.parent?.postMessage({
         type: 'MEMORY_CHAT_EVENT',
         payload: { role: 'user', content: val, source: 'chat:manual' }
@@ -7412,9 +7272,10 @@ function handleJustSend() {
 async function handleTriggerAI() {
     const genBtn = document.getElementById('generate-trigger');
     if (!genBtn) return;
+    // 精準抓取內部的 i 標籤
     const icon = genBtn.querySelector('i');
     
-    let history = getChatHistorySync();
+    let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     if (history.length === 0) return;
     
     const wbParts = (typeof window.getSerializedWorldbookParts === 'function')
@@ -7455,9 +7316,9 @@ async function handleTriggerAI() {
                 }
             }
             const combinedReply = messages.join('\n');
-            const freshHistory = getChatHistorySync();
+            const freshHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             freshHistory.push({ role: "assistant", content: combinedReply, generationMode: 'multi', splitMessages: messages });
-            saveChatHistorySync(freshHistory);
+            localStorage.setItem('sx_chat_history', JSON.stringify(freshHistory));
             handleHouseInviteResponse(aiReply, freshHistory);
             window.parent?.postMessage({
                 type: 'MEMORY_CHAT_EVENT',
@@ -7495,9 +7356,9 @@ async function handleTriggerAI() {
             }
         } else {
             appendMsg('other', aiReply);
-            const freshHistory = getChatHistorySync();
+            const freshHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             freshHistory.push({ role: "assistant", content: aiReply });
-            saveChatHistorySync(freshHistory);
+            localStorage.setItem('sx_chat_history', JSON.stringify(freshHistory));
             handleHouseInviteResponse(aiReply, freshHistory);
             window.parent?.postMessage({
                 type: 'MEMORY_CHAT_EVENT',
@@ -7704,7 +7565,7 @@ const RandomGreetingSystem = {
         const charConfig = getActiveConfig();
         const greeting = this.selectGreeting(charConfig.personality);
         
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         const lastMsg = history[history.length - 1];
         
         if (lastMsg && lastMsg.role === 'assistant') {
@@ -7715,7 +7576,7 @@ const RandomGreetingSystem = {
         
         appendMsg('other', greeting, { timestamp: Date.now() });
         history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
         
         localStorage.setItem(LAST_GREETING_KEY, Date.now().toString());
         
@@ -7738,10 +7599,10 @@ const RandomGreetingSystem = {
         const charConfig = getActiveConfig();
         const checkIn = this.selectCheckIn();
         
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         appendMsg('other', checkIn, { timestamp: Date.now() });
         history.push({ role: 'assistant', content: checkIn, timestamp: Date.now() });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
         
         const activeId = getActiveChatId();
         if (activeId) {
@@ -7976,7 +7837,7 @@ window.deleteMsg = (e) => {
     const historyIndex = currentTargetMsg.dataset.historyIndex;
     const splitIndex = currentTargetMsg.dataset.splitIndex;
     
-    let history = getChatHistorySync();
+    let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     
     if (historyIndex !== undefined) {
         const hIdx = parseInt(historyIndex, 10);
@@ -7995,7 +7856,7 @@ window.deleteMsg = (e) => {
             history.splice(hIdx, 1);
         }
         
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
         
         const activeId = getActiveChatId();
         if (activeId) {
@@ -8043,12 +7904,12 @@ window.triggerRegen = async (e) => {
     e.stopPropagation();
     closeContextMenu();
 
-    let history = getChatHistorySync();
+    let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     if (history.length === 0) return;
     if (history[history.length - 1]?.role !== 'assistant') return;
 
     history.pop();
-    saveChatHistorySync(history);
+    localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
     const activeId = getActiveChatId();
     if (activeId) {
@@ -8100,7 +7961,7 @@ window.editMsg = (e) => {
             const historyIndex = currentTargetMsg.dataset.historyIndex;
             const splitIndex = currentTargetMsg.dataset.splitIndex;
             
-            let history = getChatHistorySync();
+            let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             
             if (historyIndex !== undefined) {
                 const hIdx = parseInt(historyIndex, 10);
@@ -8114,7 +7975,7 @@ window.editMsg = (e) => {
                     historyItem.content = newText;
                 }
                 
-                saveChatHistorySync(history);
+                localStorage.setItem('sx_chat_history', JSON.stringify(history));
                 
                 const activeId = getActiveChatId();
                 if (activeId) {
@@ -8209,7 +8070,7 @@ function handleBack() {
         const currentPayload = {
             masks: JSON.parse(localStorage.getItem('sx_masks') || '[]'),
             api_configs: JSON.parse(localStorage.getItem('api_configs') || '[]'),
-            chat_history: getChatHistorySync(),
+            chat_history: JSON.parse(localStorage.getItem('sx_chat_history') || '[]'),
             user_name: localStorage.getItem('sx_user_name') || 'User',
             user_avatar: localStorage.getItem('sx_user_avatar') || '',
             lang: localStorage.getItem('sxiphone_lang') || '',
@@ -8349,9 +8210,9 @@ const VoiceCallEngine = {
             if (userText && this.isActive) {
                 this.addTranscript('user', userText);
                 appendMsg('mine', userText);
-                let history = getChatHistorySync();
+                let history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                 history.push({ role: 'user', content: userText });
-                saveChatHistorySync(history);
+                localStorage.setItem('sx_chat_history', JSON.stringify(history));
                 const activeId = getActiveChatId();
                 if (activeId) {
                     const sessions = loadChatSessions();
@@ -8372,9 +8233,9 @@ const VoiceCallEngine = {
                 if (charReply && this.isActive) {
                     this.addTranscript('char', charReply);
                     appendMsg('other', charReply);
-                    history = getChatHistorySync();
+                    history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                     history.push({ role: 'assistant', content: charReply });
-                    saveChatHistorySync(history);
+                    localStorage.setItem('sx_chat_history', JSON.stringify(history));
                     if (activeId) {
                         const sessions = loadChatSessions();
                         const target = sessions.find(s => s.id === activeId);
@@ -8805,14 +8666,14 @@ function sendProductRecommend() {
     
     appendMsg('other', productCard);
     
-    const history = getChatHistorySync();
+    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     history.push({ 
         role: 'assistant', 
         content: productCard,
         productData: selectedRecommendProduct,
         recommendType: recommendType
     });
-    saveChatHistorySync(history);
+    localStorage.setItem('sx_chat_history', JSON.stringify(history));
     
     const activeId = getActiveChatId();
     if (activeId) {
@@ -8935,12 +8796,12 @@ window.addEventListener('message', (event) => {
             `;
             appendMsg('mine', giftBubbleHtml);
 
-            const history = getChatHistorySync();
+            const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
             history.push({ 
                 role: 'user', 
                 content: `送出了禮物券「${gift.name}」${gift.message ? `，留言：「${gift.message}」` : ''}`
             });
-            saveChatHistorySync(history);
+            localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
             const activeId = getActiveChatId();
             if (activeId) {
@@ -8980,12 +8841,12 @@ window.addEventListener('message', (event) => {
         `;
         appendMsg('other', giftBubbleHtml);
 
-        const history = getChatHistorySync();
+        const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
         history.push({ 
             role: 'assistant', 
             content: `送給你「${gift.name}」${message ? `：「${message}」` : ''}`
         });
-        saveChatHistorySync(history);
+        localStorage.setItem('sx_chat_history', JSON.stringify(history));
 
         const activeId = getActiveChatId();
         if (activeId) {
@@ -9069,7 +8930,7 @@ function generateMemoryTable() {
     const addBtn = document.getElementById('memory-add-btn');
     
     const rounds = parseInt(roundsInput?.value) || 30;
-    const history = getChatHistorySync();
+    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     
     if (history.length === 0) {
         if (preview) {
@@ -9402,7 +9263,7 @@ function checkAutoMemoryGeneration() {
     const settings = getMemoryTableSettings();
     if (!settings.autoGenerate) return;
     
-    const history = getChatHistorySync();
+    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
     const rounds = Math.floor(history.length / 2);
     
     if (rounds > 0 && rounds % settings.autoRounds === 0 && rounds !== conversationRoundCounter) {
