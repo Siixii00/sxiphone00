@@ -1000,6 +1000,52 @@ async function loadCharSettingsFromIndexedDB() {
     return null;
 }
 
+async function saveUserSettingsToIndexedDB(userData) {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+        if (!localforage._config || !localforage._config.storeName) {
+            localforage.config({
+                name: 'sxiphone',
+                storeName: 'chatData',
+                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
+            });
+        }
+        
+        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
+        await localforage.setItem('sx_app_persisted_data', {
+            ...existingData,
+            userName: userData.name || existingData.userName,
+            userAvatar: userData.avatar || existingData.userAvatar,
+            userPersonality: userData.personality || existingData.userPersonality,
+            userBackground: userData.background || existingData.userBackground,
+            lastSaved: Date.now()
+        });
+        console.log('[Storage] 用戶設定已保存至 IndexedDB');
+    } catch (e) {
+        console.warn('[Storage] 用戶設定儲存到 IndexedDB 失敗:', e);
+    }
+}
+
+async function loadUserSettingsFromIndexedDB() {
+    if (typeof localforage === 'undefined') return null;
+    
+    try {
+        const persistedData = await localforage.getItem('sx_app_persisted_data');
+        if (persistedData) {
+            return {
+                name: persistedData.userName,
+                avatar: persistedData.userAvatar,
+                personality: persistedData.userPersonality,
+                background: persistedData.userBackground
+            };
+        }
+    } catch (e) {
+        console.warn('[Storage] 從 IndexedDB 載入用戶設定失敗:', e);
+    }
+    return null;
+}
+
 function updateActiveMask(field, value) {
     let masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     if (masks.length === 0) {
@@ -1497,6 +1543,7 @@ function saveUserSettings(newUserName) {
         payload: { name: newUserName }
     }, '*');
 
+    saveUserSettingsToIndexedDB({ name: newUserName });
     console.log("用戶資料已更新並同步 UI:", newUserName);
 }
 
@@ -1504,9 +1551,12 @@ function saveUserSettings(newUserName) {
  * 儲存用戶完整資料（名稱、背景等）
  */
 function saveUserFullSettings(newUserName, newUserBg) {
+    const userData = {};
+    
     if (newUserName) {
         localStorage.setItem('sx_user_name', newUserName);
         userConfig.name = newUserName;
+        userData.name = newUserName;
         
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = newUserName);
@@ -1515,8 +1565,10 @@ function saveUserFullSettings(newUserName, newUserBg) {
     if (newUserBg !== undefined) {
         localStorage.setItem('sx_user_background', newUserBg);
         userConfig.background = newUserBg;
+        userData.background = newUserBg;
     }
     
+    saveUserSettingsToIndexedDB(userData);
     console.log("用戶完整資料已更新");
 }
 
@@ -1638,6 +1690,7 @@ function initUserUI() {
             localStorage.setItem('sx_user_background', e.target.value);
             userConfig.background = e.target.value;
             updateUserToList();
+            saveUserSettingsToIndexedDB({ background: e.target.value });
         });
     }
     
