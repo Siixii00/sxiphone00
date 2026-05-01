@@ -528,6 +528,24 @@ class UnifiedStorageManager {
     }, 30 * 1000);
   }
 
+
+  _runInitialCheck() {
+    console.log('[UnifiedStorageManager] iOS 初始檢查');
+    const pressure = this.checkIOSStoragePressureSync();
+    if (pressure.pressure === 'critical' || pressure.pressure === 'high') {
+      console.warn('[UnifiedStorageManager] 偵測到儲存壓力:', pressure.pressure);
+      this.emergencyCleanupSync();
+    }
+  }
+
+  _autoCleanupCheck() {
+    const pressure = this.checkIOSStoragePressureSync();
+    if (pressure.pressure === 'critical') {
+      console.warn('[UnifiedStorageManager] 自動清理檢查: 壓力過高');
+      this.emergencyCleanupSync();
+    }
+  }
+
   async _migrateToIndexedDBPipeline() {
     if (typeof localforage === 'undefined') {
       console.warn('[UnifiedStorageManager] localforage 未載入，跳過遷移');
@@ -1533,24 +1551,22 @@ class UnifiedStorageManager {
   async _getCacheStorageSize() {
     try {
       const cacheNames = await caches.keys();
-      let totalSize = 0;
       let totalCount = 0;
-
+      
       for (const name of cacheNames) {
         const cache = await caches.open(name);
         const keys = await cache.keys();
         totalCount += keys.length;
-        
-        for (const request of keys) {
-          const response = await cache.match(request);
-          if (response) {
-            const blob = await response.clone().blob();
-            totalSize += blob.size;
-          }
-        }
       }
 
-      return { size: totalSize, count: totalCount };
+      if (navigator.storage && navigator.storage.estimate) {
+        const estimate = await navigator.storage.estimate();
+        const lsSize = this._getLocalStorageSize().size;
+        const cacheEstimate = Math.max(0, (estimate.usage || 0) - lsSize);
+        return { size: cacheEstimate, count: totalCount };
+      }
+      
+      return { size: 0, count: totalCount };
     } catch (e) {
       console.warn('[UnifiedStorageManager] 無法計算 Cache 大小:', e);
       return { size: 0, count: 0 };
