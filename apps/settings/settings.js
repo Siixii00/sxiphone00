@@ -6176,6 +6176,119 @@ function initChatNotificationSettings() {
     }
 
     loadSettings();
+    
+    const floatingEnabledToggle = document.getElementById('floating-messenger-enabled');
+    const floatingScreenshareToggle = document.getElementById('floating-messenger-screenshare');
+    const floatingTestBtn = document.getElementById('test-floating-messenger-btn');
+    const floatingPlatformInfo = document.getElementById('floating-messenger-platform-info');
+    
+    const loadFloatingSettings = () => {
+        try {
+            const raw = localStorage.getItem('sx_floating_messenger_config');
+            const config = raw ? JSON.parse(raw) : {};
+            
+            if (floatingEnabledToggle) floatingEnabledToggle.checked = config.enabled === true;
+            if (floatingScreenshareToggle) floatingScreenshareToggle.checked = config.screenshare === true;
+        } catch (e) {
+            console.warn('載入懸浮窗設定失敗:', e);
+        }
+    };
+    
+    const saveFloatingSettings = () => {
+        const config = {
+            enabled: floatingEnabledToggle?.checked || false,
+            screenshare: floatingScreenshareToggle?.checked || false
+        };
+        
+        localStorage.setItem('sx_floating_messenger_config', JSON.stringify(config));
+        
+        if (config.enabled && window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'OPEN_FLOATING_MESSENGER' }, '*');
+        } else if (!config.enabled && window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'CLOSE_FLOATING_MESSENGER' }, '*');
+        }
+    };
+    
+    const updateFloatingPlatformInfo = () => {
+        if (!floatingPlatformInfo) return;
+        
+        const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isDesktop = !isIOS && !isAndroid;
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const supportsScreenShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+        const supportsBadge = 'setAppBadge' in navigator;
+        
+        let platformText = '';
+        let canFloating = false;
+        let iosWarning = '';
+        
+        if (isDesktop) {
+            platformText = '電腦版：支援懸浮窗';
+            canFloating = true;
+        } else if (isAndroid) {
+            if (isPWA) {
+                platformText = 'Android PWA：支援懸浮窗';
+                canFloating = true;
+            } else {
+                platformText = 'Android：需安裝為 PWA 才能使用懸浮窗';
+            }
+        } else if (isIOS) {
+            const iosMatch = navigator.userAgent.match(/OS (\d+)_?(\d+)?/);
+            const iosMajor = iosMatch ? parseInt(iosMatch[1], 10) : 0;
+            const iosMinor = iosMatch ? parseInt(iosMatch[2] || 0, 10) : 0;
+            const supportsWebPush = iosMajor >= 16 && iosMinor >= 4;
+            
+            if (!isPWA) {
+                platformText = 'iOS：請加入主屏幕以啟用功能';
+                iosWarning = '分享 → 加入主屏幕';
+            } else if (!supportsWebPush) {
+                platformText = `iOS ${iosMajor}.${iosMinor}：需 iOS 16.4+ 才支援推送`;
+                iosWarning = '背景通知僅支援 iOS 16.4+';
+            } else {
+                platformText = 'iOS PWA：應用內通知';
+                iosWarning = 'iOS 限制：僅在開啟 App 時可收到通知';
+            }
+            
+            if (supportsBadge) {
+                platformText += ' | 支援圖示角標';
+            }
+        }
+        
+        if (supportsScreenShare && !isIOS) {
+            platformText += ' | 支援螢幕分享';
+            if (floatingScreenshareToggle) floatingScreenshareToggle.disabled = false;
+        } else {
+            if (floatingScreenshareToggle) floatingScreenshareToggle.disabled = true;
+        }
+        
+        floatingPlatformInfo.innerHTML = platformText + (iosWarning ? `<br><span style="color:#ff9500;font-size:12px;">⚠️ ${iosWarning}</span>` : '');
+        
+        if (floatingEnabledToggle) {
+            floatingEnabledToggle.disabled = !canFloating && !isIOS;
+        }
+    };
+    
+    if (floatingEnabledToggle) {
+        floatingEnabledToggle.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingScreenshareToggle) {
+        floatingScreenshareToggle.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingTestBtn) {
+        floatingTestBtn.addEventListener('click', () => {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'TOGGLE_FLOATING_MESSENGER' }, '*');
+            } else if (window.FloatingMessenger) {
+                window.FloatingMessenger.toggle();
+            }
+        });
+    }
+    
+    loadFloatingSettings();
+    updateFloatingPlatformInfo();
 }
 
 const BackgroundPushManager = {

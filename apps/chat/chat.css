@@ -1030,14 +1030,15 @@ body, html {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 70px;
+    bottom: 0;
     background: #fff;
     border-top: 1px solid #eee;
     padding: 12px 16px;
     display: none;
-    z-index: 1600;
-    max-height: 300px;
-    overflow: hidden;
+    z-index: 2000;
+    max-height: 50vh;
+    overflow-y: auto;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
 }
 
 .location-panel {
@@ -1417,11 +1418,11 @@ body, html {
 .emoji-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    font-size: 18px;
-    max-height: 220px;
+    gap: 10px;
+    font-size: 22px;
+    max-height: 280px;
     overflow-y: auto;
-    padding-right: 4px;
+    padding: 8px 4px;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
 }
@@ -1429,9 +1430,36 @@ body, html {
 .emoji-row button {
     border: none;
     background: #f2f2f2;
-    border-radius: 8px;
-    padding: 6px 10px;
+    border-radius: 12px;
+    padding: 12px 16px;
     cursor: pointer;
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.emoji-row button:active {
+    background: #e0e0e0;
+    transform: scale(0.95);
+}
+
+.emoji-row button.sticker-btn {
+    background: #f8f8f8;
+    padding: 8px;
+    min-width: 80px;
+    min-height: 80px;
+    border-radius: 12px;
+}
+
+.emoji-row button.sticker-btn:active {
+    background: #e8e8e8;
+}
+
+.emoji-row button.sticker-btn img {
+    border-radius: 8px;
 }
 
 .location-panel input {

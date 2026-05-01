@@ -804,6 +804,36 @@
                 <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
 
                 <div class="cell-v">
+                    <span class="cell-label" style="font-weight:600;">懸浮聊天窗</span>
+                    <p class="ios-caption">在其他應用程式上方顯示聊天視窗，讓您隨時與 AI 保持聯繫。</p>
+                </div>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">啟用懸浮窗</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="floating-messenger-enabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="ios-caption" id="floating-messenger-platform-info">平台支援狀態：載入中...</p>
+
+                <div class="cell" style="margin-top:8px;">
+                    <span class="cell-label">支援螢幕分享</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="floating-messenger-screenshare" disabled>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="ios-caption">允許從懸浮窗截取螢幕畫面分享給 AI</p>
+
+                <div style="margin-top:12px;">
+                    <button class="ios-btn" id="test-floating-messenger-btn">測試懸浮窗</button>
+                    <p class="ios-caption" style="margin-top:8px;">立即開啟懸浮聊天窗</p>
+                </div>
+
+                <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">
+
+                <div class="cell-v">
                     <span class="cell-label">自訂提示詞（可選）</span>
                     <textarea id="keepalive-custom-prompt" class="ios-textarea-minimal" rows="2" placeholder="例如：請用溫柔的語氣問候..."></textarea>
                     <p class="ios-caption">額外的指示，會附加到預設提示詞後面</p>

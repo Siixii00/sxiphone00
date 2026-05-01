@@ -472,11 +472,39 @@ window.addEventListener('pageshow', async (event) => {
                 if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
                 
                 if (persistedData.sx_chat_sessions) {
-                    const existingSessions = localStorage.getItem('sx_chat_sessions');
-                    if (!existingSessions) {
-                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedData.sx_chat_sessions));
-                        console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
+                    const existingSessionsRaw = localStorage.getItem('sx_chat_sessions');
+                    let existingSessions = [];
+                    try {
+                        existingSessions = existingSessionsRaw ? JSON.parse(existingSessionsRaw) : [];
+                    } catch (e) {
+                        existingSessions = [];
                     }
+                    
+                    const persistedSessions = persistedData.sx_chat_sessions;
+                    
+if (persistedSessions.length > existingSessions.length) {
+                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
+                        console.log('[Chat] 從 localforage 恢復聊天 sessions (較完整):', persistedSessions.length, '個 (原:', existingSessions.length, ')');
+                        
+                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
+                        if (activeId) {
+                            const activeSession = persistedSessions.find(s => s.id === activeId);
+                            if (activeSession && activeSession.history) {
+                                localStorage.setItem('sx_chat_history', JSON.stringify(activeSession.history));
+                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
+                            }
+                        }
+                    } else if (!existingSessionsRaw) {
+                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
+                        console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
+                    }
+                }
+                if (persistedData.sx_chat_active) {
+                    const existingActive = localStorage.getItem('sx_chat_active');
+                    if (!existingActive) {
+                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
+                    }
+                }
                 }
                 if (persistedData.sx_chat_active) {
                     const existingActive = localStorage.getItem('sx_chat_active');
@@ -701,18 +729,41 @@ window.addEventListener('message', (event) => {
         handleArcadeInviteFromUser(data.payload);
     }
     
-    // 處理街機廳大頭貼對話
     if (data.type === 'ARCADE_AVATAR_CLICK' && data.payload) {
         console.log('[Chat] 收到街機廳大頭貼對話:', data.payload);
         handleArcadeAvatarDialogue(data.payload);
     }
     
-    // 處理街機廳 AI 對話請求
     if (data.type === 'ARCADE_REQUEST_DIALOGUE' && data.requestId) {
         console.log('[Chat] 收到街機廳 AI 對話請求:', data.requestId);
         handleArcadeRequestDialogue(data);
     }
+    
+    if (data.type === 'FLOATING_SEND_MESSAGE' && data.message) {
+        console.log('[Chat] 收到懸浮窗訊息:', data.message);
+        addMessage(data.message, 'user', false, true);
+    }
+    
+    if (data.type === 'FLOATING_SCREENSHOT' && data.dataUrl) {
+        console.log('[Chat] 收到懸浮窗截圖');
+        handleFloatingScreenshot(data.dataUrl);
+    }
 });
+
+function handleFloatingScreenshot(dataUrl) {
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.maxWidth = '200px';
+    img.style.borderRadius = '8px';
+    
+    const container = document.createElement('div');
+    container.appendChild(img);
+    
+    addMessage(container.innerHTML, 'user', false, true);
+    
+    const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
+    addMessage(`${charName} 已收到截圖，請稍等...`, 'ai', false);
+}
 
 function migrateLegacyHistory() {
     const legacyRaw = localStorage.getItem('sx_chat_history');
@@ -2102,16 +2153,40 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const sessions = loadChatSessions();
         console.log('[renderFriendsList] sessions:', sessions);
+        
+        const characters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
+        const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+        const allChars = [...characters, ...masks];
+        
+        const charAvatarMap = new Map();
+        allChars.forEach(char => {
+            if (char && char.name) {
+                charAvatarMap.set(char.name, char.avatar || '');
+            }
+        });
+        
         const uniqueFriends = new Map();
         
         sessions.forEach(session => {
             console.log('[renderFriendsList] session:', session.id, 'charName:', session.charName);
             if (session.charName && !uniqueFriends.has(session.charName)) {
+                const avatar = session.charAvatar || charAvatarMap.get(session.charName) || localStorage.getItem('sx_char_avatar') || '';
                 uniqueFriends.set(session.charName, {
                     name: session.charName,
-                    avatar: session.charAvatar || '',
+                    avatar: avatar,
                     personality: session.charPersonality || '',
                     background: session.charBackground || ''
+                });
+            }
+        });
+        
+        allChars.forEach(char => {
+            if (char && char.name && char.name !== '預設用戶' && !uniqueFriends.has(char.name)) {
+                uniqueFriends.set(char.name, {
+                    name: char.name,
+                    avatar: char.avatar || '',
+                    personality: char.personality || '',
+                    background: char.background || ''
                 });
             }
         });
@@ -5535,12 +5610,13 @@ ${lastCharContent || '（尚未有對話）'}
         stickerList.forEach(item => {
             const btn = document.createElement('button');
             btn.type = 'button';
+            btn.className = 'sticker-btn';
             
             if (typeof item === 'object' && item.url) {
                 const img = document.createElement('img');
                 img.src = item.url;
                 img.alt = item.name || 'sticker';
-                img.style.cssText = 'width: 32px; height: 32px; object-fit: contain;';
+                img.style.cssText = 'width: 64px; height: 64px; object-fit: contain;';
                 btn.appendChild(img);
                 btn.title = item.name || 'sticker';
                 btn.addEventListener('click', () => {
@@ -5608,7 +5684,8 @@ ${lastCharContent || '（尚未有對話）'}
             const action = item.dataset.action;
             if (action === 'emoji') {
                 renderKaomojiButtons(kaomojiList);
-                emojiPanel?.classList.toggle('active');
+                plusMenu?.classList.remove('open');
+                emojiPanel?.classList.add('active');
                 locationPanel?.classList.remove('active');
             }
             if (action === 'sticker') {
@@ -7285,6 +7362,14 @@ function scheduleReadUpdate(msgId, delay) {
         const delay = calculateReadDelay(currentCharConfig.personality);
         scheduleReadUpdate(msgId, delay);
     }
+    
+    if (type === 'other' && window.FloatingMessenger) {
+        window.FloatingMessenger.handleIncomingMessage({
+            content: typeof text === 'string' ? text : '',
+            role: 'assistant',
+            timestamp: timestamp
+        });
+    }
 
     supabaseMessageCountSinceLastBackup++;
     if (supabaseMessageCountSinceLastBackup >= SUPABASE_BACKUP_INTERVAL) {
@@ -7314,12 +7399,23 @@ function scheduleReadUpdate(msgId, delay) {
         currentTargetMsg = row;
         bubble.classList.add('long-press-active');
 
+        const chatFlow = document.getElementById('chat-flow');
+        const containerRect = chatFlow?.getBoundingClientRect();
+        
         const menuWidth = 140;
         const menuHeight = 126;
-        const maxX = window.innerWidth - menuWidth - 8;
-        const maxY = window.innerHeight - menuHeight - 8;
-        const left = Math.max(8, Math.min(x - menuWidth / 2, maxX));
-        const top = Math.max(8, Math.min(y - 12, maxY));
+        
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        let left = Math.max(8, Math.min(x - menuWidth / 2, viewportWidth - menuWidth - 8));
+        let top = y + 8;
+        
+        if (top + menuHeight > viewportHeight - 20) {
+            top = y - menuHeight - 8;
+        }
+        
+        top = Math.max(8, top);
 
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
@@ -7332,6 +7428,7 @@ function scheduleReadUpdate(msgId, delay) {
     };
 
     const startPress = (e) => {
+        e.preventDefault();
         hideMenu();
         const point = e.touches ? e.touches[0] : e;
         startX = point.clientX;
@@ -7365,7 +7462,11 @@ function scheduleReadUpdate(msgId, delay) {
     bubble.addEventListener('mouseleave', endPress);
     bubble.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        showMenu(e.clientX, e.clientY);
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        const chatFlow = document.getElementById('chat-flow');
+        const scrollY = chatFlow ? chatFlow.scrollTop : 0;
+        showMenu(e.clientX, e.clientY + scrollY);
     });
 }
 function renderHistory() {
@@ -7397,7 +7498,7 @@ function renderHistory() {
         const timestamp = m.timestamp || Date.now();
         if (m.imageUrl) {
             appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表情: ', '').replace(']', '') || 'emoji', timestamp, historyIndex: historyIdx });
-        } else if (m.generationMode === 'multi' && Array.isArray(m.splitMessages) && m.splitMessages.length > 0) {
+        } else if ((m.generationMode === 'multi' || m.generationMode === 'multi-text') && Array.isArray(m.splitMessages) && m.splitMessages.length > 0) {
             m.splitMessages.forEach((msg, splitIdx) => {
                 const trimmedMsg = msg.trim();
                 if (trimmedMsg) {
@@ -7474,6 +7575,8 @@ function handleJustSend() {
             console.log('[handleJustSend] 更新現有 session:', activeId, 'history 長度:', history.length);
         }
     }
+    
+    saveChatSessionsToIndexedDB(loadChatSessions());
 }
 
 /**
@@ -7516,7 +7619,7 @@ async function handleTriggerAI() {
         aiReply = sanitizeEllipsis(aiReply);
         
         const generationMode = ChatEngine.getGenerationMode();
-        if (generationMode === 'multi') {
+        if (generationMode === 'multi' || generationMode === 'multi-text') {
             const messages = aiReply.split('|||SPLIT|||').filter(msg => msg.trim());
             for (const msg of messages) {
                 const trimmedMsg = msg.trim();
@@ -7527,7 +7630,7 @@ async function handleTriggerAI() {
             }
             const combinedReply = messages.join('\n');
             const freshHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
-            freshHistory.push({ role: "assistant", content: combinedReply, generationMode: 'multi', splitMessages: messages });
+            freshHistory.push({ role: "assistant", content: combinedReply, generationMode: generationMode, splitMessages: messages });
             localStorage.setItem('sx_chat_history', JSON.stringify(freshHistory));
             handleHouseInviteResponse(aiReply, freshHistory);
             window.parent?.postMessage({
@@ -8040,6 +8143,7 @@ if (msgInput) {
 // --- 10. 訊息選單功能 ---
 window.deleteMsg = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!currentTargetMsg) return;
     const chatFlow = document.getElementById('chat-flow');
     if (!chatFlow) return;
@@ -8053,7 +8157,9 @@ window.deleteMsg = (e) => {
         const hIdx = parseInt(historyIndex, 10);
         const historyItem = history[hIdx];
         
-        if (splitIndex !== undefined && historyItem?.generationMode === 'multi' && Array.isArray(historyItem.splitMessages)) {
+        const isMultiMode = historyItem?.generationMode === 'multi' || historyItem?.generationMode === 'multi-text';
+        
+        if (splitIndex !== undefined && isMultiMode && Array.isArray(historyItem.splitMessages)) {
             const sIdx = parseInt(splitIndex, 10);
             historyItem.splitMessages.splice(sIdx, 1);
             
@@ -8078,10 +8184,10 @@ window.deleteMsg = (e) => {
             }
         }
         
+        currentTargetMsg = null;
+        closeContextMenu();
         renderHistory();
     }
-    
-    closeContextMenu();
 };
 
 window.copyText = async (e) => {

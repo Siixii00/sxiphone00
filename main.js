@@ -5062,6 +5062,10 @@ const handleEnd = (y) => {
         const lockScreen = document.getElementById('lock-screen');
         if (!viewport || !frame) return;
 
+        if (appId === 'chat' && window.FloatingMessenger) {
+            window.FloatingMessenger.clearBadge();
+        }
+
         if (phoneCheckActive && appId !== currentAppId) {
             viewport.classList.add('phone-check-active');
             updatePhoneCheckOverlay();

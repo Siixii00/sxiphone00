@@ -122,6 +122,11 @@
     <script src="apps/scripts/background-keepalive.js"></script>
     <script src="apps/scripts/sx-notification.js"></script>
     <script src="apps/scripts/chat-notification-engine.js"></script>
+    <script src="apps/scripts/floating-messenger-core.js"></script>
+    <script src="apps/scripts/desktop-floating-window.js"></script>
+    <script src="apps/scripts/android-floating-window.js"></script>
+    <script src="apps/scripts/ios-notification-handler.js"></script>
+    <script src="apps/scripts/screen-share-manager.js"></script>
     <script src="dock.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@200;400;600&display=swap" rel="stylesheet">
@@ -571,6 +576,40 @@
         window.canInstallPWA = () => {
             return deferredInstallPrompt !== null;
         };
+        
+        window.initFloatingMessenger = () => {
+            if (window.FloatingMessenger) {
+                const capabilities = window.FloatingMessenger.getCapabilities();
+                console.log('[FloatingMessenger] 功能支援:', capabilities);
+                
+                if (capabilities.floatingWindow || capabilities.notifications) {
+                    window.FloatingMessenger.open();
+                }
+            }
+        };
+        
+        window.toggleFloatingMessenger = () => {
+            if (window.FloatingMessenger) {
+                window.FloatingMessenger.toggle();
+            }
+        };
+        
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            
+            switch (data.type) {
+                case 'OPEN_FLOATING_MESSENGER':
+                    window.initFloatingMessenger?.();
+                    break;
+                case 'CLOSE_FLOATING_MESSENGER':
+                    window.FloatingMessenger?.close();
+                    break;
+                case 'TOGGLE_FLOATING_MESSENGER':
+                    window.toggleFloatingMessenger?.();
+                    break;
+            }
+        });
     </script>
 </body>
 </html>
