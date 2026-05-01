@@ -2,7 +2,7 @@
   "name": "sxiphone - iOS 風格手機介面",
   "short_name": "sxiphone",
   "description": "iOS 風格的手機介面模擬器，提供聊天、設定等多種應用功能",
-  "start_url": "/",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
@@ -58,6 +58,12 @@
       "purpose": "any"
     },
     {
+      "src": "apps/screenshots/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "apps/screenshots/current.png",
       "sizes": "512x512",
       "type": "image/png",
@@ -90,19 +96,19 @@
       "name": "聊天",
       "short_name": "聊天",
       "description": "開啟聊天應用",
-      "url": "/?app=chat",
+      "url": "/index.html?app=chat",
       "icons": [{ "src": "apps/screenshots/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "設定",
       "short_name": "設定",
       "description": "開啟設定",
-      "url": "/?app=settings",
+      "url": "/index.html?app=settings",
       "icons": [{ "src": "apps/screenshots/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "share_target": {
-    "action": "/?app=chat",
+    "action": "/index.html?app=chat",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {
@@ -114,9 +120,9 @@
   "protocol_handlers": [
     {
       "protocol": "web+sxi",
-      "url": "/?app=%s"
+      "url": "/index.html?app=%s"
     }
   ],
   "related_applications": [],
-  "id": "/"
+  "id": "/index.html"
 }
