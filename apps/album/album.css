@@ -29,8 +29,7 @@ body {
     display: flex;
     align-items: center;
     position: relative;
-    height: var(--safe-top);
-    min-height: 44px;
+    min-height: 100px;
     flex-shrink: 0;
 }
 
@@ -62,9 +61,15 @@ body {
     letter-spacing: -0.4px;
 }
 
-.header-action {
+.header-actions {
     position: absolute;
     right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-action {
     background: transparent;
     border: none;
     color: var(--blue);
