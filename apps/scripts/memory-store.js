@@ -1,5 +1,5 @@
 const DB_NAME = 'sx_memory_db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 class MemoryStore {
   constructor() {
@@ -33,12 +33,14 @@ class MemoryStore {
       request.onupgradeneeded = (event) => {
         console.log('[MemoryStore] 執行 schema 升級...');
         const db = event.target.result;
-        this._createSchema(db);
+        const transaction = event.target.transaction;
+        this._createSchema(db, transaction);
       };
     });
   }
 
-  _createSchema(db) {
+  _createSchema(db, transaction) {
+    // 處理 memories store
     if (!db.objectStoreNames.contains('memories')) {
       const memoriesStore = db.createObjectStore('memories', { keyPath: 'id' });
       memoriesStore.createIndex('type', 'metadata.type', { unique: false });
@@ -49,6 +51,18 @@ class MemoryStore {
       memoriesStore.createIndex('consolidated', 'metadata.consolidated', { unique: false });
       memoriesStore.createIndex('hash', 'hash', { unique: false });
       console.log('[MemoryStore] memories store 創建完成');
+    } else if (transaction) {
+      // 在現有 store 上添加缺少的 index
+      const store = transaction.objectStore('memories');
+      
+      if (!store.indexNames.contains('hash')) {
+        store.createIndex('hash', 'hash', { unique: false });
+        console.log('[MemoryStore] 已添加 hash index 到 memories store');
+      }
+      if (!store.indexNames.contains('consolidated')) {
+        store.createIndex('consolidated', 'metadata.consolidated', { unique: false });
+        console.log('[MemoryStore] 已添加 consolidated index 到 memories store');
+      }
     }
 
     if (!db.objectStoreNames.contains('embeddings')) {
