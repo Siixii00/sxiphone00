@@ -200,7 +200,14 @@ class UnifiedMemorySystem {
     this._saveIdentity();
     
     if (this.memoryPool) {
-      this.memoryPool.setPremise(`我是 ${identity.name || 'AI 助理'}，正在與用戶對話`);
+      if (identity.type === 'character' || identity.type === 'ai') {
+        this.memoryPool.setPremise(`我是 ${identity.name || 'AI 助理'}，正在與用戶對話`);
+      } else if (identity.type === 'user_companion') {
+        const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
+        this.memoryPool.setPremise(`我是 ${charName}，正在與用戶對話`);
+      } else {
+        this.memoryPool.setPremise(`我是 ${identity.name || 'AI 助理'}，正在與用戶對話`);
+      }
     }
     
     console.log('[UnifiedMemorySystem] 身份已設置:', identity.name || '未知');
