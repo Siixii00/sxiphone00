@@ -3446,20 +3446,29 @@
         try {
             console.log('[Sleep] 開始執行強制睡眠...');
             
-            const result = await sleepEngine.sleep({
-                consolidate: true,
-                vectorize: true,
-                associate: true,
-                decay: true,
-                wiki: true
+            const result = await sleepEngine.sleep('manual', {
+                tasks: {
+                    consolidate: true,
+                    vectorize: true,
+                    associate: true,
+                    decay: true,
+                    wiki: true
+                }
             });
             
             console.log('[Sleep] 睡眠處理完成:', result);
-            alert(`睡眠處理完成！\n\n` +
-                `記憶整合: ${result.phases?.consolidation?.merged || 0} 條\n` +
-                `向量化: ${result.phases?.vectorization?.vectorized || 0} 條\n` +
-                `關聯建立: ${result.phases?.association?.created || 0} 條\n` +
-                `Wiki 處理: ${result.phases?.wikiProcessing?.vectorized || 0} 條`);
+            
+            if (result.skipped) {
+                alert(`睡眠處理已跳過\n原因: ${result.reason || '未知'}`);
+            } else {
+                alert(`睡眠處理完成！\n\n` +
+                    `短期轉長期: ${result.phases?.shortToLong?.stored || 0} 條\n` +
+                    `記憶整合: ${result.phases?.consolidate?.merged || 0} 條\n` +
+                    `社交記憶向量化: ${result.phases?.socialMemories?.vectorized || 0} 條\n` +
+                    `聊天記憶向量化: ${result.phases?.chatMemories?.vectorized || 0} 條\n` +
+                    `Wiki 向量化: ${result.phases?.wikiProcessing?.vectorized || 0} 條\n` +
+                    `Char Wiki 生成: ${result.phases?.wikiProcessing?.generated || 0} 條`);
+            }
         } catch (e) {
             console.error('[Sleep] 睡眠處理失敗:', e);
             alert('睡眠處理失敗: ' + e.message);

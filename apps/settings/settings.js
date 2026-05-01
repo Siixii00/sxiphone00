@@ -723,6 +723,248 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (githubStatus) githubStatus.textContent = text;
     };
 
+    const updateStorageUI = async () => {
+        if (typeof UnifiedStorageManager === 'undefined') return;
+        
+        const manager = new UnifiedStorageManager();
+        
+        try {
+            const detailed = await manager.getDetailedEstimate();
+            const iosWarning = manager.checkIOSStorageWarning();
+            
+            const totalKB = Math.round(detailed.total.size / 1024);
+            const lsKB = Math.round(detailed.localStorage.size / 1024);
+            const idbKB = Math.round(detailed.indexedDB.size / 1024);
+            
+            const usageText = document.getElementById('storage-usage-text');
+            const usageBar = document.getElementById('storage-usage-bar');
+            const lsSize = document.getElementById('ls-size');
+            const idbSize = document.getElementById('idb-size');
+            const warningEl = document.getElementById('storage-warning');
+            
+            if (usageText) {
+                usageText.textContent = `${totalKB} KB`;
+            }
+            
+            if (lsSize) lsSize.textContent = `${lsKB} KB`;
+            if (idbSize) idbSize.textContent = `${idbKB} KB`;
+            
+            if (iosWarning.isIOS && usageBar) {
+                const percentage = Math.min(iosWarning.usagePercentage * 100, 100);
+                usageBar.style.width = `${percentage}%`;
+                
+                if (iosWarning.warning === 'critical') {
+                    usageBar.style.background = '#FF453A';
+                } else if (iosWarning.warning === 'warning') {
+                    usageBar.style.background = '#FF9500';
+                } else {
+                    usageBar.style.background = 'var(--ios-blue)';
+                }
+            } else if (usageBar) {
+                const maxDisplay = 5 * 1024 * 1024;
+                const percentage = Math.min((detailed.total.size / maxDisplay) * 100, 100);
+                usageBar.style.width = `${percentage}%`;
+            }
+            
+            if (warningEl && iosWarning.warning) {
+                warningEl.classList.remove('hidden');
+                if (iosWarning.warning === 'critical') {
+                    warningEl.textContent = '⚠️ 儲存空間嚴重不足，可能導致資料遺失！建議立即清理。';
+                } else {
+                    warningEl.textContent = '⚠️ 儲存空間使用率較高，建議清理舊資料。';
+                }
+            } else if (warningEl) {
+                warningEl.classList.add('hidden');
+            }
+        } catch (e) {
+            console.warn('[Settings] 更新儲存 UI 失敗:', e);
+        }
+    };
+
+    const storageCleanupBtn = document.getElementById('storage-cleanup-btn');
+    storageCleanupBtn?.addEventListener('click', async () => {
+        if (typeof UnifiedStorageManager === 'undefined') {
+            alert('UnifiedStorageManager 未載入');
+            return;
+        }
+        
+        const manager = new UnifiedStorageManager();
+        
+        if (!confirm('確定要清理舊資料嗎？\n\n將會：\n- 清除 30 天前的聊天快取\n- 清除 Service Worker 快取\n\n此操作無法復原。')) {
+            return;
+        }
+        
+        try {
+            const result = await manager.cleanup({
+                clearOldChatCache: true,
+                clearCache: true
+            });
+            
+            let msg = '清理完成！\n';
+            if (result.localStorageCleared > 0) {
+                msg += `- 已清理 ${result.localStorageCleared} 個舊聊天室\n`;
+            }
+            if (result.cacheCleared) {
+                msg += '- 已清除 Service Worker 快取\n';
+            }
+            
+            alert(msg);
+            await updateStorageUI();
+            await updateIOSStoragePressure();
+        } catch (e) {
+            alert('清理失敗: ' + e.message);
+        }
+    });
+
+    const updateIOSStoragePressure = async () => {
+        const pressureEl = document.getElementById('ios-storage-pressure');
+        const pressureValueEl = document.getElementById('ios-pressure-value');
+        const pressureBarEl = document.getElementById('ios-pressure-bar');
+        const pressureRecommendationEl = document.getElementById('ios-pressure-recommendation');
+
+        if (!pressureEl || typeof UnifiedStorageManager === 'undefined') return;
+
+        try {
+            const manager = new UnifiedStorageManager();
+            const pressure = await manager.checkIOSStoragePressure();
+
+            if (!pressure.isIOS) {
+                pressureEl.classList.add('hidden');
+                return;
+            }
+
+            pressureEl.classList.remove('hidden');
+
+            const percentage = Math.round(pressure.usagePercentage * 100);
+            if (pressureValueEl) {
+                pressureValueEl.textContent = `${percentage}%`;
+            }
+
+            if (pressureBarEl) {
+                pressureBarEl.style.width = `${percentage}%`;
+                if (pressure.pressure === 'critical') {
+                    pressureBarEl.style.background = '#FF453A';
+                } else if (pressure.pressure === 'high') {
+                    pressureBarEl.style.background = '#FF9500';
+                } else if (pressure.pressure === 'moderate') {
+                    pressureBarEl.style.background = '#FFCC00';
+                } else {
+                    pressureBarEl.style.background = '#34C759';
+                }
+            }
+
+            if (pressureRecommendationEl) {
+                pressureRecommendationEl.textContent = pressure.recommendation;
+            }
+
+            const cleanupStats = manager.getCleanupStats();
+            if (cleanupStats && pressureRecommendationEl) {
+                pressureRecommendationEl.textContent += ` (上次清理: ${cleanupStats.lastCleanup ? new Date(cleanupStats.lastCleanup).toLocaleDateString() : '無'})`;
+            }
+        } catch (e) {
+            console.warn('[Settings] 更新 iOS 儲存壓力失敗:', e);
+        }
+    };
+
+    updateIOSStoragePressure();
+
+    const updateBackupPipelineStatus = () => {
+        const migrateStatusEl = document.getElementById('pipeline-migrate-status');
+        const supabaseStatusEl = document.getElementById('pipeline-supabase-status');
+        const nightlyStatusEl = document.getElementById('pipeline-nightly-status');
+        const failWarningEl = document.getElementById('backup-fail-warning');
+        const failMessageEl = document.getElementById('backup-fail-message');
+        const manualBackupBtn = document.getElementById('manual-backup-btn');
+
+        if (!migrateStatusEl) return;
+
+        const lastMigrate = localStorage.getItem('sx_last_pipeline_migrate');
+        if (lastMigrate) {
+            const migrateTime = new Date(parseInt(lastMigrate));
+            const minutesAgo = Math.round((Date.now() - parseInt(lastMigrate)) / 60000);
+            migrateStatusEl.textContent = `✅ ${minutesAgo}分鐘前`;
+            migrateStatusEl.style.color = '#34C759';
+        } else {
+            migrateStatusEl.textContent = '⏳ 待執行';
+            migrateStatusEl.style.color = '#FF9500';
+        }
+
+        const lastSupabaseAuto = localStorage.getItem('sx_supabase_last_auto_backup');
+        const supabaseEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
+        if (supabaseEnabled && lastSupabaseAuto) {
+            const minutesAgo = Math.round((Date.now() - parseInt(lastSupabaseAuto)) / 60000);
+            supabaseStatusEl.textContent = `✅ ${minutesAgo}分鐘前`;
+            supabaseStatusEl.style.color = '#34C759';
+        } else if (!supabaseEnabled) {
+            supabaseStatusEl.textContent = '⚠️ 未啟用';
+            supabaseStatusEl.style.color = '#FF9500';
+        } else {
+            supabaseStatusEl.textContent = '⏳ 待執行';
+            supabaseStatusEl.style.color = '#FF9500';
+        }
+
+        const lastNightly = localStorage.getItem('sx_last_nightly_backup');
+        if (lastNightly) {
+            nightlyStatusEl.textContent = `✅ ${lastNightly}`;
+            nightlyStatusEl.style.color = '#34C759';
+        } else {
+            nightlyStatusEl.textContent = '⏳ 待執行';
+            nightlyStatusEl.style.color = '#FF9500';
+        }
+
+        const pendingFail = localStorage.getItem('sx_backup_fail_pending') === 'true';
+        if (pendingFail && failWarningEl) {
+            failWarningEl.classList.remove('hidden');
+            const details = localStorage.getItem('sx_backup_fail_details');
+            if (details && failMessageEl) {
+                try {
+                    const parsed = JSON.parse(details);
+                    const errors = parsed.results?.errors || [];
+                    failMessageEl.textContent = `時間: ${new Date(parsed.time).toLocaleString()}\n錯誤: ${errors.join(', ') || '未知錯誤'}`;
+                } catch {
+                    failMessageEl.textContent = '備份失敗，請手動備份資料';
+                }
+            }
+        } else if (failWarningEl) {
+            failWarningEl.classList.add('hidden');
+        }
+
+        if (manualBackupBtn) {
+            manualBackupBtn.onclick = () => {
+                if (typeof UnifiedStorageManager !== 'undefined') {
+                    const manager = new UnifiedStorageManager();
+                    manager.collectAllStorageData().then(data => {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `sxiphone-backup-${new Date().toISOString().slice(0,10)}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        manager.clearBackupNotification();
+                        updateBackupPipelineStatus();
+                        alert('✅ 本地備份已完成！');
+                    });
+                }
+            };
+        }
+    };
+
+    updateBackupPipelineStatus();
+    setInterval(updateBackupPipelineStatus, 60000);
+
+    window.addEventListener('sxiphone-backup-failed', (e) => {
+        console.warn('[Settings] 收到備份失敗事件:', e.detail);
+        updateBackupPipelineStatus();
+        
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('SxiPhone 備份失敗', {
+                body: '雲端備份失敗，請前往設定頁面進行手動備份',
+                icon: '/icons/icon-192.png'
+            });
+        }
+    });
+
     const refreshGitHubSection = async () => {
         const loginToken = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
         const loginUser = localStorage.getItem('sx_github_user');
@@ -768,7 +1010,61 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
+        
+        await updateStorageUI();
     };
+
+    const memorySyncPushBtn = document.getElementById('memory-sync-push');
+    const memorySyncPullBtn = document.getElementById('memory-sync-pull');
+    const memorySyncStatus = document.getElementById('memory-sync-status');
+
+    memorySyncPushBtn?.addEventListener('click', async () => {
+        if (typeof UnifiedStorageManager === 'undefined') {
+            if (memorySyncStatus) memorySyncStatus.textContent = '❌ 管理器未載入';
+            return;
+        }
+
+        const manager = new UnifiedStorageManager();
+        if (memorySyncStatus) memorySyncStatus.textContent = '同步中...';
+
+        try {
+            const result = await manager.syncAllMemories('push');
+            if (result.shortTerm?.success) {
+                if (memorySyncStatus) memorySyncStatus.textContent = '✅ 記憶已同步到 IndexedDB';
+            } else {
+                if (memorySyncStatus) memorySyncStatus.textContent = '⚠️ ' + (result.shortTerm?.reason || '同步失敗');
+            }
+        } catch (e) {
+            if (memorySyncStatus) memorySyncStatus.textContent = '❌ 同步失敗: ' + e.message;
+        }
+    });
+
+    memorySyncPullBtn?.addEventListener('click', async () => {
+        if (typeof UnifiedStorageManager === 'undefined') {
+            if (memorySyncStatus) memorySyncStatus.textContent = '❌ 管理器未載入';
+            return;
+        }
+
+        const manager = new UnifiedStorageManager();
+        if (memorySyncStatus) memorySyncStatus.textContent = '拉取中...';
+
+        try {
+            const result = await manager.syncAllMemories('pull');
+            if (result.shortTerm?.success) {
+                const count = result.shortTerm.count || 0;
+                if (memorySyncStatus) memorySyncStatus.textContent = '✅ 已拉取 ' + count + ' 條記憶';
+                
+                if (typeof ShortTermMemory !== 'undefined') {
+                    const stm = new ShortTermMemory();
+                    stm.initialize();
+                }
+            } else {
+                if (memorySyncStatus) memorySyncStatus.textContent = '⚠️ ' + (result.shortTerm?.reason || '拉取失敗');
+            }
+        } catch (e) {
+            if (memorySyncStatus) memorySyncStatus.textContent = '❌ 拉取失敗: ' + e.message;
+        }
+    });
 
     refreshGitHubSection();
 
@@ -915,108 +1211,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        // 觸發全局事件通知其他組件資料已還原
         window.dispatchEvent(new CustomEvent('sxiphone-data-restored', { 
             detail: { count, source: 'github-pull' } 
         }));
         
-        // 通知父視窗（如果在 iframe 中）
         window.parent?.postMessage({
             type: 'DATA_RESTORED',
             count
         }, '*');
 
-        console.log(`[GitHub 還原] 已還原 ${count} 筆資料`);
+        console.log('[GitHub 還原] 已還原 ' + count + ' 筆資料');
+
+        if (typeof ShortTermMemory !== 'undefined') {
+            try {
+                const stm = new ShortTermMemory();
+                stm.initialize();
+                console.log('[GitHub 還原] 短期記憶已重新初始化');
+            } catch (e) {
+                console.warn('[GitHub 還原] 短期記憶初始化失敗:', e);
+            }
+        }
         
         return count;
     };
 
     const githubPushBackup = async (statusEl) => {
-        const token = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat') || '';
-        const repoName = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
-        const filePath = localStorage.getItem('sx_github_backup_file') || 'backup/sxiphone.json';
-        
-        if (!token) {
-            if (statusEl) statusEl.textContent = '❌ 請先連接 GitHub 或儲存 PAT';
+        if (typeof UnifiedStorageManager === 'undefined') {
+            if (statusEl) statusEl.textContent = '❌ UnifiedStorageManager 未載入';
             return false;
         }
 
-        if (statusEl) statusEl.textContent = '正在收集資料...';
+        const manager = new UnifiedStorageManager();
+        
         try {
-            const userResp = await fetch('https://api.github.com/user', {
-                headers: { Authorization: `token ${token}` }
-            });
-            const userData = await userResp.json();
-            if (!userData || !userData.login) throw new Error('無法取得使用者資訊，請確認 Token 權限');
-
-            const owner = userData.login;
-
-            if (statusEl) statusEl.textContent = '正在檢查儲存庫...';
-            const repoResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}`, {
-                headers: { Authorization: `token ${token}` }
-            });
-            if (repoResp.status === 404) {
-                if (statusEl) statusEl.textContent = '正在建立儲存庫...';
-                const createRepoResp = await fetch('https://api.github.com/user/repos', {
-                    method: 'POST',
-                    headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: repoName, 
-                        private: true,
-                        description: 'SxiPhone 備份儲存庫'
-                    })
-                });
-                if (!createRepoResp.ok) throw new Error('無法建立儲存庫');
-            }
-
-            if (statusEl) statusEl.textContent = '正在準備備份資料...';
-            const allData = await collectAllStorageData();
-            const payload = {
-                version: '2.0',
-                exportedAt: new Date().toISOString(),
-                device: navigator.userAgent,
-                data: allData
-            };
-
-            const jsonStr = JSON.stringify(payload, null, 2);
-            
-            if (jsonStr.length > 1024 * 1024) {
-                console.warn('[GitHub 備份] 資料過大，嘗試壓縮...');
-            }
-            
-            const contentBase64 = encodeToBase64(jsonStr);
-
-            if (contentBase64.length > 1024 * 1024) {
-                throw new Error(`備份資料過大 (${Math.round(contentBase64.length / 1024 / 1024)}MB)，GitHub API 限制 1MB。請減少資料量或使用本地導出。`);
-            }
-
-            if (statusEl) statusEl.textContent = '正在上傳備份...';
-            const existing = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
-                headers: { Authorization: `token ${token}` }
-            });
-            const existingData = existing.ok ? await existing.json() : null;
-
-            const uploadResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
-                method: 'PUT',
-                headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: `SxiPhone 備份 ${new Date().toLocaleString()}`,
-                    content: contentBase64,
-                    sha: existingData?.sha
-                })
+            const result = await manager.backupToGitHub({
+                onStatus: (msg) => {
+                    if (statusEl) statusEl.textContent = msg;
+                }
             });
 
-            if (!uploadResp.ok) {
-                const errData = await uploadResp.json().catch(() => ({}));
-                throw new Error(errData.message || `上傳失敗 (${uploadResp.status})`);
+            if (result.success) {
+                const syncMsg = result.isSplit 
+                    ? `✅ 推送完成 (分割 ${result.partCount} 部分)`
+                    : '✅ 推送備份完成';
+                if (statusEl) statusEl.textContent = syncMsg;
+                return true;
             }
-
-            localStorage.setItem('sx_github_last_sync', new Date().toLocaleString());
-            localStorage.setItem('sx_github_user', owner);
-            localStorage.setItem('sx_github_repo_name', repoName);
-            
-            if (statusEl) statusEl.textContent = '✅ 推送備份完成';
-            return true;
+            return false;
         } catch (err) {
             console.error('GitHub 備份錯誤:', err);
             if (statusEl) statusEl.textContent = `❌ 推送失敗：${err.message}`;
@@ -1025,212 +1266,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const githubPullBackup = async (statusEl) => {
-        const token = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat') || '';
-        const repoName = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
-        const filePath = localStorage.getItem('sx_github_backup_file') || 'backup/sxiphone.json';
-        
-        if (!token) {
-            if (statusEl) statusEl.textContent = '❌ 請先連接 GitHub 或儲存 PAT';
+        if (typeof UnifiedStorageManager === 'undefined') {
+            if (statusEl) statusEl.textContent = '❌ UnifiedStorageManager 未載入';
             return false;
         }
 
-        if (statusEl) statusEl.textContent = '正在連接 GitHub...';
+        const manager = new UnifiedStorageManager();
+        
         try {
-            const userResp = await fetch('https://api.github.com/user', {
-                headers: { Authorization: `token ${token}` }
+            const result = await manager.restoreFromGitHub({
+                onStatus: (msg) => {
+                    if (statusEl) statusEl.textContent = msg;
+                },
+                onProgress: (current, total) => {
+                    if (statusEl) statusEl.textContent = `正在下載分割 ${current}/${total}...`;
+                }
             });
-            const userData = await userResp.json();
-            if (!userData || !userData.login) throw new Error('無法取得使用者資訊');
 
-            const owner = userData.login;
-
-            if (statusEl) statusEl.textContent = '正在下載備份...';
-            const fileResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
-                headers: { Authorization: `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-            });
-            
-            if (!fileResp.ok) {
-                if (fileResp.status === 404) throw new Error('找不到備份檔案，請先推送備份');
-                throw new Error(`下載失敗 (${fileResp.status})`);
-            }
-            
-            const fileData = await fileResp.json();
-            
-            if (statusEl) statusEl.textContent = '正在解析備份...';
-            const jsonStr = decodeFromBase64(fileData.content);
-
-            // 檢測是否為函式字串（可能污染備份的代碼）
-            const isFunctionStringRestore = (value) => {
-                if (typeof value !== 'string' || !value.trim()) return false;
-                const trimmed = value.trim();
+            if (result.success) {
+                const syncMsg = result.restoredFrom === 'split'
+                    ? `✅ 還原完成 (分割 ${result.partCount} 部分)`
+                    : '✅ 拉取還原完成';
+                if (statusEl) statusEl.textContent = syncMsg;
                 
-                const functionPatterns = [
-                    /^\s*\([^)]*\)\s*=>/,                    // 箭頭函式: () => ...
-                    /^\s*async\s*\([^)]*\)\s*=>/,           // async 箭頭函式: async () => ...
-                    /^\s*async\s+function\s*[\w]*\s*\(/,    // async function
-                    /^\s*function\s*[\w]*\s*\(/,            // function name() 或 function()
-                    /^\s*class\s+[\w]+\s*[\{]/,             // class 定義
-                    /^\s*class\s+[\w]+\s+extends\s+/,       // class extends
-                    /^\s*export\s+(function|class|async)/,  // export function/class
-                    /^\s*import\s+/,                         // import 語句
-                    /^\s*const\s+[\w]+\s*=\s*\([^)]*\)\s*=>/, // const x = () =>
-                    /^\s*let\s+[\w]+\s*=\s*\([^)]*\)\s*=>/,   // let x = () =>
-                    /^\s*var\s+[\w]+\s*=\s*function/,         // var x = function
-                ];
+                refreshGitHubSection();
+                updateCharListUI();
+                updateUserListUI();
+                updateNpcListUI();
                 
-                return functionPatterns.some(pattern => pattern.test(trimmed));
-            };
-
-            // 檢測是否為 localStorage 原生方法名稱
-            const isNativeMethodKeyRestore = (key) => {
-                const nativeMethods = ['setItem', 'getItem', 'removeItem', 'clear', 'key', 'length'];
-                return nativeMethods.includes(key);
-            };
-
-            const sanitizeBackup = (str) => {
-                try {
-                    const obj = JSON.parse(str);
-                    
-                    // 清理 localStorage 資料
-                    if (obj?.data?.localStorage) {
-                        const ls = obj.data.localStorage;
-                        const keysToRemove = [];
-                        
-                        Object.keys(ls).forEach(key => {
-                            const val = ls[key];
-                            
-                            // 檢查是否為原生方法 key
-                            if (isNativeMethodKeyRestore(key)) {
-                                keysToRemove.push(key);
-                                console.warn('[GitHub 還原] 移除原生方法 key:', key);
-                                return;
-                            }
-                            
-                            // 檢查是否為函式字串
-                            if (typeof val === 'string' && isFunctionStringRestore(val)) {
-                                keysToRemove.push(key);
-                                console.warn('[GitHub 還原] 移除函式字串 key:', key, '內容預覽:', val.substring(0, 50) + '...');
-                                return;
-                            }
-                        });
-                        
-                        keysToRemove.forEach(key => delete ls[key]);
-                    }
-                    
-                    // 清理 localforage 資料
-                    if (obj?.data?.localforage) {
-                        const lf = obj.data.localforage;
-                        const keysToRemove = [];
-                        
-                        Object.keys(lf).forEach(key => {
-                            const val = lf[key];
-                            
-                            if (isNativeMethodKeyRestore(key)) {
-                                keysToRemove.push(key);
-                                console.warn('[GitHub 還原] 移除 localforage 原生方法 key:', key);
-                                return;
-                            }
-                            
-                            if (typeof val === 'string' && isFunctionStringRestore(val)) {
-                                keysToRemove.push(key);
-                                console.warn('[GitHub 還原] 移除 localforage 函式字串 key:', key);
-                                return;
-                            }
-                        });
-                        
-                        keysToRemove.forEach(key => delete lf[key]);
-                    }
-                    
-                    return obj;
-                } catch (e) {
-                    console.error('[GitHub 還原] JSON 解析失敗，嘗試清理:', e.message);
-                    
-                    // 嘗試更安全的清理方式：移除包含函式的 key
-                    try {
-                        // 找出所有可能是函式的值並替換為 null
-                        const cleaned = str
-                            // 移除包含函式定義的 key-value 對
-                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*\(.*?\)\s*=>/g, '"$1": null, "__func_removed__$1": true')
-                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*function\s*\(/g, '"$1": null, "__func_removed__$1": true')
-                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*async\s+function/g, '"$1": null, "__func_removed__$1": true')
-                            .replace(/"([^"]+)":\s*"(\\n|\n)?\s*async\s*\([^)]*\)\s*=>/g, '"$1": null, "__func_removed__$1": true');
-                        
-                        const obj = JSON.parse(cleaned);
-                        
-                        // 移除標記的 key
-                        if (obj?.data?.localStorage) {
-                            Object.keys(obj.data.localStorage).forEach(key => {
-                                if (key.startsWith('__func_removed__')) {
-                                    delete obj.data.localStorage[key];
-                                }
-                            });
-                        }
-                        
-                        console.warn('[GitHub 還原] 已嘗試清理損壞的備份資料');
-                        return obj;
-                    } catch (e2) {
-                        console.error('[GitHub 還原] 清理失敗:', e2.message);
-                        throw new Error('備份檔案已損壞，無法還原。請嘗試重新備份或聯繫支援。');
-                    }
-                }
-            };
-
-            const payload = sanitizeBackup(jsonStr);
-
-            let dataToRestore = null;
-            
-            if (payload.data) {
-                dataToRestore = payload.data;
-            } else if (payload.localStorage || payload.localforage) {
-                dataToRestore = {
-                    localStorage: payload.localStorage || {},
-                    localforage: payload.localforage || {}
-                };
-            } else if (payload.masks || payload.apis) {
-                dataToRestore = {
-                    localStorage: {},
-                    localforage: {}
-                };
-                if (payload.masks) {
-                    dataToRestore.localStorage['sx_masks'] = JSON.stringify(payload.masks);
-                    dataToRestore.localStorage['sx_characters'] = JSON.stringify(payload.masks);
-                }
-                if (payload.apis) {
-                    dataToRestore.localStorage['api_configs'] = JSON.stringify(payload.apis);
-                }
-                if (payload.activeApiIndex !== undefined) {
-                    dataToRestore.localStorage['sx_active_api'] = String(payload.activeApiIndex);
-                }
-                ['sxiphone_lang', 'sxiphone_region', 'sx_user_name', 'sx_user_avatar', 'sx_user_personality', 'sx_user_background'].forEach(key => {
-                    if (payload[key]) {
-                        dataToRestore.localStorage[key] = payload[key];
-                    }
-                });
+                return true;
             }
-
-            if (!dataToRestore) {
-                throw new Error('備份格式不正確或已損壞');
-            }
-
-            if (statusEl) statusEl.textContent = '正在還原資料...';
-            const count = await restoreAllStorageData(dataToRestore);
-
-            localStorage.setItem('sx_github_last_sync', new Date().toLocaleString());
-            localStorage.setItem('sx_github_user', owner);
-            localStorage.setItem('sx_github_repo_name', repoName);
-            
-            if (statusEl) statusEl.textContent = `✅ 拉取還原完成（${count} 筆資料）`;
-            
-            // 刷新設定頁面的 UI
-            refreshGitHubSection();
-            updateCharListUI();
-            updateUserListUI();
-            updateNpcListUI();
-            
-            // 提示用戶重新整理頁面以確保所有資料生效
-            alert(`✅ 已成功還原 ${count} 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。`);
-            
-            return true;
+            return false;
         } catch (err) {
             console.error('GitHub 還原錯誤:', err);
             if (statusEl) statusEl.textContent = `❌ 拉取失敗：${err.message}`;
@@ -1429,6 +1495,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
             setSupabaseStatus('✅ 推送備份完成');
+
+            if (typeof UnifiedStorageManager !== 'undefined') {
+                const manager = new UnifiedStorageManager();
+                manager.progressiveCleanupAfterBackup({ success: true, source: 'supabase' }).catch(e => {
+                    console.warn('[Supabase] 漸進式清理失敗:', e);
+                });
+            }
+
             return true;
         } catch (err) {
             console.error('[Supabase] 備份錯誤:', err);
@@ -1514,6 +1588,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     loadSupabaseSettings();
+
+    // ==================== 圖床設定 ====================
+    const imageHostEnabledToggle = document.getElementById('image-host-enabled');
+    const imageHostProviderSelect = document.getElementById('image-host-provider');
+    const imageHostStatusEl = document.getElementById('image-host-status');
+    const catboxUserhashInput = document.getElementById('catbox-userhash');
+
+    const IMAGE_HOST_ENABLED_KEY = 'sx_image_host_enabled';
+    const IMAGE_HOST_PROVIDER_KEY = 'sx_image_host_provider';
+    const CATBOX_USERHASH_KEY = 'sx_catbox_userhash';
+
+    const loadImageHostSettings = () => {
+        const enabled = localStorage.getItem(IMAGE_HOST_ENABLED_KEY) === 'true';
+        const provider = localStorage.getItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
+        const userhash = localStorage.getItem(CATBOX_USERHASH_KEY) || '';
+
+        if (imageHostEnabledToggle) imageHostEnabledToggle.checked = enabled;
+        if (imageHostProviderSelect) imageHostProviderSelect.value = provider;
+        if (catboxUserhashInput) catboxUserhashInput.value = userhash;
+
+        updateImageHostStatus();
+    };
+
+    const updateImageHostStatus = () => {
+        if (!imageHostStatusEl) return;
+
+        const enabled = localStorage.getItem(IMAGE_HOST_ENABLED_KEY) === 'true';
+        const provider = localStorage.getItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
+        const userhash = localStorage.getItem(CATBOX_USERHASH_KEY);
+
+        if (enabled) {
+            const hasAccount = userhash && userhash.length > 0;
+            if (hasAccount) {
+                imageHostStatusEl.textContent = `✅ 已啟用 (${provider}，已登入帳號)`;
+                imageHostStatusEl.style.color = '#34C759';
+            } else {
+                imageHostStatusEl.textContent = `✅ 已啟用 (${provider}，匿名模式)`;
+                imageHostStatusEl.style.color = '#34C759';
+            }
+        } else {
+            imageHostStatusEl.textContent = '狀態：未啟用';
+            imageHostStatusEl.style.color = '#666';
+        }
+    };
+
+    if (imageHostEnabledToggle) {
+        imageHostEnabledToggle.addEventListener('change', () => {
+            localStorage.setItem(IMAGE_HOST_ENABLED_KEY, imageHostEnabledToggle.checked);
+            updateImageHostStatus();
+            console.log('[ImageHost] 設定已更新:', imageHostEnabledToggle.checked);
+        });
+    }
+
+    if (imageHostProviderSelect) {
+        imageHostProviderSelect.addEventListener('change', () => {
+            localStorage.setItem(IMAGE_HOST_PROVIDER_KEY, imageHostProviderSelect.value);
+            updateImageHostStatus();
+            console.log('[ImageHost] 服務已切換:', imageHostProviderSelect.value);
+        });
+    }
+
+    if (catboxUserhashInput) {
+        catboxUserhashInput.addEventListener('change', () => {
+            localStorage.setItem(CATBOX_USERHASH_KEY, catboxUserhashInput.value.trim());
+            updateImageHostStatus();
+            console.log('[ImageHost] Userhash 已更新');
+        });
+    }
+
+    loadImageHostSettings();
 
     // ==================== Supabase 一鍵設定 ====================
     const supabaseQuickUrlInput = document.getElementById('supabase-quick-url');
@@ -1744,6 +1888,176 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     });
 
     loadSupabaseQuickSettings();
+
+    const supabaseMemorySyncPushBtn = document.getElementById('supabase-memory-sync-push');
+    const supabaseMemorySyncPullBtn = document.getElementById('supabase-memory-sync-pull');
+    const supabaseMemorySyncStatusEl = document.getElementById('supabase-memory-sync-status');
+
+    const pushMemoryToSupabase = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
+
+        if (!url || !key) {
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 請先設定 Supabase';
+            return false;
+        }
+
+        if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '正在推送記憶...';
+
+        try {
+            const memories = [];
+            const shortTermMemory = localStorage.getItem('sx_short_term_memory');
+            if (shortTermMemory) {
+                const parsed = JSON.parse(shortTermMemory);
+                if (Array.isArray(parsed)) {
+                    memories.push(...parsed);
+                }
+            }
+
+            if (typeof localforage !== 'undefined') {
+                const longTermMemories = [];
+                await localforage.iterate((value, key) => {
+                    if (key.startsWith('sx_memory_') || key.startsWith('sx_long_term_memory')) {
+                        longTermMemories.push({ key, value });
+                    }
+                });
+                if (longTermMemories.length > 0) {
+                    memories.push({ type: 'long_term', items: longTermMemories });
+                }
+            }
+
+            if (memories.length === 0) {
+                if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '⚠️ 沒有記憶可同步';
+                return false;
+            }
+
+            const payload = {
+                id: `memory_${Date.now()}`,
+                type: 'memory_sync',
+                user_id: localStorage.getItem('sx_user_name') || 'default',
+                device: navigator.userAgent,
+                memories: memories,
+                exported_at: new Date().toISOString()
+            };
+
+            const resp = await fetch(`${url}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                if (resp.status === 404) {
+                    if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 資料表不存在，請先建立';
+                    return false;
+                }
+                throw new Error(`推送失敗 (${resp.status})`);
+            }
+
+            localStorage.setItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `✅ 已推送 ${memories.length} 條記憶`;
+            return true;
+        } catch (e) {
+            console.error('[Supabase] 記憶推送錯誤:', e);
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `❌ 推送失敗: ${e.message}`;
+            return false;
+        }
+    };
+
+    const pullMemoryFromSupabase = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
+
+        if (!url || !key) {
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 請先設定 Supabase';
+            return false;
+        }
+
+        if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '正在拉取記憶...';
+
+        try {
+            const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1&type=eq.memory_sync`, {
+                headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${key}`
+                }
+            });
+
+            if (!resp.ok) {
+                throw new Error(`拉取失敗 (${resp.status})`);
+            }
+
+            const records = await resp.json();
+            if (!records || records.length === 0) {
+                if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '⚠️ 找不到記憶資料';
+                return false;
+            }
+
+            const latestRecord = records[0];
+            const memories = latestRecord.memories;
+            if (!memories) {
+                if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 記憶格式不正確';
+                return false;
+            }
+
+            let mergedCount = 0;
+
+            const shortTermMemories = memories.filter(m => !m.type || m.type !== 'long_term');
+            if (shortTermMemories.length > 0) {
+                const existing = localStorage.getItem('sx_short_term_memory');
+                let existingMemories = [];
+                if (existing) {
+                    try {
+                        existingMemories = JSON.parse(existing);
+                    } catch {}
+                }
+
+                const existingIds = new Set(existingMemories.map(m => m.id));
+                const newMemories = shortTermMemories.filter(m => !existingIds.has(m.id));
+                const merged = [...existingMemories, ...newMemories];
+                merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                
+                localStorage.setItem('sx_short_term_memory', JSON.stringify(merged.slice(-100)));
+                mergedCount += newMemories.length;
+            }
+
+            const longTermData = memories.find(m => m.type === 'long_term');
+            if (longTermData && longTermData.items && typeof localforage !== 'undefined') {
+                for (const item of longTermData.items) {
+                    await localforage.setItem(item.key, item.value);
+                    mergedCount++;
+                }
+            }
+
+            localStorage.setItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `✅ 已拉取並合併 ${mergedCount} 條記憶`;
+
+            window.dispatchEvent(new CustomEvent('sxiphone-data-restored', {
+                detail: { count: mergedCount, source: 'supabase-memory-pull' }
+            }));
+
+            return true;
+        } catch (e) {
+            console.error('[Supabase] 記憶拉取錯誤:', e);
+            if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `❌ 拉取失敗: ${e.message}`;
+            return false;
+        }
+    };
+
+    supabaseMemorySyncPushBtn?.addEventListener('click', pushMemoryToSupabase);
+    supabaseMemorySyncPullBtn?.addEventListener('click', pullMemoryFromSupabase);
+
+    const lastMemorySync = localStorage.getItem('sx_supabase_memory_last_sync');
+    if (lastMemorySync && supabaseMemorySyncStatusEl) {
+        supabaseMemorySyncStatusEl.textContent = `上次同步: ${lastMemorySync}`;
+    }
 
     // ==================== 自動備份設定 ====================
     const autoBackupEnabledToggle = document.getElementById('auto-backup-enabled');
@@ -2260,15 +2574,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             localStorage.setItem('sx_ai_sleep_end', payload.sleepEnd);
         }
         
-        let masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
-        if (masks.length === 0) {
-            masks.push({ name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples });
+        let currentMasks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+        if (currentMasks.length === 0) {
+            currentMasks.push({ name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples });
         } else {
-            masks[0] = { ...masks[0], name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples };
+            currentMasks[0] = { ...currentMasks[0], name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples };
         }
-        localStorage.setItem('sx_masks', JSON.stringify(masks));
+        localStorage.setItem('sx_masks', JSON.stringify(currentMasks));
+        masks = currentMasks;
         
-        await saveAll();
         updateCharListUI();
         
         window.parent?.postMessage({ 
@@ -2309,7 +2623,6 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         localStorage.setItem('sx_user_personality', payload.personality || '');
         localStorage.setItem('sx_user_background', payload.background || '');
         
-        await saveAll();
         updateCharListUI();
         
         window.parent?.postMessage({ 

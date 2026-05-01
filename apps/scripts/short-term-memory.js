@@ -10,15 +10,68 @@ class ShortTermMemory {
     this.buffer = [];
     this.isInitialized = false;
     this.storageKey = 'sx_short_term_memory';
+    this.idbKey = 'sx_short_term_memory_idb';
+    this.autoSaveTimer = null;
+    this.decayTimer = null;
+    this.idbSaveTimer = null;
   }
   
   initialize() {
     this._loadFromStorage();
+    this._loadFromIndexedDB();
     this._startAutoSave();
     this._startDecayCheck();
+    this._startIndexedDBSync();
     this.isInitialized = true;
     console.log('[ShortTermMemory] 初始化完成');
     return true;
+  }
+  
+  async _loadFromIndexedDB() {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+      const idbData = await localforage.getItem(this.idbKey);
+      if (idbData) {
+        const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const localIds = new Set(this.buffer.map(m => m.id));
+          const newFromIdb = parsed.filter(m => !localIds.has(m.id));
+          
+          if (newFromIdb.length > 0) {
+            this.buffer = [...this.buffer, ...newFromIdb];
+            this.buffer.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            
+            if (this.buffer.length > this.config.maxCapacity) {
+              this.buffer = this.buffer.slice(-this.config.maxCapacity);
+            }
+            
+            this._saveToStorage();
+            console.log('[ShortTermMemory] 從 IndexedDB 載入 ' + newFromIdb.length + ' 條記憶');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[ShortTermMemory] 從 IndexedDB 載入失敗:', e);
+    }
+  }
+  
+  async _saveToIndexedDB() {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+      await localforage.setItem(this.idbKey, JSON.stringify(this.buffer));
+    } catch (e) {
+      console.warn('[ShortTermMemory] 儲存到 IndexedDB 失敗:', e);
+    }
+  }
+  
+  _startIndexedDBSync() {
+    if (this.idbSaveTimer) clearInterval(this.idbSaveTimer);
+    
+    this.idbSaveTimer = setInterval(() => {
+      this._saveToIndexedDB();
+    }, 30000);
   }
   
   push(content, options = {}) {
@@ -27,7 +80,7 @@ class ShortTermMemory {
     }
     
     const entry = {
-      id: `stm_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: 'stm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
       content,
       role: options.role || 'unknown',
       source: options.source || 'chat',
@@ -44,12 +97,13 @@ class ShortTermMemory {
     
     if (this.buffer.length > this.config.maxCapacity) {
       const removed = this.buffer.shift();
-      console.log(`[ShortTermMemory] 容量已滿，移除最舊記憶: ${removed.id}`);
+      console.log('[ShortTermMemory] 容量已滿，移除最舊記憶: ' + removed.id);
     }
     
     this._saveToStorage();
+    this._saveToIndexedDB();
     
-    console.log(`[ShortTermMemory] 新增記憶: ${entry.id} (當前 ${this.buffer.length}/${this.config.maxCapacity})`);
+    console.log('[ShortTermMemory] 新增記憶: ' + entry.id + ' (當前 ' + this.buffer.length + '/' + this.config.maxCapacity + ')');
     return entry;
   }
   
@@ -75,6 +129,7 @@ class ShortTermMemory {
     if (index >= 0) {
       this.buffer.splice(index, 1);
       this._saveToStorage();
+      this._saveToIndexedDB();
       return true;
     }
     return false;
@@ -83,6 +138,7 @@ class ShortTermMemory {
   clear() {
     this.buffer = [];
     this._saveToStorage();
+    this._saveToIndexedDB();
     console.log('[ShortTermMemory] 已清空');
   }
   
@@ -128,7 +184,8 @@ class ShortTermMemory {
       }
     }
     this._saveToStorage();
-    console.log(`[ShortTermMemory] 已標記 ${ids.length} 條為已鞏固並移除`);
+    this._saveToIndexedDB();
+    console.log('[ShortTermMemory] 已標記 ' + ids.length + ' 條為已鞏固並移除');
   }
   
   _loadFromStorage() {
@@ -145,7 +202,7 @@ class ShortTermMemory {
             return age < maxAge;
           });
           
-          console.log(`[ShortTermMemory] 從 localStorage 載入 ${this.buffer.length} 條記憶`);
+          console.log('[ShortTermMemory] 從 localStorage 載入 ' + this.buffer.length + ' 條記憶');
         }
       }
     } catch (e) {
@@ -163,13 +220,17 @@ class ShortTermMemory {
   }
   
   _startAutoSave() {
-    setInterval(() => {
+    if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+    
+    this.autoSaveTimer = setInterval(() => {
       this._saveToStorage();
     }, this.config.autoSaveInterval);
   }
   
   _startDecayCheck() {
-    setInterval(() => {
+    if (this.decayTimer) clearInterval(this.decayTimer);
+    
+    this.decayTimer = setInterval(() => {
       const now = Date.now();
       const threshold = this.config.decayMinutes * 60 * 1000 * 2;
       
@@ -180,8 +241,9 @@ class ShortTermMemory {
       });
       
       if (this.buffer.length < before) {
-        console.log(`[ShortTermMemory] 衰減清理: ${before} -> ${this.buffer.length}`);
+        console.log('[ShortTermMemory] 衰減清理: ' + before + ' -> ' + this.buffer.length);
         this._saveToStorage();
+        this._saveToIndexedDB();
       }
     }, 60000);
   }
@@ -198,8 +260,15 @@ class ShortTermMemory {
     if (data.buffer && Array.isArray(data.buffer)) {
       this.buffer = data.buffer;
       this._saveToStorage();
-      console.log(`[ShortTermMemory] 匯入 ${this.buffer.length} 條記憶`);
+      this._saveToIndexedDB();
+      console.log('[ShortTermMemory] 匯入 ' + this.buffer.length + ' 條記憶');
     }
+  }
+  
+  destroy() {
+    if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
+    if (this.decayTimer) clearInterval(this.decayTimer);
+    if (this.idbSaveTimer) clearInterval(this.idbSaveTimer);
   }
 }
 
