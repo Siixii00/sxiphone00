@@ -817,6 +817,45 @@
                 </div>
                 <p class="ios-caption" id="floating-messenger-platform-info">平台支援狀態：載入中...</p>
 
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">選擇陪伴角色</span>
+                    <select id="floating-messenger-char" class="ios-select" style="margin-top:8px;">
+                        <option value="">載入角色列表...</option>
+                    </select>
+                    <p class="ios-caption">懸浮窗中顯示的角色，會根據其個性生成通知內容</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">通知頻率</span>
+                    <select id="floating-messenger-frequency" class="ios-select" style="margin-top:8px;">
+                        <option value="low">低（每天 1-2 次）</option>
+                        <option value="medium" selected>中（每天 3-5 次）</option>
+                        <option value="high">高（每天 6-10 次）</option>
+                        <option value="always">總是（離開後立即通知）</option>
+                    </select>
+                    <p class="ios-caption">根據角色個性調整，活潑的角色會更頻繁</p>
+                </div>
+
+                <div class="cell-v" style="margin-top:12px;">
+                    <span class="cell-label">通知風格</span>
+                    <select id="floating-messenger-style" class="ios-select" style="margin-top:8px;">
+                        <option value="contextual">情境通知（根據時間/事件）</option>
+                        <option value="greeting">問候通知（簡單問候）</option>
+                        <option value="reminder">提醒通知（提醒重要事項）</option>
+                        <option value="random">隨機通知（角色隨機話題）</option>
+                    </select>
+                    <p class="ios-caption">通知內容的生成風格</p>
+                </div>
+
+                <div class="cell" style="margin-top:12px;">
+                    <span class="cell-label">根據角色個性調整</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="floating-messenger-personality-based" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <p class="ios-caption">啟用後，通知內容和頻率會根據角色的 personality 自動調整</p>
+
                 <div class="cell" style="margin-top:8px;">
                     <span class="cell-label">支援螢幕分享</span>
                     <label class="toggle">
@@ -829,6 +868,10 @@
                 <div style="margin-top:12px;">
                     <button class="ios-btn" id="test-floating-messenger-btn">測試懸浮窗</button>
                     <p class="ios-caption" style="margin-top:8px;">立即開啟懸浮聊天窗</p>
+                </div>
+
+                <div class="btn-row" style="margin-top:16px;">
+                    <button class="ios-btn primary" id="floating-messenger-save-btn">保存懸浮窗設定</button>
                 </div>
 
                 <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0;">

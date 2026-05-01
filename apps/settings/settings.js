@@ -6181,6 +6181,45 @@ function initChatNotificationSettings() {
     const floatingScreenshareToggle = document.getElementById('floating-messenger-screenshare');
     const floatingTestBtn = document.getElementById('test-floating-messenger-btn');
     const floatingPlatformInfo = document.getElementById('floating-messenger-platform-info');
+    const floatingCharSelect = document.getElementById('floating-messenger-char');
+    const floatingFrequencySelect = document.getElementById('floating-messenger-frequency');
+    const floatingStyleSelect = document.getElementById('floating-messenger-style');
+    const floatingPersonalityToggle = document.getElementById('floating-messenger-personality-based');
+    const floatingSaveBtn = document.getElementById('floating-messenger-save-btn');
+    
+    const loadCharacterList = () => {
+        if (!floatingCharSelect) return;
+        
+        const charactersRaw = localStorage.getItem('sx_characters');
+        const masksRaw = localStorage.getItem('sx_masks');
+        let characters = [];
+        
+        try {
+            if (charactersRaw) {
+                characters = [...characters, ...JSON.parse(charactersRaw)];
+            }
+            if (masksRaw) {
+                characters = [...characters, ...JSON.parse(masksRaw)];
+            }
+        } catch (e) {
+            console.warn('載入角色列表失敗:', e);
+        }
+        
+        const currentCharName = localStorage.getItem('sx_char_name');
+        
+        if (characters.length === 0) {
+            floatingCharSelect.innerHTML = '<option value="">目前沒有角色</option>';
+            return;
+        }
+        
+        floatingCharSelect.innerHTML = characters.map(char => {
+            const selected = char.name === currentCharName ? 'selected' : '';
+            const personality = char.personality ? ` (${char.personality.slice(0, 20)}...)` : '';
+            return `<option value="${char.name}" ${selected}>${char.name}${personality}</option>`;
+        }).join('');
+        
+        floatingCharSelect.innerHTML += '<option value="__current__">使用當前聊天角色</option>';
+    };
     
     const loadFloatingSettings = () => {
         try {
@@ -6189,6 +6228,12 @@ function initChatNotificationSettings() {
             
             if (floatingEnabledToggle) floatingEnabledToggle.checked = config.enabled === true;
             if (floatingScreenshareToggle) floatingScreenshareToggle.checked = config.screenshare === true;
+            if (floatingFrequencySelect) floatingFrequencySelect.value = config.frequency || 'medium';
+            if (floatingStyleSelect) floatingStyleSelect.value = config.style || 'contextual';
+            if (floatingPersonalityToggle) floatingPersonalityToggle.checked = config.personalityBased !== false;
+            if (floatingCharSelect && config.selectedChar) {
+                floatingCharSelect.value = config.selectedChar;
+            }
         } catch (e) {
             console.warn('載入懸浮窗設定失敗:', e);
         }
@@ -6197,7 +6242,11 @@ function initChatNotificationSettings() {
     const saveFloatingSettings = () => {
         const config = {
             enabled: floatingEnabledToggle?.checked || false,
-            screenshare: floatingScreenshareToggle?.checked || false
+            screenshare: floatingScreenshareToggle?.checked || false,
+            selectedChar: floatingCharSelect?.value || '__current__',
+            frequency: floatingFrequencySelect?.value || 'medium',
+            style: floatingStyleSelect?.value || 'contextual',
+            personalityBased: floatingPersonalityToggle?.checked !== false
         };
         
         localStorage.setItem('sx_floating_messenger_config', JSON.stringify(config));
@@ -6207,6 +6256,62 @@ function initChatNotificationSettings() {
         } else if (!config.enabled && window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'CLOSE_FLOATING_MESSENGER' }, '*');
         }
+        
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ 
+                type: 'FLOATING_MESSENGER_CONFIG', 
+                config: config 
+            }, '*');
+        }
+        
+        alert('✅ 懸浮窗設定已儲存');
+    };
+    
+    const getFrequencyRange = (frequency, personality) => {
+        const baseRanges = {
+            low: { min: 1, max: 2 },
+            medium: { min: 3, max: 5 },
+            high: { min: 6, max: 10 },
+            always: { min: 20, max: 30 }
+        };
+        
+        let range = baseRanges[frequency] || baseRanges.medium;
+        
+        if (personality && floatingPersonalityToggle?.checked !== false) {
+            const p = personality.toLowerCase();
+            if (p.includes('活潑') || p.includes('熱情') || p.includes('外向') || p.includes('energetic')) {
+                range = { min: Math.min(range.min * 1.5, 15), max: Math.min(range.max * 1.5, 20) };
+            } else if (p.includes('安靜') || p.includes('內向') || p.includes('害羞') || p.includes('shy') || p.includes('quiet')) {
+                range = { min: Math.max(range.min * 0.5, 1), max: Math.max(range.max * 0.5, 3) };
+            } else if (p.includes('黏人') || p.includes('依賴') || p.includes('clingy')) {
+                range = { min: range.min * 1.3, max: range.max * 1.5 };
+            } else if (p.includes('獨立') || p.includes('冷淡') || p.includes('independent')) {
+                range = { min: range.min * 0.7, max: range.max * 0.8 };
+            }
+        }
+        
+        return {
+            min: Math.round(range.min),
+            max: Math.round(range.max)
+        };
+    };
+    
+    const getStylePrompt = (style, personality) => {
+        const stylePrompts = {
+            contextual: '根據當前時間、天氣或最近對話內容生成情境相關的通知',
+            greeting: '生成簡單溫暖的問候，例如「早安」、「吃飯了嗎」等',
+            reminder: '提醒用戶重要事項，例如喝水、休息、記得做某事',
+            random: '隨機選擇話題，可以是任何角色想說的話'
+        };
+        
+        let prompt = stylePrompts[style] || stylePrompts.contextual;
+        
+        if (personality && floatingPersonalityToggle?.checked !== false) {
+            prompt += `\n\n角色個性：${personality}`;
+            prompt += '\n請根據角色個性調整語氣和內容風格。';
+        }
+        
+        return prompt;
     };
     
     const updateFloatingPlatformInfo = () => {
@@ -6227,11 +6332,10 @@ function initChatNotificationSettings() {
             platformText = '電腦版：支援懸浮窗';
             canFloating = true;
         } else if (isAndroid) {
-            if (isPWA) {
-                platformText = 'Android PWA：支援懸浮窗';
-                canFloating = true;
-            } else {
-                platformText = 'Android：需安裝為 PWA 才能使用懸浮窗';
+            platformText = 'Android：支援懸浮窗';
+            canFloating = true;
+            if (!isPWA) {
+                platformText += '（建議安裝為 PWA 獲得更好體驗）';
             }
         } else if (isIOS) {
             const iosMatch = navigator.userAgent.match(/OS (\d+)_?(\d+)?/);
@@ -6277,6 +6381,26 @@ function initChatNotificationSettings() {
         floatingScreenshareToggle.addEventListener('change', saveFloatingSettings);
     }
     
+    if (floatingCharSelect) {
+        floatingCharSelect.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingFrequencySelect) {
+        floatingFrequencySelect.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingStyleSelect) {
+        floatingStyleSelect.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingPersonalityToggle) {
+        floatingPersonalityToggle.addEventListener('change', saveFloatingSettings);
+    }
+    
+    if (floatingSaveBtn) {
+        floatingSaveBtn.addEventListener('click', saveFloatingSettings);
+    }
+    
     if (floatingTestBtn) {
         floatingTestBtn.addEventListener('click', () => {
             if (window.parent && window.parent !== window) {
@@ -6287,6 +6411,7 @@ function initChatNotificationSettings() {
         });
     }
     
+    loadCharacterList();
     loadFloatingSettings();
     updateFloatingPlatformInfo();
 }

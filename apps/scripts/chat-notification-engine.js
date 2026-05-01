@@ -173,17 +173,74 @@
             const idleMinutes = this.getIdleMinutes();
             const lastNotification = this.getLastNotification();
             const timeSinceLastNotification = Date.now() - lastNotification;
-            const minTimeBetweenNotifications = Math.max(this.config.idleMinutes, 15) * 60 * 1000;
+
+            const floatingConfig = this.getFloatingConfig();
+            const frequencyRange = this.getFrequencyRange(floatingConfig);
+            
+            const maxNotifications = frequencyRange.max;
+            const minTimeBetweenNotifications = this.getMinTimeBetweenNotifications(floatingConfig);
 
             if (idleMinutes < this.config.idleMinutes) return;
             if (timeSinceLastNotification < minTimeBetweenNotifications) return;
 
             const todayCount = this.getTodayNotificationCount();
-            if (todayCount >= this.config.maxNotificationsPerDay) return;
+            if (todayCount >= maxNotifications) return;
 
             if (document.hidden || !document.hasFocus()) {
                 await this.generateAndSendNotification();
             }
+        }
+
+        getFrequencyRange(config) {
+            const charName = localStorage.getItem('sx_char_name');
+            const charPersonality = localStorage.getItem('sx_char_personality') || '';
+            
+            const baseRanges = {
+                low: { min: 1, max: 2 },
+                medium: { min: 3, max: 5 },
+                high: { min: 6, max: 10 },
+                always: { min: 20, max: 30 }
+            };
+            
+            let range = baseRanges[config.frequency] || baseRanges.medium;
+            
+            if (config.personalityBased && charPersonality) {
+                const p = charPersonality.toLowerCase();
+                if (p.includes('活潑') || p.includes('熱情') || p.includes('外向') || p.includes('energetic')) {
+                    range = { min: Math.round(range.min * 1.5), max: Math.round(range.max * 1.5) };
+                } else if (p.includes('安靜') || p.includes('內向') || p.includes('害羞') || p.includes('shy')) {
+                    range = { min: Math.round(range.min * 0.5), max: Math.round(range.max * 0.5) };
+                } else if (p.includes('黏人') || p.includes('依賴') || p.includes('clingy')) {
+                    range = { min: Math.round(range.min * 1.3), max: Math.round(range.max * 1.5) };
+                } else if (p.includes('獨立') || p.includes('冷淡') || p.includes('independent')) {
+                    range = { min: Math.round(range.min * 0.7), max: Math.round(range.max * 0.8) };
+                }
+            }
+            
+            return range;
+        }
+
+        getMinTimeBetweenNotifications(config) {
+            const frequencyIntervals = {
+                low: 120 * 60 * 1000,
+                medium: 60 * 60 * 1000,
+                high: 30 * 60 * 1000,
+                always: 10 * 60 * 1000
+            };
+            
+            let interval = frequencyIntervals[config.frequency] || frequencyIntervals.medium;
+            
+            if (config.personalityBased) {
+                const charPersonality = localStorage.getItem('sx_char_personality') || '';
+                const p = charPersonality.toLowerCase();
+                if (p.includes('黏人') || p.includes('依賴')) {
+                    interval = Math.round(interval * 0.5);
+                } else if (p.includes('獨立') || p.includes('冷淡')) {
+                    interval = Math.round(interval * 1.5);
+                }
+            }
+            
+            return Math.max(interval, 15 * 60 * 1000);
         }
 
         async generateAndSendNotification() {
@@ -418,6 +475,9 @@
             const idleHours = Math.floor(idleMinutes / 60);
             const idleDisplay = idleHours > 0 ? `${idleHours} 小時` : `${idleMinutes} 分鐘`;
 
+            const floatingConfig = this.getFloatingConfig();
+            const stylePrompt = this.getStylePrompt(floatingConfig, charConfig);
+
             let systemPrompt = `你是 ${charConfig.name}。
 
 角色設定：
@@ -426,6 +486,8 @@
 - 背景：${charConfig.background || '無特殊設定'}
 
 任務：生成一條通知訊息，在用戶離開 ${idleDisplay} 後發送。
+
+通知風格：${stylePrompt}
 
 規則：
 1. 必須完全符合你的角色個性和說話方式
@@ -471,6 +533,35 @@
             userPrompt += `\n\n請根據以上資訊，以 ${charConfig.name} 的身份生成一條通知訊息：`;
 
             return { system: systemPrompt, user: userPrompt };
+        }
+
+        getFloatingConfig() {
+            try {
+                const raw = localStorage.getItem('sx_floating_messenger_config');
+                return raw ? JSON.parse(raw) : {
+                    style: 'contextual',
+                    personalityBased: true
+                };
+            } catch {
+                return { style: 'contextual', personalityBased: true };
+            }
+        }
+
+        getStylePrompt(config, charConfig) {
+            const stylePrompts = {
+                contextual: '根據當前時間、天氣或最近對話內容生成情境相關的通知',
+                greeting: '生成簡單溫暖的問候，例如「早安」、「吃飯了嗎」等',
+                reminder: '提醒用戶重要事項，例如喝水、休息、記得做某事',
+                random: '隨機選擇話題，可以是任何角色想說的話'
+            };
+
+            let prompt = stylePrompts[config.style] || stylePrompts.contextual;
+
+            if (config.personalityBased && charConfig.personality) {
+                prompt += `\n請根據角色個性「${charConfig.personality}」調整語氣和內容風格。`;
+            }
+
+            return prompt;
         }
 
         async sendNotification(content, charConfig) {

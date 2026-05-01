@@ -498,14 +498,7 @@ if (persistedSessions.length > existingSessions.length) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
                         console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
                     }
-                }
-                if (persistedData.sx_chat_active) {
-                    const existingActive = localStorage.getItem('sx_chat_active');
-                    if (!existingActive) {
-                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
-                    }
-                }
-                }
+}
                 if (persistedData.sx_chat_active) {
                     const existingActive = localStorage.getItem('sx_chat_active');
                     if (!existingActive) {

@@ -608,6 +608,12 @@
                 case 'TOGGLE_FLOATING_MESSENGER':
                     window.toggleFloatingMessenger?.();
                     break;
+                case 'FLOATING_MESSENGER_CONFIG':
+                    if (window.FloatingMessenger) {
+                        window.FloatingMessenger.saveConfig(data.config);
+                        window.FloatingMessenger.updateCharacterInfo();
+                    }
+                    break;
             }
         });
     </script>

@@ -4,6 +4,7 @@
     const STORAGE_KEY_PREFIX = 'sx_floating_messenger_';
     const STATE_KEY = STORAGE_KEY_PREFIX + 'state';
     const POSITION_KEY = STORAGE_KEY_PREFIX + 'position';
+    const CONFIG_KEY = 'sx_floating_messenger_config';
 
     const Platform = {
         isIOS() {
@@ -20,7 +21,9 @@
                    window.navigator.standalone === true;
         },
         supportsFloatingWindow() {
-            return this.isDesktop() || (this.isAndroid() && this.isPWA());
+            if (this.isDesktop()) return true;
+            if (this.isAndroid()) return true;
+            return false;
         },
         supportsScreenShare() {
             return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
@@ -38,6 +41,7 @@
                 activeChatId: null,
                 characterName: null,
                 characterAvatar: null,
+                characterPersonality: null,
                 unreadCount: 0
             };
             this.position = { x: 20, y: 20 };
@@ -45,8 +49,110 @@
             this.platformImpl = null;
             this.messageQueue = [];
             this.eventListeners = new Map();
+            this.config = this.loadConfig();
             
             this.init();
+        }
+
+        loadConfig() {
+            try {
+                const raw = localStorage.getItem(CONFIG_KEY);
+                return raw ? JSON.parse(raw) : this.getDefaultConfig();
+            } catch {
+                return this.getDefaultConfig();
+            }
+        }
+
+        getDefaultConfig() {
+            return {
+                enabled: false,
+                screenshare: false,
+                selectedChar: '__current__',
+                frequency: 'medium',
+                style: 'contextual',
+                personalityBased: true
+            };
+        }
+
+        saveConfig(newConfig) {
+            this.config = { ...this.getDefaultConfig(), ...newConfig };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(this.config));
+        }
+
+        getSelectedCharacter() {
+            if (this.config.selectedChar && this.config.selectedChar !== '__current__') {
+                const charactersRaw = localStorage.getItem('sx_characters');
+                const masksRaw = localStorage.getItem('sx_masks');
+                let characters = [];
+                
+                try {
+                    if (charactersRaw) characters = [...characters, ...JSON.parse(charactersRaw)];
+                    if (masksRaw) characters = [...characters, ...JSON.parse(masksRaw)];
+                } catch (e) {}
+                
+                const selected = characters.find(c => c.name === this.config.selectedChar);
+                if (selected) {
+                    return {
+                        name: selected.name,
+                        avatar: selected.avatar || '',
+                        personality: selected.personality || '',
+                        background: selected.background || ''
+                    };
+                }
+            }
+            
+            return {
+                name: localStorage.getItem('sx_char_name') || 'AI 助理',
+                avatar: localStorage.getItem('sx_char_avatar') || '',
+                personality: localStorage.getItem('sx_char_personality') || '',
+                background: localStorage.getItem('sx_char_background') || ''
+            };
+        }
+
+        getNotificationFrequency() {
+            const char = this.getSelectedCharacter();
+            const baseRanges = {
+                low: { min: 1, max: 2 },
+                medium: { min: 3, max: 5 },
+                high: { min: 6, max: 10 },
+                always: { min: 20, max: 30 }
+            };
+            
+            let range = baseRanges[this.config.frequency] || baseRanges.medium;
+            
+            if (this.config.personalityBased && char.personality) {
+                const p = char.personality.toLowerCase();
+                if (p.includes('活潑') || p.includes('熱情') || p.includes('外向') || p.includes('energetic')) {
+                    range = { min: Math.round(range.min * 1.5), max: Math.round(range.max * 1.5) };
+                } else if (p.includes('安靜') || p.includes('內向') || p.includes('害羞') || p.includes('shy')) {
+                    range = { min: Math.round(range.min * 0.5), max: Math.round(range.max * 0.5) };
+                } else if (p.includes('黏人') || p.includes('依賴') || p.includes('clingy')) {
+                    range = { min: Math.round(range.min * 1.3), max: Math.round(range.max * 1.5) };
+                } else if (p.includes('獨立') || p.includes('冷淡') || p.includes('independent')) {
+                    range = { min: Math.round(range.min * 0.7), max: Math.round(range.max * 0.8) };
+                }
+            }
+            
+            return range;
+        }
+
+        getNotificationStylePrompt() {
+            const char = this.getSelectedCharacter();
+            const stylePrompts = {
+                contextual: '根據當前時間、天氣或最近對話內容生成情境相關的通知',
+                greeting: '生成簡單溫暖的問候',
+                reminder: '提醒用戶重要事項',
+                random: '隨機選擇話題'
+            };
+            
+            let prompt = stylePrompts[this.config.style] || stylePrompts.contextual;
+            
+            if (this.config.personalityBased && char.personality) {
+                prompt += `\n\n角色個性：${char.personality}`;
+                prompt += '\n請根據角色個性調整語氣和內容風格。';
+            }
+            
+            return prompt;
         }
 
         async init() {
@@ -75,26 +181,39 @@
         async initPlatformImpl() {
             const platformType = this.getPlatformType();
             
+            console.log('[FloatingMessenger] 檢測到平台:', platformType);
+            
             switch (platformType) {
                 case 'desktop':
                     if (typeof DesktopFloatingWindow !== 'undefined') {
                         this.platformImpl = new DesktopFloatingWindow(this);
+                        console.log('[FloatingMessenger] 使用 DesktopFloatingWindow');
+                    } else {
+                        console.warn('[FloatingMessenger] DesktopFloatingWindow 未定義');
                     }
                     break;
                 case 'android':
                     if (typeof AndroidFloatingWindow !== 'undefined') {
                         this.platformImpl = new AndroidFloatingWindow(this);
+                        console.log('[FloatingMessenger] 使用 AndroidFloatingWindow');
+                    } else {
+                        console.warn('[FloatingMessenger] AndroidFloatingWindow 未定義');
                     }
                     break;
                 case 'ios':
                     if (typeof IOSNotificationHandler !== 'undefined') {
                         this.platformImpl = new IOSNotificationHandler(this);
+                        console.log('[FloatingMessenger] 使用 IOSNotificationHandler');
+                    } else {
+                        console.warn('[FloatingMessenger] IOSNotificationHandler 未定義');
                     }
                     break;
             }
             
             if (this.platformImpl && typeof this.platformImpl.init === 'function') {
                 await this.platformImpl.init();
+            } else {
+                console.warn('[FloatingMessenger] 無法初始化平台實現');
             }
         }
 
@@ -183,21 +302,29 @@
                             this.savePosition();
                         }
                         break;
+                    case 'FLOATING_MESSENGER_CONFIG':
+                        if (data.config) {
+                            this.saveConfig(data.config);
+                            this.updateCharacterInfo();
+                            this.emit('config_updated', data.config);
+                        }
+                        break;
                 }
             });
         }
 
         updateCharacterInfo() {
-            const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
-            const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+            const char = this.getSelectedCharacter();
             
-            this.state.characterName = charName;
-            this.state.characterAvatar = charAvatar;
+            this.state.characterName = char.name;
+            this.state.characterAvatar = char.avatar;
+            this.state.characterPersonality = char.personality;
             this.saveState();
             
             this.emit('character_updated', {
-                name: charName,
-                avatar: charAvatar
+                name: char.name,
+                avatar: char.avatar,
+                personality: char.personality
             });
         }
 
@@ -207,7 +334,8 @@
             }
             return {
                 name: this.state.characterName || 'AI 助理',
-                avatar: this.state.characterAvatar || ''
+                avatar: this.state.characterAvatar || '',
+                personality: this.state.characterPersonality || ''
             };
         }
 
@@ -245,7 +373,12 @@
         }
 
         open() {
-            if (this.state.isOpen) return;
+            console.log('[FloatingMessenger] open() 被調用, 當前狀態:', this.state.isOpen);
+            
+            if (this.state.isOpen) {
+                console.log('[FloatingMessenger] 已經開啟，跳過');
+                return;
+            }
             
             this.state.isOpen = true;
             this.state.isMinimized = false;
@@ -253,8 +386,15 @@
             
             this.updateCharacterInfo();
             
-            if (this.platformImpl && typeof this.platformImpl.show === 'function') {
-                this.platformImpl.show();
+            if (this.platformImpl) {
+                console.log('[FloatingMessenger] platformImpl 存在，調用 show()');
+                if (typeof this.platformImpl.show === 'function') {
+                    this.platformImpl.show();
+                } else {
+                    console.warn('[FloatingMessenger] platformImpl.show 不是函數');
+                }
+            } else {
+                console.warn('[FloatingMessenger] platformImpl 不存在');
             }
             
             this.emit('opened');

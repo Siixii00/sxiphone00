@@ -465,7 +465,10 @@
         show() {
             this.container.classList.remove('hidden');
             this.core.state.isOpen = true;
+            this.updatePosition();
             this.updateBadge();
+            this.updateCharacterInfo();
+            console.log('[AndroidFloatingWindow] 已顯示懸浮球');
         }
 
         hide() {
