@@ -132,11 +132,11 @@ function playNeonIntro() {
 function skipIntro() {
   const intro = document.getElementById('neon-intro');
   if (intro) {
-    // 立即隱藏，不使用動畫
     intro.style.display = 'none';
     intro.classList.add('hidden');
   }
 }
+window.skipIntro = skipIntro;
 
 function updateCoinsDisplay() {
   if (coinsDisplay) {
