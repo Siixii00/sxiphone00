@@ -2075,22 +2075,35 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', (e) => {
             e.stopPropagation();
             console.log('Tab clicked:', tab.dataset.tab);
+            
+            // 保存當前聊天歷史到 session
+            const activeId = getActiveChatId();
+            if (activeId) {
+                const sessions = loadChatSessions();
+                const target = sessions.find(s => s.id === activeId);
+                if (target) {
+                    const currentHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+                    target.history = currentHistory;
+                    saveChatSessions(sessions);
+                }
+            }
+            
             bottomTabs.forEach(btn => btn.classList.remove('active'));
             tab.classList.add('active');
             Object.values(tabPanels).forEach(panel => panel?.classList.remove('active'));
-            const target = tab.dataset.tab;
-            if (target && tabPanels[target]) {
-                tabPanels[target].classList.add('active');
+            const targetTab = tab.dataset.tab;
+            if (targetTab && tabPanels[targetTab]) {
+                tabPanels[targetTab].classList.add('active');
             }
             closeAllMorePanels();
             document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
             if (newChatBtn) {
-                newChatBtn.style.display = target === 'friends' ? 'flex' : 'none';
+                newChatBtn.style.display = targetTab === 'friends' ? 'flex' : 'none';
             }
-            if (target === 'friends') {
+            if (targetTab === 'friends') {
                 renderFriendsList();
             }
-            if (target !== 'chats') {
+            if (targetTab !== 'chats') {
                 chatApp?.classList.remove('detail-active');
                 chatDetailView?.classList.add('hidden');
             } else {
