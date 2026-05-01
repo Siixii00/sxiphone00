@@ -2455,6 +2455,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeSession = getActiveSession();
     if (activeSession) {
         setActiveChatId(activeSession.id);
+        // 將活躍 session 的歷史載入到 sx_chat_history
+        localStorage.setItem('sx_chat_history', JSON.stringify(activeSession.history || []));
+        // 恢復角色設定
+        if (activeSession.charName) {
+            localStorage.setItem('sx_char_name', activeSession.charName);
+        }
+        if (activeSession.charAvatar) {
+            localStorage.setItem('sx_char_avatar', activeSession.charAvatar);
+        }
+        if (activeSession.charPersonality) {
+            localStorage.setItem('sx_char_personality', activeSession.charPersonality);
+        }
+        if (activeSession.charBackground) {
+            localStorage.setItem('sx_char_background', activeSession.charBackground);
+        }
     }
     showChatList();
 
