@@ -466,6 +466,11 @@ window.addEventListener('pageshow', async (event) => {
                 if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
                 if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
                 
+                if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
+                if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
+                if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
+                if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
+                
                 if (persistedData.sx_chat_sessions) {
                     const existingSessions = localStorage.getItem('sx_chat_sessions');
                     if (!existingSessions) {
@@ -949,6 +954,52 @@ function getWorldbookMounts() {
  * 核心修正：統一更新角色設定的函式
  * 解決「隨時偵測」並儲存到 localStorage 的問題
  */
+async function saveCharSettingsToIndexedDB(charData) {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+        if (!localforage._config || !localforage._config.storeName) {
+            localforage.config({
+                name: 'sxiphone',
+                storeName: 'chatData',
+                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
+            });
+        }
+        
+        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
+        await localforage.setItem('sx_app_persisted_data', {
+            ...existingData,
+            charName: charData.name || existingData.charName,
+            charAvatar: charData.avatar || existingData.charAvatar,
+            charPersonality: charData.personality || existingData.charPersonality,
+            charBackground: charData.background || existingData.charBackground,
+            lastSaved: Date.now()
+        });
+        console.log('[Storage] 角色設定已保存至 IndexedDB');
+    } catch (e) {
+        console.warn('[Storage] 角色設定儲存到 IndexedDB 失敗:', e);
+    }
+}
+
+async function loadCharSettingsFromIndexedDB() {
+    if (typeof localforage === 'undefined') return null;
+    
+    try {
+        const persistedData = await localforage.getItem('sx_app_persisted_data');
+        if (persistedData) {
+            return {
+                name: persistedData.charName,
+                avatar: persistedData.charAvatar,
+                personality: persistedData.charPersonality,
+                background: persistedData.charBackground
+            };
+        }
+    } catch (e) {
+        console.warn('[Storage] 從 IndexedDB 載入角色設定失敗:', e);
+    }
+    return null;
+}
+
 function updateActiveMask(field, value) {
     let masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     if (masks.length === 0) {
@@ -977,6 +1028,8 @@ function updateActiveMask(field, value) {
     if (typeof charConfig !== 'undefined') {
         charConfig[field] = value;
     }
+    
+    saveCharSettingsToIndexedDB({ [field]: value });
 }
 
 // --- 1. 基礎數據載入 ---
