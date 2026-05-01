@@ -256,6 +256,15 @@ body::before {
   background: #fff7ec;
   color: var(--ink);
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.npc-pill:hover {
+  background: #fff0e0;
+}
+
+.npc-pill:active {
+  transform: scale(0.96);
 }
 
 .npc-pill img,
@@ -272,7 +281,9 @@ body::before {
 
 .npc-pill.active {
   border-color: var(--accent-dark);
-  background: rgba(201, 123, 99, 0.18);
+  background: rgba(201, 123, 99, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(201, 123, 99, 0.2);
 }
 
 .diary-cover {
@@ -894,13 +905,24 @@ form {
   cursor: pointer;
   font-size: 0.95rem;
   background: rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.mood-btn:hover,
+.seal-btn:hover {
+  opacity: 0.85;
+}
+
+.mood-btn:active,
+.seal-btn:active {
+  transform: scale(0.95);
 }
 
 .mood-btn.active,
 .seal-btn.active {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
 }
 
 .mood-btn[data-mood="sunny"] {

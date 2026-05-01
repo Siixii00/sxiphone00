@@ -415,11 +415,12 @@
       const raw = JSON.parse(localStorage.getItem(CHAR_STORAGE_KEY) || '[]');
       if (!Array.isArray(raw) || !raw.length) return [];
       return raw.map((char) => ({
-        ...char,
         id: `char:${deriveCharId(char)}`,
+        name: char?.name || '未命名角色',
+        avatar: char?.avatar || '',
         source: 'char',
         role: char?.role || '角色夥伴',
-        notes: char?.notes || char?.personality || char?.background || '',
+        notes: char?.notes || '',
         personality: char?.personality || '',
         background: char?.background || ''
       }));
@@ -434,9 +435,12 @@
       const raw = JSON.parse(localStorage.getItem(NPC_STORAGE_KEY) || '[]');
       if (!Array.isArray(raw) || !raw.length) return [];
       return raw.map((npc) => ({
-        ...npc,
         id: `npc:${deriveNpcId(npc)}`,
+        name: npc?.name || '未命名 NPC',
+        avatar: npc?.avatar || '',
         source: 'npc',
+        role: npc?.role || 'NPC 夥伴',
+        notes: npc?.notes || '',
         personality: npc?.personality || '',
         background: npc?.background || ''
       }));
@@ -568,16 +572,17 @@
   }
 
   function createAvatarNode(url, alt = 'avatar') {
+    const safeAlt = String(alt || 'avatar').slice(0, 20);
     if (url) {
       const img = document.createElement('img');
       img.src = url;
-      img.alt = alt || 'avatar';
+      img.alt = safeAlt;
       img.loading = 'lazy';
       return img;
     }
     const span = document.createElement('span');
     span.className = 'avatar-fallback';
-    span.textContent = (alt || '?').trim().slice(0, 1) || '?';
+    span.textContent = safeAlt.trim().slice(0, 1) || '?';
     span.setAttribute('aria-hidden', 'true');
     return span;
   }

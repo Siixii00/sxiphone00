@@ -180,9 +180,10 @@ const elements = {
 };
 
 function loadCharFromChats() {
-    const charName = localStorage.getItem('sx_char_name');
+    let charName = localStorage.getItem('sx_char_name');
+    let charAvatar = localStorage.getItem('sx_char_avatar');
     
-    if (charName) {
+    if (charName && charName !== '預設用戶') {
         const raw = localStorage.getItem('sx_characters');
         if (raw) {
             try {
@@ -204,7 +205,7 @@ function loadCharFromChats() {
                 console.warn('[Weather] 解析 sx_characters 失敗:', e);
             }
         }
-        const charAvatar = localStorage.getItem('sx_char_avatar');
+        
         if (!elements.charName || !elements.charAvatar) return;
         elements.charName.textContent = charName || '未命名角色';
         if (charAvatar) {
@@ -216,6 +217,30 @@ function loadCharFromChats() {
         if (elements.charPlaceholder) elements.charPlaceholder.style.display = 'none';
         return;
     }
+    
+    const rawChars = localStorage.getItem('sx_characters');
+    if (rawChars) {
+        try {
+            const chars = JSON.parse(rawChars);
+            if (Array.isArray(chars) && chars.length > 0) {
+                const firstChar = chars[0];
+                if (firstChar && firstChar.name && firstChar.name !== '預設用戶') {
+                    if (!elements.charName || !elements.charAvatar) return;
+                    elements.charName.textContent = firstChar.name || '未命名角色';
+                    if (firstChar.avatar) {
+                        elements.charAvatar.innerHTML = `<img src="${firstChar.avatar}" alt="${firstChar.name}" />`;
+                        elements.charAvatar.classList.add('image');
+                    } else {
+                        elements.charAvatar.textContent = firstChar.name.charAt(0) || '?';
+                    }
+                    if (elements.charPlaceholder) elements.charPlaceholder.style.display = 'none';
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('[Weather] 解析 sx_characters 失敗:', e);
+        }
+    }
 
     const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
     const activeMask = masks[0] || {};
@@ -224,7 +249,7 @@ function loadCharFromChats() {
 
     if (!elements.charName || !elements.charAvatar) return;
 
-    if (!name && !avatar) {
+    if (!name) {
         elements.charName.textContent = '尚未設定角色';
         elements.charAvatar.textContent = '?';
         if (elements.charPlaceholder) elements.charPlaceholder.style.display = 'block';
