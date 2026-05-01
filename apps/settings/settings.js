@@ -514,6 +514,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // 4. 回填角色設定
+    const charFields = {
+        'char-name-input': 'sx_char_name',
+        'char-avatar-input': 'sx_char_avatar',
+        'char-personality-input': 'sx_char_personality',
+        'char-background-input': 'sx_char_background',
+        'char-worldbook-input': 'sx_char_worldbook',
+        'char-examples-input': 'sx_char_examples'
+    };
+    for (let id in charFields) {
+        const el = document.getElementById(id);
+        if (el) {
+            const savedValue = localStorage.getItem(charFields[id]);
+            el.value = savedValue || '';
+        }
+    }
+    // 回填角色頭像預覽
+    const charAvatarPreview = document.getElementById('char-avatar-preview');
+    if (charAvatarPreview) {
+        const charAvatar = localStorage.getItem('sx_char_avatar');
+        if (charAvatar) {
+            charAvatarPreview.src = charAvatar;
+        }
+    }
+
     // 語言選擇器即時同步
     const langSelectEl = document.getElementById('langSelect');
     if (langSelectEl) {
