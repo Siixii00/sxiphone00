@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sxiphone-v14';
+const CACHE_NAME = 'sxiphone-v15';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -21,18 +21,41 @@ const CACHE_STRATEGIES = {
   staleWhileRevalidate: ['/style.css', '/main.js', '/apps/scripts/']
 };
 
+const FALLBACK_HTML = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>sxiphone</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:#0b0c12;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center}
+.loader{text-align:center}
+.loader-title{font-size:28px;font-weight:200;margin-bottom:16px;opacity:0.9}
+.loader-spinner{width:32px;height:32px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="loader">
+<div class="loader-title">sxiphone</div>
+<div class="loader-spinner"></div>
+</div>
+</body>
+</html>`;
+
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Caching static assets');
-        // Cache files individually to handle failures gracefully
         return Promise.allSettled(
           STATIC_ASSETS.map((asset) =>
             cache.add(asset).catch((err) => {
               console.warn(`[SW] Failed to cache: ${asset}`, err.message);
-              throw err; // Re-throw to mark as rejected in allSettled
+              throw err;
             })
           )
         );
@@ -142,23 +165,32 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put('/index.html', responseClone);
-            });
+      caches.match('/index.html')
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            fetch(request)
+              .then((response) => {
+                if (response.ok) {
+                  caches.open(CACHE_NAME).then((cache) => {
+                    cache.put('/index.html', response.clone());
+                  });
+                }
+              })
+              .catch(() => {});
+            return cachedResponse;
           }
-          return response;
-        })
-        .catch(() => {
-          return caches.match('/index.html')
-            .then((cachedResponse) => {
-              if (cachedResponse) {
-                return cachedResponse;
+          return fetch(request)
+            .then((response) => {
+              if (response.ok) {
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put('/index.html', responseClone);
+                });
               }
-              return new Response('<html><body><h1>Loading...</h1><p>Please wait or refresh.</p></body></html>', {
+              return response;
+            })
+            .catch(() => {
+              return new Response(FALLBACK_HTML, {
                 headers: { 'Content-Type': 'text/html' }
               });
             });

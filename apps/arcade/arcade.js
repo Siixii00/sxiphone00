@@ -656,6 +656,25 @@ function moveSnake2() {
     snake2.pop();
   }
 }
+
+function moveSnake() {
+  if (!snake.length) return;
+  
+  const head = { x: snake[0].x, y: snake[0].y };
+  
+  switch (snakeDirection) {
+    case 'up': head.y--; break;
+    case 'down': head.y++; break;
+    case 'left': head.x--; break;
+    case 'right': head.x++; break;
+  }
+  
+  if (head.x < 0 || head.x >= snakeSize || head.y < 0 || head.y >= snakeSize ||
+      snake.some(s => s.x === head.x && s.y === head.y)) {
+    clearInterval(snakeInterval);
+    if (snake2Interval) clearInterval(snake2Interval);
+    updateHighScore('snake', snakeScore);
+    alert(`遊戲結束！得分: ${snakeScore}`);
     return;
   }
   

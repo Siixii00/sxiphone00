@@ -2,7 +2,7 @@
   "name": "sxiphone - iOS 風格手機介面",
   "short_name": "sxiphone",
   "description": "iOS 風格的手機介面模擬器，提供聊天、設定等多種應用功能",
-  "start_url": "/index.html",
+  "start_url": "/index.html?source=pwa",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
@@ -13,13 +13,6 @@
   "lang": "zh-TW",
   "dir": "ltr",
   "prefer_related_applications": false,
-  "handle_links": "preferred",
-  "launch_handler": {
-    "client_mode": ["navigate-existing", "auto"]
-  },
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
   "icons": [
     {
       "src": "apps/screenshots/icon-48x48.png",
