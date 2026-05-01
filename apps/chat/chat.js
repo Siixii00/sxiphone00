@@ -10,6 +10,98 @@ const UserEnv = {
     }
 };
 
+const ImageHostService = {
+    CATBOX_URL: 'https://catbox.moe/user/api.php',
+    
+    isEnabled() {
+        return localStorage.getItem('sx_image_host_enabled') === 'true';
+    },
+    
+    getProvider() {
+        return localStorage.getItem('sx_image_host_provider') || 'catbox';
+    },
+    
+    getUserhash() {
+        return localStorage.getItem('sx_catbox_userhash') || '';
+    },
+    
+    async uploadToCatbox(file) {
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', file);
+        
+        const userhash = this.getUserhash();
+        if (userhash) {
+            formData.append('userhash', userhash);
+            console.log('[ImageHost] 使用帳號上傳');
+        }
+        
+        try {
+            const response = await fetch(this.CATBOX_URL, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Catbox upload failed: ${response.status}`);
+            }
+            
+            const url = await response.text();
+            if (url && url.startsWith('https://')) {
+                console.log('[ImageHost] Catbox 上傳成功:', url);
+                return url.trim();
+            }
+            throw new Error('Invalid response from Catbox: ' + url);
+        } catch (error) {
+            console.error('[ImageHost] Catbox 上傳失敗:', error);
+            return null;
+        }
+    },
+    
+    async uploadImage(source) {
+        if (!this.isEnabled()) {
+            return null;
+        }
+        
+        let file = null;
+        
+        if (source instanceof File) {
+            file = source;
+        } else if (typeof source === 'string' && source.startsWith('data:')) {
+            const response = await fetch(source);
+            const blob = await response.blob();
+            const ext = source.split(';')[0].split('/')[1] || 'png';
+            file = new File([blob], `image.${ext}`, { type: blob.type || 'image/png' });
+        } else if (source instanceof Blob) {
+            file = new File([source], 'image.png', { type: source.type || 'image/png' });
+        }
+        
+        if (!file) {
+            console.warn('[ImageHost] 無效的圖片來源');
+            return null;
+        }
+        
+        if (file.size > 200 * 1024 * 1024) {
+            console.warn('[ImageHost] 檔案過大（超過 200MB），跳過上傳');
+            return null;
+        }
+        
+        const provider = this.getProvider();
+        
+        switch (provider) {
+            case 'catbox':
+                return await this.uploadToCatbox(file);
+            default:
+                return await this.uploadToCatbox(file);
+        }
+    },
+    
+    async uploadWithFallback(source, fallbackBase64) {
+        const url = await this.uploadImage(source);
+        return url || fallbackBase64;
+    }
+};
+
 let supabaseMessageCountSinceLastBackup = 0;
 const SUPABASE_BACKUP_INTERVAL = 10;
 
@@ -223,6 +315,18 @@ function getWorldbookIndex() {
 }
 
 function loadChatSessions() {
+    if (typeof localforage !== 'undefined') {
+        const cached = localStorage.getItem('sx_chat_sessions');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
+            } catch (e) {}
+        }
+    }
+    
     const raw = localStorage.getItem('sx_chat_sessions');
     if (raw) {
         try {
@@ -235,8 +339,49 @@ function loadChatSessions() {
     return [];
 }
 
+async function loadChatSessionsAsync() {
+    if (typeof localforage !== 'undefined') {
+        try {
+            const persistedData = await localforage.getItem('sx_app_persisted_data');
+            if (persistedData && persistedData.sx_chat_sessions) {
+                const sessions = persistedData.sx_chat_sessions;
+                if (Array.isArray(sessions) && sessions.length > 0) {
+                    localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+                    return sessions;
+                }
+            }
+        } catch (e) {
+            console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
+        }
+    }
+    return loadChatSessions();
+}
+
 function saveChatSessions(sessions) {
     localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+}
+
+async function saveChatSessionsToIndexedDB(sessions) {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+        if (!localforage._config || !localforage._config.storeName) {
+            localforage.config({
+                name: 'sxiphone',
+                storeName: 'chatData',
+                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
+            });
+        }
+        
+        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
+        await localforage.setItem('sx_app_persisted_data', {
+            ...existingData,
+            sx_chat_sessions: sessions,
+            lastSaved: Date.now()
+        });
+    } catch (e) {
+        console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
+    }
 }
 
 const saveChatData = () => {
@@ -246,7 +391,6 @@ const saveChatData = () => {
         const activeId = getActiveChatId();
         if (activeId) localStorage.setItem('sx_chat_active', activeId);
         
-        // 保存用戶設定到 localStorage
         const userNameInput = document.getElementById('set-user-name');
         const userBgInput = document.getElementById('set-user-background');
         if (userNameInput && userNameInput.value.trim()) {
@@ -316,16 +460,13 @@ window.addEventListener('pageshow', async (event) => {
         try {
             const persistedData = await localforage.getItem('sx_app_persisted_data');
             if (persistedData) {
-                // 還原用戶資料
                 if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
                 if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
                 if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
                 if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
                 
-                // 還原聊天 sessions (iOS localStorage 備援)
                 if (persistedData.sx_chat_sessions) {
                     const existingSessions = localStorage.getItem('sx_chat_sessions');
-                    // 只有當 localStorage 沒有資料時才從 localforage 還原
                     if (!existingSessions) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedData.sx_chat_sessions));
                         console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
@@ -2568,22 +2709,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('圖片大小不能超過 5MB');
                     return;
                 }
+                
                 const reader = new FileReader();
-                reader.onload = function(event) {
+                reader.onload = async function(event) {
                     const base64 = event.target.result;
                     preview.src = base64;
                     
+                    let avatarUrl = base64;
+                    
+                    if (ImageHostService.isEnabled()) {
+                        try {
+                            preview.style.opacity = '0.5';
+                            const uploadedUrl = await ImageHostService.uploadImage(file);
+                            if (uploadedUrl) {
+                                avatarUrl = uploadedUrl;
+                                console.log('[Chat] 頭貼已上傳到圖床:', uploadedUrl);
+                            }
+                        } catch (e) {
+                            console.warn('[Chat] 圖床上傳失敗，使用 base64:', e);
+                        }
+                        preview.style.opacity = '1';
+                    }
+                    
                     if (config.type === 'char') {
-                        updateActiveMask('avatar', base64);
+                        updateActiveMask('avatar', avatarUrl);
                     } else {
-                        localStorage.setItem('sx_user_avatar', base64);
-                        userConfig.avatar = base64;
+                        localStorage.setItem('sx_user_avatar', avatarUrl);
+                        userConfig.avatar = avatarUrl;
                         
                         updateUserToList();
                         
                         window.parent?.postMessage({
                             type: 'USER_AVATAR_UPDATED',
-                            payload: { avatar: base64 }
+                            payload: { avatar: avatarUrl }
                         }, '*');
                         
                         console.log('[Chat] 用戶頭貼已保存並同步');
@@ -5378,12 +5536,35 @@ ${lastCharContent || '（尚未有對話）'}
     }
 
     if (imageUpload) {
-        imageUpload.addEventListener('change', (event) => {
+        imageUpload.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (!file) return;
+            
+            let imageUrl = null;
             const reader = new FileReader();
-            reader.onload = () => {
-                const imgHtml = `<img src="${reader.result}" style="max-width:180px;border-radius:10px;" />`;
+            
+            reader.onload = async () => {
+                const base64 = reader.result;
+                let imgHtml = '';
+                
+                if (ImageHostService.isEnabled()) {
+                    try {
+                        const uploadedUrl = await ImageHostService.uploadImage(file);
+                        if (uploadedUrl) {
+                            imageUrl = uploadedUrl;
+                            imgHtml = '<img src="' + uploadedUrl + '" style="max-width:180px;border-radius:10px;" />';
+                            console.log('[Chat] 圖片已上傳到圖床:', uploadedUrl);
+                        } else {
+                            imgHtml = '<img src="' + base64 + '" style="max-width:180px;border-radius:10px;" />';
+                        }
+                    } catch (e) {
+                        console.warn('[Chat] 圖床上傳失敗，使用 base64:', e);
+                        imgHtml = '<img src="' + base64 + '" style="max-width:180px;border-radius:10px;" />';
+                    }
+                } else {
+                    imgHtml = '<img src="' + base64 + '" style="max-width:180px;border-radius:10px;" />';
+                }
+                
                 appendMsg('mine', imgHtml);
                 const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                 history.push({ role: "user", content: imgHtml });
@@ -5399,13 +5580,15 @@ ${lastCharContent || '（尚未有對話）'}
                 }
                 window.parent?.postMessage({
                     type: 'ALBUM_ADD_IMAGE',
-                    url: reader.result,
+                    url: imageUrl || base64,
                     source: 'chat'
                 }, '*');
             };
             reader.readAsDataURL(file);
         });
     }
+
+        }
 
     const PHONE_APPEARANCE_KEY = 'sx_phone_appearance_config';
 
@@ -6358,6 +6541,47 @@ ${examples}
             console.warn('[ChatEngine] 獲取占卜記憶失敗:', e);
         }
 
+        let cloudContextSection = '';
+        try {
+            if (typeof UnifiedStorageManager !== 'undefined') {
+                const manager = new UnifiedStorageManager();
+                const cloudContext = await manager.retrieveContextForAI(activeChar?.name || '', { maxBackups: 3 });
+                
+                if (cloudContext.retrieved) {
+                    const parts = [];
+                    
+                    if (cloudContext.recentChats.length > 0) {
+                        const chatSummaries = cloudContext.recentChats.slice(0, 2).map(c => {
+                            const lastMsg = c.messages[c.messages.length - 1];
+                            return `[${new Date(c.exportedAt).toLocaleDateString()}] 最後對話: "${lastMsg?.content?.slice(0, 50) || '...'}"`;
+                        });
+                        parts.push(`## 歷史對話摘要\n${chatSummaries.join('\n')}`);
+                    }
+                    
+                    if (cloudContext.relevantMemories.length > 0) {
+                        const memSummaries = cloudContext.relevantMemories.slice(0, 5).map(m => 
+                            `- ${m.summary || m.content?.slice(0, 30) || '記憶'}`
+                        );
+                        parts.push(`## 相關記憶\n${memSummaries.join('\n')}`);
+                    }
+                    
+                    if (cloudContext.innerVoices.length > 0) {
+                        const voiceSummaries = cloudContext.innerVoices.slice(-3).map(v => 
+                            `"${v.content?.slice(0, 30) || '...'}"`
+                        );
+                        parts.push(`## 過往心聲\n${voiceSummaries.join('\n')}`);
+                    }
+                    
+                    if (parts.length > 0) {
+                        cloudContextSection = `\n# CLOUD_RETRIEVED_CONTEXT\n以下資料來自雲端備份，可幫助你回憶過往互動：\n${parts.join('\n\n')}\n\n請自然地運用這些資訊，讓對話更連貫。`;
+                        console.log('[ChatEngine] 已從雲端檢索上下文');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[ChatEngine] 雲端上下文檢索失敗:', e);
+        }
+
         const generationMode = this.getGenerationMode();
         const modeInstructions = this.getModeInstructions(generationMode, lang);
         
@@ -6413,6 +6637,7 @@ ${dynamicWI || "（無觸發的世界書內容）"}
 ${worldbookContext}
 ${awakeningContext}
 ${fortuneMemorySection}
+${cloudContextSection}
 ${relationshipPrompt}
 ${modeEmphasis}
 ${modeInstructions}

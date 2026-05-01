@@ -910,6 +910,56 @@
                 <i data-lucide="chevron-right" class="arrow"></i>
             </summary>
             <div class="list-card">
+                <div class="cell-v" style="margin-bottom: 16px; padding: 12px; background: var(--ios-secondary-bg); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span class="cell-label">儲存空間</span>
+                        <span id="storage-usage-text" style="font-size: 13px; color: var(--ios-secondary-label);">計算中...</span>
+                    </div>
+                    <div style="background: var(--ios-separator); border-radius: 4px; height: 6px; overflow: hidden;">
+                        <div id="storage-usage-bar" style="background: var(--ios-blue); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                    <div id="storage-details" style="margin-top: 8px; font-size: 12px; color: var(--ios-secondary-label);">
+                        <div style="display: flex; justify-content: space-between;"><span>localStorage</span><span id="ls-size">—</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>IndexedDB</span><span id="idb-size">—</span></div>
+                    </div>
+                    <div id="storage-warning" class="hidden" style="margin-top: 8px; padding: 8px; background: rgba(255, 69, 58, 0.1); border-radius: 6px; font-size: 12px; color: #FF453A;"></div>
+                    <div id="ios-storage-pressure" class="hidden" style="margin-top: 8px; padding: 8px; background: rgba(255, 149, 0, 0.1); border-radius: 6px; font-size: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span id="ios-pressure-label">iOS 儲存壓力</span>
+                            <span id="ios-pressure-value" style="font-weight: 500;">—</span>
+                        </div>
+                        <div style="margin-top: 4px; height: 4px; background: #e0e0e0; border-radius: 2px; overflow: hidden;">
+                            <div id="ios-pressure-bar" style="height: 100%; background: #34C759; transition: width 0.3s, background 0.3s;"></div>
+                        </div>
+                        <p id="ios-pressure-recommendation" style="margin-top: 4px; font-size: 11px; color: #666;"></p>
+                    </div>
+                    
+                    <div id="backup-pipeline-status" style="margin-top: 8px; padding: 8px; background: rgba(52, 199, 89, 0.1); border-radius: 6px; font-size: 12px;">
+                        <div style="font-weight: 500; margin-bottom: 6px;">資料保護狀態</div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>localStorage → IndexedDB</span>
+                                <span id="pipeline-migrate-status" style="color: #34C759;">—</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>第一保險 (Supabase)</span>
+                                <span id="pipeline-supabase-status" style="color: #34C759;">—</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>第二保險 (每晚備份)</span>
+                                <span id="pipeline-nightly-status" style="color: #34C759;">—</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="backup-fail-warning" class="hidden" style="margin-top: 8px; padding: 8px; background: rgba(255, 69, 58, 0.15); border-radius: 6px; font-size: 12px;">
+                        <div style="color: #FF453A; font-weight: 500;">⚠️ 備份失敗提醒</div>
+                        <p id="backup-fail-message" style="margin-top: 4px; font-size: 11px; color: #666;"></p>
+                        <button id="manual-backup-btn" class="ios-btn" style="margin-top: 6px; font-size: 11px; padding: 4px 8px; background: #FF453A; color: white;">手動本地備份</button>
+                    </div>
+                    
+                    <button id="storage-cleanup-btn" class="ios-btn" style="margin-top: 8px; font-size: 13px; padding: 6px 12px;">清理舊資料</button>
+                </div>
                 <div id="github-connected-section" class="cell-v hidden">
                     <div class="github-profile-card">
                         <img id="github-avatar" class="github-avatar" src="" alt="">
@@ -945,16 +995,25 @@
                     <div class="btn-row" style="margin-top:8px;">
                         <button class="ios-btn" id="github-disconnect" type="button" style="color:#FF453A;">中斷連接</button>
                     </div>
+                    <div class="cell-v" style="margin-top: 12px; padding: 10px; background: var(--ios-secondary-bg); border-radius: 8px;">
+                        <span class="cell-label" style="font-size: 13px;">記憶同步</span>
+                        <p class="ios-caption" style="font-size: 11px;">同步短期記憶到本地 IndexedDB，防止記憶遺失</p>
+                        <div class="btn-row" style="margin-top: 6px;">
+                            <button class="ios-btn" id="memory-sync-push" type="button" style="font-size: 12px; padding: 6px 12px;">推送記憶</button>
+                            <button class="ios-btn" id="memory-sync-pull" type="button" style="font-size: 12px; padding: 6px 12px;">拉取記憶</button>
+                        </div>
+                        <p class="ios-caption" id="memory-sync-status" style="font-size: 11px;"></p>
+                    </div>
                 </div>
                 <div id="github-notconnected-section" class="cell-v">
                     <span class="cell-label">GitHub 私密備份</span>
-                    <p class="ios-caption">使用 Personal Access Token (PAT) 連接 GitHub，自動建立私有備份儲存庫並跨裝置同步。</p>
+                    <p class="ios-caption">使用 Personal Access Token (PAT) 連接 GitHub，自動建立私有備份儲存庫並跨裝置同步。支援分割上傳，無 1MB 限制。</p>
                     <label class="cell-label" for="github-pat">PAT Token</label>
                     <input id="github-pat" class="ios-input" type="password" placeholder="貼上 GitHub PAT (repo 權限)">
                     <label class="cell-label" for="github-repo">備份 Repo 名稱</label>
                     <input id="github-repo" class="ios-input" type="text" placeholder="sxiphone-backup">
                     <label class="cell-label" for="github-file">備份檔案路徑</label>
-                    <input id="github-file" class="ios-input" type="text" placeholder="backup/sxiphone.json">
+                    <input id="github-file" class="ios-input" type="text" placeholder="backup/sxiphone">
                     <div class="btn-row">
                         <button class="ios-btn" id="github-save-token" type="button">儲存並連接</button>
                     </div>
@@ -1060,6 +1119,60 @@
         </details>
     </section>
 
+    <!-- 圖床設定 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="image"></i>
+                    <span>圖床設定</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">自動上傳圖片到圖床</span>
+                    <p class="ios-caption">啟用後，頭貼和聊天圖片會自動上傳到圖床，大幅減少本地儲存空間使用。適合 iOS 裝置避免容量不足問題。</p>
+                    
+                    <div class="ios-toggle-row" style="margin-top:12px;">
+                        <span class="toggle-label">啟用圖床上傳</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="image-host-enabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <label class="cell-label" for="image-host-provider" style="margin-top:12px;">圖床服務</label>
+                    <select id="image-host-provider" class="ios-input">
+                        <option value="catbox">Catbox (免費、永久保存)</option>
+                    </select>
+                    
+                    <div class="cell-v" style="margin-top:12px; padding:12px; background:#f5f5f5; border-radius:8px;">
+                        <span class="cell-label" style="font-size:13px;">Catbox 帳號設定（選填）</span>
+                        <p class="ios-caption" style="margin-top:4px;">填入 userhash 可管理上傳的圖片。無 userhash 則匿名上傳，圖片仍永久保存但無法管理。</p>
+                        
+                        <label class="cell-label" for="catbox-userhash" style="margin-top:8px;">User Hash</label>
+                        <input id="catbox-userhash" class="ios-input" type="password" placeholder="從 Catbox 帳號設定取得">
+                        
+                        <p class="ios-caption" style="margin-top:4px; font-size:11px;">
+                            取得方式：登入 <a href="https://catbox.moe/user/login.php" target="_blank">catbox.moe</a> → 帳號設定 → 複製 User Hash
+                        </p>
+                    </div>
+                    
+                    <p class="ios-caption" style="margin-top:12px;">
+                        <strong>Catbox 圖床說明：</strong><br>
+                        • 免費使用，單檔最大 200MB<br>
+                        • 支援 PNG、JPG、GIF、WEBP 等格式<br>
+                        • 圖片永久保存，備份還原後連結仍有效<br>
+                        • 建議填入 userhash 以便管理上傳的圖片
+                    </p>
+                    
+                    <p class="ios-caption" id="image-host-status" style="margin-top:8px;">狀態：未啟用</p>
+                </div>
+            </div>
+        </details>
+    </section>
+
     <!-- Supabase 自動備份（一鍵設定） -->
     <section class="group">
         <details>
@@ -1101,6 +1214,16 @@
                             <span>上次備份：<span id="supabase-last-sync">-</span></span>
                             <span>備份次數：<span id="supabase-backup-count">0</span></span>
                         </div>
+                    </div>
+                    
+                    <div class="cell-v" style="margin-top: 12px; padding: 10px; background: var(--ios-secondary-bg); border-radius: 8px;">
+                        <span class="cell-label" style="font-size: 13px;">記憶同步</span>
+                        <p class="ios-caption" style="font-size: 11px;">同步短期記憶到 Supabase 雲端，跨裝置共享記憶</p>
+                        <div class="btn-row" style="margin-top: 6px;">
+                            <button class="ios-btn" id="supabase-memory-sync-push" type="button" style="font-size: 12px; padding: 6px 12px;">推送記憶</button>
+                            <button class="ios-btn" id="supabase-memory-sync-pull" type="button" style="font-size: 12px; padding: 6px 12px;">拉取記憶</button>
+                        </div>
+                        <p class="ios-caption" id="supabase-memory-sync-status" style="font-size: 11px;"></p>
                     </div>
                 </div>
             </div>
@@ -1783,6 +1906,7 @@
 
 <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
 <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/unified-storage-manager.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>
 <script src="../scripts/character-card-crypto.js"></script>
 <script src="../scripts/firebase-card-config.js"></script>

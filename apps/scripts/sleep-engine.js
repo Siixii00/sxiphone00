@@ -1630,10 +1630,51 @@ class SleepEngine {
     }
 
     console.log('[SleepEngine] 自動備份完成:', backupResult);
+
+    const hasSuccess = backupResult.github === 'success' || backupResult.supabase === 'success';
+    if (hasSuccess && typeof UnifiedStorageManager !== 'undefined') {
+      try {
+        const manager = new UnifiedStorageManager();
+        const cleanupResult = await manager.progressiveCleanupAfterBackup({ success: true, source: 'auto' });
+        if (cleanupResult && !cleanupResult.skipped) {
+          console.log('[SleepEngine] 漸進式清理完成，釋放空間:', cleanupResult.spaceReclaimed);
+        }
+      } catch (e) {
+        console.warn('[SleepEngine] 漸進式清理失敗:', e);
+      }
+    }
+
     return backupResult;
   }
 
   async _backupToGitHub(sleepReport) {
+    if (typeof UnifiedStorageManager === 'undefined') {
+      console.warn('[SleepEngine] UnifiedStorageManager 未載入，使用舊方法');
+      return this._legacyBackupToGitHub(sleepReport);
+    }
+
+    const token = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
+    if (!token) return false;
+
+    try {
+      const manager = new UnifiedStorageManager();
+      
+      const result = await manager.backupToGitHub({
+        onStatus: (msg) => console.log('[SleepEngine] ' + msg)
+      });
+
+      if (result.success) {
+        console.log('[SleepEngine] GitHub 備份成功' + (result.isSplit ? ' (分割 ' + result.partCount + ' 部分)' : ''));
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('[SleepEngine] GitHub 備份錯誤:', e);
+      return false;
+    }
+  }
+
+  async _legacyBackupToGitHub(sleepReport) {
     const token = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
     const repoName = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
     const filePath = localStorage.getItem('sx_github_backup_file') || 'backup/sxiphone.json';
@@ -1642,7 +1683,7 @@ class SleepEngine {
 
     try {
       const userResp = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `token ${token}` }
+        headers: { Authorization: 'token ' + token }
       });
       
       if (!userResp.ok) {
@@ -1670,8 +1711,8 @@ class SleepEngine {
 
       let sha = null;
       try {
-        const existing = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
-          headers: { Authorization: `token ${token}` }
+        const existing = await fetch('https://api.github.com/repos/' + owner + '/' + repoName + '/contents/' + filePath, {
+          headers: { Authorization: 'token ' + token }
         });
         if (existing.ok) {
           const existingData = await existing.json();
@@ -1679,14 +1720,14 @@ class SleepEngine {
         }
       } catch {}
 
-      const uploadResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
+      const uploadResp = await fetch('https://api.github.com/repos/' + owner + '/' + repoName + '/contents/' + filePath, {
         method: 'PUT',
         headers: { 
-          Authorization: `token ${token}`, 
+          Authorization: 'token ' + token, 
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify({
-          message: `[Auto Backup] 睡眠後自動備份 ${new Date().toLocaleString()}`,
+          message: '[Auto Backup] 睡眠後自動備份 ' + new Date().toLocaleString(),
           content: contentBase64,
           sha
         })
@@ -1694,7 +1735,7 @@ class SleepEngine {
 
       if (!uploadResp.ok) {
         const errData = await uploadResp.json().catch(() => ({}));
-        throw new Error(errData.message || `上傳失敗 (${uploadResp.status})`);
+        throw new Error(errData.message || '上傳失敗 (' + uploadResp.status + ')');
       }
 
       console.log('[SleepEngine] GitHub 備份成功');
@@ -2104,7 +2145,10 @@ SleepEngine.prototype.processWikiEntries = async function() {
       const syncResult = await this._syncWikiToCloud(wikiDB, allEntries);
       result.synced = syncResult;
 
-      console.log(`[SleepEngine] Phase 8 - WikiProcessing: ${result.vectorized} 向量化, ${result.linked} 連結, ${result.synced} 同步`);
+      const generateResult = await this._generateCharWikiEntries(wikiDB);
+      result.generated = generateResult;
+
+      console.log(`[SleepEngine] Phase 8 - WikiProcessing: ${result.vectorized} 向量化, ${result.linked} 連結, ${result.synced} 同步, ${result.generated} 生成`);
 
       wikiDB.close();
     } catch (e) {
@@ -2112,6 +2156,214 @@ SleepEngine.prototype.processWikiEntries = async function() {
     }
 
     return result;
+  };
+
+  SleepEngine.prototype._generateCharWikiEntries = async function(wikiDB) {
+    const result = { generated: 0, failed: 0 };
+    
+    try {
+      const chars = await this._getAllWikiEntries(wikiDB, 'chars');
+      if (!chars || chars.length === 0) {
+        console.log('[SleepEngine] 沒有角色需要生成 Wiki');
+        return result;
+      }
+      
+      const charEntries = await this._getAllWikiEntries(wikiDB, 'char_entries');
+      
+      for (const char of chars) {
+        const charId = char.id;
+        const existingEntries = charEntries.filter(e => e.charId === charId);
+        
+        if (existingEntries.length >= 5) {
+          console.log(`[SleepEngine] 角色 ${char.name} 已有 ${existingEntries.length} 條 Wiki，跳過生成`);
+          continue;
+        }
+        
+        const chatHistory = this._getRecentChatHistory(char.name);
+        if (!chatHistory || chatHistory.length < 5) {
+          console.log(`[SleepEngine] 角色 ${char.name} 聊天記錄不足，跳過生成`);
+          continue;
+        }
+        
+        const newEntries = await this._generateWikiFromChatHistory(char, chatHistory, existingEntries);
+        
+        for (const entry of newEntries) {
+          try {
+            entry.charId = charId;
+            entry.id = `char_wiki_${charId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            entry.createdAt = new Date().toISOString();
+            entry.updatedAt = new Date().toISOString();
+            
+            await this._addWikiEntry(wikiDB, 'char_entries', entry);
+            result.generated++;
+          } catch (e) {
+            console.warn(`[SleepEngine] 添加 Wiki 條目失敗:`, e);
+            result.failed++;
+          }
+        }
+        
+        console.log(`[SleepEngine] 角色 ${char.name} 生成了 ${newEntries.length} 條 Wiki`);
+      }
+    } catch (e) {
+      console.error('[SleepEngine] Char Wiki 生成失敗:', e);
+    }
+    
+    return result.generated;
+  };
+
+  SleepEngine.prototype._getRecentChatHistory = function(charName) {
+    try {
+      const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+      if (!sessionsRaw) return [];
+      
+      const sessions = JSON.parse(sessionsRaw);
+      if (!Array.isArray(sessions)) return [];
+      
+      const allMessages = [];
+      for (const session of sessions) {
+        if (session.history && Array.isArray(session.history)) {
+          allMessages.push(...session.history);
+        }
+      }
+      
+      const charNameLower = (charName || '').toLowerCase();
+      const relevantMessages = allMessages.filter(msg => {
+        const senderLower = (msg.sender || msg.role || '').toLowerCase();
+        return senderLower.includes(charNameLower) || charNameLower.includes(senderLower) || msg.role === 'user';
+      });
+      
+      return relevantMessages.slice(-30);
+    } catch (e) {
+      console.warn('[SleepEngine] 獲取聊天記錄失敗:', e);
+      return [];
+    }
+  };
+
+  SleepEngine.prototype._generateWikiFromChatHistory = async function(char, chatHistory, existingEntries) {
+    const entries = [];
+    
+    const personality = char.personality || localStorage.getItem('sx_char_personality') || '';
+    const background = char.background || localStorage.getItem('sx_char_background') || '';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    
+    const recentTopics = this._extractTopicsFromChat(chatHistory);
+    const emotionalPatterns = this._extractEmotionalPatterns(chatHistory);
+    const interactionPatterns = this._extractInteractionPatterns(chatHistory, char.name, userName);
+    
+    if (recentTopics.length > 0 && existingEntries.filter(e => e.category === 'conversations').length < 2) {
+      entries.push({
+        title: `與 ${userName} 的對話主題`,
+        category: 'conversations',
+        tags: ['對話', '主題', userName],
+        content: `根據最近的對話記錄，${char.name} 和 ${userName} 常常討論以下主題：\n${recentTopics.map(t => `- ${t}`).join('\n')}\n\n這些對話反映了兩人之間的互動模式。`
+      });
+    }
+    
+    if (emotionalPatterns.length > 0 && existingEntries.filter(e => e.category === 'user_memories').length < 2) {
+      entries.push({
+        title: `情感表達模式`,
+        category: 'user_memories',
+        tags: ['情感', '性格', char.name],
+        content: `${char.name} 在對話中展現了以下情感特質：\n${emotionalPatterns.map(p => `- ${p}`).join('\n')}\n\n${personality ? `性格設定：${personality}` : ''}`
+      });
+    }
+    
+    if (interactionPatterns.length > 0 && existingEntries.filter(e => e.category === 'daily').length < 2) {
+      entries.push({
+        title: `日常互動記錄`,
+        category: 'daily',
+        tags: ['日常', '互動', userName],
+        content: `${char.name} 和 ${userName} 的日常互動模式：\n${interactionPatterns.map(p => `- ${p}`).join('\n')}\n\n這些互動展現了兩人之間的關係動態。`
+      });
+    }
+    
+    if (background && existingEntries.filter(e => e.category === 'world').length < 1) {
+      entries.push({
+        title: `背景故事`,
+        category: 'world',
+        tags: ['背景', '故事', '設定'],
+        content: background
+      });
+    }
+    
+    return entries.slice(0, 3);
+  };
+
+  SleepEngine.prototype._extractTopicsFromChat = function(chatHistory) {
+    const topics = [];
+    const keywordPatterns = [
+      { pattern: /聊到|討論|說到|提到|談到/g, extract: (msg) => msg.content.slice(0, 30) },
+      { pattern: /喜歡|愛|偏好|最愛/g, extract: (msg) => `喜好: ${msg.content.slice(0, 20)}` },
+      { pattern: /想去|要去|計劃|打算/g, extract: (msg) => `計劃: ${msg.content.slice(0, 20)}` }
+    ];
+    
+    for (const msg of chatHistory.slice(-15)) {
+      const content = msg.content || '';
+      for (const { pattern, extract } of keywordPatterns) {
+        if (pattern.test(content)) {
+          topics.push(extract(msg));
+          break;
+        }
+      }
+    }
+    
+    return [...new Set(topics)].slice(0, 5);
+  };
+
+  SleepEngine.prototype._extractEmotionalPatterns = function(chatHistory) {
+    const patterns = [];
+    const emotionPatterns = [
+      { pattern: /開心|快樂|高興|哈哈|嘻/g, label: '開心愉悅' },
+      { pattern: /難過|傷心|哭|淚/g, label: '感性脆弱' },
+      { pattern: /擔心|焦慮|緊張|不安/g, label: '關心體貼' },
+      { pattern: /生氣|憤怒|不滿/g, label: '直率表達' },
+      { pattern: /溫柔|體貼|關心|照顧/g, label: '溫柔體貼' },
+      { pattern: /調侃|玩笑|逗|鬧/g, label: '幽默調皮' }
+    ];
+    
+    for (const msg of chatHistory.slice(-20)) {
+      const content = msg.content || '';
+      for (const { pattern, label } of emotionPatterns) {
+        if (pattern.test(content)) {
+          patterns.push(label);
+          break;
+        }
+      }
+    }
+    
+    return [...new Set(patterns)].slice(0, 4);
+  };
+
+  SleepEngine.prototype._extractInteractionPatterns = function(chatHistory, charName, userName) {
+    const patterns = [];
+    
+    const userMessages = chatHistory.filter(m => m.role === 'user' || m.sender === userName);
+    const charMessages = chatHistory.filter(m => m.role === 'assistant' || (m.sender && m.sender.toLowerCase().includes(charName.toLowerCase())));
+    
+    if (userMessages.length > 0) {
+      const avgUserLength = userMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0) / userMessages.length;
+      patterns.push(`${userName} 平均訊息長度: ${Math.round(avgUserLength)} 字`);
+    }
+    
+    if (charMessages.length > 0) {
+      const avgCharLength = charMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0) / charMessages.length;
+      patterns.push(`${charName} 平均回覆長度: ${Math.round(avgCharLength)} 字`);
+    }
+    
+    const responseRatio = charMessages.length / (userMessages.length || 1);
+    patterns.push(`互動比例: ${userName} ${userMessages.length} 則 / ${charName} ${charMessages.length} 則`);
+    
+    return patterns;
+  };
+
+  SleepEngine.prototype._addWikiEntry = async function(db, storeName, entry) {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(storeName, 'readwrite');
+      const store = transaction.objectStore(storeName);
+      const request = store.add(entry);
+      request.onsuccess = () => resolve(entry);
+      request.onerror = () => reject(request.error);
+    });
   };
 
 SleepEngine.prototype._openWikiDB = async function() {
