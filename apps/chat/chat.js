@@ -1920,6 +1920,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chatApp?.classList.remove('detail-active');
       chatDetailView?.classList.add('hidden');
       document.querySelector('.kakao-bottom-tabs')?.classList.remove('hidden');
+      renderChatListFromStorage();
     };
   
     const showChatDetail = () => {
@@ -2203,8 +2204,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const item = event.target.closest('.chat-list-item');
         if (!item) return;
+        
+        const chatId = item.dataset.chatId;
+        
+        if (chatId === '__placeholder__') {
+            let charName = localStorage.getItem('sx_char_name');
+            if (!charName || charName === '預設用戶') {
+                charName = charConfig.name || 'AI 助理';
+            }
+            const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+            const charPersonality = localStorage.getItem('sx_char_personality') || '';
+            const charBackground = localStorage.getItem('sx_char_background') || '';
+            
+            const newSession = {
+                id: `chat_${Date.now()}`,
+                title: charName,
+                charName: charName,
+                charAvatar: charAvatar,
+                charPersonality: charPersonality,
+                charBackground: charBackground,
+                history: []
+            };
+            const sessions = loadChatSessions();
+            sessions.unshift(newSession);
+            saveChatSessions(sessions);
+            setActiveChatId(newSession.id);
+            localStorage.setItem('sx_chat_history', JSON.stringify([]));
+            
+            if (chatTitleEl) chatTitleEl.innerText = charName;
+            const nameEl = document.getElementById('display-name');
+            if (nameEl) nameEl.innerText = charName;
+            const hintEl = document.getElementById('hint-name');
+            if (hintEl) hintEl.innerText = charName;
+            
+            showChatDetail();
+            renderHistory();
+            renderChatListFromStorage();
+            return;
+        }
+        
         const sessions = loadChatSessions();
-        const target = sessions.find(s => s.id === item.dataset.chatId);
+        const target = sessions.find(s => s.id === chatId);
         
         let sessionCharName = target?.charName || localStorage.getItem('sx_char_name');
         if (!sessionCharName || sessionCharName === '預設用戶') {
@@ -2336,6 +2376,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     backToListBtn?.addEventListener('click', () => {
+        const activeId = getActiveChatId();
+        if (activeId) {
+            const sessions = loadChatSessions();
+            const target = sessions.find(s => s.id === activeId);
+            if (target) {
+                const currentHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+                target.history = currentHistory;
+                saveChatSessions(sessions);
+            }
+        }
         showChatList();
     });
 
