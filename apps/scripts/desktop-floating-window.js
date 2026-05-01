@@ -436,16 +436,25 @@
                 </div>
             `;
             
-            document.body.appendChild(this.container);
+            const appendToBody = () => {
+                if (document.body) {
+                    document.body.appendChild(this.container);
+                    
+                    this.ball = document.getElementById('fm-ball');
+                    this.panel = document.getElementById('fm-panel');
+                    this.header = document.getElementById('fm-header');
+                    this.messagesContainer = document.getElementById('fm-messages');
+                    this.inputField = document.getElementById('fm-input');
+                    
+                    this.updatePosition();
+                    this.updateCharacterInfo();
+                    console.log('[DesktopFloatingWindow] 容器已創建並附加到 body');
+                } else {
+                    setTimeout(appendToBody, 100);
+                }
+            };
             
-            this.ball = document.getElementById('fm-ball');
-            this.panel = document.getElementById('fm-panel');
-            this.header = document.getElementById('fm-header');
-            this.messagesContainer = document.getElementById('fm-messages');
-            this.inputField = document.getElementById('fm-input');
-            
-            this.updatePosition();
-            this.updateCharacterInfo();
+            appendToBody();
         }
 
         bindEvents() {

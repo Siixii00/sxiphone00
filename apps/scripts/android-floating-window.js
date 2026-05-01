@@ -348,13 +348,22 @@
                 </div>
             `;
             
-            document.body.appendChild(this.container);
-            document.body.appendChild(this.panel);
+            const appendToBody = () => {
+                if (document.body) {
+                    document.body.appendChild(this.container);
+                    document.body.appendChild(this.panel);
+                    
+                    this.ball = document.getElementById('afm-ball');
+                    
+                    this.updatePosition();
+                    this.updateCharacterInfo();
+                    console.log('[AndroidFloatingWindow] 容器已創建並附加到 body');
+                } else {
+                    setTimeout(appendToBody, 100);
+                }
+            };
             
-            this.ball = document.getElementById('afm-ball');
-            
-            this.updatePosition();
-            this.updateCharacterInfo();
+            appendToBody();
         }
 
         bindEvents() {
