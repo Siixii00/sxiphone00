@@ -477,12 +477,12 @@ window.addEventListener('pageshow', async (event) => {
                     try {
                         existingSessions = existingSessionsRaw ? JSON.parse(existingSessionsRaw) : [];
                     } catch (e) {
-                        existingSessions = [];
+existingSessions = [];
                     }
                     
                     const persistedSessions = persistedData.sx_chat_sessions;
                     
-if (persistedSessions.length > existingSessions.length) {
+                    if (persistedSessions.length > existingSessions.length) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
                         console.log('[Chat] 從 localforage 恢復聊天 sessions (較完整):', persistedSessions.length, '個 (原:', existingSessions.length, ')');
                         
@@ -498,7 +498,8 @@ if (persistedSessions.length > existingSessions.length) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
                         console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
                     }
-}
+                }
+                
                 if (persistedData.sx_chat_active) {
                     const existingActive = localStorage.getItem('sx_chat_active');
                     if (!existingActive) {
