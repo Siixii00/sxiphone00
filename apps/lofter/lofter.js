@@ -635,11 +635,27 @@ function bindFollowEvents(container) {
 }
 
 async function callAIAPI(payload) {
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+  const apisRaw = localStorage.getItem('api_configs');
+  console.log('[Lofter] api_configs raw:', apisRaw);
+  
+  const apis = JSON.parse(apisRaw || '[]');
+  console.log('[Lofter] parsed apis:', apis);
+  console.log('[Lofter] apis count:', apis.length);
+  
   const activeIndex = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+  console.log('[Lofter] active index:', activeIndex);
+  
   const config = apis[activeIndex] || apis[0];
-  if (!config || !config.url) {
-    throw new Error('未設定 API，請至設定頁面配置');
+  console.log('[Lofter] selected config:', config);
+  
+  if (!config) {
+    throw new Error('未設定 API，請至設定頁面配置（沒有找到任何 API 設定）');
+  }
+  if (!config.url && config.type !== 'gemini') {
+    throw new Error('API URL 未設定，請至設定頁面配置');
+  }
+  if (!config.key) {
+    throw new Error('API Key 未設定，請至設定頁面配置');
   }
   
   const apiType = config.type || 'openai';
@@ -2260,11 +2276,47 @@ window.addEventListener('message', (event) => {
   if (data.type === 'WORLD_BOOK_UPDATED' || data.type === 'WORLD_BOOK_SYNC_READY') {
     loadWorldbookEntries();
   }
+  if (data.type === 'settingsUpdated') {
+    console.log('[Lofter] 收到 settingsUpdated 事件，重新讀取 API 設定');
+    reloadApiConfig();
+  }
 });
+
+function reloadApiConfig() {
+  const apisRaw = localStorage.getItem('api_configs');
+  console.log('[Lofter] 重新載入 api_configs:', apisRaw);
+  
+  if (apisRaw) {
+    try {
+      const apis = JSON.parse(apisRaw);
+      console.log('[Lofter] 解析後的 API 配置數量:', apis.length);
+      if (apis.length > 0) {
+        console.log('[Lofter] 第一個配置:', apis[0]);
+      }
+    } catch (e) {
+      console.error('[Lofter] 解析 api_configs 失敗:', e);
+    }
+  } else {
+    console.warn('[Lofter] api_configs 不存在或為空');
+  }
+}
 
 if (window.parent && window.parent !== window) {
   window.parent.postMessage({ type: 'REQUEST_WORLD_BOOK_SYNC' }, '*');
 }
+
+window.addEventListener('storage', (event) => {
+  if (event.key === 'api_configs' || event.key === 'sx_active_api') {
+    console.log('[Lofter] storage 事件觸發，key:', event.key);
+    console.log('[Lofter] 新值:', event.newValue);
+    reloadApiConfig();
+  }
+});
+
+// 初始化時檢查 API 配置
+setTimeout(() => {
+  reloadApiConfig();
+}, 500);
 
 renderFollowFeed();
 

@@ -613,6 +613,12 @@ window.addEventListener('message', (event) => {
         saveChatData();
     }
     
+    if (data.type === 'settingsUpdated') {
+        console.log('[Chat] 收到 settingsUpdated 事件');
+        console.log('[Chat] api_configs:', localStorage.getItem('api_configs'));
+        console.log('[Chat] sx_active_api:', localStorage.getItem('sx_active_api'));
+    }
+    
     if (data.type === 'OPEN_SUB_PANEL' && data.panelId) {
         const morePanels = {
             'emoji-shop': {
@@ -1019,13 +1025,23 @@ function saveWorldbookMounts() {
         }
     });
     
-    // 保存到 localStorage
     localStorage.setItem('sx_worldbook_mounts', JSON.stringify(mounts));
+    
+    const activeId = getActiveChatId();
+    if (activeId) {
+        saveCurrentWorldbookMountsToSession(activeId);
+    }
+    
     alert('世界書掛載設定已保存');
 }
 
 // --- 6. 讀取已保存的世界書掛載設定 ---
 function getWorldbookMounts() {
+    const activeSession = getActiveSession();
+    if (activeSession && activeSession.worldbookMounts && activeSession.worldbookMounts.length > 0) {
+        return activeSession.worldbookMounts;
+    }
+    
     const data = localStorage.getItem('sx_worldbook_mounts');
     if (data) {
         try {
@@ -1036,6 +1052,41 @@ function getWorldbookMounts() {
         }
     }
     return [];
+}
+
+function createSessionData(options = {}) {
+    const charName = options.charName || localStorage.getItem('sx_char_name') || 'AI 助理';
+    const charAvatar = options.charAvatar || localStorage.getItem('sx_char_avatar') || '';
+    const charPersonality = options.charPersonality || localStorage.getItem('sx_char_personality') || '';
+    const charBackground = options.charBackground || localStorage.getItem('sx_char_background') || '';
+    const worldbookMounts = options.worldbookMounts || getWorldbookMounts();
+    
+    return {
+        id: `chat_${Date.now()}`,
+        title: charName,
+        charName: charName,
+        charAvatar: charAvatar,
+        charPersonality: charPersonality,
+        charBackground: charBackground,
+        worldbookMounts: worldbookMounts,
+        history: options.history || []
+    };
+}
+
+function applySessionWorldbookMounts(mounts) {
+    if (!mounts || !Array.isArray(mounts)) return;
+    localStorage.setItem('sx_worldbook_mounts', JSON.stringify(mounts));
+    console.log('[Chat] 已套用 session 的世界書設定:', mounts.length, '個');
+}
+
+function saveCurrentWorldbookMountsToSession(sessionId) {
+    const sessions = loadChatSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+        session.worldbookMounts = getWorldbookMounts();
+        saveChatSessions(sessions);
+        console.log('[Chat] 已保存世界書設定到 session:', sessionId);
+    }
 }
 
 // --- 1. 數據更新與讀取核心 ---
@@ -2274,6 +2325,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (existingSession.charAvatar) localStorage.setItem('sx_char_avatar', existingSession.charAvatar);
                     if (existingSession.charPersonality) localStorage.setItem('sx_char_personality', existingSession.charPersonality);
                     if (existingSession.charBackground) localStorage.setItem('sx_char_background', existingSession.charBackground);
+                    if (existingSession.worldbookMounts && existingSession.worldbookMounts.length > 0) {
+                        applySessionWorldbookMounts(existingSession.worldbookMounts);
+                    }
                     charConfig = getActiveConfig();
                     if (chatTitleEl) chatTitleEl.innerText = friendName;
                     const nameEl = document.getElementById('display-name');
@@ -2287,19 +2341,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!charName || charName === '預設用戶') {
                         charName = charConfig.name || 'AI 助理';
                     }
-                    const charAvatar = localStorage.getItem('sx_char_avatar') || '';
-                    const charPersonality = localStorage.getItem('sx_char_personality') || '';
-                    const charBackground = localStorage.getItem('sx_char_background') || '';
                     
-                    const newSession = {
-                        id: `chat_${Date.now()}`,
-                        title: charName,
-                        charName: charName,
-                        charAvatar: charAvatar,
-                        charPersonality: charPersonality,
-                        charBackground: charBackground,
-                        history: []
-                    };
+                    const newSession = createSessionData({ charName });
                     sessions.unshift(newSession);
                     saveChatSessions(sessions);
                     setActiveChatId(newSession.id);
@@ -2468,19 +2511,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!charName || charName === '預設用戶') {
                 charName = charConfig.name || 'AI 助理';
             }
-            const charAvatar = localStorage.getItem('sx_char_avatar') || '';
-            const charPersonality = localStorage.getItem('sx_char_personality') || '';
-            const charBackground = localStorage.getItem('sx_char_background') || '';
             
-            const newSession = {
-                id: `chat_${Date.now()}`,
-                title: charName,
-                charName: charName,
-                charAvatar: charAvatar,
-                charPersonality: charPersonality,
-                charBackground: charBackground,
-                history: []
-            };
+            const newSession = createSessionData({ charName });
             const sessions = loadChatSessions();
             sessions.unshift(newSession);
             saveChatSessions(sessions);
@@ -2522,6 +2554,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (target.charBackground) {
                 localStorage.setItem('sx_char_background', target.charBackground);
+            }
+            
+            if (target.worldbookMounts && target.worldbookMounts.length > 0) {
+                applySessionWorldbookMounts(target.worldbookMounts);
             }
             
             charConfig = getActiveConfig();
@@ -2650,19 +2686,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!charName || charName === '預設用戶') {
             charName = charConfig.name || 'AI 助理';
         }
-        const charAvatar = localStorage.getItem('sx_char_avatar') || '';
-        const charPersonality = localStorage.getItem('sx_char_personality') || '';
-        const charBackground = localStorage.getItem('sx_char_background') || '';
         
-        const newSession = {
-            id: `chat_${Date.now()}`,
-            title: charName,
-            charName: charName,
-            charAvatar: charAvatar,
-            charPersonality: charPersonality,
-            charBackground: charBackground,
-            history: []
-        };
+        const newSession = createSessionData({ charName });
         const sessions = loadChatSessions();
         sessions.unshift(newSession);
         saveChatSessions(sessions);
@@ -7126,28 +7151,51 @@ ${modeInstructions}
 async function callAIAPI(payload) {
     let config = null;
     
+    console.log('[Chat] callAIAPI 被調用');
+    
     if (typeof window.SettingsReader !== 'undefined' && window.SettingsReader.getActiveApiWithFallback) {
         config = window.SettingsReader.getActiveApiWithFallback();
+        console.log('[Chat] 使用 SettingsReader:', config);
     } else {
-        const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+        const apisRaw = localStorage.getItem('api_configs');
+        console.log('[Chat] api_configs raw:', apisRaw);
+        
+        const apis = JSON.parse(apisRaw || '[]');
+        console.log('[Chat] parsed apis:', apis);
+        console.log('[Chat] apis count:', apis.length);
+        
         const activeIndex = parseInt(localStorage.getItem('sx_active_api'), 10);
+        console.log('[Chat] active index:', activeIndex);
+        
         const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
+        console.log('[Chat] valid index:', validIndex);
+        
         config = apis[validIndex] || apis[0];
+        console.log('[Chat] selected config:', config);
     }
     
     const apiType = config?.type || 'openai';
+    console.log('[Chat] api type:', apiType);
     
     // Gemini 不需要 url 檢查，因為 URL 是自動設定的
-    if (!config || (!config.url && apiType !== 'gemini')) return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
+    if (!config || (!config.url && apiType !== 'gemini')) {
+        console.error('[Chat] API 配置缺失');
+        return "（錯誤：未偵測到 API 配置，請至控制中心設定）";
+    }
     
     // Gemini 需要 key 檢查
-    if (apiType === 'gemini' && !config.key) return "（錯誤：Gemini API 需要 API Key）";
+    if (apiType === 'gemini' && !config.key) {
+        console.error('[Chat] Gemini API Key 缺失');
+        return "（錯誤：Gemini API 需要 API Key）";
+    }
     
     try {
         // Gemini 原生 API 格式
         if (apiType === 'gemini') {
             const model = config.model || 'gemini-1.5-flash';
             const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
+            
+            console.log('[Chat] Gemini API URL:', targetUrl);
             
             // 將 OpenAI 格式的 messages 轉換為 Gemini 格式
             const contents = [];
@@ -7202,6 +7250,8 @@ async function callAIAPI(payload) {
                 : config.url.replace(/\/$/, '') + '/chat/completions';
         }
         
+        console.log('[Chat] Target URL:', targetUrl);
+        
         const headers = buildApiHeaders(config);
         
         const response = await fetch(targetUrl, {
@@ -7218,6 +7268,7 @@ async function callAIAPI(payload) {
         if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
         return data.choices?.[0]?.message?.content || "（API 回應格式異常）";
     } catch (err) { 
+        console.error('[Chat] API 請求失敗:', err);
         return `（連線失敗：${err.message}）`; 
     }
 }
@@ -7589,15 +7640,7 @@ function handleJustSend() {
         if (!charName || charName === '預設用戶') {
             charName = charConfig.name || 'AI 助理';
         }
-        const newSession = {
-            id: `chat_${Date.now()}`,
-            title: charName,
-            charName: charName,
-            charAvatar: localStorage.getItem('sx_char_avatar') || '',
-            charPersonality: localStorage.getItem('sx_char_personality') || '',
-            charBackground: localStorage.getItem('sx_char_background') || '',
-            history: history
-        };
+        const newSession = createSessionData({ charName, history });
         sessions.unshift(newSession);
         saveChatSessions(sessions);
         setActiveChatId(newSession.id);
@@ -7684,15 +7727,7 @@ async function handleTriggerAI() {
                 if (!charName || charName === '預設用戶') {
                     charName = charConfig.name || 'AI 助理';
                 }
-                const newSession = {
-                    id: `chat_${Date.now()}`,
-                    title: charName,
-                    charName: charName,
-                    charAvatar: localStorage.getItem('sx_char_avatar') || '',
-                    charPersonality: localStorage.getItem('sx_char_personality') || '',
-                    charBackground: localStorage.getItem('sx_char_background') || '',
-                    history: freshHistory
-                };
+                const newSession = createSessionData({ charName, history: freshHistory });
                 sessions.unshift(newSession);
                 saveChatSessions(sessions);
                 setActiveChatId(newSession.id);
@@ -7724,15 +7759,7 @@ async function handleTriggerAI() {
                 if (!charName || charName === '預設用戶') {
                     charName = charConfig.name || 'AI 助理';
                 }
-                const newSession = {
-                    id: `chat_${Date.now()}`,
-                    title: charName,
-                    charName: charName,
-                    charAvatar: localStorage.getItem('sx_char_avatar') || '',
-                    charPersonality: localStorage.getItem('sx_char_personality') || '',
-                    charBackground: localStorage.getItem('sx_char_background') || '',
-                    history: freshHistory
-                };
+                const newSession = createSessionData({ charName, history: freshHistory });
                 sessions.unshift(newSession);
                 saveChatSessions(sessions);
                 setActiveChatId(newSession.id);
@@ -10742,3 +10769,30 @@ async function handleArcadeInviteFromUser(payload) {
 
 window.acceptArcadeInvite = acceptArcadeInvite;
 window.rejectArcadeInvite = rejectArcadeInvite;
+
+// 監聽 storage 事件，當 settings 更新 API 配置時會觸發
+window.addEventListener('storage', (event) => {
+    if (event.key === 'api_configs' || event.key === 'sx_active_api') {
+        console.log('[Chat] storage 事件觸發，key:', event.key);
+        console.log('[Chat] 新值:', event.newValue);
+    }
+});
+
+// 初始化時檢查 API 配置
+setTimeout(() => {
+    const apisRaw = localStorage.getItem('api_configs');
+    console.log('[Chat] 初始化檢查 api_configs:', apisRaw);
+    if (apisRaw) {
+        try {
+            const apis = JSON.parse(apisRaw);
+            console.log('[Chat] API 配置數量:', apis.length);
+            if (apis.length > 0) {
+                console.log('[Chat] 第一個配置:', apis[0]);
+            }
+        } catch (e) {
+            console.error('[Chat] 解析 api_configs 失敗:', e);
+        }
+    } else {
+        console.warn('[Chat] api_configs 不存在');
+    }
+}, 500);

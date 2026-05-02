@@ -1628,3 +1628,82 @@ body::-webkit-scrollbar {
   background: rgba(76, 175, 80, 0.2);
   color: #4CAF50;
 }
+
+.map-edit-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--home-border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.brush-size-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brush-size-control span {
+  font-size: 12px;
+  color: var(--home-text-secondary);
+}
+
+.brush-btn {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--home-border);
+  border-radius: 4px;
+  color: var(--home-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.brush-btn:hover {
+  background: rgba(233, 69, 96, 0.2);
+  border-color: var(--home-accent);
+}
+
+.brush-btn.active {
+  background: rgba(233, 69, 96, 0.3);
+  border-color: var(--home-accent);
+  color: var(--home-accent);
+}
+
+.grid-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.grid-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--home-text-secondary);
+  cursor: pointer;
+}
+
+.grid-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--home-accent);
+}
+
+.map-edit-item canvas {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.map-edit-item span {
+  font-size: 10px;
+  margin-top: 4px;
+  color: var(--home-text-secondary);
+}
+
+.map-edit-item .price {
+  color: #ffd700;
+  font-size: 9px;
+}

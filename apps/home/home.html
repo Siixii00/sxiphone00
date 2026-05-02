@@ -68,6 +68,9 @@
         <button class="tool-btn" onclick="centerMap()">
           <i data-lucide="locate"></i>
         </button>
+        <button class="tool-btn" id="grid-toggle-btn" onclick="toggleGridDisplay()">
+          <i data-lucide="grid-3x3"></i>
+        </button>
       </div>
 
       <div id="map-edit-panel" class="map-edit-panel hidden">
@@ -78,9 +81,24 @@
           </button>
         </div>
         <div class="map-edit-categories">
-          <button class="category-btn active" data-category="buildings" onclick="selectMapEditCategory('buildings')">建築</button>
+          <button class="category-btn active" data-category="terrain" onclick="selectMapEditCategory('terrain')">地形</button>
+          <button class="category-btn" data-category="buildings" onclick="selectMapEditCategory('buildings')">建築</button>
           <button class="category-btn" data-category="decorations" onclick="selectMapEditCategory('decorations')">裝飾</button>
           <button class="category-btn" data-category="roads" onclick="selectMapEditCategory('roads')">道路</button>
+        </div>
+        <div class="map-edit-tools">
+          <div class="brush-size-control">
+            <span>筆刷大小:</span>
+            <button class="brush-btn" onclick="setBrushSize(1)">1x1</button>
+            <button class="brush-btn active" onclick="setBrushSize(2)">2x2</button>
+            <button class="brush-btn" onclick="setBrushSize(3)">3x3</button>
+          </div>
+          <div class="grid-toggle">
+            <label>
+              <input type="checkbox" id="show-grid-checkbox" checked onchange="toggleGridDisplay()">
+              顯示格線
+            </label>
+          </div>
         </div>
         <div class="map-edit-grid" id="map-edit-grid"></div>
       </div>

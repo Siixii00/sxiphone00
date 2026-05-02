@@ -24,6 +24,9 @@ const allApps = [
     { id: 'taobao', name: '購物', icon: 'shopping_bag', color: '#6366f1' }
 ];
 
+let dockEditMode = false;
+let longPressTimer = null;
+
 function getDockApps() {
     try {
         const saved = localStorage.getItem(DOCK_STORAGE_KEY);
@@ -46,8 +49,10 @@ function renderDock() {
     if (savedAppIds.length === 0) {
         dockApps.innerHTML = `
             <div class="dock-empty" onclick="openDockPicker()">
-                <i class="fas fa-plus"></i>
-                <span>加入常用</span>
+                <div class="dock-add-icon">
+                    <span class="material-symbols-rounded">add</span>
+                </div>
+                <span class="dock-add-text">加入常用</span>
             </div>
         `;
         return;
@@ -58,22 +63,93 @@ function renderDock() {
         if (!app) return '';
         const bgStyle = app.gradient ? `background:${app.gradient};` : `background:${app.color};`;
         return `
-            <div class="app-icon" onclick="launchApp('${app.id}')" data-dock-app="${app.id}">
+            <div class="app-icon ${dockEditMode ? 'edit-mode' : ''}" 
+                 onclick="${dockEditMode ? `removeDockApp('${app.id}')` : `launchApp('${app.id}')`}"
+                 oncontextmenu="event.preventDefault(); toggleDockEditMode()"
+                 ontouchstart="startLongPress('${app.id}')"
+                 ontouchend="cancelLongPress()"
+                 ontouchmove="cancelLongPress()"
+                 data-dock-app="${app.id}">
                 <div class="icon-box" style="${bgStyle}">
                     <span class="material-symbols-rounded">${app.icon}</span>
                 </div>
+                ${dockEditMode ? '<div class="dock-remove-badge"><span class="material-symbols-rounded">close</span></div>' : ''}
             </div>
         `;
     }).join('');
 
     if (savedAppIds.length < MAX_DOCK_APPS) {
         dockApps.innerHTML += `
-            <div class="app-icon" onclick="openDockPicker()">
-                <div class="icon-box" style="background:rgba(255,255,255,0.15);border:2px dashed rgba(255,255,255,0.3);">
+            <div class="app-icon dock-add-btn" onclick="openDockPicker()">
+                <div class="icon-box">
                     <span class="material-symbols-rounded">add</span>
                 </div>
             </div>
         `;
+    }
+    
+    if (dockEditMode) {
+        showDockEditHint();
+    }
+}
+
+function startLongPress(appId) {
+    longPressTimer = setTimeout(() => {
+        toggleDockEditMode();
+    }, 500);
+}
+
+function cancelLongPress() {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function toggleDockEditMode() {
+    dockEditMode = !dockEditMode;
+    renderDock();
+    
+    if (!dockEditMode) {
+        hideDockEditHint();
+    }
+}
+
+function showDockEditHint() {
+    let hint = document.getElementById('dock-edit-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'dock-edit-hint';
+        hint.className = 'dock-edit-hint-overlay';
+        hint.innerHTML = `
+            <div class="dock-edit-hint-content">
+                <span class="material-symbols-rounded">info</span>
+                <span>點擊應用程式可移除，完成後點擊空白處退出</span>
+            </div>
+        `;
+        hint.onclick = () => {
+            toggleDockEditMode();
+        };
+        document.body.appendChild(hint);
+    }
+    hint.classList.remove('hidden');
+}
+
+function hideDockEditHint() {
+    const hint = document.getElementById('dock-edit-hint');
+    if (hint) {
+        hint.classList.add('hidden');
+    }
+}
+
+function removeDockApp(appId) {
+    let savedAppIds = getDockApps();
+    savedAppIds = savedAppIds.filter(id => id !== appId);
+    saveDockApps(savedAppIds);
+    renderDock();
+    
+    if (savedAppIds.length === 0) {
+        toggleDockEditMode();
     }
 }
 
@@ -94,6 +170,10 @@ function openDockPicker() {
             <span class="dock-picker-title">選擇常用應用程式</span>
             <button class="dock-picker-close" onclick="closeDockPicker()">完成</button>
         </div>
+        <div class="dock-picker-hint">
+            <span class="material-symbols-rounded">info</span>
+            <span>長按 Dock 上的應用程式可進入編輯模式</span>
+        </div>
         <div class="dock-picker-grid">
             ${allApps.map(app => {
                 const isSelected = savedAppIds.includes(app.id);
@@ -104,6 +184,7 @@ function openDockPicker() {
                             <span class="material-symbols-rounded">${app.icon}</span>
                         </div>
                         <span class="app-label">${app.name}</span>
+                        ${isSelected ? '<div class="selected-badge"><span class="material-symbols-rounded">check</span></div>' : ''}
                     </div>
                 `;
             }).join('')}
@@ -138,6 +219,17 @@ function toggleDockApp(appId) {
     const item = document.querySelector(`.dock-picker-item[data-app-id="${appId}"]`);
     if (item) {
         item.classList.toggle('selected');
+        const badge = item.querySelector('.selected-badge');
+        if (savedAppIds.includes(appId)) {
+            if (!badge) {
+                const newBadge = document.createElement('div');
+                newBadge.className = 'selected-badge';
+                newBadge.innerHTML = '<span class="material-symbols-rounded">check</span>';
+                item.appendChild(newBadge);
+            }
+        } else if (badge) {
+            badge.remove();
+        }
     }
     
     renderDock();
