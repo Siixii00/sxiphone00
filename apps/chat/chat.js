@@ -1038,7 +1038,7 @@ function saveWorldbookMounts() {
 // --- 6. 讀取已保存的世界書掛載設定 ---
 function getWorldbookMounts() {
     const activeSession = getActiveSession();
-    if (activeSession && activeSession.worldbookMounts && activeSession.worldbookMounts.length > 0) {
+    if (activeSession && activeSession.worldbookMounts !== undefined) {
         return activeSession.worldbookMounts;
     }
     
@@ -2325,7 +2325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (existingSession.charAvatar) localStorage.setItem('sx_char_avatar', existingSession.charAvatar);
                     if (existingSession.charPersonality) localStorage.setItem('sx_char_personality', existingSession.charPersonality);
                     if (existingSession.charBackground) localStorage.setItem('sx_char_background', existingSession.charBackground);
-                    if (existingSession.worldbookMounts && existingSession.worldbookMounts.length > 0) {
+                    if (existingSession.worldbookMounts !== undefined) {
                         applySessionWorldbookMounts(existingSession.worldbookMounts);
                     }
                     charConfig = getActiveConfig();
@@ -2334,6 +2334,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (nameEl) nameEl.innerText = friendName;
                     const hintEl = document.getElementById('hint-name');
                     if (hintEl) hintEl.innerText = friendName;
+                    if (typeof renderWorldbookOptions === 'function') {
+                        renderWorldbookOptions();
+                    }
                     showChatDetail();
                     renderHistory();
                 } else {
@@ -2556,7 +2559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('sx_char_background', target.charBackground);
             }
             
-            if (target.worldbookMounts && target.worldbookMounts.length > 0) {
+            if (target.worldbookMounts !== undefined) {
                 applySessionWorldbookMounts(target.worldbookMounts);
             }
             
@@ -2569,6 +2572,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hintEl) hintEl.innerText = sessionCharName;
             const charNameInput = document.getElementById('set-name');
             if (charNameInput) charNameInput.value = sessionCharName;
+            
+            if (typeof renderWorldbookOptions === 'function') {
+                renderWorldbookOptions();
+            }
         }
         showChatDetail();
         renderHistory();
