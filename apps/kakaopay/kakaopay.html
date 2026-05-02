@@ -19,11 +19,8 @@
       </button>
       <h1>KakaoPay</h1>
       <div class="header-actions">
-        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
-          <i class="fa-solid fa-palette"></i>
-        </button>
-        <button class="icon-btn" id="simulatePayBtn" aria-label="模擬付款">
-          <i class="fa-solid fa-wave-square"></i>
+        <button class="icon-btn" id="settingsBtn" aria-label="設定">
+          <i class="fa-solid fa-gear"></i>
         </button>
       </div>
     </header>
@@ -32,9 +29,6 @@
       <section class="wallet-card" aria-label="錢包總覽">
         <p class="eyebrow">Apple Pay 風格錢包</p>
         <h2 id="totalBalance">NT$0</h2>
-        <button class="set-balance-btn" id="setBalanceBtn" type="button">
-          <i class="fa-solid fa-pen"></i> 設定餘額
-        </button>
         <div class="wallet-meta">
           <div>
             <span class="meta-label">本月支出</span>
@@ -57,9 +51,8 @@
       </section>
 
       <section class="quick-actions" aria-label="快速功能">
-        <button class="action-chip" type="button"><i class="fa-solid fa-paper-plane"></i> 轉帳</button>
         <button class="action-chip" type="button" id="paymentCodeBtn"><i class="fa-solid fa-qrcode"></i> 支付條碼</button>
-        <button class="action-chip" type="button"><i class="fa-solid fa-wallet"></i> 卡片</button>
+        <button class="action-chip" type="button" id="addBalanceBtn"><i class="fa-solid fa-plus"></i> 添加餘額</button>
       </section>
 
       <section class="sheet" aria-label="記帳輸入">
@@ -172,15 +165,20 @@
   document.addEventListener('DOMContentLoaded', function() {
       if (typeof SxAppAppearance !== 'undefined') {
           SxAppAppearance.initAppearanceForApp('kakaopay');
-          var appearanceBtn = document.getElementById('appearance-btn');
-          if (appearanceBtn) {
-              appearanceBtn.addEventListener('click', function() {
+          var settingsBtn = document.getElementById('settingsBtn');
+          if (settingsBtn) {
+              settingsBtn.addEventListener('click', function() {
                   SxAppAppearance.openAppearancePanel('kakaopay', document.body, function() {
                       var panel = document.getElementById('sx-app-appearance-panel');
                       if (panel) panel.remove();
                   });
               });
           }
+      }
+      
+      var addBalanceBtn = document.getElementById('addBalanceBtn');
+      if (addBalanceBtn) {
+          addBalanceBtn.addEventListener('click', openBalancePanel);
       }
   });
   </script>

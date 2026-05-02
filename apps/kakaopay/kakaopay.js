@@ -26,9 +26,7 @@ const state = {
 
 const els = {
   closeBtn: document.getElementById('closeBtn'),
-  simulatePayBtn: document.getElementById('simulatePayBtn'),
   resetBtn: document.getElementById('resetBtn'),
-  setBalanceBtn: document.getElementById('setBalanceBtn'),
   entryForm: document.getElementById('entryForm'),
   typeInput: document.getElementById('typeInput'),
   categoryInput: document.getElementById('categoryInput'),
@@ -252,11 +250,12 @@ function openBalancePanel() {
   
   const overlay = document.createElement('div');
   overlay.className = 'balance-panel-overlay';
+  overlay.id = 'balancePanelOverlay';
   overlay.innerHTML = `
     <div class="balance-panel">
       <div class="balance-panel-header">
         <h3><i class="fa-solid fa-wallet"></i> 設定餘額</h3>
-        <button class="close-btn" onclick="this.parentElement.parentElement.remove()">
+        <button class="close-btn" id="closeBalancePanelBtn">
           <i class="fa-solid fa-times"></i>
         </button>
       </div>
@@ -296,6 +295,16 @@ function openBalancePanel() {
     </div>
   `;
   document.body.appendChild(overlay);
+  
+  document.getElementById('closeBalancePanelBtn')?.addEventListener('click', closeBalancePanel);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeBalancePanel();
+  });
+}
+
+function closeBalancePanel() {
+  const overlay = document.getElementById('balancePanelOverlay');
+  if (overlay) overlay.remove();
 }
 
 function setQuickAmount(type, amount) {
@@ -363,13 +372,7 @@ function bindEvents() {
     window.parent?.postMessage({ type: 'closeApp' }, '*');
   });
 
-  els.simulatePayBtn?.addEventListener('click', () => {
-    showToast('已開啟付款介面（模擬）');
-  });
-
   els.resetBtn?.addEventListener('click', resetDemoData);
-  
-  els.setBalanceBtn?.addEventListener('click', openBalancePanel);
 
   els.entryForm?.addEventListener('submit', handleAddEntry);
   

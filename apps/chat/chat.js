@@ -360,6 +360,8 @@ async function loadChatSessionsAsync() {
 function saveChatSessions(sessions) {
     console.log('[saveChatSessions] 保存 sessions:', sessions.length, sessions.map(s => ({ id: s.id, historyLen: s.history?.length || 0 })));
     localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+    localStorage.setItem('sx_last_activity_time', Date.now().toString());
+    saveChatSessionsToIndexedDB(sessions);
 }
 
 async function saveChatSessionsToIndexedDB(sessions) {
@@ -400,6 +402,8 @@ const saveChatData = () => {
         if (userBgInput) {
             localStorage.setItem('sx_user_background', userBgInput.value);
         }
+        
+        localStorage.setItem('sx_last_activity_time', Date.now().toString());
         
         console.log("聊天數據已保存至 localStorage");
     } catch (e) {
@@ -457,19 +461,37 @@ window.addEventListener('beforeunload', () => {
 });
 
 window.addEventListener('pageshow', async (event) => {
+    const lastActivityTime = parseInt(localStorage.getItem('sx_last_activity_time') || '0');
+    const now = Date.now();
+    const timeSinceLastActivity = now - lastActivityTime;
+    const isLongSleep = timeSinceLastActivity > 30 * 60 * 1000;
+    
+    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+    let hasLocalData = false;
+    try {
+        const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+        hasLocalData = Array.isArray(sessions) && sessions.length > 0;
+    } catch (e) {
+        hasLocalData = false;
+    }
+    
     if (typeof localforage !== 'undefined') {
         try {
             const persistedData = await localforage.getItem('sx_app_persisted_data');
             if (persistedData) {
-                if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
-                if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
-                if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
-                if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
+                const shouldRestore = !hasLocalData || isLongSleep || (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0);
                 
-                if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
-                if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
-                if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
-                if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
+                if (shouldRestore) {
+                    if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
+                    if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
+                    if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
+                    if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
+                    
+                    if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
+                    if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
+                    if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
+                    if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
+                }
                 
                 if (persistedData.sx_chat_sessions) {
                     const existingSessionsRaw = localStorage.getItem('sx_chat_sessions');
@@ -477,12 +499,24 @@ window.addEventListener('pageshow', async (event) => {
                     try {
                         existingSessions = existingSessionsRaw ? JSON.parse(existingSessionsRaw) : [];
                     } catch (e) {
-existingSessions = [];
+                        existingSessions = [];
                     }
                     
                     const persistedSessions = persistedData.sx_chat_sessions;
                     
-                    if (persistedSessions.length > existingSessions.length) {
+                    if (!hasLocalData && persistedSessions.length > 0) {
+                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
+                        console.log('[Chat] localStorage 為空，從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
+                        
+                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
+                        if (activeId) {
+                            const activeSession = persistedSessions.find(s => s.id === activeId);
+                            if (activeSession && activeSession.history) {
+                                localStorage.setItem('sx_chat_history', JSON.stringify(activeSession.history));
+                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
+                            }
+                        }
+                    } else if (persistedSessions.length > existingSessions.length) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
                         console.log('[Chat] 從 localforage 恢復聊天 sessions (較完整):', persistedSessions.length, '個 (原:', existingSessions.length, ')');
                         
@@ -494,9 +528,18 @@ existingSessions = [];
                                 console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
                             }
                         }
-                    } else if (!existingSessionsRaw) {
+                    } else if (isLongSleep && persistedSessions.length > 0) {
                         localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
-                        console.log('[Chat] 從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
+                        console.log('[Chat] 休眠後從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
+                        
+                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
+                        if (activeId) {
+                            const activeSession = persistedSessions.find(s => s.id === activeId);
+                            if (activeSession && activeSession.history) {
+                                localStorage.setItem('sx_chat_history', JSON.stringify(activeSession.history));
+                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
+                            }
+                        }
                     }
                 }
                 
@@ -511,6 +554,8 @@ existingSessions = [];
             console.warn('[Chat] 從 localforage 恢復用戶資料失敗:', e);
         }
     }
+    
+    localStorage.setItem('sx_last_activity_time', now.toString());
     
     charConfig = getActiveConfig();
     userConfig = getUserConfig();

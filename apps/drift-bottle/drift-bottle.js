@@ -784,36 +784,7 @@ tarotWaiteData.tarot.minor_arcana.pentacles.forEach(card => {
       reversedMeaning: card.reversed.meaning
     };
   }
-});
-
-const rwsCourtMeanings = {
-  wands: {
-    page: { upright: '新機會、創意靈感、年輕熱情、訊息、探索', reversed: '缺乏方向、幼稚、延遲、壞消息' },
-    knight: { upright: '行動、追求、冒險、熱情追求、勇敢', reversed: '衝動、魯莽、不穩定、不切實際' },
-    queen: { upright: '自信、魅力、熱情、創造力、決心', reversed: '專制、嫉妒、控制欲、自私' },
-    king: { upright: '領導、權威、遠見、事業成功、企業家', reversed: '專橫、獨斷、過度控制、傲慢' }
-  },
-  cups: {
-    page: { upright: '情感訊息、新關係、直覺、溫柔、創意', reversed: '情緒化、不成熟、缺乏方向、不切實際' },
-    knight: { upright: '浪漫追求、魅力、情感行動、理想主義', reversed: '不切實際、情緒不穩、逃避、失望' },
-    queen: { upright: '直覺、情感智慧、養育、同理心、慈悲', reversed: '情緒依賴、過度敏感、封閉、不安全感' },
-    king: { upright: '情感成熟、外交、和諧、藝術性、平衡', reversed: '虛偽、情感操控、不和諧、情緒化' }
-  },
-  swords: {
-    page: { upright: '新想法、清晰訊息、分析、學習、好奇心', reversed: '淺薄、八卦、缺乏深度、間諜' },
-    knight: { upright: '快速行動、果斷、智力追求、勇敢', reversed: '衝動、魯莽、缺乏思考、無情' },
-    queen: { upright: '清晰、理性、獨立思考、直率、公正', reversed: '冷酷、過度批判、情感疏離、殘忍' },
-    king: { upright: '權威、理性領導、正義、原則、智慧', reversed: '專制、僵化、過度理性、操控' }
-  },
-  pentacles: {
-    page: { upright: '新機會、學習、實踐、物質訊息、勤奮', reversed: '缺乏野心、懶惰、浪費、壞消息' },
-    knight: { upright: '勤奮、實踐、追求目標、行動、可靠', reversed: '無聊、缺乏動力、停滯、懶惰' },
-    queen: { upright: '務實、物質智慧、豐盛、養育、安全', reversed: '過度物質、工作狂、缺乏靈性、嫉妒' },
-    king: { upright: '成功、財富、事業成就、穩固、富足', reversed: '物質執著、保守、缺乏彈性、貪婪' }
-  }
-};
-
-const marseilleMajorMeanings = {
+});\n\nconst marseilleMajorMeanings = {
   0: {
     name: '愚者',
     nameEn: 'Le Mat',
