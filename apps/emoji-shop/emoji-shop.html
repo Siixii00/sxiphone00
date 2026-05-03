@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表情包商店</title>
+    <link rel="stylesheet" href="emoji-shop.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="shop-container">
+        <header class="shop-header">
+            <div class="shop-title">表情包商店</div>
+            <div class="shop-subtitle">上傳圖片或貼上連結新增表情包</div>
+        </header>
+
+        <section class="shop-card">
+            <div class="card-title">上傳圖片</div>
+            <p class="card-desc">支援 GIF、PNG、JPG 等格式</p>
+            <div class="row">
+                <input type="file" id="emoji-image-file" accept="image/*" multiple>
+                <button class="primary-btn" id="upload-images">上傳圖片</button>
+            </div>
+            <div id="upload-preview"></div>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">單張圖片連結</div>
+            <p class="card-desc">支援 catbox、imgur 等圖床網址</p>
+            <div class="row">
+                <input type="text" id="gif-url" placeholder="貼上圖片連結">
+                <input type="text" id="single-emoji-name" placeholder="名稱（選填）">
+            </div>
+            <button class="primary-btn" id="add-gif">新增圖片</button>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">批量匯入連結</div>
+            <p class="card-desc">每行一個網址，可選擇性加上名稱前綴</p>
+            <textarea id="batch-urls" placeholder="每行一個圖片網址&#10;https://example.com/emoji1.gif&#10;https://example.com/emoji2.png" rows="4"></textarea>
+            <div class="row">
+                <input type="text" id="batch-name-prefix" placeholder="名稱前綴（選填）">
+                <button class="primary-btn" id="add-batch-urls">批量新增</button>
+            </div>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">匯入 JSON</div>
+            <p class="card-desc">格式：陣列，元素可為字串 URL 或物件 {"name":"","url":""}</p>
+            <div class="row">
+                <input type="file" id="emoji-json-file" accept="application/json">
+                <button class="primary-btn" id="import-json">匯入 JSON</button>
+            </div>
+        </section>
+
+        <section class="shop-card">
+            <div class="card-title">
+                已匯入表情包
+                <span id="emoji-count" style="color: #888; font-size: 14px; margin-left: 8px;">0</span>
+            </div>
+            <div class="emoji-grid" id="emoji-grid"></div>
+            <div class="row" style="margin-top: 12px;">
+                <button class="primary-btn" id="export-json">匯出 JSON</button>
+                <button class="danger-btn" id="clear-emoji">清空表情包</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="emoji-shop.js"></script>
+</body>
+</html>

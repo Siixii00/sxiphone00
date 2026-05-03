@@ -1,0 +1,1106 @@
+:root {
+  --twitch-purple: #9146ff;
+  --twitch-purple-dark: #772ce8;
+  --twitch-purple-light: #bf94ff;
+  --bg-primary: #0e0e10;
+  --bg-secondary: #18181b;
+  --bg-tertiary: #1f1f23;
+  --bg-elevated: #26262c;
+  --text-primary: #efeff1;
+  --text-secondary: #adadb8;
+  --text-muted: #71717a;
+  --border-color: #3d3d40;
+  --accent-red: #eb0400;
+  --accent-green: #00f593;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.twitch-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 頂部導航 */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  margin-top: 35px;
+  height: 50px;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.top-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -35px;
+  height: 35px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  pointer-events: none;
+}
+
+.nav-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: background 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: var(--bg-elevated);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.twitch-logo {
+  color: var(--twitch-purple);
+}
+
+.twitch-logo-img {
+  height: 27px;
+  width: auto;
+  display: block;
+}
+
+.twitch-logo-wordmark {
+  color: var(--text-primary);
+  font-size: 1.3125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notification-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  background: var(--accent-red);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 側邊欄 */
+.sidebar {
+  position: fixed;
+  top: 150px;
+  left: -240px;
+  width: 240px;
+  height: calc(100vh - 150px);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  z-index: 100;
+  transition: left 0.3s ease;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-section {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+
+.channel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.channel-item:hover {
+  background: var(--bg-elevated);
+}
+
+.channel-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.channel-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-game {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-viewers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-red);
+  border-radius: 50%;
+}
+
+.sidebar-more {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--twitch-purple);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.sidebar-more:hover {
+  background: var(--bg-elevated);
+}
+
+/* 主內容區 */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  padding-top: 35px;
+  padding-bottom: 60px;
+}
+
+/* 分類標籤 */
+.category-nav {
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.category-select {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23999999'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: background 0.2s ease;
+}
+
+.category-select:active {
+  background-color: var(--bg-elevated);
+}
+
+.category-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(145, 70, 255, 0.3);
+}
+
+.category-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 12px;
+  font-size: 15px;
+}
+
+.category-add-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: var(--twitch-purple);
+  color: white;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.category-add-btn:active {
+  background: var(--twitch-purple-dark);
+  transform: scale(0.95);
+}
+
+/* 輪播區域 */
+.featured-section {
+  padding: 0 16px 20px;
+}
+
+.featured-carousel {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.featured-item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.featured-item.active {
+  opacity: 1;
+}
+
+.featured-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.featured-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+}
+
+.featured-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-red);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+.featured-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.featured-streamer {
+  font-size: 14px;
+  color: var(--twitch-purple-light);
+  margin-bottom: 4px;
+}
+
+.featured-game {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.carousel-dot.active {
+  background: var(--twitch-purple);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* 直播列表 */
+.streams-section {
+  padding: 0 16px 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sort-btn:hover {
+  background: var(--bg-elevated);
+}
+
+.see-all {
+  font-size: 13px;
+  color: var(--twitch-purple);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.see-all:hover {
+  text-decoration: underline;
+}
+
+.streams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.stream-card {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.stream-card:hover {
+  transform: translateY(-4px);
+}
+
+.stream-thumbnail {
+  position: relative;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.stream-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stream-live-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--accent-red);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stream-viewers {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stream-info {
+  display: flex;
+  gap: 10px;
+}
+
+.streamer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.streamer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stream-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.stream-title {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.stream-channel {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.stream-game {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 分類瀏覽 */
+.categories-section {
+  padding: 0 16px 24px;
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.category-card {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.category-card:hover {
+  transform: translateY(-4px);
+}
+
+.category-cover {
+  aspect-ratio: 3/4;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.category-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.category-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-viewers {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 底部導航 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.nav-item.active {
+  color: var(--twitch-purple);
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+}
+
+/* 搜尋面板 */
+.search-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.search-panel.open {
+  transform: translateX(0);
+}
+
+.search-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-input-wrapper {
+  flex: 1;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+}
+
+.search-input-wrapper input:focus {
+  outline: none;
+  background: var(--bg-elevated);
+}
+
+.search-results {
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100vh - 60px);
+}
+
+.search-history h3,
+.trending-searches h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.history-list,
+.trending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.history-item,
+.trending-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.history-item:hover,
+.trending-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.history-item svg,
+.trending-item svg {
+  color: var(--text-muted);
+}
+
+.history-item span,
+.trending-item span {
+  font-size: 14px;
+}
+
+/* 直播詳情頁面 */
+.stream-page {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 200;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.stream-page.open {
+  transform: translateX(0);
+}
+
+.stream-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 38px 12px 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stream-info-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.streamer-name {
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+}
+
+.stream-category {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.follow-btn {
+  padding: 8px 16px;
+  border: none;
+  background: var(--twitch-purple);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.follow-btn:hover {
+  background: var(--twitch-purple-dark);
+}
+
+.follow-btn.following {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.stream-player {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.stream-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--twitch-purple);
+}
+
+.stream-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stream-tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+}
+
+.stream-tab.active {
+  color: var(--twitch-purple);
+}
+
+.stream-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--twitch-purple);
+}
+
+.stream-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.chat-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.chat-message {
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-username {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.chat-username.moderator {
+  color: var(--accent-green);
+}
+
+.chat-username.subscriber {
+  color: var(--twitch-purple-light);
+}
+
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.chat-input-area input {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+}
+
+.chat-input-area input:focus {
+  outline: none;
+  background: var(--bg-elevated);
+}
+
+.send-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--twitch-purple);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-panel {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.streamer-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.streamer-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.streamer-details h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.streamer-details p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.streamer-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 響應式設計 */
+@media (min-width: 768px) {
+  .sidebar {
+    left: 0;
+    width: 240px;
+  }
+
+  .main-content {
+    margin-left: 240px;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  .streams-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .streams-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
+  .categories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
+}
+
+/* 動畫 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stream-card,
+.category-card {
+  animation: slideUp 0.3s ease;
+}

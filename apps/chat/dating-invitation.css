@@ -1,0 +1,291 @@
+/* --- 約會邀請卡片樣式 --- */
+.dating-invite-card {
+  background: linear-gradient(135deg, #ff6b9d 0%, #c44dff 50%, #6e5cff 100%);
+  border-radius: 16px;
+  padding: 16px;
+  margin: 4px 0;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(196, 77, 255, 0.3);
+  max-width: 280px;
+  animation: inviteCardIn 0.5s ease;
+  position: relative;
+}
+
+.dating-invite-header {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+
+.dating-invite-char {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.dating-invite-text {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  opacity: 0.95;
+}
+
+.dating-invite-scene {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.dating-invite-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dating-invite-accept-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dating-invite-accept-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.02);
+}
+
+.dating-invite-accept-btn:active {
+  transform: scale(0.98);
+}
+
+.dating-invite-reject-btn {
+  flex: 1;
+  background: rgba(100, 100, 100, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dating-invite-reject-btn:hover {
+  background: rgba(100, 100, 100, 0.5);
+  color: #fff;
+}
+
+.dating-invite-reject-btn:active {
+  transform: scale(0.98);
+}
+
+/* 時間選擇區 */
+.dating-invite-time-select {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.time-select-label {
+  font-size: 12px;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.time-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.time-option-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-option-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.02);
+}
+
+.time-option-btn:active {
+  transform: scale(0.98);
+}
+
+/* 已排程約會卡片 */
+.dating-scheduled-card {
+  background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 4px 0;
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(24, 90, 157, 0.3);
+  max-width: 280px;
+  animation: scheduledCardIn 0.5s ease;
+}
+
+.scheduled-header {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.scheduled-info {
+  margin-bottom: 12px;
+}
+
+.scheduled-char {
+  font-size: 13px;
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+.scheduled-scene {
+  font-size: 12px;
+  margin-bottom: 4px;
+  opacity: 0.85;
+}
+
+.scheduled-time {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.scheduled-time .countdown {
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.scheduled-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.start-date-btn {
+  flex: 2;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-date-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.02);
+}
+
+.start-date-btn.urgent {
+  background: linear-gradient(135deg, #ff6b9d, #c44dff);
+  border: none;
+  animation: pulse 1.5s infinite;
+}
+
+.cancel-date-btn {
+  flex: 1;
+  background: rgba(100, 100, 100, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-date-btn:hover {
+  background: rgba(255, 100, 100, 0.4);
+  color: #fff;
+}
+
+/* 約會提醒卡片 */
+.dating-reminder-card {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 4px 0;
+  color: #333;
+  box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+  max-width: 280px;
+  animation: reminderPulse 1s ease infinite alternate;
+}
+
+.reminder-header {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #d63384;
+}
+
+.reminder-info {
+  margin-bottom: 12px;
+}
+
+.reminder-char {
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #666;
+}
+
+.reminder-scene {
+  font-size: 14px;
+}
+
+/* 已拒絕/已取消狀態 */
+.invite-rejected {
+  text-align: center;
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.date-cancelled {
+  text-align: center;
+  padding: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* 動畫關鍵楨 */
+@keyframes inviteCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes scheduledCardIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes reminderPulse {
+  from { box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4); }
+  to { box-shadow: 0 6px 25px rgba(255, 154, 158, 0.6); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}

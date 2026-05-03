@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>街機廳</title>
+  <link rel="stylesheet" href="arcade.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="neon-intro" id="neon-intro">
+    <div class="neon-decoration">
+      <div class="neon-line"></div>
+      <div class="neon-line"></div>
+      <div class="neon-line"></div>
+    </div>
+    <div class="neon-frame">
+      <div class="neon-text" id="neon-text">
+        <span>街</span><span>機</span><span>廳</span>
+      </div>
+    </div>
+    <button class="skip-btn" id="skip-btn">跳過</button>
+  </div>
+
+  <div class="arcade-app">
+    <header class="top-bar">
+      <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="logo">
+        <i class="fas fa-gamepad"></i>
+        <span>街機廳</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="settings-btn" aria-label="設定">
+          <i class="fas fa-cog"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="games-grid" class="games-grid hidden"></section>
+      <section id="scores-list" class="high-scores hidden"></section>
+      <section id="map-container"></section>
+    </main>
+  </div>
+
+  <div class="floor-indicator" id="floor-indicator">
+    <i class="fas fa-map-marker-alt"></i> 1F 大廳
+  </div>
+
+  <div class="virtual-controls" id="virtual-controls">
+    <div class="virtual-joystick" id="virtual-joystick">
+      <div class="joystick-knob" id="joystick-knob"></div>
+    </div>
+    <div class="action-button" id="action-button">A</div>
+  </div>
+
+  <div class="game-modal hidden" id="game-modal">
+    <div class="game-modal-content" id="game-modal-content"></div>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="../scripts/app-appearance-configs.js"></script>
+  <script src="map/map-data.js"></script>
+  <script src="map/map-engine.js"></script>
+  <script src="map/player.js"></script>
+  <script src="map/character.js"></script>
+  <script src="map/collision.js"></script>
+  <script src="character-dialogue.js"></script>
+  <script src="character-player.js"></script>
+  <script src="arcade-invite.js"></script>
+  <script src="arcade-avatar.js"></script>
+  <script src="audio/audio-manager.js"></script>
+  <script src="achievements/achievement-engine.js"></script>
+  <script src="multiplayer/firebase-sync.js"></script>
+  <script src="arcade-game.js"></script>
+  <script src="arcade.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // 設定跳過按鈕事件
+      var skipBtn = document.getElementById('skip-btn');
+      if (skipBtn) {
+          skipBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              skipIntro();
+          });
+          skipBtn.addEventListener('touchend', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              skipIntro();
+          });
+      }
+      
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('arcade');
+      }
+      
+      var settingsBtn = document.getElementById('settings-btn');
+      if (settingsBtn) {
+          settingsBtn.addEventListener('click', function() {
+              openSettingsPanel();
+          });
+      }
+      
+      initMapMode();
+      initArcadeInvite();
+  });
+  </script>
+</body>
+</html>

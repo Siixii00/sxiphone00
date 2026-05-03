@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Prompt Capsule</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="worldbook.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body class="ios-dark">
+    <div class="app-container">
+        <header class="nav-header">
+        <button class="btn-back" onclick="handleBack()">
+            <i class="fas fa-chevron-left"></i> <span class="back-text">返回</span>
+        </button>
+        <h1 class="nav-title">世界書</h1>
+        <button class="ios-header-btn settings-btn" id="appearance-btn" aria-label="外觀設定">
+            <i class="fas fa-gear"></i>
+        </button>
+        </header>
+        
+        <nav class="tab-bar">
+            <button class="tab-item active" data-target="cot">思維鏈</button>
+            <button class="tab-item" data-target="style">文風</button>
+            <button class="tab-item" data-target="global">全域</button>
+            <button class="tab-item" data-target="keywords">關鍵字</button>
+            <button class="tab-item" data-target="backend">後端</button>
+            <button class="tab-item" data-target="theater">劇場</button>
+        </nav>
+
+        <main class="content-viewport">
+            <section id="cot" class="page-content active">
+                <div class="list-container"></div>
+            </section>
+            
+            <section id="style" class="page-content">
+                <div class="list-container"></div>
+            </section>
+
+            <section id="global" class="page-content">
+                <div class="list-container"></div>
+            </section>
+
+            <section id="keywords" class="page-content">
+                <div class="list-container">
+                    <div class="drawer-item">
+                        <header class="drawer-header">
+                            <div class="title-group">
+                                <h3 class="world-title" contenteditable="true">世界書標題：設定背景</h3>
+                                <p class="trigger-hint" contenteditable="true">關鍵字：Cyberpunk, 2077, 霓虹</p>
+                            </div>
+                            <span class="chevron"></span> 
+                        </header>
+                        <div class="drawer-body">
+                            <textarea class="ios-textarea" placeholder="請輸入細項內容..."></textarea>
+                            <button class="btn-save">保存更動</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="backend" class="page-content">
+                <div class="model-selector-container">
+                    <label class="model-selector-label">模型選擇器</label>
+                    <select id="modelSelector" class="model-selector">
+                        <optgroup label="大型模型" class="opt-large">
+                            <option value="claude">Claude (Anthropic)</option>
+                            <option value="gpt">GPT (OpenAI)</option>
+                            <option value="gemini">Gemini (Google)</option>
+                        </optgroup>
+                        <optgroup label="中型模型" class="opt-medium">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="glm">智譜 GLM</option>
+                            <option value="kimi">Kimi</option>
+                            <option value="minimax">MiniMax</option>
+                        </optgroup>
+                        <optgroup label="本地模型" class="opt-local">
+                            <option value="llama">Llama</option>
+                            <option value="mistral">Mistral</option>
+                            <option value="qwen">Qwen</option>
+                            <option value="yi">Yi</option>
+                            <option value="custom" class="opt-custom">自定義</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="list-container"></div>
+            </section>
+
+            <section id="theater" class="page-content">
+                <div class="list-container"></div>
+            </section>
+        </main>
+
+        <button class="fab-add">
+            <span class="plus-icon">+</span>
+        </button>
+        
+        <button class="fab-import" onclick="openImportModal()" title="導入內建預設">
+            <i class="fas fa-file-import"></i>
+        </button>
+        
+        <div id="import-modal" class="import-modal hidden">
+            <div class="import-modal-content">
+                <div class="import-modal-header">
+                    <h3 id="import-modal-title">選擇要導入的內建預設</h3>
+                    <button class="import-modal-close" onclick="closeImportModal()">&times;</button>
+                </div>
+                <div class="import-modal-body">
+                    <div id="builtin-list" class="builtin-list"></div>
+                    <div class="import-actions">
+                        <button class="btn-import-cancel" onclick="closeImportModal()">取消</button>
+                        <button class="btn-import-confirm" onclick="confirmImportSelection()">導入選擇的預設</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="worldbook.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('worldbook');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('worldbook', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Facebook 角色帳號</title>
+  <link rel="stylesheet" href="facebook-profile.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+  <div class="profile-page">
+    <header class="profile-topbar">
+      <button class="back-btn" id="char-back" aria-label="返回 Facebook">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>選擇角色帳號</h1>
+      <div class="spacer"></div>
+    </header>
+
+    <main class="profile-main">
+      <section class="card">
+        <h2>角色清單</h2>
+        <label>選擇要開啟的角色帳號
+          <select id="char-account-select"></select>
+        </label>
+        <button class="primary-btn" id="char-account-open" type="button">開啟角色臉書</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="facebook-char.js"></script>
+</body>
+</html>

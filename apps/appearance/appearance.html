@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>外觀</title>
+    <link rel="stylesheet" href="appearance.css">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet">
+</head>
+<body class="appearance-page appearance-embedded">
+    <header class="app-header">
+        <button class="icon-btn" onclick="window.parent?.postMessage({type:'closeApp'}, '*')" aria-label="返回">
+            <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+        <h1 class="app-title">外觀</h1>
+        <div class="header-spacer"></div>
+    </header>
+    <main class="app-content">
+        <section class="card">
+          <div class="card-title">模式</div>
+          <div class="mode-section-label">預設</div>
+          <div class="mode-grid">
+            <label class="mode-tile">
+              <input type="radio" name="mode" value="light">
+                    <div class="tile-body">
+                        <span class="material-symbols-rounded">light_mode</span>
+                        <span>淺色</span>
+                    </div>
+                </label>
+                <label class="mode-tile">
+              <input type="radio" name="mode" value="dark">
+                    <div class="tile-body">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        <span>深色</span>
+                    </div>
+                </label>
+          </div>
+          <div class="mode-section-label">自訂</div>
+          <div class="mode-grid">
+            <label class="mode-tile">
+              <input type="radio" name="mode" value="custom-light">
+                    <div class="tile-body">
+                        <span class="material-symbols-rounded">light_mode</span>
+                        <span>自訂淺色</span>
+                    </div>
+                </label>
+                <label class="mode-tile">
+              <input type="radio" name="mode" value="custom-dark">
+                    <div class="tile-body">
+                        <span class="material-symbols-rounded">dark_mode</span>
+                        <span>自訂深色</span>
+                    </div>
+                </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">重點色</div>
+          <div class="accent-picker">
+            <div class="accent-canvas" id="accent-canvas" aria-label="選擇主色">
+              <div class="accent-thumb" id="accent-thumb"></div>
+            </div>
+            <div class="accent-hue" id="accent-hue" aria-label="選擇色相">
+              <div class="accent-hue-thumb" id="accent-hue-thumb"></div>
+            </div>
+            <div class="accent-hex-row">
+              <span class="accent-hex-label">快速輸入色碼</span>
+              <div class="accent-hex-input">
+                <span class="hash">#</span>
+                <input id="accent-hex" type="text" inputmode="text" maxlength="6" value="0E5D94" aria-label="重點色 HEX">
+              </div>
+            </div>
+            <button class="primary-btn" id="generate-accent" type="button">AI 生成主題色</button>
+            <div class="accent-palette" id="accent-palette" aria-label="主題色彩"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">自訂圖標</div>
+          <div class="icon-form">
+            <div class="field">
+              <label for="custom-app-id">App ID</label>
+              <input id="custom-app-id" type="text" placeholder="例如：bilibili" aria-label="App ID">
+            </div>
+            <div class="field">
+              <label for="custom-app-url">圖標 URL</label>
+              <input id="custom-app-url" type="url" placeholder="https://... (透明 PNG/方形建議)" aria-label="圖標 URL">
+            </div>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="clear-icon-btn" type="button">清除</button>
+              <button class="primary-btn" id="save-icon-btn" type="button">套用</button>
+            </div>
+            <p class="hint">提示：輸入 App ID（如 bilibili、youtube、chat），貼上透明 PNG 或方形圖片連結即可套用。所有分頁會同步更新。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">圖片取色主題</div>
+          <div class="theme-upload">
+            <label class="upload-btn" for="theme-image-input">選擇圖片</label>
+            <input id="theme-image-input" type="file" accept="image/*" hidden>
+            <div class="image-preview" id="theme-image-preview">
+              <span class="hint">上傳圖片後，將自動分析色彩並推薦主題</span>
+            </div>
+            <div class="palette-row" id="theme-palette" hidden>
+              <div class="chip" id="chip-accent">
+                <span class="chip-dot"></span>
+                <span class="chip-text">Accent</span>
+              </div>
+              <div class="chip" id="chip-muted">
+                <span class="chip-dot"></span>
+                <span class="chip-text">Muted</span>
+              </div>
+              <div class="chip" id="chip-bg">
+                <span class="chip-dot"></span>
+                <span class="chip-text">Background</span>
+              </div>
+              <span class="chip-text" id="brightness-text"></span>
+            </div>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-image-theme" type="button">重置</button>
+              <button class="primary-btn" id="apply-image-theme" type="button">套用配色</button>
+            </div>
+            <p class="hint">AI 會依圖片主色推薦 Accent 並判斷適合的淺/深模式，所有分頁同步生效。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">AI 外觀生成</div>
+          <div class="ai-theme">
+            <label class="upload-btn" for="ai-theme-input">上傳圖片</label>
+            <input id="ai-theme-input" type="file" accept="image/*" hidden>
+            <div class="ai-preview" id="ai-theme-preview">
+              <span class="hint">上傳圖片後，將分析並產生主題 CSS</span>
+            </div>
+            <div class="ai-mode-toggle" role="group" aria-label="套用模式">
+              <button class="mode-pill active" type="button" data-mode="dark">深色</button>
+              <button class="mode-pill" type="button" data-mode="light">淺色</button>
+            </div>
+            <div class="ai-actions">
+              <button class="ghost-btn" id="ai-preview-btn" type="button">預覽效果</button>
+              <button class="primary-btn" id="ai-apply-btn" type="button">確認套用</button>
+            </div>
+            <div class="ai-code">
+              <div class="ai-code-title">產生的 CSS</div>
+              <textarea id="ai-css-output" readonly></textarea>
+            </div>
+            <p class="hint">先預覽確認後再套用，套用後會同步至所有應用程式外觀。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">平鋪圖樣桌布</div>
+          <div class="pattern-theme">
+            <label class="upload-btn" for="pattern-image-input">上傳主圖</label>
+            <input id="pattern-image-input" type="file" accept="image/*" hidden>
+            <div class="image-preview" id="pattern-preview">
+              <span class="hint">上傳圖片後，會自動複製成一列並旋轉 45 度平鋪填滿畫面</span>
+            </div>
+            <div class="pattern-controls">
+              <label class="field-inline" for="pattern-bg-color">
+                <span>底色</span>
+                <input id="pattern-bg-color" type="color" value="#0B0C12">
+              </label>
+              <label class="field-inline" for="pattern-size">
+                <span>圖樣大小</span>
+                <input id="pattern-size" type="range" min="32" max="180" step="1" value="86">
+              </label>
+              <label class="field-inline" for="pattern-gap">
+                <span>間距</span>
+                <input id="pattern-gap" type="range" min="0" max="100" step="1" value="20">
+              </label>
+            </div>
+            <div class="ai-mode-toggle" id="pattern-angle-toggle" role="group" aria-label="旋轉方向">
+              <button class="mode-pill active" type="button" data-angle="-45">左轉 45°</button>
+              <button class="mode-pill" type="button" data-angle="45">右轉 45°</button>
+            </div>
+            <div class="ai-actions">
+              <button class="ghost-btn" id="pattern-preview-btn" type="button">預覽圖樣</button>
+              <button class="primary-btn" id="pattern-apply-btn" type="button">套用桌布</button>
+            </div>
+            <p class="hint">會將上傳圖複製成一列，再依選擇方向旋轉並重複排列，直接套用到鎖屏與主畫面。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">文字指令生成</div>
+          <div class="ai-theme">
+            <div class="ai-prompt">
+              <label class="ai-code-title" for="ai-text-prompt">輸入需求</label>
+              <textarea id="ai-text-prompt" placeholder="例：深色主題、藍色重點、卡片背景偏霧面" rows="3"></textarea>
+            </div>
+            <div class="ai-mode-toggle" role="group" aria-label="套用模式">
+              <button class="mode-pill active" type="button" data-mode="dark">深色</button>
+              <button class="mode-pill" type="button" data-mode="light">淺色</button>
+            </div>
+            <div class="ai-actions">
+              <button class="ghost-btn" id="ai-text-preview-btn" type="button">預覽效果</button>
+              <button class="primary-btn" id="ai-text-apply-btn" type="button">確認套用</button>
+            </div>
+            <div class="ai-code">
+              <div class="ai-code-title">產生的 CSS</div>
+              <textarea id="ai-text-css-output" readonly></textarea>
+            </div>
+            <p class="hint">可用「深色/淺色、重點色、背景色」描述需求，先預覽再套用。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">應用程式介面</div>
+          <div class="app-interface-info">
+            <div class="info-icon">
+              <span class="material-symbols-rounded">palette</span>
+            </div>
+            <div class="info-content">
+              <p class="info-title">自訂外觀設定</p>
+              <p class="info-desc">切換到「自訂淺色」或「自訂深色」模式後，可在各應用程式內調整外觀細節。</p>
+              <div class="info-steps">
+                <div class="info-step">
+                  <span class="step-num">1</span>
+                  <span>在上方「模式」區塊選擇「自訂淺色」或「自訂深色」</span>
+                </div>
+                <div class="info-step">
+                  <span class="step-num">2</span>
+                  <span>開啟任意應用程式，點擊外觀設定按鈕</span>
+                </div>
+                <div class="info-step">
+                  <span class="step-num">3</span>
+                  <span>調整顏色、字體、排版等設定後點擊「套用」</span>
+                </div>
+              </div>
+              <div class="info-note">
+                <span class="material-symbols-rounded">info</span>
+                <span>設定會儲存到對應的自訂模式。切換模式時，所有應用程式會自動套用該模式的外觀設定。</span>
+              </div>
+              <div class="info-actions">
+                <button class="primary-btn" id="edit-custom-light-btn" type="button">
+                  <span class="material-symbols-rounded">light_mode</span> 編輯自訂淺色
+                </button>
+                <button class="primary-btn" id="edit-custom-dark-btn" type="button">
+                  <span class="material-symbols-rounded">dark_mode</span> 編輯自訂深色
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">全域文字顏色</div>
+          <div class="global-text-color">
+            <div class="color-grid">
+              <label class="field-inline">
+                <span>主要文字</span>
+                <input id="global-text-primary" type="color" value="#ffffff">
+              </label>
+              <label class="field-inline">
+                <span>次要文字</span>
+                <input id="global-text-secondary" type="color" value="#9ca3af">
+              </label>
+              <label class="field-inline">
+                <span>標題文字</span>
+                <input id="global-text-heading" type="color" value="#ffffff">
+              </label>
+              <label class="field-inline">
+                <span>連結文字</span>
+                <input id="global-text-link" type="color" value="#5B8DEF">
+              </label>
+            </div>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-text-color-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-text-color-btn" type="button">套用</button>
+            </div>
+            <p class="hint">設定應用程式內所有文字的顏色，包含主要、次要、標題及連結文字。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">框線與間距</div>
+          <div class="border-spacing">
+            <label class="field-inline">
+              <span>圖示框線粗細</span>
+              <input id="global-border-width" type="range" min="0" max="5" step="0.5" value="1">
+              <span class="range-value" id="border-width-value">1px</span>
+            </label>
+            <label class="field-inline">
+              <span>圖示框線顏色</span>
+              <input id="global-border-color" type="color" value="#ffffff">
+            </label>
+            <label class="field-inline">
+              <span>卡片框線粗細</span>
+              <input id="global-card-border-width" type="range" min="0" max="3" step="0.5" value="1">
+              <span class="range-value" id="card-border-width-value">1px</span>
+            </label>
+            <label class="field-inline">
+              <span>卡片圓角</span>
+              <input id="global-card-radius" type="range" min="0" max="30" step="1" value="18">
+              <span class="range-value" id="card-radius-value">18px</span>
+            </label>
+            <label class="field-inline">
+              <span>元素間距</span>
+              <input id="global-element-gap" type="range" min="4" max="32" step="1" value="12">
+              <span class="range-value" id="element-gap-value">12px</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-border-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-border-btn" type="button">套用</button>
+            </div>
+            <p class="hint">調整圖示框線、卡片樣式及元素間距。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">位置與佈局</div>
+          <div class="position-layout">
+            <label class="toggle-row" for="hide-topbar">
+              <span>隱藏頂部狀態欄</span>
+              <input id="hide-topbar" type="checkbox">
+            </label>
+            <label class="toggle-row" for="hide-topbar-home">
+              <span>主畫面也隱藏狀態欄</span>
+              <input id="hide-topbar-home" type="checkbox">
+            </label>
+            <label class="field-inline">
+              <span>狀態列位置</span>
+              <select id="global-statusbar-position">
+                <option value="top">頂部</option>
+                <option value="bottom">底部</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>狀態列內距</span>
+              <input id="global-statusbar-padding" type="range" min="8" max="30" step="1" value="15">
+              <span class="range-value" id="statusbar-padding-value">15px</span>
+            </label>
+            <label class="field-inline">
+              <span>主畫面頂部內距</span>
+              <input id="global-home-padding-top" type="range" min="40" max="120" step="5" value="70">
+              <span class="range-value" id="home-padding-top-value">70px</span>
+            </label>
+            <label class="field-inline">
+              <span>主畫面底部內距</span>
+              <input id="global-home-padding-bottom" type="range" min="20" max="80" step="2" value="34">
+              <span class="range-value" id="home-padding-bottom-value">34px</span>
+            </label>
+            <label class="field-inline">
+              <span>應用圖示間距</span>
+              <input id="global-icon-gap" type="range" min="8" max="36" step="2" value="18">
+              <span class="range-value" id="icon-gap-value">18px</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-position-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-position-btn" type="button">套用</button>
+            </div>
+            <p class="hint">調整狀態列、主畫面及應用圖示的位置與間距。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">文字大小</div>
+          <div class="font-size-section">
+            <label class="field-inline">
+              <span>全域文字大小</span>
+              <input id="global-font-size" type="range" min="12" max="20" step="1" value="14">
+              <span class="range-value" id="font-size-value">14px</span>
+            </label>
+            <label class="field-inline">
+              <span>標題文字大小</span>
+              <input id="global-heading-size" type="range" min="18" max="32" step="1" value="22">
+              <span class="range-value" id="heading-size-value">22px</span>
+            </label>
+            <label class="field-inline">
+              <span>應用名稱大小</span>
+              <input id="global-app-label-size" type="range" min="10" max="16" step="1" value="12">
+              <span class="range-value" id="app-label-size-value">12px</span>
+            </label>
+            <label class="field-inline">
+              <span>時間顯示大小</span>
+              <input id="global-time-size" type="range" min="48" max="100" step="2" value="80">
+              <span class="range-value" id="time-size-value">80px</span>
+            </label>
+            <label class="field-inline">
+              <span>日期顯示大小</span>
+              <input id="global-date-size" type="range" min="12" max="24" step="1" value="16">
+              <span class="range-value" id="date-size-value">16px</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-font-size-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-font-size-btn" type="button">套用</button>
+            </div>
+            <p class="hint">調整全域文字、標題、應用名稱及時間日期的大小。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">手機款式</div>
+          <div class="phone-style-section">
+            <div class="mode-grid phone-style-grid">
+              <label class="mode-tile">
+                <input type="radio" name="phone-style" value="iphone-14">
+                <div class="tile-body">
+                  <span class="material-symbols-rounded">smartphone</span>
+                  <span>iPhone 14</span>
+                </div>
+              </label>
+              <label class="mode-tile">
+                <input type="radio" name="phone-style" value="iphone-15">
+                <div class="tile-body">
+                  <span class="material-symbols-rounded">smartphone</span>
+                  <span>iPhone 15</span>
+                </div>
+              </label>
+              <label class="mode-tile">
+                <input type="radio" name="phone-style" value="iphone-se">
+                <div class="tile-body">
+                  <span class="material-symbols-rounded">smartphone</span>
+                  <span>iPhone SE</span>
+                </div>
+              </label>
+              <label class="mode-tile">
+                <input type="radio" name="phone-style" value="android">
+                <div class="tile-body">
+                  <span class="material-symbols-rounded">smartphone</span>
+                  <span>Android</span>
+                </div>
+              </label>
+            </div>
+            <label class="field-inline">
+              <span>邊框粗細</span>
+              <input id="phone-border-width" type="range" min="0" max="20" step="1" value="12">
+              <span class="range-value" id="phone-border-width-value">12px</span>
+            </label>
+            <label class="field-inline">
+              <span>邊框顏色</span>
+              <input id="phone-border-color" type="color" value="#333333">
+            </label>
+            <label class="field-inline">
+              <span>邊框圓角</span>
+              <input id="phone-border-radius" type="range" min="0" max="80" step="2" value="55">
+              <span class="range-value" id="phone-border-radius-value">55px</span>
+            </label>
+            <label class="field-inline">
+              <span>手機寬度比例</span>
+              <input id="phone-width-ratio" type="range" min="40" max="55" step="1" value="46">
+              <span class="range-value" id="phone-width-ratio-value">46%</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-phone-style-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-phone-style-btn" type="button">套用</button>
+            </div>
+            <p class="hint">選擇手機款式並調整邊框樣式與尺寸比例。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">電量設定</div>
+          <div class="battery-section">
+            <label class="toggle-row" for="battery-show-percent">
+              <span>顯示電量百分比</span>
+              <input id="battery-show-percent" type="checkbox" checked>
+            </label>
+            <label class="field-inline">
+              <span>電量圖示樣式</span>
+              <select id="battery-icon-style">
+                <option value="full">滿電圖示</option>
+                <option value="outline">外框圖示</option>
+                <option value="text">文字顯示</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>模擬電量</span>
+              <input id="battery-level" type="range" min="0" max="100" step="1" value="100">
+              <span class="range-value" id="battery-level-value">100%</span>
+            </label>
+            <label class="field-inline">
+              <span>低電量警告</span>
+              <input id="battery-low-warning" type="range" min="5" max="30" step="5" value="20">
+              <span class="range-value" id="battery-low-warning-value">20%</span>
+            </label>
+            <label class="field-inline">
+              <span>低電量顏色</span>
+              <input id="battery-low-color" type="color" value="#FF3B30">
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-battery-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-battery-btn" type="button">套用</button>
+            </div>
+            <p class="hint">自訂電量顯示方式、模擬電量及低電量警告設定。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">字體設定</div>
+          <div class="font-section">
+            <div class="font-area-label">全域字體</div>
+            <label class="field-inline">
+              <span>主要字體</span>
+              <select id="font-primary">
+                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
+                <option value="'PingFang TC', sans-serif">PingFang TC</option>
+                <option value="'Noto Sans TC', sans-serif">Noto Sans TC</option>
+                <option value="'Microsoft JhengHei', sans-serif">微軟正黑體</option>
+                <option value="system-ui, sans-serif">系統預設</option>
+              </select>
+            </label>
+            <div class="font-area-label">特殊區域字體</div>
+            <label class="field-inline">
+              <span>鎖屏時間</span>
+              <select id="font-lock-time">
+                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
+                <option value="'Great Vibes', cursive">Great Vibes</option>
+                <option value="system-ui, sans-serif">系統預設</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>開機動畫</span>
+              <select id="font-boot">
+                <option value="'Great Vibes', cursive">Great Vibes</option>
+                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
+                <option value="system-ui, sans-serif">系統預設</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>聊天訊息</span>
+              <select id="font-chat">
+                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
+                <option value="'PingFang TC', sans-serif">PingFang TC</option>
+                <option value="system-ui, sans-serif">系統預設</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>應用標題</span>
+              <select id="font-app-title">
+                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
+                <option value="'PingFang TC', sans-serif">PingFang TC</option>
+                <option value="system-ui, sans-serif">系統預設</option>
+              </select>
+            </label>
+            <label class="field-inline">
+              <span>自訂字體 URL</span>
+              <input id="font-custom-url" type="url" placeholder="https://fonts.googleapis.com/...">
+            </label>
+            <label class="field-inline">
+              <span>自訂字體名稱</span>
+              <input id="font-custom-name" type="text" placeholder="My Custom Font">
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-font-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-font-btn" type="button">套用</button>
+            </div>
+            <p class="hint">設定全域字體及各區域專用字體，亦可載入自訂字體。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">圖示樣式</div>
+          <div class="icon-style-section">
+            <label class="field-inline">
+              <span>圖示大小</span>
+              <input id="icon-size" type="range" min="48" max="80" step="2" value="62">
+              <span class="range-value" id="icon-size-value">62px</span>
+            </label>
+            <label class="field-inline">
+              <span>圖示圓角</span>
+              <input id="icon-radius" type="range" min="0" max="30" step="1" value="20">
+              <span class="range-value" id="icon-radius-value">20px</span>
+            </label>
+            <label class="field-inline">
+              <span>圖示內圖示大小</span>
+              <input id="icon-inner-size" type="range" min="20" max="40" step="2" value="28">
+              <span class="range-value" id="icon-inner-size-value">28px</span>
+            </label>
+            <label class="field-inline">
+              <span>圖示透明度</span>
+              <input id="icon-opacity" type="range" min="50" max="100" step="5" value="100">
+              <span class="range-value" id="icon-opacity-value">100%</span>
+            </label>
+            <label class="field-inline">
+              <span>圖示陰影強度</span>
+              <input id="icon-shadow" type="range" min="0" max="50" step="5" value="28">
+              <span class="range-value" id="icon-shadow-value">28</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-icon-style-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-icon-style-btn" type="button">套用</button>
+            </div>
+            <p class="hint">調整應用圖示的大小、圓角、透明度及陰影效果。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">背景與透明度</div>
+          <div class="background-section">
+            <label class="field-inline">
+              <span>應用背景顏色</span>
+              <input id="app-bg-color" type="color" value="#1c1c1e">
+            </label>
+            <label class="field-inline">
+              <span>背景透明度</span>
+              <input id="app-bg-opacity" type="range" min="0" max="100" step="5" value="30">
+              <span class="range-value" id="app-bg-opacity-value">30%</span>
+            </label>
+            <label class="field-inline">
+              <span>模糊強度</span>
+              <input id="app-bg-blur" type="range" min="0" max="30" step="1" value="20">
+              <span class="range-value" id="app-bg-blur-value">20px</span>
+            </label>
+            <label class="field-inline">
+              <span>飽和度</span>
+              <input id="app-bg-saturate" type="range" min="100" max="300" step="10" value="200">
+              <span class="range-value" id="app-bg-saturate-value">200%</span>
+            </label>
+            <div class="icon-actions">
+              <button class="ghost-btn" id="reset-background-btn" type="button">重置</button>
+              <button class="primary-btn" id="apply-background-btn" type="button">套用</button>
+            </div>
+            <p class="hint">調整應用背景顏色、透明度及模糊效果。</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">開機動畫</div>
+          <div class="boot-theme">
+            <label class="toggle-row" for="boot-enabled">
+              <span>啟用開機動畫</span>
+              <input id="boot-enabled" type="checkbox" checked>
+            </label>
+            <div class="field">
+              <label for="boot-tagline">主文字</label>
+              <textarea id="boot-tagline" rows="2" placeholder="例：Meet you&#10;in my world"></textarea>
+            </div>
+            <div class="field">
+              <label for="boot-signature">簽名文字</label>
+              <input id="boot-signature" type="text" placeholder="例：-Sxiphone-">
+            </div>
+            <div class="boot-color-grid">
+              <label class="field-inline" for="boot-text-color">
+                <span>文字色</span>
+                <input id="boot-text-color" type="color" value="#F4ECFF">
+              </label>
+              <label class="field-inline" for="boot-bg-start">
+                <span>背景起點</span>
+                <input id="boot-bg-start" type="color" value="#12051F">
+              </label>
+              <label class="field-inline" for="boot-bg-end">
+                <span>背景終點</span>
+                <input id="boot-bg-end" type="color" value="#2B0F3F">
+              </label>
+            </div>
+            <div class="boot-deco-section">
+              <div class="boot-deco-header">
+                <span class="boot-deco-header-label">小裝飾</span>
+                <button class="primary-btn boot-deco-add-btn" id="boot-deco-add-btn" type="button">+ 新增</button>
+              </div>
+              <div class="boot-deco-list" id="boot-deco-list"></div>
+              <div class="boot-deco-editor hidden" id="boot-deco-editor">
+                <label class="upload-btn" for="boot-deco-image-input">上傳裝飾圖片</label>
+                <input id="boot-deco-image-input" type="file" accept="image/*" hidden>
+                <div class="boot-deco-thumb" id="boot-deco-thumb"></div>
+                <label class="field-inline" for="boot-deco-size">
+                  <span>大小</span>
+                  <input id="boot-deco-size" type="range" min="24" max="180" step="1" value="72">
+                </label>
+                <label class="field-inline" for="boot-deco-opacity">
+                  <span>透明度</span>
+                  <input id="boot-deco-opacity" type="range" min="10" max="100" step="1" value="62">
+                </label>
+                <label class="field-inline" for="boot-deco-x">
+                  <span>水平位置</span>
+                  <input id="boot-deco-x" type="range" min="0" max="100" step="1" value="75">
+                </label>
+                <label class="field-inline" for="boot-deco-y">
+                  <span>垂直位置</span>
+                  <input id="boot-deco-y" type="range" min="0" max="100" step="1" value="18">
+                </label>
+                <div class="ai-mode-toggle" id="boot-deco-motion" role="group" aria-label="裝飾動態">
+                  <button class="mode-pill active" type="button" data-motion="float">漂浮</button>
+                  <button class="mode-pill" type="button" data-motion="spin">旋轉</button>
+                  <button class="mode-pill" type="button" data-motion="pulse">脈動</button>
+                  <button class="mode-pill" type="button" data-motion="sway">搖擺</button>
+                  <button class="mode-pill" type="button" data-motion="drift">滑移</button>
+                  <button class="mode-pill" type="button" data-motion="twinkle">閃爍</button>
+                  <button class="mode-pill" type="button" data-motion="none">靜止</button>
+                </div>
+                <div class="icon-actions">
+                  <button class="ghost-btn" id="boot-deco-cancel-btn" type="button">取消</button>
+                  <button class="primary-btn" id="boot-deco-save-btn" type="button">儲存裝飾</button>
+                </div>
+              </div>
+            </div>
+            <div class="boot-preview" id="boot-preview">
+              <div class="boot-preview-decos" id="boot-preview-decos"></div>
+              <div class="boot-preview-content">
+                <div class="boot-preview-tagline" id="boot-preview-tagline">Meet you
+in my world</div>
+                <div class="boot-preview-signature" id="boot-preview-signature">-Sxiphone-</div>
+              </div>
+            </div>
+            <div class="ai-actions">
+              <button class="ghost-btn" id="boot-reset-btn" type="button">恢復預設</button>
+              <button class="primary-btn" id="boot-apply-btn" type="button">套用開機動畫</button>
+            </div>
+            <p class="hint">可關閉開機動畫，或自訂顯示文字與背景配色。</p>
+          </div>
+        </section>
+
+    </main>
+
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="appearance.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('global');
+        }
+    });
+    </script>
+</body>
+</html>

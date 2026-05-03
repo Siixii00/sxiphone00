@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "categories": {
+    "town": {
+      "name": "城鎮素材",
+      "files": [
+        {
+          "file": "town.png",
+          "type": "tileset",
+          "tileSize": 32,
+          "source": "https://opengameart.org/content/town-tiles",
+          "license": "CC0"
+        }
+      ]
+    },
+    "nature": {
+      "name": "自然地形",
+      "files": [
+        {
+          "file": "frogatto-tiles.png",
+          "type": "tileset",
+          "tileSize": 32,
+          "source": "https://opengameart.org/content/old-frogatto-tile-art",
+          "license": "CC0"
+        },
+        {
+          "file": "water_land.png",
+          "type": "tileset",
+          "tileSize": 32,
+          "source": "https://opengameart.org/content/32x32-water-and-land-map-tilesets",
+          "license": "CC0"
+        }
+      ]
+    },
+    "rpg": {
+      "name": "RPG 素材",
+      "files": [
+        {
+          "file": "rpg_tileset.png",
+          "type": "tileset",
+          "tileSize": 32,
+          "source": "https://opengameart.org/content/rpg-tileset",
+          "license": "CC0"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>音樂</title>
+  <link rel="stylesheet" href="music.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="music-app">
+    <header class="music-header">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>Music Room</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="refresh-btn" aria-label="重新匯入">
+          <i class="fas fa-rotate"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="music-main">
+      <section class="card import-card">
+        <h2>歌單匯入</h2>
+        <p class="hint">支援 Spotify / Apple Music 連結匯入（前端模擬資料，可直接播放）</p>
+        <p class="hint notice" id="import-notice" hidden>網易雲 / SoundCloud 請改貼公開 JSON 清單（含音訊 URL），即可播放。</p>
+        <div class="import-row">
+          <select id="platform-select" aria-label="選擇平台">
+            <option value="spotify">Spotify</option>
+            <option value="apple">Apple Music</option>
+            <option value="netease">網易雲音樂</option>
+            <option value="soundcloud">SoundCloud</option>
+          </select>
+          <input id="playlist-url" type="text" placeholder="貼上歌單連結，例如 https://open.spotify.com/playlist/...">
+          <button id="import-btn" type="button">匯入</button>
+        </div>
+        <div class="spotify-auth">
+          <div class="auth-title">Spotify 登入導引</div>
+          <p class="hint">需先到 Spotify 開發者平台建立 App，取得 Client ID 並設定 Redirect URI。</p>
+          <div class="auth-grid">
+            <label>Client ID
+              <input id="spotify-client-id" type="text" placeholder="貼上 Client ID">
+            </label>
+            <label>Redirect URI
+              <input id="spotify-redirect" type="text" placeholder="https://your-domain/callback">
+            </label>
+          </div>
+          <div class="auth-actions">
+            <button id="spotify-login" type="button">開啟 Spotify 登入</button>
+          </div>
+          <label class="token-field">Access Token
+            <div class="token-row">
+              <input id="spotify-token" type="text" placeholder="登入完成後貼上 token">
+              <button id="spotify-save-token" type="button">儲存</button>
+            </div>
+          </label>
+          <p class="hint notice">此流程僅示範導引，未包含後端交換。</p>
+        </div>
+      </section>
+
+      <section class="card companion-card">
+        <h2>一起聽歌</h2>
+        <div class="companion-grid">
+          <label>你的名稱
+            <input id="user-name" type="text" value="你">
+          </label>
+          <label>角色
+            <select id="char-select">
+              <option value="">-- 從設定載入角色 --</option>
+            </select>
+          </label>
+        </div>
+        <p class="char-desc" id="char-desc">請選擇一個角色開始一起聽歌。</p>
+        <p class="listen-status" id="listen-status">選擇角色後開始一起聽歌</p>
+      </section>
+
+      <section class="card char-music-card">
+        <div class="char-music-header">
+          <h2>角色專屬音樂生成</h2>
+          <span class="char-badge">根據個性創作</span>
+        </div>
+        <p class="hint">選擇角色，讓 AI 根據其個性為你生成獨一無二的旋律。</p>
+        
+        <div class="char-music-grid">
+          <label>選擇角色
+            <select id="char-music-select">
+              <option value="">-- 從設定載入 --</option>
+            </select>
+          </label>
+          <label>心情情境
+            <select id="char-mood-select">
+              <option value="calm">平靜放鬆</option>
+              <option value="happy">開心愉悅</option>
+              <option value="sad">憂鬱感性</option>
+              <option value="energetic">活力充沛</option>
+              <option value="romantic">浪漫溫馨</option>
+              <option value="mysterious">神秘夢幻</option>
+            </select>
+          </label>
+          <label>歌詞主題
+            <input type="text" id="char-theme-input" placeholder="例如：思念、夢想、夏日回憶...">
+          </label>
+          <label>歌詞語言
+            <select id="char-lang-select">
+              <option value="zh">中文</option>
+              <option value="ko">韓文</option>
+              <option value="ja">日文</option>
+              <option value="en">英文</option>
+              <option value="mixed">混合語言</option>
+              <option value="instrumental">純音樂（無歌詞）</option>
+            </select>
+          </label>
+          <label>音樂風格
+            <select id="char-style-select">
+              <option value="pop">流行</option>
+              <option value="ballad">抒情</option>
+              <option value="rnb">R&B</option>
+              <option value="electronic">電子</option>
+              <option value="acoustic">木吉他</option>
+              <option value="jazz">爵士</option>
+            </select>
+          </label>
+          <label>小節數
+            <select id="char-bars-select">
+              <option value="4">4 小節</option>
+              <option value="8">8 小節</option>
+              <option value="16">16 小節</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="char-personality-preview" id="char-personality-preview">
+          <div class="preview-label">角色個性</div>
+          <div class="preview-text" id="char-personality-text">請選擇角色以查看個性描述</div>
+        </div>
+
+        <button class="char-gen-btn" id="char-generate-music-btn" type="button">
+          <i class="fas fa-wand-magic-sparkles"></i> 讓角色為我創作
+        </button>
+
+        <div class="char-music-result hidden" id="char-music-result">
+          <div class="result-header">
+            <span class="result-title" id="char-music-title">--</span>
+            <span class="result-mood" id="char-music-mood">--</span>
+          </div>
+          <div class="result-desc" id="char-music-desc">生成中...</div>
+          <div class="char-lyrics-display" id="char-lyrics-display"></div>
+          <div class="result-actions">
+            <button class="result-btn" id="char-play-btn" type="button"><i class="fas fa-play"></i> 播放</button>
+            <button class="result-btn" id="char-add-btn" type="button"><i class="fas fa-plus"></i> 加入清單</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card player-card">
+        <div class="now-playing">
+          <div class="cover" id="cover-art"></div>
+          <div>
+            <h3 id="track-title">尚未播放</h3>
+            <p id="track-meta">請先匯入歌單</p>
+          </div>
+        </div>
+
+        <div class="danmaku-layer" id="danmaku-layer" aria-hidden="true"></div>
+
+        <div class="progress-wrap">
+          <span id="current-time">0:00</span>
+          <input id="progress" type="range" min="0" max="100" value="0" step="0.1">
+          <span id="total-time">0:00</span>
+        </div>
+
+        <div class="controls">
+          <button class="ctrl" id="prev-btn" type="button"><i class="fas fa-backward-step"></i></button>
+          <button class="ctrl play" id="play-btn" type="button"><i class="fas fa-play"></i></button>
+          <button class="ctrl" id="next-btn" type="button"><i class="fas fa-forward-step"></i></button>
+        </div>
+
+        <audio id="audio-player" preload="metadata"></audio>
+      </section>
+
+      <section class="card queue-card">
+        <div class="queue-head">
+          <h2>播放清單</h2>
+          <span id="queue-count">0 首</span>
+        </div>
+        <ul id="playlist-list" class="playlist"></ul>
+      </section>
+
+      <section class="card yue-card">
+        <div class="yue-header">
+          <h2>YuE 音樂生成</h2>
+          <span class="yue-badge">Full-Song AI</span>
+        </div>
+        <p class="hint">使用 YuE 開源模型生成完整歌曲，包含人聲與伴奏。需要後端 API 伺服器。</p>
+        
+        <div class="yue-api-config">
+          <div class="yue-api-row">
+            <label>API 伺服器 URL
+              <input type="text" id="yue-api-url" placeholder="http://localhost:8000">
+            </label>
+            <div class="yue-api-actions">
+              <button class="yue-btn-small" id="yue-save-api-btn" type="button">儲存</button>
+              <button class="yue-btn-small" id="yue-check-btn" type="button">檢查連接</button>
+            </div>
+          </div>
+          <div class="yue-status-row">
+            <span>狀態：</span>
+            <span id="yue-api-status" class="yue-status disconnected">未連接</span>
+          </div>
+        </div>
+        
+        <div class="yue-gen-grid">
+          <label>主題關鍵字
+            <input type="text" id="yue-theme-input" placeholder="例如：思念、夢想、夏日回憶...">
+          </label>
+          <label>歌詞語言
+            <select id="yue-lang-select">
+              <option value="zh">中文</option>
+              <option value="en">英文</option>
+              <option value="ja">日文</option>
+              <option value="ko">韓文</option>
+              <option value="mixed">混合語言</option>
+            </select>
+          </label>
+          <label>心情情境
+            <select id="yue-mood-select">
+              <option value="calm">平靜放鬆</option>
+              <option value="happy">開心愉悅</option>
+              <option value="sad">憂鬱感性</option>
+              <option value="energetic">活力充沛</option>
+              <option value="romantic">浪漫溫馨</option>
+              <option value="mysterious">神秘夢幻</option>
+            </select>
+          </label>
+          <label>音樂風格
+            <select id="yue-style-select">
+              <option value="pop">流行</option>
+              <option value="ballad">抒情</option>
+              <option value="rock">搖滾</option>
+              <option value="electronic">電子</option>
+              <option value="jazz">爵士</option>
+              <option value="rnb">R&B</option>
+              <option value="acoustic">木吉他</option>
+              <option value="hiphop">嘻哈</option>
+            </select>
+          </label>
+          <label>段落數量
+            <select id="yue-segments-select">
+              <option value="2">2 段 (約 1 分鐘)</option>
+              <option value="4">4 段 (約 2 分鐘)</option>
+              <option value="6">6 段 (約 3 分鐘)</option>
+            </select>
+          </label>
+        </div>
+        
+        <div class="yue-lyrics-section">
+          <div class="yue-lyrics-header">
+            <span>歌詞</span>
+            <button class="yue-btn-small" id="yue-generate-lyrics-btn" type="button">生成歌詞</button>
+          </div>
+          <textarea id="yue-lyrics-input" rows="6" placeholder="輸入歌詞或點擊「生成歌詞」自動生成..."></textarea>
+        </div>
+        
+        <div class="yue-genre-section">
+          <label>風格標籤 (Genre Tags)
+            <input type="text" id="yue-genre-input" placeholder="pop female vocal catchy upbeat...">
+          </label>
+        </div>
+        
+        <button class="yue-gen-btn" id="yue-generate-btn" type="button">
+          <i class="fas fa-wand-magic-sparkles"></i> 開始生成音樂
+        </button>
+        
+        <div class="yue-progress hidden" id="yue-progress">
+          <div class="yue-progress-bar-wrap">
+            <div class="yue-progress-bar" id="yue-progress-bar"></div>
+          </div>
+          <div class="yue-progress-text" id="yue-progress-text">準備中...</div>
+        </div>
+        
+        <div class="yue-result hidden" id="yue-result">
+          <div class="yue-result-header">
+            <span class="yue-result-title" id="yue-result-title">--</span>
+          </div>
+          <audio id="yue-result-audio" controls></audio>
+          <div class="yue-result-actions">
+            <button class="yue-btn" id="yue-add-to-playlist-btn" type="button">
+              <i class="fas fa-plus"></i> 加入播放清單
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card ai-lab-card">
+        <div class="ai-lab-header">
+          <h2>AI 音樂實驗室</h2>
+          <span class="ai-badge">Magenta 靈感</span>
+        </div>
+        <p class="hint">使用 AI 演算法生成旋律、節奏與變化。靈感來自 Google Magenta Studio。</p>
+        
+        <div class="ai-tools-grid">
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-wand-magic-sparkles"></i>
+            </div>
+            <h3>Generate</h3>
+            <p class="ai-tool-desc">隨機生成 4 小節旋律</p>
+            <div class="ai-tool-controls">
+              <label>溫度
+                <input type="range" id="gen-temp" min="0.1" max="2" step="0.1" value="1">
+                <span id="gen-temp-val">1.0</span>
+              </label>
+              <label>音階
+                <select id="gen-scale">
+                  <option value="major">大調</option>
+                  <option value="minor">小調</option>
+                  <option value="pentatonic">五聲音階</option>
+                  <option value="blues">藍調</option>
+                </select>
+              </label>
+            </div>
+            <button class="ai-btn" id="generate-btn" type="button">生成旋律</button>
+          </div>
+
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-forward-fast"></i>
+            </div>
+            <h3>Continue</h3>
+            <p class="ai-tool-desc">延伸當前旋律</p>
+            <div class="ai-tool-controls">
+              <label>延伸小節
+                <select id="cont-bars">
+                  <option value="2">2 小節</option>
+                  <option value="4" selected>4 小節</option>
+                  <option value="8">8 小節</option>
+                </select>
+              </label>
+              <label>變化度
+                <input type="range" id="cont-var" min="0" max="1" step="0.1" value="0.5">
+              </label>
+            </div>
+            <button class="ai-btn" id="continue-btn" type="button">延伸旋律</button>
+          </div>
+
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-code-merge"></i>
+            </div>
+            <h3>Interpolate</h3>
+            <p class="ai-tool-desc">融合兩段旋律</p>
+            <div class="ai-tool-controls">
+              <label>步數
+                <select id="interp-steps">
+                  <option value="4">4 步</option>
+                  <option value="8" selected>8 步</option>
+                  <option value="16">16 步</option>
+                </select>
+              </label>
+              <button class="ai-btn-small" id="interp-set-a" type="button">設為 A</button>
+              <button class="ai-btn-small" id="interp-set-b" type="button">設為 B</button>
+            </div>
+            <button class="ai-btn" id="interpolate-btn" type="button">融合生成</button>
+          </div>
+
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-drum"></i>
+            </div>
+            <h3>Groove</h3>
+            <p class="ai-tool-desc">人性化節奏</p>
+            <div class="ai-tool-controls">
+              <label>搖擺感
+                <input type="range" id="groove-swing" min="0" max="1" step="0.1" value="0.5">
+              </label>
+              <label>力度變化
+                <input type="range" id="groove-vel" min="0" max="1" step="0.1" value="0.3">
+              </label>
+            </div>
+            <button class="ai-btn" id="groove-btn" type="button">應用 Groove</button>
+          </div>
+
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-wave-square"></i>
+            </div>
+            <h3>Drumify</h3>
+            <p class="ai-tool-desc">從旋律生成鼓點</p>
+            <div class="ai-tool-controls">
+              <label>風格
+                <select id="drum-style">
+                  <option value="rock">搖滾</option>
+                  <option value="hiphop">嘻哈</option>
+                  <option value="electronic">電子</option>
+                  <option value="jazz">爵士</option>
+                </select>
+              </label>
+              <label>複雜度
+                <input type="range" id="drum-complex" min="1" max="5" step="1" value="3">
+              </label>
+            </div>
+            <button class="ai-btn" id="drumify-btn" type="button">生成鼓點</button>
+          </div>
+
+          <div class="ai-tool">
+            <div class="ai-tool-icon">
+              <i class="fas fa-sliders"></i>
+            </div>
+            <h3>Transform</h3>
+            <p class="ai-tool-desc">變換旋律風格</p>
+            <div class="ai-tool-controls">
+              <label>模式
+                <select id="transform-mode">
+                  <option value="invert">倒轉</option>
+                  <option value="retrograde">逆行</option>
+                  <option value="augment">增值</option>
+                  <option value="diminish">減值</option>
+                </select>
+              </label>
+            </div>
+            <button class="ai-btn" id="transform-btn" type="button">變換</button>
+          </div>
+        </div>
+
+        <div class="ai-piano-roll" id="ai-piano-roll">
+          <div class="piano-roll-header">
+            <span>AI 生成預覽</span>
+            <div class="piano-roll-actions">
+              <button class="ai-btn-small" id="play-ai-btn" type="button"><i class="fas fa-play"></i></button>
+              <button class="ai-btn-small" id="add-to-playlist-btn" type="button"><i class="fas fa-plus"></i> 加入播放</button>
+              <button class="ai-btn-small" id="clear-ai-btn" type="button"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+          <canvas id="piano-roll-canvas" width="600" height="120"></canvas>
+        </div>
+      </section>
+
+      <section class="card publish-card">
+        <div class="publish-header">
+          <h2>發布到社群</h2>
+          <span class="publish-badge">分享給粉絲</span>
+        </div>
+        <p class="hint">將生成的音樂發布到 bubbles 或 weverse 藝人端，讓粉絲一起欣賞。</p>
+        
+        <div class="publish-preview" id="publish-preview">
+          <div class="publish-cover" id="publish-cover"></div>
+          <div class="publish-info">
+            <div class="publish-title" id="publish-title">尚未選擇要發布的音樂</div>
+            <div class="publish-meta" id="publish-meta">請先生成或選擇一段旋律</div>
+          </div>
+        </div>
+
+        <div class="publish-form">
+          <label>發布訊息
+            <textarea id="publish-message" rows="2" placeholder="寫一些話給粉絲..."></textarea>
+          </label>
+          <div class="publish-targets">
+            <button class="publish-target-btn" id="publish-bubbles-btn" type="button">
+              <i class="fas fa-comment-dots"></i> 發布到 bubbles
+            </button>
+            <button class="publish-target-btn" id="publish-weverse-btn" type="button">
+              <i class="fas fa-users"></i> 發布到 weverse
+            </button>
+          </div>
+        </div>
+
+        <div class="publish-status hidden" id="publish-status">
+          <span class="status-icon" id="publish-status-icon">✓</span>
+          <span class="status-text" id="publish-status-text">發布成功</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+  <script src="../scripts/app-appearance-settings.js"></script>
+  <script src="../scripts/app-appearance-configs.js"></script>
+  <script src="music.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('music');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('music', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

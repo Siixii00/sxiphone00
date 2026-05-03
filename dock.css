@@ -1,0 +1,284 @@
+.home-dock {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 12px 16px;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dock-apps {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.dock-apps .app-icon {
+    margin-bottom: 0;
+}
+
+.dock-apps .app-icon .icon-box {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    margin-bottom: 0;
+}
+
+.dock-apps .app-icon .app-label {
+    display: none;
+}
+
+.dock-apps .app-icon.edit-mode {
+    animation: dockShake 0.3s ease-in-out infinite;
+}
+
+@keyframes dockShake {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+}
+
+.dock-remove-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    background: #ff4444;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
+
+.dock-remove-badge .material-symbols-rounded {
+    font-size: 14px;
+    color: #fff;
+}
+
+.dock-edit-hint {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin-top: 6px;
+}
+
+.dock-edit-hint-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1099;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 120px;
+}
+
+.dock-edit-hint-overlay.hidden {
+    display: none;
+}
+
+.dock-edit-hint-content {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.dock-edit-hint-content .material-symbols-rounded {
+    color: #4facfe;
+}
+
+.dock-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.dock-empty:hover {
+    transform: scale(1.05);
+}
+
+.dock-add-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+}
+
+.dock-add-icon .material-symbols-rounded {
+    font-size: 28px;
+    color: #fff;
+}
+
+.dock-add-text {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.dock-add-btn .icon-box {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.3)) !important;
+    border: 2px dashed rgba(79, 172, 254, 0.6) !important;
+    box-shadow: 0 2px 10px rgba(79, 172, 254, 0.2);
+    transition: all 0.2s;
+}
+
+.dock-add-btn:hover .icon-box {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.5), rgba(0, 242, 254, 0.5)) !important;
+    border-color: rgba(79, 172, 254, 0.8) !important;
+    transform: scale(1.05);
+}
+
+.dock-add-btn .icon-box .material-symbols-rounded {
+    color: #4facfe;
+    font-size: 24px;
+}
+
+.dock-picker {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    z-index: 2000;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.dock-picker.hidden {
+    display: none;
+}
+
+.dock-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.dock-picker-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.dock-picker-close {
+    background: rgba(79, 172, 254, 0.3);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #4facfe;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dock-picker-close:hover {
+    background: rgba(79, 172, 254, 0.5);
+}
+
+.dock-picker-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.dock-picker-hint .material-symbols-rounded {
+    font-size: 16px;
+    color: #4facfe;
+}
+
+.dock-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.dock-picker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.dock-picker-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.dock-picker-item.selected {
+    background: rgba(79, 172, 254, 0.25);
+    border: 2px solid #4facfe;
+}
+
+.dock-picker-item .icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    margin-bottom: 0;
+}
+
+.dock-picker-item .app-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+}
+
+.selected-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    background: #4facfe;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.selected-badge .material-symbols-rounded {
+    font-size: 12px;
+    color: #fff;
+}
