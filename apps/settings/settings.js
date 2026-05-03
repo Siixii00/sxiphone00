@@ -3069,17 +3069,12 @@ function renderApis() {
         
         const type = typeSelect.value;
         
-        if (type === 'openrouter') {
-            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">OpenRouter API - 自動設定 URL 與必要 Headers，只需輸入 API Key</span>';
-            urlInput.value = 'https://openrouter.ai/api/v1';
-            urlInput.placeholder = '自動填入';
-            urlInput.readOnly = true;
-            urlInput.style.opacity = '0.6';
-        } else {
-            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">OpenAI 相容格式：輸入 Base URL，系統會自動加上 /chat/completions</span>';
+        if (type === 'openai') {
+            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">OpenAI 相容格式：輸入 Base URL（如 https://openrouter.ai/api/v1），系統會自動加上 /chat/completions</span>';
             urlInput.placeholder = 'https://api.openai.com/v1';
-            urlInput.readOnly = false;
-            urlInput.style.opacity = '1';
+        } else if (type === 'custom') {
+            hintEl.innerHTML = '<span style="font-size:12px;color:#aaa;">自訂端點：輸入完整的 API URL，系統不會自動添加任何路徑</span>';
+            urlInput.placeholder = 'https://your-api.com/your-endpoint';
         }
     };
 
@@ -3093,26 +3088,22 @@ function renderApis() {
         let url = urlInput.value.trim().replace(/\/$/, '');
         const key = keyInput.value.trim();
 
-        // OpenRouter 自動填入 URL
-        if (type === 'openrouter') {
-            url = 'https://openrouter.ai/api/v1';
-            urlInput.value = url;
-        }
-
         if (!url) return alert("請輸入 API 網址");
 
         if (action === 'fetchModels' || action === 'test') {
             try {
+                // OpenAI 相容格式的處理
                 const headers = { 'Content-Type': 'application/json' };
                 if (key) headers['Authorization'] = `Bearer ${key}`;
                 
-                // OpenRouter 專用 Headers
-                if (type === 'openrouter' || url.includes('openrouter.ai')) {
+                // OpenRouter 需要額外的 headers
+                if (url && url.includes('openrouter.ai')) {
                     headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
                     headers['X-Title'] = 'SX iPhone App';
                 }
                 
-                const modelsUrl = `${url}/models`;
+                // 自訂端點可能不支援 /models
+                let modelsUrl = type === 'custom' ? url : `${url}/models`;
                 
                 console.log('[API] 請求:', modelsUrl);
                 const res = await fetch(modelsUrl, { method: 'GET', headers });
@@ -3135,16 +3126,16 @@ function renderApis() {
                 } else alert("✅ 連接測試成功！");
             } catch (err) {
                 console.error('[API] 錯誤:', err);
-                alert(`❌ 錯誤: ${err.message}\n\n可能原因：\n1. CORS 被攔截\n2. API 不支援 /models\n3. 網址格式錯誤\n4. API Key 不正確`);
+                alert(`❌ 錯誤: ${err.message}\n\n可能原因:\n1. CORS 被攔截\n2. API 不支援 /models\n3. 網址格式錯誤\n4. API Key 不正確`);
             }
         }
 
         if (action === 'save') {
-            if (!modelSelect.value) return alert("請選擇模型");
+            if (!modelSelect.value && type !== 'custom') return alert("請選擇模型");
             try {
                 let host;
-                if (type === 'openrouter') {
-                    host = 'OpenRouter';
+                if (type === 'gemini') {
+                    host = 'Gemini API';
                 } else {
                     host = new URL(url).hostname;
                 }
@@ -3152,8 +3143,8 @@ function renderApis() {
                     name: host, 
                     url, 
                     key, 
-                    model: modelSelect.value,
-                    type: type
+                    model: modelSelect.value || 'custom',
+                    type: type  // 新增 type 欄位標記 API 類型
                 });
                 await saveAll();
                 localStorage.removeItem('sx_new_api_url');

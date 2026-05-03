@@ -168,8 +168,7 @@ function buildApiHeaders(config) {
     const headers = { 'Content-Type': 'application/json' };
     if (config.key) headers['Authorization'] = `Bearer ${config.key}`;
     
-    // OpenRouter 專用 Headers（必須）
-    if (config.type === 'openrouter' || (config.url && config.url.includes('openrouter.ai'))) {
+    if (config.url && config.url.includes('openrouter.ai')) {
         headers['HTTP-Referer'] = window.location.origin || 'https://localhost';
         headers['X-Title'] = 'SX iPhone App';
     }
@@ -244,9 +243,34 @@ function getActiveConfig() {
 function getWorldbookData() {
     const worldbookData = {};
     
-    const allCategories = ['cot', 'style', 'global', 'keywords', 'backend', 'theater', 'conditional', 'core'];
+    // 讀取新的分類文件
+    const newCategories = [
+        { key: 'sx_worldbook_theater', cat: 'theater' },
+        { key: 'sx_worldbook_conditional', cat: 'conditional' },
+        { key: 'sx_worldbook_core', cat: 'core' }
+    ];
     
-    allCategories.forEach(cat => {
+    // 同時保留舊的兼容性
+    const legacyCategories = ['cot', 'style', 'global', 'keywords', 'backend'];
+    
+    // 讀取新架構
+    newCategories.forEach(({ key, cat }) => {
+        const data = localStorage.getItem(key);
+        if (data) {
+            try {
+                worldbookData[cat] = JSON.parse(data);
+                console.log(`[Worldbook] 載入新架構: ${cat}`);
+            } catch (e) {
+                console.warn(`解析世界書 ${cat} 失敗:`, e);
+                worldbookData[cat] = {};
+            }
+        } else {
+            worldbookData[cat] = {};
+        }
+    });
+    
+    // 讀取舊架構（向後兼容）
+    legacyCategories.forEach(cat => {
         const key = `sx_worldbook_${cat}`;
         const data = localStorage.getItem(key);
         if (data) {
@@ -261,6 +285,7 @@ function getWorldbookData() {
         }
     });
     
+    // 讀取禁止詞
     const forbiddenData = localStorage.getItem('sx_detected_forbidden');
     if (forbiddenData) {
         try {
@@ -864,10 +889,7 @@ function renderWorldbookOptions() {
         { key: 'cot', label: '思維鏈', icon: 'brain', defaultChecked: false },
         { key: 'style', label: '文風設定', icon: 'brush', defaultChecked: false },
         { key: 'keywords', label: '關鍵字', icon: 'tags', defaultChecked: false },
-        { key: 'backend', label: '後端設定', icon: 'cog', defaultChecked: false },
-        { key: 'theater', label: '劇場設定', icon: 'theater-masks', defaultChecked: false },
-        { key: 'conditional', label: '條件設定', icon: 'code-branch', defaultChecked: false },
-        { key: 'core', label: '核心設定', icon: 'cube', defaultChecked: false }
+        { key: 'backend', label: '後端設定', icon: 'cog', defaultChecked: false }
     ];
     
     const mountMap = new Map(mounts.map(m => [m.name, m]));
@@ -3134,10 +3156,6 @@ function initSideDrawer() {
             if (charAvatarPreview && charConfig.avatar) charAvatarPreview.src = charConfig.avatar;
             
             console.log('[SideDrawer] 已更新側邊欄角色設定:', charConfig.name, charConfig.personality?.slice(0, 20));
-            
-            if (typeof renderWorldbookOptions === 'function') {
-                renderWorldbookOptions();
-            }
             
             drawer.classList.add('open'); 
         };
@@ -7228,11 +7246,12 @@ async function callAIAPI(payload) {
             return data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 回應格式異常）";
         }
         
-        // 根據 API 類型決定 URL
+        // 自訂端點格式（完整 URL，不添加任何路徑）
         let targetUrl;
-        if (apiType === 'openrouter') {
-            targetUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        if (apiType === 'custom') {
+            targetUrl = config.url;
         } else {
+            // OpenAI 相容格式（OpenRouter、DeepSeek、Claude 等）
             targetUrl = config.url.endsWith('/chat/completions') 
                 ? config.url 
                 : config.url.replace(/\/$/, '') + '/chat/completions';
@@ -7253,13 +7272,7 @@ async function callAIAPI(payload) {
         });
         
         const data = await response.json();
-        if (data.error) {
-            const errMsg = data.error.message || JSON.stringify(data.error);
-            const errCode = data.error.code || '';
-            const errType = data.error.type || '';
-            console.error('[Chat] API 錯誤詳情:', data.error);
-            throw new Error(`${errMsg}${errCode ? ` (code: ${errCode})` : ''}${errType ? ` [${errType}]` : ''}`);
-        }
+        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
         return data.choices?.[0]?.message?.content || "（API 回應格式異常）";
     } catch (err) { 
         console.error('[Chat] API 請求失敗:', err);
