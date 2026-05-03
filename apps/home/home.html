@@ -12,10 +12,93 @@
   <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .arcade-intro {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: linear-gradient(135deg, #0a0a12 0%, #1a0a2e 50%, #0a0a12 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: introFadeIn 0.3s ease;
+    }
+    .arcade-intro.hidden { display: none; }
+    .arcade-intro.fade-out { animation: introFadeOut 0.5s ease forwards; }
+    .neon-frame {
+      position: relative;
+      padding: 20px 40px;
+      border: 4px solid transparent;
+      border-image: linear-gradient(135deg, #ff4757, #ff6b9d, #00d4aa) 1;
+      animation: frameGlow 0.4s ease forwards;
+      opacity: 0;
+    }
+    .neon-text {
+      font-size: 32px;
+      font-weight: 400;
+      font-family: 'Press Start 2P', cursive;
+      color: #ff4757;
+      text-shadow: 0 0 5px #ff4757, 0 0 10px #ff4757, 0 0 20px #ff4757, 0 0 40px #ff6b9d;
+      letter-spacing: 4px;
+    }
+    .neon-text span { display: inline-block; opacity: 0; animation: charGlow 0.3s ease forwards; }
+    .neon-text span:nth-child(1) { animation-delay: 0.3s; }
+    .neon-text span:nth-child(2) { animation-delay: 0.5s; }
+    .neon-text span:nth-child(3) { animation-delay: 0.7s; }
+    .neon-text.flicker { animation: neonFlicker 0.3s ease 1s; }
+    .neon-decoration { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; }
+    .neon-line { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, #ff6b9d, transparent); animation: lineScan 2s ease infinite; }
+    .neon-line:nth-child(1) { top: 20%; animation-delay: 0s; }
+    .neon-line:nth-child(2) { top: 50%; animation-delay: 0.5s; }
+    .neon-line:nth-child(3) { top: 80%; animation-delay: 1s; }
+    .skip-btn {
+      position: absolute; bottom: 40px; right: 40px;
+      padding: 12px 20px; background: rgba(255, 255, 255, 0.15);
+      border: 2px solid #2a2a4a; border-radius: 20px;
+      color: #f0f0f0; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease; z-index: 10001;
+      font-family: 'Press Start 2P', cursive; font-size: 10px;
+    }
+    .skip-btn:hover { background: rgba(255, 255, 255, 0.25); color: #ff4757; border-color: #ff4757; }
+    @keyframes introFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes introFadeOut { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes frameGlow { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes charGlow { 0% { opacity: 0; filter: brightness(0.5); text-shadow: none; } 50% { opacity: 1; filter: brightness(1.5); } 100% { opacity: 1; filter: brightness(1); text-shadow: 0 0 5px #ff4757, 0 0 10px #ff4757, 0 0 20px #ff4757; } }
+    @keyframes neonFlicker { 0%, 100% { opacity: 1; } 10% { opacity: 0.8; } 20% { opacity: 1; } 30% { opacity: 0.6; } 40% { opacity: 1; } 50% { opacity: 0.9; } 60% { opacity: 1; } 70% { opacity: 0.7; } 80% { opacity: 1; } 90% { opacity: 0.85; } }
+    @keyframes lineScan { 0% { transform: translateX(-100%); opacity: 0; } 50% { opacity: 0.5; } 100% { transform: translateX(100%); opacity: 0; } }
+  </style>
 </head>
 <body>
+  <div class="arcade-intro" id="arcade-intro">
+    <div class="neon-frame">
+      <div class="neon-text" id="neon-text">
+        <span>宅</span><span>家</span>
+      </div>
+      <div class="neon-decoration">
+        <div class="neon-line"></div>
+        <div class="neon-line"></div>
+        <div class="neon-line"></div>
+      </div>
+    </div>
+    <button class="skip-btn" onclick="skipIntro()">跳過</button>
+  </div>
+  <script>
+    function skipIntro() {
+      const intro = document.getElementById('arcade-intro');
+      if (intro) {
+        intro.classList.add('fade-out');
+        setTimeout(() => intro.classList.add('hidden'), 500);
+      }
+    }
+    setTimeout(() => {
+      const text = document.getElementById('neon-text');
+      if (text) text.classList.add('flicker');
+    }, 1000);
+    setTimeout(skipIntro, 2500);
+  </script>
   <div class="home-app">
     <div id="world-nav-view" class="world-nav-view">
       <div class="top-bar">
