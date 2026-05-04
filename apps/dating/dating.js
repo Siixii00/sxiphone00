@@ -80,103 +80,199 @@ function renderSprite(sprite, canvas, size = 96) {
     
     const scale = size / 96;
     const skin = sprite.skin || '#fde8c8';
+    const skinShadow = adjustColor(skin, -20);
+    const skinHighlight = adjustColor(skin, 15);
     const hair = sprite.haircolor || '#2d1b00';
+    const hairShadow = adjustColor(hair, -15);
     const outfit = sprite.outfitcolor || '#ff6b9d';
+    const outfitShadow = adjustColor(outfit, -25);
+    const outfitHighlight = adjustColor(outfit, 20);
     
     ctx.save();
     ctx.scale(scale, scale);
     
-    // Body
-    ctx.fillStyle = skin;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(48, 92, 20, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
     if (sprite.body === 'slim') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(36, 32, 24, 44);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(36, 32, 4, 44);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(56, 32, 4, 44);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(34, 76, 10, 16);
         ctx.fillRect(52, 76, 10, 16);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(42, 76, 2, 16);
+        ctx.fillRect(60, 76, 2, 16);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(28, 34, 8, 28);
         ctx.fillRect(60, 34, 8, 28);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(34, 34, 2, 28);
+        ctx.fillRect(66, 34, 2, 28);
     } else if (sprite.body === 'normal') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(32, 32, 32, 44);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(32, 32, 4, 44);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(60, 32, 4, 44);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(30, 76, 14, 16);
         ctx.fillRect(52, 76, 14, 16);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(42, 76, 2, 16);
+        ctx.fillRect(64, 76, 2, 16);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(22, 34, 10, 28);
         ctx.fillRect(64, 34, 10, 28);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(30, 34, 2, 28);
+        ctx.fillRect(72, 34, 2, 28);
     } else {
+        ctx.fillStyle = outfit;
         ctx.fillRect(28, 32, 40, 44);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(28, 32, 4, 44);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(64, 32, 4, 44);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(28, 76, 16, 16);
         ctx.fillRect(52, 76, 16, 16);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(42, 76, 2, 16);
+        ctx.fillRect(66, 76, 2, 16);
+        
+        ctx.fillStyle = skin;
         ctx.fillRect(18, 34, 12, 28);
         ctx.fillRect(66, 34, 12, 28);
+        ctx.fillStyle = skinShadow;
+        ctx.fillRect(28, 34, 2, 28);
+        ctx.fillRect(76, 34, 2, 28);
     }
     
-    // Head
     ctx.fillStyle = skin;
     ctx.fillRect(32, 8, 32, 28);
+    ctx.fillStyle = skinHighlight;
+    ctx.fillRect(32, 8, 4, 28);
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(60, 8, 4, 28);
+    
     ctx.fillStyle = '#1a0a00';
     ctx.fillRect(36, 20, 4, 4);
     ctx.fillRect(56, 20, 4, 4);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(36, 20, 1, 1);
+    ctx.fillRect(56, 20, 1, 1);
+    
     ctx.fillStyle = '#ff9999';
     ctx.fillRect(40, 26, 16, 3);
     
-    // Outfit
-    ctx.fillStyle = outfit;
     if (sprite.outfit === 'dress') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(32, 44, 32, 36);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(32, 44, 4, 36);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(60, 44, 4, 36);
         ctx.fillRect(26, 44, 8, 24);
         ctx.fillRect(62, 44, 8, 24);
     } else if (sprite.outfit === 'uniform') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(32, 44, 32, 28);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(32, 44, 4, 28);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(60, 44, 4, 28);
         ctx.fillStyle = '#333';
         ctx.fillRect(32, 72, 32, 20);
         ctx.fillStyle = '#fff';
         ctx.fillRect(44, 44, 8, 28);
     } else if (sprite.outfit === 'kimono') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(30, 42, 36, 36);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(30, 42, 4, 36);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(62, 42, 4, 36);
         ctx.fillStyle = adjustColor(outfit, -40);
         ctx.fillRect(30, 42, 6, 36);
         ctx.fillRect(60, 42, 6, 36);
     } else if (sprite.outfit === 'sporty') {
+        ctx.fillStyle = outfit;
         ctx.fillRect(32, 44, 32, 20);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(32, 44, 4, 20);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(60, 44, 4, 20);
         ctx.fillStyle = adjustColor(outfit, 30);
         ctx.fillRect(32, 64, 32, 28);
     } else {
+        ctx.fillStyle = outfit;
         ctx.fillRect(32, 44, 32, 28);
+        ctx.fillStyle = outfitHighlight;
+        ctx.fillRect(32, 44, 4, 28);
+        ctx.fillStyle = outfitShadow;
+        ctx.fillRect(60, 44, 4, 28);
         ctx.fillStyle = adjustColor(outfit, 20);
         ctx.fillRect(32, 72, 32, 20);
     }
     
-    // Hair
-    ctx.fillStyle = hair;
     if (sprite.hair === 'short') {
+        ctx.fillStyle = hair;
         ctx.fillRect(32, 4, 32, 16);
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(60, 4, 4, 16);
         ctx.fillRect(28, 8, 8, 16);
         ctx.fillRect(60, 8, 8, 16);
     } else if (sprite.hair === 'long') {
+        ctx.fillStyle = hair;
         ctx.fillRect(32, 4, 32, 12);
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(60, 4, 4, 12);
         ctx.fillRect(24, 8, 12, 52);
         ctx.fillRect(60, 8, 12, 52);
         ctx.fillRect(28, 4, 4, 8);
     } else if (sprite.hair === 'twin') {
+        ctx.fillStyle = hair;
         ctx.fillRect(32, 4, 32, 12);
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(60, 4, 4, 12);
         ctx.fillRect(18, 8, 14, 44);
         ctx.fillRect(64, 8, 14, 44);
         ctx.fillRect(18, 48, 14, 8);
         ctx.fillRect(64, 48, 14, 8);
     } else if (sprite.hair === 'messy') {
         for (let i = 0; i < 6; i++) {
+            ctx.fillStyle = hair;
             ctx.fillRect(28 + i * 7, 2 + Math.floor(Math.random() * 4), 8, 14 + (i % 3) * 4);
         }
+        ctx.fillStyle = hairShadow;
         ctx.fillRect(24, 8, 12, 20);
         ctx.fillRect(60, 8, 12, 20);
     } else {
+        ctx.fillStyle = hair;
         ctx.fillRect(36, 0, 24, 12);
         ctx.beginPath();
         ctx.arc(48, 8, 12, 0, Math.PI * 2);
         ctx.fillStyle = hair;
         ctx.fill();
         ctx.fillRect(40, 0, 16, 8);
+        ctx.fillStyle = hairShadow;
+        ctx.fillRect(56, 0, 4, 12);
     }
     
-    // Eye color detail
     ctx.fillStyle = '#5588ff';
     ctx.fillRect(38, 20, 2, 2);
     ctx.fillRect(58, 20, 2, 2);
@@ -1878,9 +1974,19 @@ function drawPixelCharacter(ctx, charPos, sprite, label) {
     const spriteCanvas = createSpriteCanvas(32);
     renderSprite(sprite, spriteCanvas, 32);
     
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
     ctx.beginPath();
     ctx.ellipse(charPos.x, charPos.y + 5, 18, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+    ctx.beginPath();
+    ctx.ellipse(charPos.x + 1, charPos.y + 7, 16, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+    ctx.beginPath();
+    ctx.ellipse(charPos.x + 2, charPos.y + 9, 14, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.drawImage(spriteCanvas, charPos.x - 16, charPos.y - 32, 32, 40);
@@ -1895,33 +2001,78 @@ function drawPixelCharacter(ctx, charPos, sprite, label) {
 }
 
 function drawFallbackCharacter(ctx, char, color, label) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
     ctx.beginPath();
     ctx.ellipse(char.x, char.y + 5, 18, 8, 0, 0, Math.PI * 2);
     ctx.fill();
     
-    ctx.fillStyle = color;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.beginPath();
-    ctx.arc(char.x, char.y, 16, 0, Math.PI * 2);
+    ctx.ellipse(char.x + 1, char.y + 7, 16, 6, 0, 0, Math.PI * 2);
     ctx.fill();
     
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
     ctx.beginPath();
-    ctx.arc(char.x - 5, char.y - 3, 3, 0, Math.PI * 2);
-    ctx.arc(char.x + 5, char.y - 3, 3, 0, Math.PI * 2);
+    ctx.ellipse(char.x + 2, char.y + 9, 14, 5, 0, 0, Math.PI * 2);
     ctx.fill();
+    
+    const bodyColor = color;
+    const bodyHighlight = adjustColor(color, 25);
+    const bodyShadow = adjustColor(color, -25);
+    const depthColor = adjustColor(color, -50);
+    
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(char.x - 12, char.y - 24, 24, 28);
+    
+    ctx.fillStyle = bodyHighlight;
+    ctx.fillRect(char.x - 12, char.y - 24, 4, 28);
+    
+    ctx.fillStyle = bodyShadow;
+    ctx.fillRect(char.x + 8, char.y - 24, 4, 28);
+    
+    ctx.fillStyle = depthColor;
+    ctx.fillRect(char.x - 12, char.y + 4, 24, 4);
+    ctx.fillRect(char.x - 12, char.y + 4, 2, 4);
+    
+    const skinColor = '#fde8c8';
+    const skinHighlight = adjustColor(skinColor, 15);
+    const skinShadow = adjustColor(skinColor, -20);
+    
+    ctx.fillStyle = skinColor;
+    ctx.fillRect(char.x - 10, char.y - 32, 20, 14);
+    
+    ctx.fillStyle = skinHighlight;
+    ctx.fillRect(char.x - 10, char.y - 32, 3, 14);
+    
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(char.x + 7, char.y - 32, 3, 14);
+    
+    ctx.fillStyle = '#1a0a00';
+    ctx.fillRect(char.x - 6, char.y - 28, 4, 4);
+    ctx.fillRect(char.x + 2, char.y - 28, 4, 4);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(char.x - 6, char.y - 28, 1, 1);
+    ctx.fillRect(char.x + 2, char.y - 28, 1, 1);
+    
+    ctx.fillStyle = '#ff9999';
+    ctx.fillRect(char.x - 4, char.y - 22, 8, 2);
+    
+    ctx.fillStyle = skinColor;
+    ctx.fillRect(char.x - 8, char.y + 4, 6, 8);
+    ctx.fillRect(char.x + 2, char.y + 4, 6, 8);
+    
+    ctx.fillStyle = skinShadow;
+    ctx.fillRect(char.x - 4, char.y + 4, 2, 8);
+    ctx.fillRect(char.x + 6, char.y + 4, 2, 8);
     
     ctx.fillStyle = 'white';
     ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.lineWidth = 3;
-    ctx.strokeText(label, char.x, char.y - 25);
-    ctx.fillText(label, char.x, char.y - 25);
+    ctx.strokeText(label, char.x, char.y - 38);
+    ctx.fillText(label, char.x, char.y - 38);
 }
 
 // ==================== 角色移動 ====================

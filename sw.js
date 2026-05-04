@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sxiphone-v15';
+const CACHE_NAME = 'sxiphone-v16';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,17 @@ const STATIC_ASSETS = [
   '/main.js',
   '/dock.js',
   '/dock.css',
+  '/apps/widget/widget.js',
+  '/apps/widget/widget.css',
+  '/apps/widget/widget.html',
+  '/apps/widget/ios-styles.css',
+  '/apps/widget/core/state.js',
+  '/apps/widget/core/storage.js',
+  '/apps/widget/edit-mode.js',
+  '/apps/widget/services/weather.js',
+  '/apps/widget/services/calendar.js',
+  '/apps/widget/components/color-picker.js',
+  '/apps/widget/utils/dragdrop.js',
   '/apps/screenshots/icon-192x192.png',
   '/apps/screenshots/apple-touch-icon.png',
   '/apps/screenshots/icon-48x48.png',
@@ -18,7 +29,8 @@ const STATIC_ASSETS = [
 const CACHE_STRATEGIES = {
   networkFirst: ['/api/', '/chat'],
   cacheFirst: ['https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
-  staleWhileRevalidate: ['/style.css', '/main.js', '/apps/scripts/']
+  staleWhileRevalidate: ['/style.css', '/main.js', '/apps/scripts/'],
+  weatherAPI: ['api.open-meteo.com', 'nominatim.openstreetmap.org']
 };
 
 const FALLBACK_HTML = `<!DOCTYPE html>
@@ -112,6 +124,10 @@ function getCacheStrategy(url) {
   return 'networkFirst';
 }
 
+function isWeatherAPI(url) {
+  return CACHE_STRATEGIES.weatherAPI.some(api => url.hostname.includes(api));
+}
+
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
@@ -126,6 +142,24 @@ async function staleWhileRevalidate(request) {
   return cachedResponse || fetchPromise;
 }
 
+async function handleWeatherAPI(request) {
+  const cache = await caches.open(CACHE_NAME);
+  
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    throw error;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -135,6 +169,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.origin !== location.origin) {
+    if (isWeatherAPI(url)) {
+      event.respondWith(handleWeatherAPI(request));
+      return;
+    }
+    
     const strategy = getCacheStrategy(url);
     if (strategy === 'cacheFirst') {
       event.respondWith(

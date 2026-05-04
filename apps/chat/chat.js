@@ -661,7 +661,7 @@ window.addEventListener('message', (event) => {
         console.log('[Chat] 收到 settingsUpdated 事件');
         console.log('[Chat] api_configs:', localStorage.getItem('api_configs'));
         console.log('[Chat] sx_active_api:', localStorage.getItem('sx_active_api'));
-    }
+    }2ee
     
     if (data.type === 'OPEN_SUB_PANEL' && data.panelId) {
         const morePanels = {

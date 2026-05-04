@@ -1,3 +1,5 @@
+@import url('ios-styles.css');
+
 :root {
   --primary: #007AFF;
   --primary-light: rgba(0,122,255,0.15);
@@ -17,6 +19,9 @@
   --surface-3: #3a3a3c;
   --glass: rgba(255,255,255,0.08);
   --glass-border: rgba(255,255,255,0.14);
+  --glass-enhanced: rgba(255,255,255,0.18);
+  --glass-border-enhanced: rgba(255,255,255,0.35);
+  --glass-blur-enhanced: blur(20px) saturate(150%);
   --text: #ffffff;
   --text-secondary: rgba(255,255,255,0.55);
   --text-tertiary: rgba(255,255,255,0.3);
@@ -25,12 +30,14 @@
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
   --shadow: 0 4px 16px rgba(0,0,0,0.35);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-glass: 0 8px 32px rgba(0,0,0,0.12);
   --radius: 16px;
   --radius-lg: 24px;
   --radius-xl: 36px;
   --radius-sm: 10px;
 
   --font: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ios: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
@@ -97,7 +104,7 @@ html, body {
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  margin-bottom: 10px;
+  margin: 25px 0 10px 0;
 }
 
 .desktop-preview-header {
@@ -127,6 +134,14 @@ html, body {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  width: 100%;
+  cursor: grab;
+  touch-action: pan-x;
+  user-select: none;
+}
+
+.desktop-pages-scroll:active {
+  cursor: grabbing;
 }
 
 .desktop-pages-scroll::-webkit-scrollbar {
@@ -136,19 +151,20 @@ html, body {
 .desktop-pages-container {
   display: flex;
   gap: 8px;
-  min-width: max-content;
+  width: max-content;
+  min-width: 100%;
 }
 
 .desktop-page {
-  flex-shrink: 0;
-  width: 100%;
-  min-width: 200px;
-  max-width: 280px;
+  flex: 0 0 auto;
+  width: calc(100% - 16px);
+  min-width: 180px;
+  max-width: 260px;
   aspect-ratio: 9/16;
   background: rgba(0,0,0,0.3);
   border-radius: var(--radius);
   padding: 8px;
-  scroll-snap-align: start;
+  scroll-snap-align: center;
   position: relative;
   overflow: hidden;
 }
@@ -525,7 +541,7 @@ html, body {
 
 .preview-phone {
   width: 100%; max-width: 390px;
-  min-height: 820px;
+  min-height: 620px;
   border-radius: 44px;
   overflow: hidden;
   border: 6px solid #222;
@@ -597,10 +613,10 @@ html, body {
 
 /* ==================== WIDGET CARD BASE ==================== */
 .widget-card {
-  background: var(--glass);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-enhanced);
+  backdrop-filter: var(--glass-blur-enhanced);
+  -webkit-backdrop-filter: var(--glass-blur-enhanced);
+  border: 1px solid var(--glass-border-enhanced);
   border-radius: var(--radius);
   display: flex; flex-direction: column;
   justify-content: center; align-items: center;
@@ -613,6 +629,34 @@ html, body {
   color: var(--text);
   padding: 8px 6px;
   min-height: 60px;
+  box-shadow: var(--shadow-glass);
+}
+
+.widget-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,0.5), 
+    transparent
+  );
+  z-index: 2;
+}
+
+.widget-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    rgba(255,255,255,0.1) 0%, 
+    transparent 50%
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 
 .widget-card:active { transform: scale(0.97); }

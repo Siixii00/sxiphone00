@@ -1526,3 +1526,166 @@ body {
   padding-top: 6px;
   border-top: 1px solid var(--border);
 }
+
+.yt-ai-gen-video-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  border: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.yt-ai-gen-video-btn i {
+  font-size: 16px;
+}
+
+.yt-modal-divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.yt-modal-divider::before,
+.yt-modal-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.yt-modal-divider span {
+  padding: 0 12px;
+}
+
+.yt-ai-video-gen-modal-card {
+  max-width: 400px;
+}
+
+.yt-ai-video-gen-status {
+  padding: 20px;
+}
+
+.yt-ai-video-gen-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.yt-ai-video-gen-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.yt-ai-video-gen-message {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.yt-ai-video-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.yt-ai-video-advanced-toggle {
+  margin: 12px 0;
+}
+
+.yt-ai-video-advanced-toggle .yt-ghost-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.yt-ai-video-advanced-options {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.yt-ai-video-advanced-options .yt-modal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.yt-ai-video-advanced-options .yt-modal-row:last-child {
+  margin-bottom: 0;
+}
+
+.yt-ai-video-advanced-options .yt-modal-label {
+  min-width: 70px;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+.yt-ai-video-advanced-options input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+
+.yt-ai-video-advanced-options input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.yt-ai-video-range-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.yt-ai-video-gen-preview {
+  margin-top: 16px;
+}
+
+.yt-ai-video-gen-preview video {
+  width: 100%;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.yt-ai-video-gen-preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.yt-ai-video-gen-preview-actions .yt-ghost-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}

@@ -476,580 +476,1642 @@ const FURNITURE_SHOP_CATALOG = [
   { id: 'wall_aquarium', name: '壁掛魚缸', category: 'wall_decor', price: 3500, width: 2, height: 2, description: '魚游動畫', rarity: 'epic', interactive: true }
 ];
 
+// ============================================
+// 進階家具繪製函數 - 32x32 高解析度像素藝術
+// ============================================
+
 function generateBedPixels(woodColor, sheetColor) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor(woodColor, -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 4 * p);
+    ctx.fillStyle = adjustColor(woodColor, -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 4 * p);
     
-    ctx.fillStyle = sheetColor;
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 10 * p);
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#5D3A1A', p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 4 * p);
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
     
-    ctx.fillStyle = adjustColor(sheetColor, -20);
-    ctx.fillRect(2 * p, 10 * p, 12 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#8B5A2B', 20);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
     
-    ctx.fillStyle = adjustColor(sheetColor, 20);
-    ctx.fillRect(3 * p, 3 * p, 10 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#8B5A2B', -20);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(0, 0, 16 * p, 2 * p);
-    ctx.fillRect(0, 14 * p, 16 * p, 2 * p);
-    ctx.fillRect(0, 0, 2 * p, 16 * p);
-    ctx.fillRect(14 * p, 0, 2 * p, 16 * p);
+    drawFabricTexture(ctx, 4 * p, 4 * p, 24 * p, 20 * p, sheetColor, p);
+    
+    ctx.fillStyle = adjustColor(sheetColor, -10);
+    ctx.fillRect(4 * p, 14 * p, 24 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor(sheetColor, -25);
+    for (let i = 0; i < 5; i++) {
+      const offsetX = (Math.floor(Math.random() * 3) - 1) * p;
+      ctx.fillRect((6 + i * 4) * p + offsetX, (16 + i % 2) * p, 2 * p, 6 * p);
+    }
+    
+    drawPillow(ctx, 6 * p, 6 * p, 10 * p, 6 * p, '#FFFEF0', p);
+    drawPillow(ctx, 18 * p, 6 * p, 10 * p, 6 * p, '#FFFEF0', p);
+    
+    ctx.fillStyle = '#4A2F1A';
+    ctx.fillRect(0, 0, 32 * p, 4 * p);
+    ctx.fillStyle = adjustColor(woodColor, 20);
+    ctx.fillRect(2 * p, p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#4A2F1A', 15);
+    ctx.fillRect(0, 0, 32 * p, p);
+    ctx.fillRect(0, 0, p, 4 * p);
+    
+    ctx.fillStyle = adjustColor('#4A2F1A', -15);
+    ctx.fillRect(31 * p, 0, p, 4 * p);
   };
 }
 
 function generateDeskPixels(color) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(0, 3 * p, 16 * p, 3 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(p, 3 * p, 14 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#704820', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#704820', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
+    
+    drawWoodGrain(ctx, 0, 6 * p, 32 * p, 6 * p, '#A07840', p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 25);
+    ctx.fillRect(0, 6 * p, 32 * p, p);
+    ctx.fillRect(0, 6 * p, p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -20);
+    ctx.fillRect(31 * p, 6 * p, p, 6 * p);
+    ctx.fillRect(0, 11 * p, 32 * p, p);
     
     ctx.fillStyle = '#704820';
-    ctx.fillRect(p, 6 * p, 3 * p, 10 * p);
-    ctx.fillRect(12 * p, 6 * p, 3 * p, 10 * p);
+    ctx.fillRect(0, 6 * p, 32 * p, p);
+    ctx.fillRect(0, 11 * p, 32 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(2 * p, 6 * p, 2 * p, 9 * p);
-    ctx.fillRect(12 * p, 6 * p, 2 * p, 9 * p);
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(4 * p, 12 * p, 24 * p, 18 * p);
     
-    ctx.fillStyle = '#505050';
-    ctx.fillRect(3 * p, 0, 10 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#8B5A2B', 15);
+    ctx.fillRect(4 * p, 12 * p, 2 * p, 18 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(4 * p, p, 8 * p, p);
+    ctx.fillStyle = adjustColor('#8B5A2B', -15);
+    ctx.fillRect(26 * p, 12 * p, 2 * p, 18 * p);
+    
+    ctx.fillStyle = '#5D3A1A';
+    ctx.fillRect(4 * p, 17 * p, 24 * p, p);
+    ctx.fillRect(4 * p, 23 * p, 24 * p, p);
+    
+    ctx.fillStyle = '#C0C0C0';
+    drawMetallicShine(ctx, 14 * p, 13 * p, 4 * p, 3 * p, '#A0A0A0');
+    drawMetallicShine(ctx, 14 * p, 19 * p, 4 * p, 3 * p, '#A0A0A0');
+    drawMetallicShine(ctx, 14 * p, 25 * p, 4 * p, 3 * p, '#A0A0A0');
+    
+    ctx.fillStyle = '#704820';
+    ctx.fillRect(2 * p, 12 * p, 4 * p, 20 * p);
+    ctx.fillRect(26 * p, 12 * p, 4 * p, 20 * p);
+    
+    ctx.fillStyle = adjustColor('#704820', 15);
+    ctx.fillRect(2 * p, 12 * p, p, 20 * p);
+    ctx.fillRect(26 * p, 12 * p, p, 20 * p);
+    
+    ctx.fillStyle = adjustColor('#704820', -20);
+    ctx.fillRect(5 * p, 12 * p, p, 20 * p);
+    ctx.fillRect(29 * p, 12 * p, p, 20 * p);
   };
 }
 
 function generateChairPixels(color) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(4 * p, 0, 8 * p, 9 * p);
+    drawFeatheredShadow(ctx, 6 * p, 30 * p, 20 * p, 4 * p, p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(5 * p, p, 6 * p, 7 * p);
+    ctx.fillStyle = adjustColor('#704820', -50);
+    ctx.fillRect(8 * p, 32 * p, 3 * p, 3 * p);
+    ctx.fillRect(21 * p, 32 * p, 3 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#704820', -60);
+    ctx.fillRect(8 * p, 32 * p, p, 3 * p);
+    ctx.fillRect(21 * p, 32 * p, p, 3 * p);
+    
+    drawWoodGrain(ctx, 8 * p, 0, 16 * p, 18 * p, '#8B5A2B', p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 20);
+    ctx.fillRect(8 * p, 0, 2 * p, 18 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -20);
+    ctx.fillRect(22 * p, 0, 2 * p, 18 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(10 * p, 2 * p, 12 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 20);
+    ctx.fillRect(10 * p, 2 * p, 2 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -15);
+    ctx.fillRect(20 * p, 2 * p, 2 * p, 14 * p);
+    
+    ctx.fillStyle = '#5D3A1A';
+    ctx.fillRect(12 * p, 4 * p, 3 * p, 10 * p);
+    ctx.fillRect(17 * p, 4 * p, 3 * p, 10 * p);
+    
+    drawFabricTexture(ctx, 6 * p, 18 * p, 20 * p, 8 * p, '#6B8E23', p);
+    
+    ctx.fillStyle = adjustColor('#6B8E23', 20);
+    ctx.fillRect(6 * p, 18 * p, 2 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#6B8E23', -20);
+    ctx.fillRect(24 * p, 18 * p, 2 * p, 8 * p);
+    
+    ctx.fillStyle = '#556B2F';
+    ctx.fillRect(6 * p, 18 * p, 20 * p, p);
+    ctx.fillRect(6 * p, 25 * p, 20 * p, p);
     
     ctx.fillStyle = '#704820';
-    ctx.fillRect(2 * p, 9 * p, 12 * p, 3 * p);
+    ctx.fillRect(8 * p, 26 * p, 3 * p, 6 * p);
+    ctx.fillRect(21 * p, 26 * p, 3 * p, 6 * p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(3 * p, 9 * p, 10 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#704820', 15);
+    ctx.fillRect(8 * p, 26 * p, p, 6 * p);
+    ctx.fillRect(21 * p, 26 * p, p, 6 * p);
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(3 * p, 12 * p, 4 * p, 4 * p);
-    ctx.fillRect(9 * p, 12 * p, 4 * p, 4 * p);
-    
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(4 * p, 12 * p, 2 * p, 3 * p);
-    ctx.fillRect(10 * p, 12 * p, 2 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#704820', -15);
+    ctx.fillRect(10 * p, 26 * p, p, 6 * p);
+    ctx.fillRect(23 * p, 26 * p, p, 6 * p);
   };
 }
 
 function generateSofaPixels(color) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
+    
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
+    
+    ctx.fillStyle = adjustColor(color, -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor(color, -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor(color, -40);
+    ctx.fillRect(0, 20 * p, 32 * p, 12 * p);
     
     ctx.fillStyle = adjustColor(color, -30);
-    ctx.fillRect(0, 5 * p, 16 * p, 11 * p);
+    ctx.fillRect(0, 20 * p, 2 * p, 12 * p);
+    ctx.fillRect(30 * p, 20 * p, 2 * p, 12 * p);
     
-    ctx.fillStyle = color;
-    ctx.fillRect(p, 5 * p, 14 * p, 9 * p);
+    drawFabricTexture(ctx, 2 * p, 12 * p, 28 * p, 18 * p, color, p);
     
-    ctx.fillStyle = adjustColor(color, 20);
-    ctx.fillRect(2 * p, 6 * p, 12 * p, 7 * p);
+    ctx.fillStyle = adjustColor(color, 25);
+    ctx.fillRect(2 * p, 12 * p, 2 * p, 18 * p);
     
     ctx.fillStyle = adjustColor(color, -20);
-    ctx.fillRect(0, 0, 4 * p, 16 * p);
-    ctx.fillRect(12 * p, 0, 4 * p, 16 * p);
-    ctx.fillRect(4 * p, 0, 8 * p, 5 * p);
+    ctx.fillRect(28 * p, 12 * p, 2 * p, 18 * p);
+    
+    ctx.fillStyle = adjustColor(color, -30);
+    ctx.fillRect(10 * p, 12 * p, p, 18 * p);
+    ctx.fillRect(21 * p, 12 * p, p, 18 * p);
+    
+    ctx.fillStyle = adjustColor(color, -20);
+    ctx.fillRect(0, 0, 6 * p, 32 * p);
+    ctx.fillStyle = adjustColor(color, 30);
+    ctx.fillRect(p, p, 4 * p, 30 * p);
+    ctx.fillStyle = adjustColor(color, 20);
+    ctx.fillRect(p, p, p, 30 * p);
+    
+    ctx.fillStyle = adjustColor(color, -20);
+    ctx.fillRect(26 * p, 0, 6 * p, 32 * p);
+    ctx.fillStyle = adjustColor(color, 30);
+    ctx.fillRect(27 * p, p, 4 * p, 30 * p);
+    ctx.fillStyle = adjustColor(color, 15);
+    ctx.fillRect(27 * p, p, p, 30 * p);
+    
+    ctx.fillStyle = adjustColor(color, -15);
+    ctx.fillRect(6 * p, 0, 20 * p, 12 * p);
+    ctx.fillStyle = adjustColor(color, 20);
+    ctx.fillRect(8 * p, 2 * p, 16 * p, 10 * p);
     
     ctx.fillStyle = adjustColor(color, 30);
-    ctx.fillRect(p, p, 2 * p, 14 * p);
-    ctx.fillRect(13 * p, p, 2 * p, 14 * p);
-    ctx.fillRect(5 * p, p, 6 * p, 3 * p);
+    ctx.fillRect(8 * p, 2 * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor(color, -25);
+    ctx.fillRect(12 * p, 4 * p, p, 8 * p);
+    ctx.fillRect(19 * p, 4 * p, p, 8 * p);
+    
+    drawPillow(ctx, 8 * p, 14 * p, 6 * p, 8 * p, adjustColor(color, 40), p);
+    drawPillow(ctx, 18 * p, 14 * p, 6 * p, 8 * p, adjustColor(color, 50), p);
     
     ctx.fillStyle = '#505050';
-    ctx.fillRect(2 * p, 15 * p, 3 * p, p);
-    ctx.fillRect(11 * p, 15 * p, 3 * p, p);
+    ctx.fillRect(4 * p, 30 * p, 3 * p, 2 * p);
+    ctx.fillRect(25 * p, 30 * p, 3 * p, 2 * p);
   };
 }
 
 function generateTablePixels(color) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 12 * p);
+    ctx.fillStyle = adjustColor('#704820', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#704820', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
+    
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#704820', p);
+    
+    ctx.fillStyle = adjustColor('#704820', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#704820', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 20);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    ctx.fillRect(2 * p, 28 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = '#C9A66B';
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 24 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 20);
+    ctx.fillRect(4 * p, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -15);
+    ctx.fillRect(26 * p, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(4 * p, 26 * p, 24 * p, 2 * p);
     
     ctx.fillStyle = adjustColor(color, 20);
-    ctx.fillRect(3 * p, 3 * p, 10 * p, 10 * p);
+    ctx.fillRect(8 * p, 8 * p, 16 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor(color, 25);
+    ctx.fillRect(8 * p, 8 * p, 2 * p, 16 * p);
+    ctx.fillRect(8 * p, 8 * p, 16 * p, 2 * p);
     
     ctx.fillStyle = adjustColor(color, -20);
-    ctx.fillRect(4 * p, 4 * p, 8 * p, 8 * p);
+    ctx.fillRect(10 * p, 10 * p, 12 * p, 12 * p);
     
-    ctx.fillStyle = adjustColor(color, 30);
-    ctx.fillRect(5 * p, 5 * p, 6 * p, 6 * p);
+    ctx.fillStyle = adjustColor(color, 40);
+    ctx.fillRect(12 * p, 12 * p, 8 * p, 8 * p);
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(7 * p, 7 * p, 2 * p, 2 * p);
+    ctx.fillStyle = adjustColor(color, 50);
+    ctx.fillRect(12 * p, 12 * p, 2 * p, 8 * p);
+    ctx.fillRect(12 * p, 12 * p, 8 * p, 2 * p);
+    
+    ctx.fillStyle = '#5D3A1A';
+    ctx.fillRect(14 * p, 14 * p, 4 * p, 4 * p);
   };
 }
 
 function generateBookshelfPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 3 * p);
-    ctx.fillRect(2 * p, 7 * p, 12 * p, 3 * p);
-    ctx.fillRect(2 * p, 12 * p, 12 * p, 3 * p);
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#5D3A1A', p);
     
-    const bookColors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6'];
-    for (let row = 0; row < 3; row++) {
-      for (let i = 0; i < 5; i++) {
-        ctx.fillStyle = bookColors[(row + i) % 5];
-        ctx.fillRect((3 + i * 2.2) * p, (3 + row * 5) * p, 2 * p, 3 * p);
-        
-        ctx.fillStyle = adjustColor(bookColors[(row + i) % 5], 30);
-        ctx.fillRect((3 + i * 2.2) * p, (3 + row * 5) * p, p, 3 * p);
-      }
+    ctx.fillStyle = adjustColor('#5D3A1A', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#5D3A1A', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(2 * p, 10 * p, 28 * p, 2 * p);
+    ctx.fillRect(2 * p, 20 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 20);
+    ctx.fillRect(2 * p, 10 * p, 28 * p, p);
+    ctx.fillRect(2 * p, 20 * p, 28 * p, p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -15);
+    ctx.fillRect(2 * p, 11 * p, 28 * p, p);
+    ctx.fillRect(2 * p, 21 * p, 28 * p, p);
+    
+    const bookColors = ['#C0392B', '#2980B9', '#27AE60', '#F39C12', '#8E44AD', '#16A085'];
+    for (let i = 0; i < 6; i++) {
+      const bookWidth = 3 + Math.floor(Math.random() * 2);
+      const bookX = 4 + i * 4;
+      ctx.fillStyle = bookColors[i];
+      ctx.fillRect(bookX * p, 3 * p, bookWidth * p, 6 * p);
+      
+      ctx.fillStyle = adjustColor(bookColors[i], 30);
+      ctx.fillRect(bookX * p, 3 * p, p, 6 * p);
+      
+      ctx.fillStyle = adjustColor(bookColors[i], -20);
+      ctx.fillRect((bookX + bookWidth - 1) * p, 3 * p, p, 6 * p);
+    }
+    
+    for (let i = 0; i < 5; i++) {
+      const bookWidth = 3 + Math.floor(Math.random() * 2);
+      const bookX = 5 + i * 5;
+      ctx.fillStyle = bookColors[(i + 2) % 6];
+      ctx.fillRect(bookX * p, 13 * p, bookWidth * p, 6 * p);
+      
+      ctx.fillStyle = adjustColor(bookColors[(i + 2) % 6], 30);
+      ctx.fillRect(bookX * p, 13 * p, p, 6 * p);
+    }
+    
+    for (let i = 0; i < 4; i++) {
+      const bookWidth = 4 + Math.floor(Math.random() * 2);
+      const bookX = 5 + i * 6;
+      ctx.fillStyle = bookColors[(i + 4) % 6];
+      ctx.fillRect(bookX * p, 23 * p, bookWidth * p, 6 * p);
+      
+      ctx.fillStyle = adjustColor(bookColors[(i + 4) % 6], 30);
+      ctx.fillRect(bookX * p, 23 * p, p, 6 * p);
     }
   };
 }
 
 function generateLampPixels(lightColor) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
+    
+    drawFeatheredShadow(ctx, 8 * p, 30 * p, 16 * p, 4 * p, p);
+    
+    ctx.fillStyle = adjustColor('#404040', -50);
+    ctx.fillRect(10 * p, 32 * p, 12 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#404040', -60);
+    ctx.fillRect(10 * p, 32 * p, 2 * p, 2 * p);
+    
+    const glowGradient = ctx.createRadialGradient(16 * p, 10 * p, 0, 16 * p, 10 * p, 14 * p);
+    glowGradient.addColorStop(0, adjustColor(lightColor, 60));
+    glowGradient.addColorStop(0.5, adjustColor(lightColor, 20));
+    glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glowGradient;
+    ctx.fillRect(4 * p, 0, 24 * p, 20 * p);
+    
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(10 * p, 26 * p, 12 * p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', 20);
+    ctx.fillRect(10 * p, 26 * p, 2 * p, 6 * p);
+    ctx.fillRect(10 * p, 26 * p, 12 * p, p);
+    
+    ctx.fillStyle = adjustColor('#404040', -20);
+    ctx.fillRect(20 * p, 26 * p, 2 * p, 6 * p);
+    
+    ctx.fillStyle = '#606060';
+    ctx.fillRect(11 * p, 26 * p, 10 * p, 2 * p);
     
     ctx.fillStyle = '#505050';
-    ctx.fillRect(6 * p, 12 * p, 4 * p, 4 * p);
+    ctx.fillRect(14 * p, 10 * p, 4 * p, 16 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(7 * p, 5 * p, 2 * p, 7 * p);
+    ctx.fillStyle = adjustColor('#505050', 25);
+    ctx.fillRect(14 * p, 10 * p, p, 16 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(7 * p, 5 * p, p, 7 * p);
+    ctx.fillStyle = adjustColor('#505050', -20);
+    ctx.fillRect(17 * p, 10 * p, p, 16 * p);
+    
+    ctx.fillStyle = '#707070';
+    ctx.fillRect(14 * p, 10 * p, p, 16 * p);
     
     ctx.fillStyle = lightColor;
-    ctx.fillRect(4 * p, 0, 8 * p, 6 * p);
-    ctx.fillRect(3 * p, p, 10 * p, 4 * p);
+    ctx.fillRect(6 * p, 0, 20 * p, 12 * p);
+    ctx.fillRect(8 * p, 0, 16 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor(lightColor, 20);
+    ctx.fillRect(6 * p, 0, 2 * p, 12 * p);
+    ctx.fillRect(8 * p, 0, 2 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor(lightColor, -15);
+    ctx.fillRect(24 * p, 0, 2 * p, 12 * p);
+    ctx.fillRect(22 * p, 0, 2 * p, 14 * p);
     
     ctx.fillStyle = adjustColor(lightColor, 40);
-    ctx.fillRect(5 * p, p, 6 * p, 4 * p);
-    ctx.fillRect(6 * p, 0, 4 * p, 2 * p);
+    ctx.fillRect(10 * p, 2 * p, 12 * p, 10 * p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(7 * p, 2 * p, 2 * p, 2 * p);
+    ctx.fillStyle = adjustColor(lightColor, 50);
+    ctx.fillRect(10 * p, 2 * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(10 * p, 2 * p, 4 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor(lightColor, -20);
+    ctx.fillRect(6 * p, 0, 20 * p, p);
+    ctx.fillRect(6 * p, 11 * p, 20 * p, p);
   };
 }
 
 function generateRugPixels(color) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = adjustColor(color, -30);
-    ctx.fillRect(0, 3 * p, 16 * p, 10 * p);
+    // 地毯陰影
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(2 * p, 26 * p, 28 * p, 6 * p);
     
-    ctx.fillStyle = color;
-    ctx.fillRect(2 * p, 4 * p, 12 * p, 8 * p);
+    // 地毯主體
+    drawCarpetTexture(ctx, 0, 6 * p, 32 * p, 20 * p, color, p);
     
-    ctx.fillStyle = adjustColor(color, 20);
-    ctx.fillRect(4 * p, 5 * p, 8 * p, 6 * p);
+    // 地毯邊框裝飾
+    ctx.fillStyle = adjustColor(color, -40);
+    ctx.fillRect(2 * p, 8 * p, 28 * p, 2 * p);
+    ctx.fillRect(2 * p, 22 * p, 28 * p, 2 * p);
     
-    ctx.fillStyle = adjustColor(color, 40);
-    ctx.fillRect(6 * p, 6 * p, 4 * p, 4 * p);
+    // 地毯中心圖案
+    ctx.fillStyle = adjustColor(color, 50);
+    ctx.fillRect(12 * p, 12 * p, 8 * p, 8 * p);
     
-    ctx.fillStyle = adjustColor(color, -20);
-    ctx.fillRect(3 * p, 7 * p, 2 * p, 2 * p);
-    ctx.fillRect(11 * p, 7 * p, 2 * p, 2 * p);
+    // 中心裝飾
+    ctx.fillStyle = adjustColor(color, 70);
+    ctx.fillRect(14 * p, 14 * p, 4 * p, 4 * p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(7 * p, 7 * p, 2 * p, 2 * p);
+    // 角落裝飾
+    ctx.fillStyle = adjustColor(color, 30);
+    ctx.fillRect(6 * p, 10 * p, 4 * p, 4 * p);
+    ctx.fillRect(22 * p, 10 * p, 4 * p, 4 * p);
+    ctx.fillRect(6 * p, 18 * p, 4 * p, 4 * p);
+    ctx.fillRect(22 * p, 18 * p, 4 * p, 4 * p);
   };
 }
 
 function generatePosterPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#505050';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    // 海報框陰影
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    // 海報框
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#4A4A4A', p);
     
-    ctx.fillStyle = '#e74c3c';
-    ctx.fillRect(3 * p, 3 * p, 10 * p, 8 * p);
+    // 海報內框
+    ctx.fillStyle = '#6A6A6A';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
     
-    ctx.fillStyle = '#c0392b';
-    ctx.fillRect(3 * p, 9 * p, 10 * p, 2 * p);
+    // 海報背景
+    ctx.fillStyle = '#E74C3C';
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 18 * p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(5 * p, 5 * p, 6 * p, 4 * p);
+    // 海報漸層
+    const posterGradient = ctx.createLinearGradient(4 * p, 4 * p, 28 * p, 22 * p);
+    posterGradient.addColorStop(0, '#E74C3C');
+    posterGradient.addColorStop(1, '#C0392B');
+    ctx.fillStyle = posterGradient;
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 18 * p);
     
-    ctx.fillStyle = '#3498db';
-    ctx.fillRect(6 * p, 6 * p, 4 * p, 2 * p);
+    // 海報底部
+    ctx.fillStyle = '#922B21';
+    ctx.fillRect(4 * p, 18 * p, 24 * p, 4 * p);
+    
+    // 海報圖案 - 白色區塊
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(8 * p, 8 * p, 16 * p, 10 * p);
+    
+    // 圖案內容
+    ctx.fillStyle = '#3498DB';
+    ctx.fillRect(10 * p, 10 * p, 12 * p, 6 * p);
+    
+    // 圖案高光
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(10 * p, 10 * p, 12 * p, 2 * p);
+    
+    // 框邊緣高光
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(0, 0, 32 * p, p);
+    ctx.fillRect(0, 0, p, 32 * p);
   };
 }
 
 function generatePlantPixels(type) {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#a0522d';
-    const potHeight = type === 'big' ? 4 : 5;
-    ctx.fillRect(4 * p, (16 - potHeight) * p, 8 * p, potHeight * p);
+    const isBig = type === 'big';
+    const potHeight = isBig ? 8 : 10;
+    const leafStart = isBig ? 20 : 18;
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(5 * p, (16 - potHeight) * p, 6 * p, 2 * p);
-    ctx.fillRect(4 * p, (16 - potHeight) * p, p, potHeight * p);
+    drawFeatheredShadow(ctx, 6 * p, 30 * p, 20 * p, 4 * p, p);
     
-    ctx.fillStyle = '#228B22';
-    const leafStart = type === 'big' ? 10 : 9;
-    ctx.fillRect(3 * p, leafStart * p, 10 * p, 5 * p);
-    ctx.fillRect(2 * p, (leafStart + 1) * p, 12 * p, 3 * p);
-    ctx.fillRect(5 * p, (leafStart - 2) * p, 6 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#8B4513', -50);
+    ctx.fillRect(8 * p, 32 * p, 16 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#8B4513', -60);
+    ctx.fillRect(8 * p, 32 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(8 * p, (32 - potHeight) * p, 16 * p, potHeight * p);
+    
+    ctx.fillStyle = adjustColor('#8B4513', 20);
+    ctx.fillRect(8 * p, (32 - potHeight) * p, 2 * p, potHeight * p);
+    
+    ctx.fillStyle = adjustColor('#8B4513', -20);
+    ctx.fillRect(22 * p, (32 - potHeight) * p, 2 * p, potHeight * p);
+    
+    ctx.fillStyle = '#A0522D';
+    ctx.fillRect(10 * p, (32 - potHeight) * p, 12 * p, potHeight * p);
+    
+    ctx.fillStyle = '#CD853F';
+    ctx.fillRect(8 * p, (32 - potHeight) * p, 16 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#CD853F', 20);
+    ctx.fillRect(8 * p, (32 - potHeight) * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#3D2817';
+    ctx.fillRect(10 * p, (32 - potHeight + 2) * p, 12 * p, 2 * p);
+    
+    drawLeafTexture(ctx, 6 * p, leafStart * p, 20 * p, 10 * p, '#228B22', p);
+    
+    ctx.fillStyle = adjustColor('#228B22', 25);
+    ctx.fillRect(6 * p, leafStart * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#228B22', -20);
+    ctx.fillRect(24 * p, leafStart * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = '#2E8B2E';
+    ctx.fillRect(4 * p, (leafStart + 2) * p, 24 * p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#2E8B2E', 20);
+    ctx.fillRect(4 * p, (leafStart + 2) * p, 2 * p, 6 * p);
     
     ctx.fillStyle = '#32CD32';
-    ctx.fillRect(4 * p, (leafStart + 1) * p, 3 * p, 3 * p);
-    ctx.fillRect(9 * p, (leafStart + 1) * p, 3 * p, 3 * p);
-    ctx.fillRect(6 * p, (leafStart - 1) * p, 4 * p, 2 * p);
+    ctx.fillRect(10 * p, (leafStart - 6) * p, 12 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#32CD32', 25);
+    ctx.fillRect(10 * p, (leafStart - 6) * p, 2 * p, 8 * p);
+    ctx.fillRect(10 * p, (leafStart - 6) * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#32CD32', -15);
+    ctx.fillRect(20 * p, (leafStart - 6) * p, 2 * p, 8 * p);
+    ctx.fillRect(10 * p, (leafStart - 6 + 6) * p, 12 * p, 2 * p);
     
     ctx.fillStyle = '#3CB371';
-    ctx.fillRect(5 * p, (leafStart + 2) * p, 2 * p, 2 * p);
-    ctx.fillRect(9 * p, (leafStart + 2) * p, 2 * p, 2 * p);
+    ctx.fillRect(8 * p, (leafStart + 3) * p, 6 * p, 6 * p);
+    ctx.fillRect(18 * p, (leafStart + 3) * p, 6 * p, 6 * p);
+    ctx.fillRect(12 * p, (leafStart - 4) * p, 8 * p, 4 * p);
+    
+    ctx.fillStyle = '#1B6B1B';
+    ctx.fillRect(6 * p, (leafStart + 8) * p, 4 * p, 2 * p);
+    ctx.fillRect(22 * p, (leafStart + 8) * p, 4 * p, 2 * p);
   };
 }
 
 function generateFlowerPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#a0522d';
-    ctx.fillRect(5 * p, 10 * p, 6 * p, 6 * p);
+    drawFeatheredShadow(ctx, 8 * p, 30 * p, 16 * p, 4 * p, p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(6 * p, 10 * p, 4 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#8B4513', -50);
+    ctx.fillRect(10 * p, 32 * p, 12 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#8B4513', -60);
+    ctx.fillRect(10 * p, 32 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(10 * p, 20 * p, 12 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#8B4513', 20);
+    ctx.fillRect(10 * p, 20 * p, 2 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#8B4513', -20);
+    ctx.fillRect(20 * p, 20 * p, 2 * p, 12 * p);
+    
+    ctx.fillStyle = '#A0522D';
+    ctx.fillRect(12 * p, 20 * p, 8 * p, 12 * p);
+    
+    ctx.fillStyle = '#CD853F';
+    ctx.fillRect(10 * p, 20 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#CD853F', 20);
+    ctx.fillRect(10 * p, 20 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#3D2817';
+    ctx.fillRect(12 * p, 22 * p, 8 * p, 2 * p);
     
     ctx.fillStyle = '#228B22';
-    ctx.fillRect(7 * p, 4 * p, 2 * p, 6 * p);
+    ctx.fillRect(14 * p, 8 * p, 4 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor('#228B22', 25);
+    ctx.fillRect(14 * p, 8 * p, p, 14 * p);
+    
+    ctx.fillStyle = adjustColor('#228B22', -20);
+    ctx.fillRect(17 * p, 8 * p, p, 14 * p);
     
     ctx.fillStyle = '#32CD32';
-    ctx.fillRect(6 * p, 6 * p, 2 * p, 3 * p);
-    ctx.fillRect(8 * p, 5 * p, 2 * p, 3 * p);
+    ctx.fillRect(14 * p, 8 * p, p, 14 * p);
+    
+    ctx.fillStyle = '#2E8B2E';
+    ctx.fillRect(10 * p, 12 * p, 4 * p, 6 * p);
+    ctx.fillRect(18 * p, 10 * p, 4 * p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#2E8B2E', 25);
+    ctx.fillRect(10 * p, 12 * p, p, 6 * p);
+    ctx.fillRect(18 * p, 10 * p, p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#2E8B2E', -15);
+    ctx.fillRect(13 * p, 12 * p, p, 6 * p);
+    ctx.fillRect(21 * p, 10 * p, p, 6 * p);
+    
+    ctx.fillStyle = '#3CB371';
+    ctx.fillRect(10 * p, 12 * p, 2 * p, 4 * p);
+    ctx.fillRect(18 * p, 10 * p, 2 * p, 4 * p);
     
     ctx.fillStyle = '#FF69B4';
-    ctx.fillRect(4 * p, 0, 8 * p, 5 * p);
-    ctx.fillRect(3 * p, p, 10 * p, 3 * p);
+    ctx.fillRect(8 * p, 0, 16 * p, 10 * p);
+    ctx.fillRect(6 * p, 2 * p, 20 * p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#FF69B4', 25);
+    ctx.fillRect(6 * p, 2 * p, 2 * p, 6 * p);
+    ctx.fillRect(8 * p, 0, 2 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#FF69B4', -20);
+    ctx.fillRect(24 * p, 2 * p, 2 * p, 6 * p);
+    ctx.fillRect(22 * p, 0, 2 * p, 10 * p);
     
     ctx.fillStyle = '#FF1493';
-    ctx.fillRect(5 * p, p, 6 * p, 3 * p);
+    ctx.fillRect(10 * p, 2 * p, 12 * p, 6 * p);
+    ctx.fillRect(8 * p, 3 * p, 16 * p, 4 * p);
+    
+    ctx.fillStyle = adjustColor('#FF1493', 20);
+    ctx.fillRect(8 * p, 3 * p, 2 * p, 4 * p);
+    ctx.fillRect(10 * p, 2 * p, 2 * p, 6 * p);
+    
+    ctx.fillStyle = '#FFB6C1';
+    ctx.fillRect(10 * p, 2 * p, 4 * p, 3 * p);
     
     ctx.fillStyle = '#FFD700';
-    ctx.fillRect(6 * p, 2 * p, 4 * p, 2 * p);
+    ctx.fillRect(12 * p, 4 * p, 8 * p, 4 * p);
+    
+    ctx.fillStyle = adjustColor('#FFD700', 30);
+    ctx.fillRect(12 * p, 4 * p, 2 * p, 4 * p);
     
     ctx.fillStyle = '#FFA500';
-    ctx.fillRect(7 * p, 2 * p, 2 * p, p);
+    ctx.fillRect(14 * p, 5 * p, 4 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(12 * p, 4 * p, 2 * p, 2 * p);
   };
 }
 
 function generateTVPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
+    
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', -50);
+    ctx.fillRect(10 * p, 32 * p, 12 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#2A2A2A', -60);
+    ctx.fillRect(10 * p, 32 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#2A2A2A';
+    ctx.fillRect(0, 4 * p, 32 * p, 24 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', 20);
+    ctx.fillRect(0, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(0, 4 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', -20);
+    ctx.fillRect(30 * p, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(0, 26 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(2 * p, 6 * p, 28 * p, 20 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', 15);
+    ctx.fillRect(2 * p, 6 * p, 2 * p, 20 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', -15);
+    ctx.fillRect(28 * p, 6 * p, 2 * p, 20 * p);
+    
+    drawScreenGlow(ctx, 4 * p, 8 * p, 24 * p, 16 * p, '#4A90D0', p);
+    
+    ctx.fillStyle = '#6EB5FF';
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', 30);
+    ctx.fillRect(6 * p, 10 * p, 2 * p, 12 * p);
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', -20);
+    ctx.fillRect(24 * p, 10 * p, 2 * p, 12 * p);
+    ctx.fillRect(6 * p, 20 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 3 * p);
+    
+    ctx.fillStyle = '#2A60A0';
+    ctx.fillRect(4 * p, 20 * p, 24 * p, 4 * p);
     
     ctx.fillStyle = '#505050';
-    ctx.fillRect(0, 2 * p, 16 * p, 12 * p);
+    ctx.fillRect(10 * p, 28 * p, 12 * p, 4 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(p, 3 * p, 14 * p, 10 * p);
+    ctx.fillStyle = adjustColor('#505050', 20);
+    ctx.fillRect(10 * p, 28 * p, 2 * p, 4 * p);
+    ctx.fillRect(10 * p, 28 * p, 12 * p, p);
     
-    ctx.fillStyle = '#4a90d0';
-    ctx.fillRect(2 * p, 4 * p, 12 * p, 8 * p);
+    ctx.fillStyle = adjustColor('#505050', -15);
+    ctx.fillRect(20 * p, 28 * p, 2 * p, 4 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(3 * p, 5 * p, 10 * p, 6 * p);
-    
-    ctx.fillStyle = '#2a60a0';
-    ctx.fillRect(2 * p, 10 * p, 12 * p, 2 * p);
-    
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(6 * p, 14 * p, 4 * p, 2 * p);
+    ctx.fillStyle = '#707070';
+    ctx.fillRect(10 * p, 28 * p, 12 * p, p);
   };
 }
 
 function generateComputerPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
+    
+    drawFeatheredShadow(ctx, 6 * p, 30 * p, 20 * p, 4 * p, p);
+    
+    ctx.fillStyle = adjustColor('#606060', -50);
+    ctx.fillRect(8 * p, 32 * p, 16 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#606060', -60);
+    ctx.fillRect(8 * p, 32 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(6 * p, 18 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = '#2A2A2A';
+    ctx.fillRect(4 * p, 0, 24 * p, 20 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', 20);
+    ctx.fillRect(4 * p, 0, 2 * p, 20 * p);
+    ctx.fillRect(4 * p, 0, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', -20);
+    ctx.fillRect(26 * p, 0, 2 * p, 20 * p);
+    ctx.fillRect(4 * p, 18 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(6 * p, 2 * p, 20 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', 15);
+    ctx.fillRect(6 * p, 2 * p, 2 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', -15);
+    ctx.fillRect(24 * p, 2 * p, 2 * p, 16 * p);
+    
+    drawScreenGlow(ctx, 8 * p, 4 * p, 16 * p, 12 * p, '#4A90D0', p);
+    
+    ctx.fillStyle = '#6EB5FF';
+    ctx.fillRect(10 * p, 6 * p, 12 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', 30);
+    ctx.fillRect(10 * p, 6 * p, 2 * p, 8 * p);
+    ctx.fillRect(10 * p, 6 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', -20);
+    ctx.fillRect(20 * p, 6 * p, 2 * p, 8 * p);
+    ctx.fillRect(10 * p, 12 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(8 * p, 4 * p, 16 * p, 2 * p);
     
     ctx.fillStyle = '#505050';
-    ctx.fillRect(2 * p, 0, 12 * p, 10 * p);
+    ctx.fillRect(12 * p, 20 * p, 8 * p, 4 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(3 * p, p, 10 * p, 8 * p);
+    ctx.fillStyle = adjustColor('#505050', 20);
+    ctx.fillRect(12 * p, 20 * p, 2 * p, 4 * p);
     
-    ctx.fillStyle = '#4a90d0';
-    ctx.fillRect(4 * p, 2 * p, 8 * p, 6 * p);
+    ctx.fillStyle = adjustColor('#505050', -15);
+    ctx.fillRect(18 * p, 20 * p, 2 * p, 4 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(5 * p, 3 * p, 6 * p, 4 * p);
+    ctx.fillStyle = '#606060';
+    ctx.fillRect(8 * p, 24 * p, 16 * p, 8 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(6 * p, 10 * p, 4 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#606060', 20);
+    ctx.fillRect(8 * p, 24 * p, 2 * p, 8 * p);
+    ctx.fillRect(8 * p, 24 * p, 16 * p, 2 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(4 * p, 12 * p, 8 * p, 4 * p);
+    ctx.fillStyle = adjustColor('#606060', -20);
+    ctx.fillRect(22 * p, 24 * p, 2 * p, 8 * p);
+    ctx.fillRect(8 * p, 30 * p, 16 * p, 2 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(5 * p, 12 * p, 6 * p, 3 * p);
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(8 * p, 24 * p, 16 * p, 2 * p);
+    
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(6 * p, 28 * p, 20 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', 15);
+    ctx.fillRect(6 * p, 28 * p, 2 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', -15);
+    ctx.fillRect(24 * p, 28 * p, 2 * p, 3 * p);
+    
+    ctx.fillStyle = '#606060';
+    for (let i = 0; i < 8; i++) {
+      ctx.fillRect((8 + i * 2) * p, 28.5 * p, 1.5 * p, 2 * p);
+      
+      ctx.fillStyle = adjustColor('#606060', 25);
+      ctx.fillRect((8 + i * 2) * p, 28.5 * p, 0.5 * p, 2 * p);
+      
+      ctx.fillStyle = '#606060';
+    }
   };
 }
 
 function generateGamePixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
+    // 遊戲機陰影
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(4 * p, 22 * p, 24 * p, 2 * p);
+    
+    // 遊戲機主體
+    ctx.fillStyle = '#2A2A2A';
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 14 * p);
+    
+    // 遊戲機內框
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 10 * p);
+    
+    // 左側按鍵區
+    ctx.fillStyle = '#1A1A1A';
+    ctx.fillRect(8 * p, 12 * p, 8 * p, 6 * p);
+    
+    // 十字鍵
+    ctx.fillStyle = '#00FF88';
+    ctx.fillRect(10 * p, 13 * p, 4 * p, 4 * p);
+    ctx.fillRect(9 * p, 14 * p, 6 * p, 2 * p);
+    
+    // 十字鍵高光
+    ctx.fillStyle = '#00CC66';
+    ctx.fillRect(11 * p, 14 * p, 2 * p, 2 * p);
+    
+    // 右側按鍵區
+    ctx.fillStyle = '#1A1A1A';
+    ctx.fillRect(18 * p, 12 * p, 8 * p, 6 * p);
+    
+    // AB按鍵
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fillRect(19 * p, 13 * p, 3 * p, 3 * p);
+    ctx.fillStyle = '#4ECDC4';
+    ctx.fillRect(23 * p, 14 * p, 3 * p, 3 * p);
+    
+    // 按鍵高光
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(19 * p, 13 * p, 3 * p, p);
+    ctx.fillRect(23 * p, 14 * p, 3 * p, p);
+    
+    // 遊戲機邊緣
     ctx.fillStyle = '#505050';
-    ctx.fillRect(2 * p, 4 * p, 12 * p, 8 * p);
-    
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(3 * p, 5 * p, 10 * p, 6 * p);
-    
-    ctx.fillStyle = '#00ff88';
-    ctx.fillRect(4 * p, 6 * p, 3 * p, 4 * p);
-    ctx.fillRect(9 * p, 6 * p, 3 * p, 4 * p);
-    
-    ctx.fillStyle = '#00cc66';
-    ctx.fillRect(5 * p, 7 * p, p, 2 * p);
-    ctx.fillRect(10 * p, 7 * p, p, 2 * p);
+    ctx.fillRect(4 * p, 8 * p, 24 * p, p);
   };
 }
 
 function generateFridgePixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#d0d0d0';
-    ctx.fillRect(0, 0, 16 * p, 8 * p);
+    ctx.fillStyle = '#D8D8D8';
+    ctx.fillRect(0, 0, 32 * p, 32 * p);
     
-    ctx.fillStyle = '#e8e8e8';
-    ctx.fillRect(p, p, 14 * p, 6 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', 25);
+    ctx.fillRect(0, 0, 3 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 3 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(12 * p, 3 * p, 2 * p, 2 * p);
-    ctx.fillRect(12 * p, 11 * p, 2 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -25);
+    ctx.fillRect(29 * p, 0, 3 * p, 32 * p);
+    ctx.fillRect(0, 29 * p, 32 * p, 3 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(13 * p, 3 * p, p, 2 * p);
-    ctx.fillRect(13 * p, 11 * p, p, 2 * p);
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = '#C8C8C8';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#C8C8C8', 20);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 12 * p);
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#C8C8C8', -20);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 12 * p);
+    ctx.fillRect(2 * p, 12 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = '#D8D8D8';
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#D8D8D8', 20);
+    ctx.fillRect(4 * p, 4 * p, 2 * p, 8 * p);
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#D8D8D8', -15);
+    ctx.fillRect(26 * p, 4 * p, 2 * p, 8 * p);
+    ctx.fillRect(4 * p, 10 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#B8B8B8';
+    ctx.fillRect(2 * p, 13 * p, 28 * p, p);
+    
+    ctx.fillStyle = '#E0E0E0';
+    ctx.fillRect(2 * p, 14 * p, 28 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', 20);
+    ctx.fillRect(2 * p, 14 * p, 2 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', -15);
+    ctx.fillRect(28 * p, 14 * p, 2 * p, 16 * p);
+    
+    ctx.fillStyle = '#F0F0F0';
+    ctx.fillRect(4 * p, 16 * p, 24 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#F0F0F0', 20);
+    ctx.fillRect(4 * p, 16 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 16 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#F0F0F0', -15);
+    ctx.fillRect(26 * p, 16 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 26 * p, 24 * p, 2 * p);
+    
+    drawMetallicShine(ctx, 24 * p, 6 * p, 4 * p, 6 * p, '#A0A0A0');
+    drawMetallicShine(ctx, 24 * p, 20 * p, 4 * p, 6 * p, '#A0A0A0');
   };
 }
 
 function generateWardrobePixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(2 * p, 2 * p, 5 * p, 12 * p);
-    ctx.fillRect(9 * p, 2 * p, 5 * p, 12 * p);
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#5D3A1A', p);
     
-    ctx.fillStyle = '#DAA520';
-    ctx.fillRect(5 * p, 7 * p, 2 * p, 2 * p);
-    ctx.fillRect(9 * p, 7 * p, 2 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#5D3A1A', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(3 * p, 3 * p, 12 * p, 26 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 20);
+    ctx.fillRect(3 * p, 3 * p, 2 * p, 26 * p);
+    ctx.fillRect(3 * p, 3 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -15);
+    ctx.fillRect(13 * p, 3 * p, 2 * p, 26 * p);
+    ctx.fillRect(3 * p, 27 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = '#C9A66B';
+    ctx.fillRect(5 * p, 5 * p, 8 * p, 22 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 20);
+    ctx.fillRect(5 * p, 5 * p, 2 * p, 22 * p);
+    ctx.fillRect(5 * p, 5 * p, 8 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -15);
+    ctx.fillRect(11 * p, 5 * p, 2 * p, 22 * p);
+    ctx.fillRect(5 * p, 25 * p, 8 * p, 2 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(17 * p, 3 * p, 12 * p, 26 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', 20);
+    ctx.fillRect(17 * p, 3 * p, 2 * p, 26 * p);
+    ctx.fillRect(17 * p, 3 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#A07840', -15);
+    ctx.fillRect(27 * p, 3 * p, 2 * p, 26 * p);
+    ctx.fillRect(17 * p, 27 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = '#C9A66B';
+    ctx.fillRect(19 * p, 5 * p, 8 * p, 22 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 20);
+    ctx.fillRect(19 * p, 5 * p, 2 * p, 22 * p);
+    ctx.fillRect(19 * p, 5 * p, 8 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -15);
+    ctx.fillRect(25 * p, 5 * p, 2 * p, 22 * p);
+    ctx.fillRect(19 * p, 25 * p, 8 * p, 2 * p);
+    
+    ctx.fillStyle = '#5D3A1A';
+    ctx.fillRect(15 * p, 3 * p, 2 * p, 26 * p);
+    
+    drawMetallicShine(ctx, 11 * p, 14 * p, 3 * p, 4 * p, '#DAA520');
+    drawMetallicShine(ctx, 18 * p, 14 * p, 3 * p, 4 * p, '#DAA520');
+    
+    ctx.fillStyle = '#4A2F1A';
+    ctx.fillRect(0, 0, 32 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor('#4A2F1A', 20);
+    ctx.fillRect(0, 0, 2 * p, 3 * p);
   };
 }
 
 function generateMirrorPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 12 * p);
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#5D3A1A', p);
     
-    ctx.fillStyle = '#a0d8ff';
-    ctx.fillRect(3 * p, 3 * p, 10 * p, 10 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(4 * p, 4 * p, 4 * p, 6 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    drawGlassEffect(ctx, 4 * p, 4 * p, 24 * p, 24 * p, '#6EB5FF');
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', 30);
+    ctx.fillRect(4 * p, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', -20);
+    ctx.fillRect(26 * p, 4 * p, 2 * p, 24 * p);
+    ctx.fillRect(4 * p, 26 * p, 24 * p, 2 * p);
+    
+    const mirrorGradient = ctx.createLinearGradient(4 * p, 4 * p, 28 * p, 28 * p);
+    mirrorGradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+    mirrorGradient.addColorStop(0.3, 'rgba(255,255,255,0.1)');
+    mirrorGradient.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+    mirrorGradient.addColorStop(1, 'rgba(255,255,255,0.2)');
+    ctx.fillStyle = mirrorGradient;
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 24 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(6 * p, 6 * p, 8 * p, 12 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(8 * p, 8 * p, 4 * p, 8 * p);
   };
 }
 
 function generateWindowPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(0, 0, 32 * p, 32 * p);
     
-    ctx.fillStyle = '#a0d8ff';
-    ctx.fillRect(p, p, 6 * p, 6 * p);
-    ctx.fillRect(9 * p, p, 6 * p, 6 * p);
-    ctx.fillRect(p, 9 * p, 6 * p, 6 * p);
-    ctx.fillRect(9 * p, 9 * p, 6 * p, 6 * p);
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, 32 * p);
+    skyGradient.addColorStop(0, '#87CEEB');
+    skyGradient.addColorStop(0.5, '#6EB5FF');
+    skyGradient.addColorStop(1, '#4A90D0');
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, 32 * p, 32 * p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(7 * p, 0, 2 * p, 16 * p);
-    ctx.fillRect(0, 7 * p, 16 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#87CEEB', 30);
+    ctx.fillRect(0, 0, 32 * p, 4 * p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(7 * p, 0, p, 16 * p);
-    ctx.fillRect(0, 7 * p, 16 * p, p);
+    ctx.fillStyle = adjustColor('#4A90D0', -20);
+    ctx.fillRect(0, 28 * p, 32 * p, 4 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillRect(4 * p, 4 * p, 8 * p, 4 * p);
+    ctx.fillRect(6 * p, 6 * p, 6 * p, 3 * p);
+    ctx.fillRect(20 * p, 8 * p, 8 * p, 3 * p);
+    ctx.fillRect(22 * p, 6 * p, 5 * p, 3 * p);
+    
+    drawWoodGrain(ctx, 14 * p, 0, 4 * p, 32 * p, '#C9A66B', p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 20);
+    ctx.fillRect(14 * p, 0, p, 32 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -20);
+    ctx.fillRect(17 * p, 0, p, 32 * p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(14 * p, 0, p, 32 * p);
+    ctx.fillRect(17 * p, 0, p, 32 * p);
+    
+    drawWoodGrain(ctx, 0, 14 * p, 32 * p, 4 * p, '#C9A66B', p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 20);
+    ctx.fillRect(0, 14 * p, 32 * p, p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -20);
+    ctx.fillRect(0, 17 * p, 32 * p, p);
+    
+    ctx.fillStyle = '#A07840';
+    ctx.fillRect(0, 14 * p, 32 * p, p);
+    ctx.fillRect(0, 17 * p, 32 * p, p);
+    
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 20);
+    ctx.fillRect(0, 0, 2 * p, 2 * p);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(0, 0, 32 * p, p);
+    ctx.fillRect(0, 0, p, 32 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(3 * p, 3 * p, 10 * p, 2 * p);
+    ctx.fillRect(19 * p, 3 * p, 10 * p, 2 * p);
   };
 }
 
 function generateBathtubPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(2 * p, 4 * p, 12 * p, 8 * p);
-    ctx.fillRect(p, 5 * p, 14 * p, 6 * p);
+    drawFeatheredShadow(ctx, 4 * p, 28 * p, 24 * p, 4 * p, p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(3 * p, 5 * p, 10 * p, 6 * p);
-    ctx.fillRect(2 * p, 6 * p, 12 * p, 4 * p);
+    ctx.fillStyle = adjustColor('#D0D0D0', -50);
+    ctx.fillRect(2 * p, 32 * p, 28 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#D0D0D0', -60);
+    ctx.fillRect(2 * p, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(4 * p, 6 * p, 8 * p, 4 * p);
+    ctx.fillStyle = '#D0D0D0';
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 18 * p);
+    ctx.fillRect(2 * p, 10 * p, 28 * p, 14 * p);
     
-    ctx.fillStyle = '#a0d8ff';
-    ctx.fillRect(5 * p, 7 * p, 6 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D0D0D0', 20);
+    ctx.fillRect(2 * p, 10 * p, 2 * p, 14 * p);
+    ctx.fillRect(2 * p, 10 * p, 28 * p, 2 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(12 * p, 2 * p, 2 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#D0D0D0', -20);
+    ctx.fillRect(28 * p, 10 * p, 2 * p, 14 * p);
+    ctx.fillRect(2 * p, 22 * p, 28 * p, 2 * p);
+    
+    ctx.fillStyle = '#F8F8F8';
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 14 * p);
+    ctx.fillRect(4 * p, 12 * p, 24 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#F8F8F8', 15);
+    ctx.fillRect(4 * p, 12 * p, 2 * p, 10 * p);
+    ctx.fillRect(4 * p, 12 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#F8F8F8', -15);
+    ctx.fillRect(26 * p, 12 * p, 2 * p, 10 * p);
+    ctx.fillRect(4 * p, 20 * p, 24 * p, 2 * p);
+    
+    const waterGradient = ctx.createLinearGradient(4 * p, 12 * p, 28 * p, 22 * p);
+    waterGradient.addColorStop(0, '#6EB5FF');
+    waterGradient.addColorStop(0.5, '#4A90D0');
+    waterGradient.addColorStop(1, '#6EB5FF');
+    ctx.fillStyle = waterGradient;
+    ctx.fillRect(6 * p, 12 * p, 20 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', 30);
+    ctx.fillRect(6 * p, 12 * p, 2 * p, 10 * p);
+    ctx.fillRect(6 * p, 12 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', -20);
+    ctx.fillRect(24 * p, 12 * p, 2 * p, 10 * p);
+    ctx.fillRect(6 * p, 20 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(8 * p, 13 * p, 16 * p, 2 * p);
+    
+    ctx.fillStyle = 'rgba(160,216,255,0.5)';
+    ctx.fillRect(10 * p, 16 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 2 * p);
+    ctx.fillRect(4 * p, 8 * p, 2 * p, 18 * p);
+    ctx.fillRect(26 * p, 8 * p, 2 * p, 18 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 20);
+    ctx.fillRect(4 * p, 8 * p, 2 * p, 2 * p);
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(24 * p, 4 * p, 4 * p, 6 * p);
+    drawMetallicShine(ctx, 24 * p, 4 * p, 4 * p, 6 * p, '#C0C0C0');
   };
 }
 
 function generateToiletPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#e8e8e8';
-    ctx.fillRect(3 * p, 6 * p, 10 * p, 6 * p);
-    ctx.fillRect(2 * p, 7 * p, 12 * p, 4 * p);
+    drawFeatheredShadow(ctx, 6 * p, 30 * p, 20 * p, 4 * p, p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(4 * p, 7 * p, 8 * p, 4 * p);
-    ctx.fillRect(3 * p, 8 * p, 10 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -50);
+    ctx.fillRect(8 * p, 32 * p, 16 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -60);
+    ctx.fillRect(8 * p, 32 * p, 2 * p, 2 * p);
     
-    ctx.fillStyle = '#d0d0d0';
-    ctx.fillRect(4 * p, 2 * p, 8 * p, 5 * p);
+    ctx.fillStyle = '#D8D8D8';
+    ctx.fillRect(8 * p, 20 * p, 16 * p, 10 * p);
     
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(5 * p, 3 * p, 6 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', 20);
+    ctx.fillRect(8 * p, 20 * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#D8D8D8', -20);
+    ctx.fillRect(22 * p, 20 * p, 2 * p, 10 * p);
+    
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(6 * p, 12 * p, 20 * p, 12 * p);
+    ctx.fillRect(4 * p, 14 * p, 24 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 20);
+    ctx.fillRect(4 * p, 14 * p, 2 * p, 8 * p);
+    ctx.fillRect(4 * p, 14 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', -20);
+    ctx.fillRect(26 * p, 14 * p, 2 * p, 8 * p);
+    ctx.fillRect(4 * p, 20 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#F5F5F5';
+    ctx.fillRect(8 * p, 14 * p, 16 * p, 8 * p);
+    ctx.fillRect(6 * p, 16 * p, 20 * p, 4 * p);
+    
+    ctx.fillStyle = adjustColor('#F5F5F5', 20);
+    ctx.fillRect(6 * p, 16 * p, 2 * p, 4 * p);
+    
+    ctx.fillStyle = '#C8C8C8';
+    ctx.fillRect(6 * p, 22 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = '#E0E0E0';
+    ctx.fillRect(8 * p, 0, 16 * p, 14 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', 20);
+    ctx.fillRect(8 * p, 0, 2 * p, 14 * p);
+    ctx.fillRect(8 * p, 0, 16 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', -20);
+    ctx.fillRect(22 * p, 0, 2 * p, 14 * p);
+    ctx.fillRect(8 * p, 12 * p, 16 * p, 2 * p);
+    
+    ctx.fillStyle = '#ECECEC';
+    ctx.fillRect(10 * p, 2 * p, 12 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#ECECEC', 20);
+    ctx.fillRect(10 * p, 2 * p, 2 * p, 10 * p);
+    ctx.fillRect(10 * p, 2 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#ECECEC', -15);
+    ctx.fillRect(20 * p, 2 * p, 2 * p, 10 * p);
+    ctx.fillRect(10 * p, 10 * p, 12 * p, 2 * p);
+    
+    ctx.fillStyle = '#D0D0D0';
+    ctx.fillRect(8 * p, 0, 16 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor('#D0D0D0', 20);
+    ctx.fillRect(8 * p, 0, 2 * p, 3 * p);
+    ctx.fillRect(8 * p, 0, 16 * p, p);
+    
+    ctx.fillStyle = adjustColor('#D0D0D0', -15);
+    ctx.fillRect(22 * p, 0, 2 * p, 3 * p);
+    
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(14 * p, p, 4 * p, 2 * p);
+    drawMetallicShine(ctx, 14 * p, p, 4 * p, 2 * p, '#C0C0C0');
   };
 }
 
 function generateSinkPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(2 * p, 4 * p, 12 * p, 8 * p);
+    drawFeatheredShadow(ctx, 6 * p, 28 * p, 20 * p, 4 * p, p);
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(3 * p, 5 * p, 10 * p, 6 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -50);
+    ctx.fillRect(4 * p, 32 * p, 24 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -60);
+    ctx.fillRect(4 * p, 32 * p, 2 * p, 2 * p);
     
-    ctx.fillStyle = '#d0d0d0';
-    ctx.fillRect(4 * p, 6 * p, 8 * p, 4 * p);
+    ctx.fillStyle = '#D8D8D8';
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 16 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(5 * p, 7 * p, 6 * p, 2 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', 20);
+    ctx.fillRect(4 * p, 8 * p, 2 * p, 16 * p);
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 2 * p);
     
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(7 * p, p, 2 * p, 4 * p);
+    ctx.fillStyle = adjustColor('#D8D8D8', -20);
+    ctx.fillRect(26 * p, 8 * p, 2 * p, 16 * p);
+    ctx.fillRect(4 * p, 22 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#F0F0F0';
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#F0F0F0', 20);
+    ctx.fillRect(6 * p, 10 * p, 2 * p, 12 * p);
+    ctx.fillRect(6 * p, 10 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#F0F0F0', -15);
+    ctx.fillRect(24 * p, 10 * p, 2 * p, 12 * p);
+    ctx.fillRect(6 * p, 20 * p, 20 * p, 2 * p);
+    
+    ctx.fillStyle = '#E0E0E0';
+    ctx.fillRect(8 * p, 12 * p, 16 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', 15);
+    ctx.fillRect(8 * p, 12 * p, 2 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#E0E0E0', -15);
+    ctx.fillRect(22 * p, 12 * p, 2 * p, 8 * p);
+    
+    ctx.fillStyle = '#6EB5FF';
+    ctx.fillRect(10 * p, 14 * p, 12 * p, 4 * p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', 30);
+    ctx.fillRect(10 * p, 14 * p, 2 * p, 4 * p);
+    ctx.fillRect(10 * p, 14 * p, 12 * p, p);
+    
+    ctx.fillStyle = adjustColor('#6EB5FF', -20);
+    ctx.fillRect(20 * p, 14 * p, 2 * p, 4 * p);
+    ctx.fillRect(10 * p, 17 * p, 12 * p, p);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillRect(12 * p, 15 * p, 8 * p, 1 * p);
+    
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(14 * p, 2 * p, 4 * p, 8 * p);
+    drawMetallicShine(ctx, 14 * p, 2 * p, 4 * p, 8 * p, '#C0C0C0');
+    
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(18 * p, 3 * p, 4 * p, 3 * p);
+    
+    ctx.fillStyle = adjustColor('#808080', 20);
+    ctx.fillRect(18 * p, 3 * p, p, 3 * p);
+    
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(4 * p, 8 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 20);
+    ctx.fillRect(4 * p, 8 * p, 2 * p, 2 * p);
   };
 }
 
 function generateStovePixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
+    
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#2A2A2A', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
+    
+    ctx.fillStyle = '#2A2A2A';
+    ctx.fillRect(0, 0, 32 * p, 32 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#2A2A2A', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
+    
+    ctx.fillStyle = '#404040';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#404040', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = '#1A1A1A';
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 16 * p);
+    
+    ctx.fillStyle = adjustColor('#1A1A1A', 15);
+    ctx.fillRect(4 * p, 4 * p, 2 * p, 16 * p);
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#1A1A1A', -15);
+    ctx.fillRect(26 * p, 4 * p, 2 * p, 16 * p);
+    ctx.fillRect(4 * p, 18 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#0D0D0D';
+    ctx.fillRect(6 * p, 6 * p, 10 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#0D0D0D', 15);
+    ctx.fillRect(6 * p, 6 * p, 2 * p, 10 * p);
+    ctx.fillRect(6 * p, 6 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#0D0D0D', -15);
+    ctx.fillRect(14 * p, 6 * p, 2 * p, 10 * p);
+    ctx.fillRect(6 * p, 14 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fillRect(8 * p, 8 * p, 6 * p, 6 * p);
+    ctx.fillStyle = '#FF4444';
+    ctx.fillRect(9 * p, 9 * p, 4 * p, 4 * p);
+    ctx.fillStyle = '#FF8888';
+    ctx.fillRect(10 * p, 10 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#0D0D0D';
+    ctx.fillRect(18 * p, 6 * p, 10 * p, 10 * p);
+    
+    ctx.fillStyle = adjustColor('#0D0D0D', 15);
+    ctx.fillRect(18 * p, 6 * p, 2 * p, 10 * p);
+    ctx.fillRect(18 * p, 6 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#0D0D0D', -15);
+    ctx.fillRect(26 * p, 6 * p, 2 * p, 10 * p);
+    ctx.fillRect(18 * p, 14 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fillRect(20 * p, 8 * p, 6 * p, 6 * p);
+    ctx.fillStyle = '#FF4444';
+    ctx.fillRect(21 * p, 9 * p, 4 * p, 4 * p);
+    ctx.fillStyle = '#FF8888';
+    ctx.fillRect(22 * p, 10 * p, 2 * p, 2 * p);
     
     ctx.fillStyle = '#505050';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    ctx.fillRect(4 * p, 22 * p, 24 * p, 6 * p);
     
-    ctx.fillStyle = '#787878';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#505050', 20);
+    ctx.fillRect(4 * p, 22 * p, 2 * p, 6 * p);
+    ctx.fillRect(4 * p, 22 * p, 24 * p, 2 * p);
     
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(2 * p, 2 * p, 5 * p, 5 * p);
-    ctx.fillRect(9 * p, 2 * p, 5 * p, 5 * p);
+    ctx.fillStyle = adjustColor('#505050', -15);
+    ctx.fillRect(26 * p, 22 * p, 2 * p, 6 * p);
+    ctx.fillRect(4 * p, 26 * p, 24 * p, 2 * p);
     
-    ctx.fillStyle = '#ff6b6b';
-    ctx.fillRect(3 * p, 3 * p, 3 * p, 3 * p);
-    ctx.fillRect(10 * p, 3 * p, 3 * p, 3 * p);
-    
-    ctx.fillStyle = '#ff4444';
-    ctx.fillRect(4 * p, 4 * p, p, p);
-    ctx.fillRect(11 * p, 4 * p, p, p);
-    
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(2 * p, 10 * p, 12 * p, 4 * p);
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = '#808080';
+      ctx.fillRect((6 + i * 6) * p, 24 * p, 3 * p, 3 * p);
+      ctx.fillStyle = '#A0A0A0';
+      ctx.fillRect((6 + i * 6) * p, 24 * p, 3 * p, p);
+      
+      ctx.fillStyle = adjustColor('#808080', 20);
+      ctx.fillRect((6 + i * 6) * p, 24 * p, p, 3 * p);
+    }
   };
 }
 
 function generateKitchenCounterPixels() {
   return (ctx, size) => {
-    const p = size / 16;
+    const p = size / PIXEL_RESOLUTION;
     
-    ctx.fillStyle = '#704820';
-    ctx.fillRect(0, 0, 16 * p, 16 * p);
+    drawFeatheredShadow(ctx, 2 * p, 30 * p, 28 * p, 4 * p, p);
     
-    ctx.fillStyle = '#a07840';
-    ctx.fillRect(p, p, 14 * p, 14 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -50);
+    ctx.fillRect(0, 32 * p, 32 * p, 3 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -60);
+    ctx.fillRect(0, 32 * p, 2 * p, 3 * p);
     
-    ctx.fillStyle = '#c9a66b';
-    ctx.fillRect(2 * p, 2 * p, 12 * p, 6 * p);
+    drawWoodGrain(ctx, 0, 0, 32 * p, 32 * p, '#5D3A1A', p);
     
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(2 * p, 8 * p, 4 * p, 6 * p);
-    ctx.fillRect(8 * p, 8 * p, 6 * p, 6 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', 20);
+    ctx.fillRect(0, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 0, 32 * p, 2 * p);
     
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fillRect(3 * p, 9 * p, 2 * p, 4 * p);
-    ctx.fillRect(9 * p, 9 * p, 4 * p, 4 * p);
+    ctx.fillStyle = adjustColor('#5D3A1A', -20);
+    ctx.fillRect(30 * p, 0, 2 * p, 32 * p);
+    ctx.fillRect(0, 30 * p, 32 * p, 2 * p);
     
-    ctx.fillStyle = '#6eb5ff';
-    ctx.fillRect(10 * p, 10 * p, 2 * p, 2 * p);
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(2 * p, 2 * p, 28 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', 15);
+    ctx.fillRect(2 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = adjustColor('#8B5A2B', -15);
+    ctx.fillRect(28 * p, 2 * p, 2 * p, 28 * p);
+    
+    ctx.fillStyle = '#C9A66B';
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', 25);
+    ctx.fillRect(4 * p, 4 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 4 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#C9A66B', -20);
+    ctx.fillRect(26 * p, 4 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 14 * p, 24 * p, 2 * p);
+    
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(4 * p, 18 * p, 10 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 20);
+    ctx.fillRect(4 * p, 18 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 18 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', -15);
+    ctx.fillRect(12 * p, 18 * p, 2 * p, 12 * p);
+    ctx.fillRect(4 * p, 28 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = '#F5F5F5';
+    ctx.fillRect(6 * p, 20 * p, 6 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#F5F5F5', 20);
+    ctx.fillRect(6 * p, 20 * p, 2 * p, 8 * p);
+    ctx.fillRect(6 * p, 20 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#F5F5F5', -15);
+    ctx.fillRect(10 * p, 20 * p, 2 * p, 8 * p);
+    ctx.fillRect(6 * p, 26 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(18 * p, 18 * p, 10 * p, 12 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', 20);
+    ctx.fillRect(18 * p, 18 * p, 2 * p, 12 * p);
+    ctx.fillRect(18 * p, 18 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#E8E8E8', -15);
+    ctx.fillRect(26 * p, 18 * p, 2 * p, 12 * p);
+    ctx.fillRect(18 * p, 28 * p, 10 * p, 2 * p);
+    
+    ctx.fillStyle = '#F5F5F5';
+    ctx.fillRect(20 * p, 20 * p, 6 * p, 8 * p);
+    
+    ctx.fillStyle = adjustColor('#F5F5F5', 20);
+    ctx.fillRect(20 * p, 20 * p, 2 * p, 8 * p);
+    ctx.fillRect(20 * p, 20 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#F5F5F5', -15);
+    ctx.fillRect(24 * p, 20 * p, 2 * p, 8 * p);
+    ctx.fillRect(20 * p, 26 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = '#D0D0D0';
+    ctx.fillRect(20 * p, 20 * p, 6 * p, 6 * p);
+    
+    ctx.fillStyle = adjustColor('#D0D0D0', 15);
+    ctx.fillRect(20 * p, 20 * p, 2 * p, 6 * p);
+    ctx.fillRect(20 * p, 20 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = adjustColor('#D0D0D0', -15);
+    ctx.fillRect(24 * p, 20 * p, 2 * p, 6 * p);
+    ctx.fillRect(20 * p, 24 * p, 6 * p, 2 * p);
+    
+    ctx.fillStyle = '#6EB5FF';
+    ctx.fillRect(22 * p, 22 * p, 2 * p, 2 * p);
+    
+    ctx.fillStyle = '#A0A0A0';
+    ctx.fillRect(8 * p, 24 * p, 2 * p, 2 * p);
+    drawMetallicShine(ctx, 8 * p, 24 * p, 2 * p, 2 * p, '#C0C0C0');
   };
 }
 
@@ -1063,398 +2125,1001 @@ function adjustColor(hex, amt) {
   return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+function drawNDSFurniture(ctx, x, y, w, h, baseColor, options = {}) {
+  const { hasTop = true, hasDepth = true, depthHeight = 4, p = 1 } = options;
+  
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(x, y, w, h);
+  
+  if (hasTop) {
+    ctx.fillStyle = adjustColor(baseColor, 30);
+    ctx.fillRect(x, y, w, 2 * p);
+    ctx.fillRect(x, y, 2 * p, h);
+  }
+  
+  ctx.fillStyle = adjustColor(baseColor, -20);
+  ctx.fillRect(x + w - 2 * p, y, 2 * p, h);
+  
+  ctx.fillStyle = adjustColor(baseColor, -30);
+  ctx.fillRect(x, y + h - 2 * p, w, 2 * p);
+  
+  if (hasDepth) {
+    ctx.fillStyle = adjustColor(baseColor, -50);
+    ctx.fillRect(x, y + h, w, depthHeight * p);
+    ctx.fillStyle = adjustColor(baseColor, -60);
+    ctx.fillRect(x, y + h, 2 * p, depthHeight * p);
+  }
+}
+
+function drawIrregularLines(ctx, x, y, w, count, color, p = 1) {
+  ctx.fillStyle = color;
+  for (let i = 0; i < count; i++) {
+    const lineY = y + i * 5 * p;
+    const offsetX = (Math.floor(Math.random() * 3) - 1) * p;
+    const lineWidth = w - Math.floor(Math.random() * 4) * p;
+    ctx.fillRect(x + offsetX, lineY, lineWidth, p);
+  }
+}
+
+function drawFeatheredShadow(ctx, x, y, w, h, p = 1) {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+  ctx.fillRect(x, y, w, 2 * p);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  ctx.fillRect(x + p, y + 2 * p, w - 2 * p, 2 * p);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+  ctx.fillRect(x + 2 * p, y + 4 * p, w - 4 * p, 2 * p);
+}
+
+function drawNDSWindow(ctx, x, y, size, p = 1) {
+  const frameColor = '#5D4037';
+  const glassColor = '#90CAF9';
+  const glassHighlight = '#B3E5FC';
+  const glassShadow = '#42A5F5';
+  const reflectColor = '#E3F2FD';
+  
+  ctx.fillStyle = frameColor;
+  ctx.fillRect(x, y, size, size);
+  
+  ctx.fillStyle = glassColor;
+  ctx.fillRect(x + p, y + p, size - 2 * p, size - 2 * p);
+  
+  ctx.fillStyle = glassHighlight;
+  ctx.fillRect(x + p, y + p, (size - 2 * p) / 2, (size - 2 * p) / 2);
+  
+  ctx.fillStyle = glassShadow;
+  ctx.fillRect(x + size / 2, y + p, p, size - 2 * p);
+  ctx.fillRect(x + p, y + size / 2, size - 2 * p, p);
+  
+  ctx.fillStyle = reflectColor;
+  ctx.fillRect(x + 2 * p, y + 2 * p, 2 * p, 2 * p);
+  
+  ctx.fillStyle = '#8D6E63';
+  ctx.fillRect(x, y + size, size, 2 * p);
+}
+
+function drawNDSDoor(ctx, x, y, w, h, p = 1) {
+  const frameColor = '#3E2723';
+  const doorColor = '#6D4C41';
+  const handleColor = '#FDD835';
+  const stepColor = '#BDBDBD';
+  
+  ctx.fillStyle = frameColor;
+  ctx.fillRect(x, y, w, h);
+  
+  ctx.fillStyle = doorColor;
+  ctx.fillRect(x + p, y + p, w - 2 * p, h - 2 * p);
+  
+  ctx.fillStyle = adjustColor(doorColor, 15);
+  ctx.fillRect(x + p, y + p, 3 * p, h - 4 * p);
+  
+  ctx.fillStyle = adjustColor(doorColor, -15);
+  ctx.fillRect(x + w - 4 * p, y + p, 3 * p, h - 4 * p);
+  
+  ctx.fillStyle = adjustColor(doorColor, -10);
+  ctx.fillRect(x + 3 * p, y + 3 * p, 3 * p, 5 * p);
+  ctx.fillRect(x + w - 6 * p, y + 3 * p, 3 * p, 5 * p);
+  
+  ctx.fillStyle = handleColor;
+  ctx.fillRect(x + w - 3 * p, y + h / 2, 2 * p, 2 * p);
+  
+  ctx.fillStyle = stepColor;
+  ctx.fillRect(x - p, y + h, w + 2 * p, 2 * p);
+}
+
+// ============================================
+// 進階像素渲染工具函數 - 提升畫面精緻度
+// ============================================
+
+const PIXEL_RESOLUTION = 32; // 提升像素解析度從 16 到 32
+
+/**
+ * 繪製帶有立體陰影的矩形
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x - X 座標（像素單位）
+ * @param {number} y - Y 座標（像素單位）
+ * @param {number} w - 寬度
+ * @param {number} h - 高度
+ * @param {string} color - 基礎顏色
+ * @param {number} shadowDepth - 陰影深度（0-3）
+ */
+function drawPixelRectWithShadow(ctx, x, y, w, h, color, shadowDepth = 2) {
+  // 主體
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  
+  // 左上高光（光源來自左上角）
+  ctx.fillStyle = adjustColor(color, 30);
+  ctx.fillRect(x, y, w, 1);
+  ctx.fillRect(x, y, 1, h);
+  
+  // 右下陰影
+  ctx.fillStyle = adjustColor(color, -30);
+  ctx.fillRect(x, y + h - 1, w, 1);
+  ctx.fillRect(x + w - 1, y, 1, h);
+  
+  // 額外深層陰影
+  if (shadowDepth >= 2) {
+    ctx.fillStyle = adjustColor(color, -50);
+    ctx.fillRect(x + w - 2, y + 2, 1, h - 2);
+    ctx.fillRect(x + 2, y + h - 2, w - 2, 1);
+  }
+}
+
+/**
+ * 繪製木紋紋理
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} baseColor - 木頭基礎色
+ * @param {number} p - 像素單位大小
+ */
+function drawWoodGrain(ctx, x, y, w, h, baseColor, p) {
+  // 基底
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(x, y, w, h);
+  
+  // 木紋線條
+  const grainColor1 = adjustColor(baseColor, -15);
+  const grainColor2 = adjustColor(baseColor, 15);
+  
+  for (let i = 0; i < h; i += 2) {
+    const offset = Math.sin((y + i) * 0.3) * 1.5;
+    ctx.fillStyle = i % 4 === 0 ? grainColor1 : grainColor2;
+    ctx.fillRect(x + offset, y + i, w, 1);
+  }
+  
+  // 木紋節點
+  if (w > 4 * p && h > 4 * p) {
+    const knotX = x + w * 0.3;
+    const knotY = y + h * 0.4;
+    ctx.fillStyle = adjustColor(baseColor, -40);
+    ctx.beginPath();
+    ctx.ellipse(knotX, knotY, p, p * 0.7, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * 繪製布料皺褶紋理
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} color - 布料顏色
+ * @param {number} p - 像素單位大小
+ */
+function drawFabricTexture(ctx, x, y, w, h, color, p) {
+  // 基底
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  
+  // 皺褶陰影
+  const shadowColor = adjustColor(color, -25);
+  const highlightColor = adjustColor(color, 20);
+  
+  // 水平皺褶
+  for (let i = 0; i < 4; i++) {
+    const foldY = y + (h * (0.2 + i * 0.2));
+    ctx.fillStyle = shadowColor;
+    ctx.fillRect(x + p, foldY, w - 2 * p, 1);
+    ctx.fillStyle = highlightColor;
+    ctx.fillRect(x + p, foldY + 1, w - 2 * p, 1);
+  }
+  
+  // 垂直皺褶
+  for (let i = 0; i < 3; i++) {
+    const foldX = x + (w * (0.25 + i * 0.25));
+    ctx.fillStyle = `rgba(0,0,0,0.1)`;
+    ctx.fillRect(foldX, y + p, 1, h - 2 * p);
+  }
+}
+
+/**
+ * 繪製金屬光澤
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} baseColor - 金屬基礎色
+ */
+function drawMetallicShine(ctx, x, y, w, h, baseColor) {
+  // 漸層基底
+  const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
+  gradient.addColorStop(0, adjustColor(baseColor, 40));
+  gradient.addColorStop(0.3, adjustColor(baseColor, 60));
+  gradient.addColorStop(0.5, adjustColor(baseColor, 20));
+  gradient.addColorStop(0.7, adjustColor(baseColor, -10));
+  gradient.addColorStop(1, adjustColor(baseColor, -30));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, w, h);
+  
+  // 高光條紋
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillRect(x + w * 0.2, y + 1, w * 0.1, h - 2);
+}
+
+/**
+ * 繪製玻璃/鏡面效果
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} tintColor - 玻璃色調
+ */
+function drawGlassEffect(ctx, x, y, w, h, tintColor) {
+  // 玻璃基底
+  ctx.fillStyle = tintColor;
+  ctx.fillRect(x, y, w, h);
+  
+  // 反射高光
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(x + 2, y + 2, w * 0.3, h * 0.4);
+  
+  // 邊緣陰影
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(x + w - 2, y, 2, h);
+  ctx.fillRect(x, y + h - 2, w, 2);
+}
+
+/**
+ * 繪製螢幕發光效果
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} screenColor - 螢幕顏色
+ * @param {number} p - 像素單位大小
+ */
+function drawScreenGlow(ctx, x, y, w, h, screenColor, p) {
+  // 螢幕基底
+  ctx.fillStyle = screenColor;
+  ctx.fillRect(x, y, w, h);
+  
+  // 內部發光
+  const gradient = ctx.createRadialGradient(
+    x + w/2, y + h/2, 0,
+    x + w/2, y + h/2, Math.max(w, h) * 0.7
+  );
+  gradient.addColorStop(0, adjustColor(screenColor, 40));
+  gradient.addColorStop(0.5, screenColor);
+  gradient.addColorStop(1, adjustColor(screenColor, -20));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, w, h);
+  
+  // 掃描線效果
+  ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  for (let i = 0; i < h; i += 2) {
+    ctx.fillRect(x, y + i, w, 1);
+  }
+  
+  // 邊框高光
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(x, y, w, 1);
+  ctx.fillRect(x, y, 1, h);
+}
+
+/**
+ * 繪製植物葉片紋理
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} leafColor - 葉片顏色
+ * @param {number} p - 像素單位大小
+ */
+function drawLeafTexture(ctx, x, y, w, h, leafColor, p) {
+  // 葉片基底
+  ctx.fillStyle = leafColor;
+  ctx.fillRect(x, y, w, h);
+  
+  // 葉脈
+  const veinColor = adjustColor(leafColor, -20);
+  ctx.fillStyle = veinColor;
+  // 主葉脈
+  ctx.fillRect(x + w/2 - 0.5, y, 1, h);
+  // 側葉脈
+  for (let i = 1; i < 4; i++) {
+    const veinY = y + h * (i / 4);
+    ctx.fillRect(x + w * 0.3, veinY, w * 0.2, 1);
+    ctx.fillRect(x + w * 0.5, veinY, w * 0.2, 1);
+  }
+  
+  // 光澤
+  ctx.fillStyle = adjustColor(leafColor, 25);
+  ctx.fillRect(x + 1, y + 1, w * 0.3, h * 0.2);
+}
+
+/**
+ * 繪製枕頭
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} color - 枕頭顏色
+ * @param {number} p - 像素單位大小
+ */
+function drawPillow(ctx, x, y, w, h, color, p) {
+  // 枕頭主體（帶圓角效果）
+  ctx.fillStyle = color;
+  ctx.fillRect(x + p, y, w - 2*p, h);
+  ctx.fillRect(x, y + p, w, h - 2*p);
+  
+  // 枕頭陰影
+  ctx.fillStyle = adjustColor(color, -20);
+  ctx.fillRect(x + w - 2*p, y + p, p, h - 2*p);
+  ctx.fillRect(x + p, y + h - 2*p, w - 2*p, p);
+  
+  // 枕頭高光
+  ctx.fillStyle = adjustColor(color, 30);
+  ctx.fillRect(x + p, y + p, w - 3*p, p);
+  ctx.fillRect(x + p, y + p, p, h - 3*p);
+  
+  // 皺褶細節
+  ctx.fillStyle = adjustColor(color, -15);
+  ctx.fillRect(x + w * 0.3, y + h * 0.4, w * 0.4, p * 0.5);
+}
+
+/**
+ * 繪製地毯紋理
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} color - 地毯顏色
+ * @param {number} p - 像素單位大小
+ */
+function drawCarpetTexture(ctx, x, y, w, h, color, p) {
+  // 地毯基底
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  
+  // 邊框
+  ctx.fillStyle = adjustColor(color, -30);
+  ctx.fillRect(x, y, w, p);
+  ctx.fillRect(x, y + h - p, w, p);
+  ctx.fillRect(x, y, p, h);
+  ctx.fillRect(x + w - p, y, p, h);
+  
+  // 內框裝飾
+  ctx.fillStyle = adjustColor(color, 20);
+  ctx.fillRect(x + 2*p, y + 2*p, w - 4*p, p);
+  ctx.fillRect(x + 2*p, y + h - 3*p, w - 4*p, p);
+  
+  // 圖案
+  const patternColor = adjustColor(color, 40);
+  ctx.fillStyle = patternColor;
+  // 中心圖案
+  ctx.fillRect(x + w/2 - p, y + h/2 - p, 2*p, 2*p);
+  // 角落圖案
+  ctx.fillRect(x + 3*p, y + 3*p, p, p);
+  ctx.fillRect(x + w - 4*p, y + 3*p, p, p);
+  ctx.fillRect(x + 3*p, y + h - 4*p, p, p);
+  ctx.fillRect(x + w - 4*p, y + h - 4*p, p, p);
+}
+
+/**
+ * 繪製稀有度光暈效果
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} w 
+ * @param {number} h 
+ * @param {string} rarity - 稀有度 (common/rare/epic/legendary)
+ * @param {number} p - 像素單位大小
+ */
+function drawRarityGlow(ctx, x, y, w, h, rarity, p) {
+  const glowColors = {
+    common: null,
+    rare: 'rgba(33, 150, 243, 0.3)',
+    epic: 'rgba(156, 39, 176, 0.4)',
+    legendary: 'rgba(255, 152, 0, 0.5)'
+  };
+  
+  const glowColor = glowColors[rarity];
+  if (!glowColor) return;
+  
+  // 外層光暈
+  ctx.fillStyle = glowColor;
+  ctx.fillRect(x - p, y - p, w + 2*p, p);
+  ctx.fillRect(x - p, y + h, w + 2*p, p);
+  ctx.fillRect(x - p, y, p, h);
+  ctx.fillRect(x + w, y, p, h);
+  
+  // 角落強光
+  if (rarity === 'legendary') {
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
+    ctx.fillRect(x - p, y - p, p, p);
+    ctx.fillRect(x + w, y - p, p, p);
+    ctx.fillRect(x - p, y + h, p, p);
+    ctx.fillRect(x + w, y + h, p, p);
+  }
+}
+
 function generateShopFurniturePixels(id, ctx, size) {
-  const s = size / 16;
+  const s = size / PIXEL_RESOLUTION;
   ctx.imageSmoothingEnabled = false;
   
   switch(id) {
     case 'wall_painting_1':
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
-      ctx.fillStyle = '#e74c3c';
-      ctx.fillRect(3 * s, 3 * s, 10 * s, 10 * s);
-      ctx.fillStyle = '#3498db';
-      ctx.fillRect(5 * s, 5 * s, 6 * s, 3 * s);
-      ctx.fillStyle = '#f1c40f';
-      ctx.fillRect(5 * s, 9 * s, 3 * s, 3 * s);
+      // 畫框陰影
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 畫框
+      drawWoodGrain(ctx, 0, 0, 32 * s, 32 * s, '#5D3A1A', s);
+      ctx.fillStyle = '#8B5A2B';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 畫布
+      ctx.fillStyle = '#E74C3C';
+      ctx.fillRect(4 * s, 4 * s, 24 * s, 24 * s);
+      // 畫作內容
+      ctx.fillStyle = '#3498DB';
+      ctx.fillRect(8 * s, 8 * s, 16 * s, 8 * s);
+      ctx.fillStyle = '#F1C40F';
+      ctx.fillRect(8 * s, 18 * s, 8 * s, 8 * s);
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(4 * s, 4 * s, 24 * s, 2 * s);
       break;
+      
     case 'wall_painting_2':
-      ctx.fillStyle = '#654321';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
-      ctx.fillStyle = '#87CEEB';
-      ctx.fillRect(1 * s, 1 * s, 14 * s, 6 * s);
+      // 風景畫
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      drawWoodGrain(ctx, 0, 0, 32 * s, 32 * s, '#4A3728', s);
+      // 天空
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, 14 * s);
+      skyGrad.addColorStop(0, '#87CEEB');
+      skyGrad.addColorStop(1, '#B0E0E6');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 12 * s);
+      // 草地
       ctx.fillStyle = '#228B22';
-      ctx.fillRect(1 * s, 7 * s, 6 * s, 8 * s);
+      ctx.fillRect(2 * s, 14 * s, 14 * s, 16 * s);
+      // 樹
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(7 * s, 5 * s, 4 * s, 10 * s);
+      ctx.fillRect(14 * s, 10 * s, 4 * s, 20 * s);
+      ctx.fillStyle = '#2E8B2E';
+      ctx.fillRect(10 * s, 4 * s, 12 * s, 10 * s);
+      // 雲
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(6 * s, 4 * s, 8 * s, 4 * s);
+      ctx.fillRect(20 * s, 6 * s, 6 * s, 3 * s);
       break;
+      
     case 'wall_photo_frame':
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(2 * s, 2 * s, 5 * s, 5 * s);
-      ctx.fillRect(9 * s, 2 * s, 5 * s, 5 * s);
-      ctx.fillRect(2 * s, 9 * s, 5 * s, 5 * s);
-      ctx.fillRect(9 * s, 9 * s, 5 * s, 5 * s);
-      ctx.fillStyle = '#fde8c8';
-      ctx.fillRect(3 * s, 3 * s, 3 * s, 3 * s);
+      // 照片牆
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      drawWoodGrain(ctx, 0, 0, 32 * s, 32 * s, '#5D3A1A', s);
+      // 四張照片
+      const photoPositions = [[4, 4], [18, 4], [4, 18], [18, 18]];
+      photoPositions.forEach((pos, i) => {
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(pos[0] * s, pos[1] * s, 10 * s, 10 * s);
+        ctx.fillStyle = i === 0 ? '#FDE8C8' : ['#FFB6C1', '#B0E0E6', '#98FB98'][i-1];
+        ctx.fillRect((pos[0] + 2) * s, (pos[1] + 2) * s, 6 * s, 6 * s);
+      });
       break;
+      
     case 'wall_mirror_decor':
-      ctx.fillStyle = '#DAA520';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
-      ctx.fillStyle = '#C0C0C0';
-      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.fillRect(3 * s, 3 * s, 4 * s, 6 * s);
-      break;
-    case 'wall_tapestry':
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, 0, 2 * s, 16 * s);
-      ctx.fillRect(14 * s, 0, 2 * s, 16 * s);
-      ctx.fillStyle = '#FF6347';
-      ctx.fillRect(2 * s, 0, 12 * s, 16 * s);
-      ctx.fillStyle = '#FFD700';
-      for (let i = 0; i < 4; i++) {
-        ctx.fillRect(4 * s, (2 + i * 4) * s, 8 * s, 2 * s);
-      }
-      break;
-    case 'wall_clock':
-      ctx.fillStyle = '#704820';
-      ctx.fillRect(p, p, 14 * s, 14 * s);
-      ctx.fillStyle = '#a07840';
-      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(3 * s, 3 * s, 10 * s, 10 * s);
-      ctx.fillStyle = '#333';
-      ctx.fillRect(7.5 * s, 3 * s, s, 5 * s);
-      ctx.fillRect(7.5 * s, 8 * s, 3 * s, p);
-      break;
-    case 'wall_shelf':
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, 4 * s, 16 * s, 3 * s);
-      ctx.fillStyle = '#654321';
-      ctx.fillRect(1 * s, 7 * s, 2 * s, 6 * s);
-      ctx.fillRect(13 * s, 7 * s, 2 * s, 6 * s);
-      ctx.fillStyle = '#3498db';
-      ctx.fillRect(4 * s, 1 * s, 3 * s, 3 * s);
-      ctx.fillStyle = '#e74c3c';
-      ctx.fillRect(9 * s, 1 * s, 3 * s, 3 * s);
-      break;
-    case 'curtain_basic':
-      ctx.fillStyle = '#D2691E';
-      ctx.fillRect(0, 0, 3 * s, 16 * s);
-      ctx.fillRect(13 * s, 0, 3 * s, 16 * s);
-      ctx.fillStyle = '#F5DEB3';
-      ctx.fillRect(3 * s, 0, 5 * s, 16 * s);
-      ctx.fillRect(8 * s, 0, 5 * s, 16 * s);
-      ctx.fillStyle = '#DEB887';
-      ctx.fillRect(3 * s, 2 * s, 5 * s, 1 * s);
-      ctx.fillRect(8 * s, 6 * s, 5 * s, 1 * s);
-      break;
-    case 'curtain_lace':
-      ctx.fillStyle = '#FFB6C1';
-      ctx.fillRect(0, 0, 3 * s, 16 * s);
-      ctx.fillRect(13 * s, 0, 3 * s, 16 * s);
-      ctx.fillStyle = '#FFF0F5';
-      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
+      // 裝飾鏡
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 金色邊框
+      drawMetallicShine(ctx, 0, 0, 32 * s, 32 * s, '#DAA520');
+      // 鏡面
+      drawGlassEffect(ctx, 4 * s, 4 * s, 24 * s, 24 * s, '#C0C0C0');
+      // 反射高光
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      for (let i = 0; i < 8; i++) {
-        ctx.fillRect(5 * s, (1 + i * 2) * s, 2 * s, 2 * s);
-        ctx.fillRect(9 * s, (2 + i * 2) * s, 2 * s, 2 * s);
+      ctx.fillRect(6 * s, 6 * s, 8 * s, 12 * s);
+      break;
+      
+    case 'wall_tapestry':
+      // 掛毯
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(0, 0, 4 * s, 32 * s);
+      ctx.fillRect(28 * s, 0, 4 * s, 32 * s);
+      // 織布
+      drawFabricTexture(ctx, 4 * s, 0, 24 * s, 32 * s, '#FF6347', s);
+      // 金色條紋
+      ctx.fillStyle = '#FFD700';
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(6 * s, (2 + i * 5) * s, 20 * s, 2 * s);
       }
       break;
-    case 'curtain_blackout':
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
-      ctx.fillStyle = '#16213e';
-      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
-      ctx.fillStyle = '#0d0d1a';
-      ctx.fillRect(5 * s, 2 * s, 6 * s, 2 * s);
-      ctx.fillRect(5 * s, 8 * s, 6 * s, 2 * s);
+      
+    case 'wall_clock':
+      // 掛鐘
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 木框
+      drawWoodGrain(ctx, 2 * s, 2 * s, 28 * s, 28 * s, '#5D3A1A', s);
+      // 鐘面
+      ctx.fillStyle = '#FFF';
+      ctx.fillRect(6 * s, 6 * s, 20 * s, 20 * s);
+      // 刻度
+      ctx.fillStyle = '#333';
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * 30 - 90) * Math.PI / 180;
+        const x1 = 16 * s + Math.cos(angle) * 8 * s;
+        const y1 = 16 * s + Math.sin(angle) * 8 * s;
+        ctx.fillRect(x1, y1, 2 * s, 2 * s);
+      }
+      // 指針
+      ctx.fillStyle = '#333';
+      ctx.fillRect(15 * s, 6 * s, 2 * s, 10 * s); // 時針
+      ctx.fillRect(15 * s, 16 * s, 6 * s, 2 * s); // 分針
+      // 中心點
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(15 * s, 15 * s, 2 * s, 2 * s);
       break;
+      
+    case 'wall_shelf':
+      // 牆架
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fillRect(2 * s, 8 * s, 28 * s, 4 * s);
+      // 架板
+      drawWoodGrain(ctx, 0, 8 * s, 32 * s, 6 * s, '#8B4513', s);
+      // 支架
+      ctx.fillStyle = '#654321';
+      ctx.fillRect(2 * s, 14 * s, 4 * s, 12 * s);
+      ctx.fillRect(26 * s, 14 * s, 4 * s, 12 * s);
+      // 架上物品
+      ctx.fillStyle = '#3498DB';
+      ctx.fillRect(8 * s, 2 * s, 6 * s, 6 * s);
+      ctx.fillStyle = '#E74C3C';
+      ctx.fillRect(18 * s, 2 * s, 6 * s, 6 * s);
+      break;
+      
+    case 'curtain_basic':
+      // 基礎窗簾
+      ctx.fillStyle = '#D2691E';
+      ctx.fillRect(0, 0, 6 * s, 32 * s);
+      ctx.fillRect(26 * s, 0, 6 * s, 32 * s);
+      // 窗簾布
+      drawFabricTexture(ctx, 6 * s, 0, 10 * s, 32 * s, '#F5DEB3', s);
+      drawFabricTexture(ctx, 16 * s, 0, 10 * s, 32 * s, '#F5DEB3', s);
+      // 皺褶
+      ctx.fillStyle = '#DEB887';
+      ctx.fillRect(6 * s, 4 * s, 10 * s, 2 * s);
+      ctx.fillRect(16 * s, 12 * s, 10 * s, 2 * s);
+      break;
+      
+    case 'curtain_lace':
+      // 蕾絲窗簾
+      ctx.fillStyle = '#FFB6C1';
+      ctx.fillRect(0, 0, 6 * s, 32 * s);
+      ctx.fillRect(26 * s, 0, 6 * s, 32 * s);
+      // 蕾絲
+      ctx.fillStyle = '#FFF0F5';
+      ctx.fillRect(6 * s, 0, 20 * s, 32 * s);
+      // 蕾絲花紋
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      for (let i = 0; i < 8; i++) {
+        ctx.fillRect(10 * s, (2 + i * 4) * s, 4 * s, 3 * s);
+        ctx.fillRect(18 * s, (4 + i * 4) * s, 4 * s, 3 * s);
+      }
+      break;
+      
+    case 'curtain_blackout':
+      // 遮光窗簾
+      ctx.fillStyle = '#1A1A2E';
+      ctx.fillRect(0, 0, 32 * s, 32 * s);
+      ctx.fillStyle = '#16213E';
+      ctx.fillRect(6 * s, 0, 20 * s, 32 * s);
+      // 皺褶
+      ctx.fillStyle = '#0D0D1A';
+      ctx.fillRect(10 * s, 4 * s, 12 * s, 4 * s);
+      ctx.fillRect(10 * s, 16 * s, 12 * s, 4 * s);
+      break;
+      
     case 'curtain_pattern':
-      ctx.fillStyle = '#4a4a6a';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
-      ctx.fillStyle = '#e94560';
+      // 圖案窗簾
+      ctx.fillStyle = '#4A4A6A';
+      ctx.fillRect(0, 0, 32 * s, 32 * s);
+      // 圖案
+      ctx.fillStyle = '#E94560';
       for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
-          ctx.fillRect((2 + i * 3) * s, (j * 4) * s, 2 * s, 2 * s);
+          ctx.fillRect((4 + i * 6) * s, (j * 8) * s, 4 * s, 4 * s);
         }
       }
       break;
+      
     case 'blind_wooden':
-      ctx.fillStyle = '#8B4513';
-      for (let i = 0; i < 6; i++) {
-        ctx.fillRect(0, (i * 3) * s, 16 * s, 2 * s);
+      // 木百葉窗
+      for (let i = 0; i < 8; i++) {
+        drawWoodGrain(ctx, 0, i * 4 * s, 32 * s, 3 * s, '#8B4513', s);
       }
+      // 拉繩
       ctx.fillStyle = '#D2691E';
-      ctx.fillRect(7 * s, 0, 2 * s, 16 * s);
+      ctx.fillRect(14 * s, 0, 4 * s, 32 * s);
       break;
+      
     case 'blind_roman':
+      // 羅馬簾
       ctx.fillStyle = '#F5F5DC';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillRect(0, 0, 32 * s, 32 * s);
       ctx.fillStyle = '#DEB887';
-      for (let i = 0; i < 5; i++) {
-        ctx.fillRect(0, (i * 3 + 2) * s, 16 * s, 1 * s);
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(0, (i * 5 + 4) * s, 32 * s, 2 * s);
       }
       break;
+      
     case 'ceiling_light':
-      ctx.fillStyle = '#a0a0a0';
-      ctx.fillRect(0, 0, 16 * s, 4 * s);
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(2 * s, 4 * s, 12 * s, 8 * s);
-      ctx.fillRect(4 * s, 4 * s, 8 * s, 10 * s);
-      ctx.fillStyle = '#FFF8DC';
-      ctx.fillRect(4 * s, 6 * s, 8 * s, 6 * s);
+      // 吸頂燈
+      ctx.fillStyle = '#A0A0A0';
+      ctx.fillRect(0, 0, 32 * s, 8 * s);
+      // 燈罩
+      const lightGrad = ctx.createRadialGradient(16 * s, 16 * s, 0, 16 * s, 16 * s, 14 * s);
+      lightGrad.addColorStop(0, '#FFF8DC');
+      lightGrad.addColorStop(0.5, '#FFD700');
+      lightGrad.addColorStop(1, '#FFA500');
+      ctx.fillStyle = lightGrad;
+      ctx.fillRect(4 * s, 8 * s, 24 * s, 20 * s);
+      // 光暈
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(8 * s, 12 * s, 16 * s, 12 * s);
       break;
+      
     case 'chandelier':
     case 'chandelier_crystal':
+      // 水晶吊燈
       ctx.fillStyle = '#C0C0C0';
-      ctx.fillRect(7 * s, 0, 2 * s, 4 * s);
-      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(14 * s, 0, 4 * s, 8 * s);
+      // 吊鏈
+      ctx.fillStyle = '#A0A0A0';
+      ctx.fillRect(15 * s, 8 * s, 2 * s, 4 * s);
+      // 水晶燈罩
       for (let i = 0; i < 4; i++) {
-        ctx.fillRect((2 + i * 3.5) * s, 8 * s, 3 * s, 4 * s);
+        const crystalGrad = ctx.createLinearGradient((4 + i * 6) * s, 12 * s, (8 + i * 6) * s, 24 * s);
+        crystalGrad.addColorStop(0, '#FFD700');
+        crystalGrad.addColorStop(0.5, '#FFF8DC');
+        crystalGrad.addColorStop(1, '#FFD700');
+        ctx.fillStyle = crystalGrad;
+        ctx.fillRect((4 + i * 6) * s, 12 * s, 4 * s, 12 * s);
       }
+      // 光點
       ctx.fillStyle = '#FFF';
       for (let i = 0; i < 4; i++) {
-        ctx.fillRect((3 + i * 3.5) * s, 9 * s, p, 2 * s);
+        ctx.fillRect((6 + i * 6) * s, 18 * s, 2 * s, 4 * s);
       }
       break;
+      
     case 'floor_lamp':
+      // 落地燈
       ctx.fillStyle = '#505050';
-      ctx.fillRect(6 * s, 10 * s, 4 * s, 6 * s);
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(4 * s, 2 * s, 8 * s, 8 * s);
-      ctx.fillRect(5 * s, 2 * s, 6 * s, 10 * s);
-      ctx.fillStyle = '#FFF8DC';
-      ctx.fillRect(6 * s, 4 * s, 4 * s, 6 * s);
+      ctx.fillRect(12 * s, 20 * s, 8 * s, 12 * s);
+      // 燈桿
+      drawMetallicShine(ctx, 14 * s, 4 * s, 4 * s, 16 * s, '#707070');
+      // 燈罩
+      const lampGrad = ctx.createLinearGradient(8 * s, 0, 24 * s, 16 * s);
+      lampGrad.addColorStop(0, '#FFD700');
+      lampGrad.addColorStop(0.5, '#FFF8DC');
+      lampGrad.addColorStop(1, '#FFD700');
+      ctx.fillStyle = lampGrad;
+      ctx.fillRect(8 * s, 0, 16 * s, 16 * s);
+      ctx.fillRect(10 * s, 0, 12 * s, 20 * s);
+      // 光暈
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(12 * s, 4 * s, 8 * s, 12 * s);
       break;
+      
     case 'wall_sconce':
+      // 壁燈
       ctx.fillStyle = '#704820';
-      ctx.fillRect(4 * s, 2 * s, 8 * s, 2 * s);
+      ctx.fillRect(8 * s, 4 * s, 16 * s, 4 * s);
+      // 燈罩
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(4 * s, 4 * s, 8 * s, 8 * s);
+      ctx.fillRect(8 * s, 8 * s, 16 * s, 16 * s);
       ctx.fillStyle = '#FFF';
-      ctx.fillRect(6 * s, 6 * s, 4 * s, 4 * s);
+      ctx.fillRect(12 * s, 12 * s, 8 * s, 8 * s);
       break;
+      
     case 'string_lights':
+      // 彩燈串
       ctx.fillStyle = '#505050';
-      ctx.fillRect(0, 2 * s, 16 * s, 1 * s);
-      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
+      ctx.fillRect(0, 4 * s, 32 * s, 2 * s);
+      const lightColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF'];
       for (let i = 0; i < 5; i++) {
-        ctx.fillStyle = colors[i];
-        ctx.fillRect((1 + i * 3) * s, 3 * s, 3 * s, 3 * s);
+        // 燈泡光暈
+        ctx.fillStyle = lightColors[i] + '40';
+        ctx.fillRect((2 + i * 6) * s, 6 * s, 6 * s, 6 * s);
+        // 燈泡
+        ctx.fillStyle = lightColors[i];
+        ctx.fillRect((2 + i * 6) * s, 6 * s, 6 * s, 6 * s);
+        // 高光
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect((3 + i * 6) * s, 7 * s, 2 * s, 2 * s);
       }
       break;
+      
     case 'desk_lamp_luxury':
-      ctx.fillStyle = '#a0a0a0';
-      ctx.fillRect(5 * s, 12 * s, 6 * s, 4 * s);
+      // 豪華檯燈
+      drawMetallicShine(ctx, 10 * s, 24 * s, 12 * s, 8 * s, '#A0A0A0');
+      // 燈臂
       ctx.fillStyle = '#505050';
-      ctx.fillRect(7 * s, 4 * s, 2 * s, 8 * s);
+      ctx.fillRect(14 * s, 8 * s, 4 * s, 16 * s);
+      // 燈罩
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(4 * s, 2 * s, 8 * s, 4 * s);
+      ctx.fillRect(8 * s, 0, 16 * s, 10 * s);
       ctx.fillStyle = '#FFF8DC';
-      ctx.fillRect(6 * s, 3 * s, 4 * s, 2 * s);
+      ctx.fillRect(12 * s, 4 * s, 8 * s, 4 * s);
       break;
+      
     case 'neon_sign':
     case 'neon_sign_custom':
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
-      ctx.fillStyle = '#ff00ff';
-      ctx.fillRect(3 * s, 3 * s, 10 * s, 10 * s);
-      ctx.fillStyle = '#00ffff';
-      ctx.fillRect(5 * s, 5 * s, 6 * s, 6 * s);
+      // 霓虹燈牌
+      ctx.fillStyle = '#1A1A1A';
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 霓虹光暈
+      ctx.fillStyle = 'rgba(255,0,255,0.3)';
+      ctx.fillRect(4 * s, 4 * s, 24 * s, 24 * s);
+      // 霓虹燈管
+      ctx.fillStyle = '#FF00FF';
+      ctx.fillRect(6 * s, 6 * s, 20 * s, 20 * s);
+      ctx.fillStyle = '#00FFFF';
+      ctx.fillRect(10 * s, 10 * s, 12 * s, 12 * s);
       break;
+      
     case 'throw_pillow_1':
-      ctx.fillStyle = '#FF6B6B';
-      ctx.fillRect(2 * s, 4 * s, 12 * s, 10 * s);
+      // 抱枕
+      drawFabricTexture(ctx, 4 * s, 8 * s, 24 * s, 20 * s, '#FF6B6B', s);
       ctx.fillStyle = '#FFB6C1';
-      ctx.fillRect(4 * s, 6 * s, 8 * s, 6 * s);
+      ctx.fillRect(8 * s, 12 * s, 16 * s, 12 * s);
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(6 * s, 10 * s, 8 * s, 4 * s);
       break;
+      
     case 'throw_blanket':
-      ctx.fillStyle = '#6B8E23';
-      ctx.fillRect(0, 4 * s, 16 * s, 8 * s);
+      // 毛毯
+      drawFabricTexture(ctx, 0, 8 * s, 32 * s, 16 * s, '#6B8E23', s);
       ctx.fillStyle = '#556B2F';
-      ctx.fillRect(2 * s, 6 * s, 12 * s, 4 * s);
+      ctx.fillRect(4 * s, 12 * s, 24 * s, 8 * s);
       break;
+      
     case 'area_rug_round':
+      // 圓形地毯
       ctx.fillStyle = '#DC143C';
-      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
-      ctx.fillRect(0, 3 * s, 16 * s, 10 * s);
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      ctx.fillRect(0, 6 * s, 32 * s, 20 * s);
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(4 * s, 4 * s, 8 * s, 8 * s);
+      ctx.fillRect(8 * s, 8 * s, 16 * s, 16 * s);
       break;
+      
     case 'area_rug_fuzzy':
+      // 毛絨地毯
       ctx.fillStyle = '#F5DEB3';
-      ctx.fillRect(0, 2 * s, 16 * s, 12 * s);
+      ctx.fillRect(0, 4 * s, 32 * s, 24 * s);
       ctx.fillStyle = '#DEB887';
       for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 4; j++) {
-          ctx.fillRect((i * 2) * s, (3 + j * 3) * s, 1 * s, 2 * s);
+          ctx.fillRect((i * 4) * s, (6 + j * 5) * s, 2 * s, 4 * s);
         }
       }
       break;
+      
     case 'bed_runner':
+      // 床尾巾
       ctx.fillStyle = '#8B0000';
-      ctx.fillRect(0, 6 * s, 16 * s, 6 * s);
+      ctx.fillRect(0, 12 * s, 32 * s, 12 * s);
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(2 * s, 7 * s, 12 * s, 4 * s);
+      ctx.fillRect(4 * s, 14 * s, 24 * s, 8 * s);
       break;
+      
     case 'cushion_set':
-      ctx.fillStyle = '#9370DB';
-      ctx.fillRect(1 * s, 5 * s, 8 * s, 6 * s);
-      ctx.fillStyle = '#8A2BE2';
-      ctx.fillRect(7 * s, 5 * s, 8 * s, 6 * s);
+      // 靠墊組
+      drawPillow(ctx, 2 * s, 10 * s, 14 * s, 12 * s, '#9370DB', s);
+      drawPillow(ctx, 16 * s, 10 * s, 14 * s, 12 * s, '#8A2BE2', s);
       break;
+      
     case 'curtain_valance':
+      // 窗簾頭
       ctx.fillStyle = '#D2691E';
-      ctx.fillRect(0, 0, 16 * s, 6 * s);
+      ctx.fillRect(0, 0, 32 * s, 12 * s);
       ctx.fillStyle = '#F5DEB3';
       for (let i = 0; i < 4; i++) {
-        ctx.fillRect((1 + i * 4) * s, 6 * s, 3 * s, 4 * s);
+        ctx.fillRect((2 + i * 7) * s, 12 * s, 6 * s, 8 * s);
       }
       break;
+      
     case 'floor_vase_large':
+      // 大型落地花瓶
       ctx.fillStyle = '#704820';
-      ctx.fillRect(4 * s, 4 * s, 8 * s, 12 * s);
-      ctx.fillRect(6 * s, 2 * s, 4 * s, 2 * s);
-      ctx.fillStyle = '#a07840';
-      ctx.fillRect(5 * s, 5 * s, 6 * s, 10 * s);
+      ctx.fillRect(8 * s, 8 * s, 16 * s, 24 * s);
+      ctx.fillRect(12 * s, 4 * s, 8 * s, 4 * s);
+      ctx.fillStyle = '#A07840';
+      ctx.fillRect(10 * s, 10 * s, 12 * s, 20 * s);
+      // 植物
       ctx.fillStyle = '#228B22';
-      ctx.fillRect(3 * s, 0, 10 * s, 4 * s);
+      ctx.fillRect(6 * s, 0, 20 * s, 8 * s);
       ctx.fillStyle = '#32CD32';
-      ctx.fillRect(5 * s, 1 * s, 3 * s, 2 * s);
-      ctx.fillRect(8 * s, 0, 3 * s, 2 * s);
+      ctx.fillRect(10 * s, 2 * s, 6 * s, 4 * s);
+      ctx.fillRect(16 * s, 0, 6 * s, 4 * s);
       break;
+      
     case 'floor_candle_set':
+      // 蠟燭組
       ctx.fillStyle = '#FFF8DC';
-      ctx.fillRect(4 * s, 6 * s, 3 * s, 10 * s);
+      ctx.fillRect(8 * s, 12 * s, 6 * s, 20 * s);
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
-      ctx.ellipse(5.5 * s, 5 * s, 1.5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(11 * s, 10 * s, 3 * s, 4 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#FFF8DC';
-      ctx.fillRect(9 * s, 8 * s, 3 * s, 8 * s);
+      ctx.fillRect(18 * s, 16 * s, 6 * s, 16 * s);
       ctx.fillStyle = '#FF6347';
       ctx.beginPath();
-      ctx.ellipse(10.5 * s, 7 * s, 1.5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(21 * s, 14 * s, 3 * s, 4 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       break;
+      
     case 'floor_books_stack':
+      // 書堆
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(3 * s, 8 * s, 10 * s, 8 * s);
-      ctx.fillStyle = '#e74c3c';
-      ctx.fillRect(4 * s, 6 * s, 8 * s, 2 * s);
-      ctx.fillStyle = '#3498db';
-      ctx.fillRect(3 * s, 4 * s, 10 * s, 2 * s);
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillRect(5 * s, 2 * s, 6 * s, 2 * s);
+      ctx.fillRect(6 * s, 16 * s, 20 * s, 16 * s);
+      ctx.fillStyle = '#E74C3C';
+      ctx.fillRect(8 * s, 12 * s, 16 * s, 4 * s);
+      ctx.fillStyle = '#3498DB';
+      ctx.fillRect(6 * s, 8 * s, 20 * s, 4 * s);
+      ctx.fillStyle = '#2ECC71';
+      ctx.fillRect(10 * s, 4 * s, 12 * s, 4 * s);
       break;
+      
     case 'floor_plant_tall':
+      // 高盆栽
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(5 * s, 12 * s, 6 * s, 4 * s);
+      ctx.fillRect(10 * s, 24 * s, 12 * s, 8 * s);
       ctx.fillStyle = '#228B22';
-      ctx.fillRect(7 * s, 2 * s, 2 * s, 10 * s);
+      ctx.fillRect(14 * s, 4 * s, 4 * s, 20 * s);
       ctx.beginPath();
-      ctx.arc(6 * s, 4 * s, 3 * s, 0, Math.PI * 2);
+      ctx.arc(12 * s, 8 * s, 6 * s, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(10 * s, 6 * s, 3 * s, 0, Math.PI * 2);
+      ctx.arc(20 * s, 12 * s, 6 * s, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(8 * s, 2 * s, 2 * s, 0, Math.PI * 2);
+      ctx.arc(16 * s, 4 * s, 4 * s, 0, Math.PI * 2);
       ctx.fill();
       break;
+      
     case 'floor_statue':
-      ctx.fillStyle = '#C0C0C0';
-      ctx.fillRect(6 * s, 8 * s, 4 * s, 8 * s);
+      // 雕像
+      drawMetallicShine(ctx, 12 * s, 16 * s, 8 * s, 16 * s, '#C0C0C0');
       ctx.beginPath();
-      ctx.arc(8 * s, 5 * s, 3 * s, 0, Math.PI * 2);
+      ctx.arc(16 * s, 10 * s, 6 * s, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#808080';
-      ctx.fillRect(4 * s, 14 * s, 8 * s, 2 * s);
+      ctx.fillRect(8 * s, 28 * s, 16 * s, 4 * s);
       break;
+      
     case 'floor_basket':
+      // 籃子
       ctx.fillStyle = '#D2691E';
-      ctx.fillRect(3 * s, 4 * s, 10 * s, 12 * s);
+      ctx.fillRect(6 * s, 8 * s, 20 * s, 24 * s);
       ctx.fillStyle = '#8B4513';
       for (let i = 0; i < 4; i++) {
-        ctx.fillRect(3 * s, (4 + i * 3) * s, 10 * s, 1 * s);
+        ctx.fillRect(6 * s, (8 + i * 6) * s, 20 * s, 2 * s);
       }
       ctx.fillStyle = '#D2691E';
       ctx.beginPath();
-      ctx.ellipse(8 * s, 4 * s, 5 * s, 2 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(16 * s, 8 * s, 10 * s, 4 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       break;
+      
     case 'floor_mat_welcome':
+      // 歡迎地墊
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, 4 * s, 16 * s, 8 * s);
+      ctx.fillRect(0, 8 * s, 32 * s, 16 * s);
       ctx.fillStyle = '#DEB887';
-      ctx.fillRect(2 * s, 6 * s, 12 * s, 4 * s);
+      ctx.fillRect(4 * s, 12 * s, 24 * s, 8 * s);
       ctx.fillStyle = '#333';
-      ctx.font = `${2 * s}px Arial`;
+      ctx.font = `${4 * s}px Arial`;
       ctx.textAlign = 'center';
-      ctx.fillText('WELCOME', 8 * s, 9 * s);
+      ctx.fillText('WELCOME', 16 * s, 18 * s);
       break;
+      
     case 'wall_art_golden':
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      // 金色藝術品
+      drawMetallicShine(ctx, 0, 0, 32 * s, 32 * s, '#FFD700');
       ctx.fillStyle = '#FFA500';
-      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
+      ctx.fillRect(4 * s, 4 * s, 24 * s, 24 * s);
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
-      ctx.arc(8 * s, 8 * s, 4 * s, 0, Math.PI * 2);
+      ctx.arc(16 * s, 16 * s, 8 * s, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#FFF';
       ctx.beginPath();
-      ctx.arc(8 * s, 8 * s, 2 * s, 0, Math.PI * 2);
+      ctx.arc(16 * s, 16 * s, 4 * s, 0, Math.PI * 2);
       ctx.fill();
       break;
+      
     case 'curtain_silk':
+      // 絲綢窗簾
       ctx.fillStyle = '#9370DB';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillRect(0, 0, 32 * s, 32 * s);
       ctx.fillStyle = '#BA55D3';
-      ctx.fillRect(3 * s, 0, 10 * s, 16 * s);
+      ctx.fillRect(6 * s, 0, 20 * s, 32 * s);
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      for (let i = 0; i < 6; i++) {
-        ctx.fillRect((2 + i * 2) * s, 0, 1 * s, 16 * s);
+      for (let i = 0; i < 8; i++) {
+        ctx.fillRect((4 + i * 3) * s, 0, 2 * s, 32 * s);
       }
       break;
+      
     case 'floor_fountain':
+      // 噴泉
       ctx.fillStyle = '#4169E1';
       ctx.beginPath();
-      ctx.ellipse(8 * s, 10 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(16 * s, 20 * s, 14 * s, 8 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#87CEEB';
       ctx.beginPath();
-      ctx.ellipse(8 * s, 10 * s, 5 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(16 * s, 20 * s, 10 * s, 6 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#4169E1';
-      ctx.fillRect(7 * s, 4 * s, 2 * s, 6 * s);
+      ctx.fillRect(14 * s, 8 * s, 4 * s, 12 * s);
       ctx.fillStyle = '#ADD8E6';
       ctx.beginPath();
-      ctx.arc(8 * s, 3 * s, 2 * s, 0, Math.PI * 2);
+      ctx.arc(16 * s, 6 * s, 4 * s, 0, Math.PI * 2);
       ctx.fill();
       break;
+      
     case 'wall_aquarium':
+      // 水族箱
       ctx.fillStyle = '#4169E1';
-      ctx.fillRect(0, 0, 16 * s, 16 * s);
+      ctx.fillRect(0, 0, 32 * s, 32 * s);
       ctx.fillStyle = '#87CEEB';
-      ctx.fillRect(1 * s, 1 * s, 14 * s, 14 * s);
+      ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
+      // 魚
       ctx.fillStyle = '#FF6347';
       ctx.beginPath();
-      ctx.arc(5 * s, 8 * s, 2 * s, 0, Math.PI * 2);
+      ctx.ellipse(10 * s, 16 * s, 4 * s, 4 * s, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
-      ctx.arc(11 * s, 10 * s, 2 * s, 0, Math.PI * 2);
+      ctx.ellipse(22 * s, 20 * s, 4 * s, 4 * s, 0, 0, Math.PI * 2);
       ctx.fill();
+      // 水草
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(4 * s, 20 * s, 2 * s, 10 * s);
+      ctx.fillRect(26 * s, 22 * s, 2 * s, 8 * s);
       break;
+      
     default:
-      ctx.fillStyle = '#9e9e9e';
-      ctx.fillRect(2 * s, 2 * s, 12 * s, 12 * s);
+      ctx.fillStyle = '#9E9E9E';
+      ctx.fillRect(4 * s, 4 * s, 24 * s, 24 * s);
       ctx.fillStyle = '#616161';
-      ctx.fillRect(4 * s, 4 * s, 8 * s, 8 * s);
+      ctx.fillRect(8 * s, 8 * s, 16 * s, 16 * s);
   }
 }
 
@@ -1491,88 +3156,267 @@ function drawFloorPattern(ctx, x, y, width, height, style) {
 }
 
 function drawWoodFloor(ctx, x, y, width, height, style) {
-  ctx.fillStyle = style.baseColor;
+  // 漸層基底
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, style.baseColor);
+  gradient.addColorStop(0.5, adjustColor(style.baseColor, 10));
+  gradient.addColorStop(1, style.baseColor);
+  ctx.fillStyle = gradient;
   ctx.fillRect(x, y, width, height);
   
   const plankHeight = 20;
   const plankWidth = 80;
   
-  ctx.fillStyle = style.accentColor;
+  // 木板紋理
   for (let py = y; py < y + height; py += plankHeight) {
-    for (let px = x; px < x + width; px += plankWidth) {
-      ctx.strokeStyle = adjustColor(style.baseColor, -20);
-      ctx.lineWidth = 1;
-      ctx.strokeRect(px, py, Math.min(plankWidth, x + width - px), Math.min(plankHeight, y + height - py));
+    const offset = (Math.floor((py - y) / plankHeight) % 2) * (plankWidth / 2);
+    for (let px = x - offset; px < x + width; px += plankWidth) {
+      if (px < x) continue;
+      
+      // 木板邊緣陰影
+      ctx.fillStyle = adjustColor(style.baseColor, -15);
+      ctx.fillRect(px, py, Math.min(plankWidth, x + width - px), 1);
+      ctx.fillRect(px, py, 1, Math.min(plankHeight, y + height - py));
+      
+      // 木板高光
+      ctx.fillStyle = adjustColor(style.baseColor, 20);
+      ctx.fillRect(px + 1, py + 1, Math.min(plankWidth - 2, x + width - px - 2), 1);
+      
+      // 木紋線條
+      ctx.strokeStyle = adjustColor(style.baseColor, -8);
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 3; i++) {
+        const lineY = py + 5 + i * 5;
+        if (lineY < y + height) {
+          ctx.beginPath();
+          ctx.moveTo(px, lineY);
+          ctx.lineTo(Math.min(px + plankWidth, x + width), lineY);
+          ctx.stroke();
+        }
+      }
     }
+  }
+  
+  // 添加噪點紋理
+  for (let i = 0; i < width * height * 0.01; i++) {
+    const nx = x + Math.random() * width;
+    const ny = y + Math.random() * height;
+    ctx.fillStyle = `rgba(0,0,0,${0.03 + Math.random() * 0.05})`;
+    ctx.fillRect(nx, ny, 1, 1);
   }
 }
 
 function drawTileFloor(ctx, x, y, width, height, style) {
-  ctx.fillStyle = style.baseColor;
+  // 漸層基底
+  const gradient = ctx.createRadialGradient(
+    x + width/2, y + height/2, 0,
+    x + width/2, y + height/2, Math.max(width, height) * 0.7
+  );
+  gradient.addColorStop(0, adjustColor(style.baseColor, 15));
+  gradient.addColorStop(0.7, style.baseColor);
+  gradient.addColorStop(1, adjustColor(style.baseColor, -10));
+  ctx.fillStyle = gradient;
   ctx.fillRect(x, y, width, height);
   
   const tileSize = 32;
   
-  ctx.strokeStyle = style.accentColor;
-  ctx.lineWidth = 2;
-  
+  // 磁磚格子
   for (let ty = y; ty < y + height; ty += tileSize) {
     for (let tx = x; tx < x + width; tx += tileSize) {
-      ctx.strokeRect(tx, ty, Math.min(tileSize, x + width - tx), Math.min(tileSize, y + height - ty));
+      const actualWidth = Math.min(tileSize, x + width - tx);
+      const actualHeight = Math.min(tileSize, y + height - ty);
+      
+      // 磁磚邊緣陰影
+      ctx.fillStyle = adjustColor(style.baseColor, -20);
+      ctx.fillRect(tx, ty + actualHeight - 1, actualWidth, 1);
+      ctx.fillRect(tx + actualWidth - 1, ty, 1, actualHeight);
+      
+      // 磁磚高光
+      ctx.fillStyle = adjustColor(style.baseColor, 25);
+      ctx.fillRect(tx, ty, actualWidth, 1);
+      ctx.fillRect(tx, ty, 1, actualHeight);
+      
+      // 磁磚接縫
+      ctx.strokeStyle = style.accentColor || adjustColor(style.baseColor, -30);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(tx, ty, actualWidth, actualHeight);
     }
+  }
+  
+  // 添加細微紋理
+  for (let i = 0; i < width * height * 0.005; i++) {
+    const nx = x + Math.random() * width;
+    const ny = y + Math.random() * height;
+    ctx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.03})`;
+    ctx.fillRect(nx, ny, 1, 1);
   }
 }
 
 function drawMarbleFloor(ctx, x, y, width, height, style) {
-  ctx.fillStyle = style.baseColor;
+  // 大理石漸層基底
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, style.baseColor);
+  gradient.addColorStop(0.3, adjustColor(style.baseColor, 20));
+  gradient.addColorStop(0.6, style.baseColor);
+  gradient.addColorStop(1, adjustColor(style.baseColor, -10));
+  ctx.fillStyle = gradient;
   ctx.fillRect(x, y, width, height);
   
-  ctx.fillStyle = style.accentColor;
+  // 大理石紋理 - 雲狀紋路
+  ctx.strokeStyle = style.accentColor || adjustColor(style.baseColor, -15);
+  ctx.lineWidth = 1;
   
-  for (let i = 0; i < 20; i++) {
-    const mx = Math.floor(x + Math.random() * width);
-    const my = Math.floor(y + Math.random() * height);
-    ctx.fillRect(mx, my, 2 + Math.floor(Math.random() * 3), 1 + Math.floor(Math.random() * 2));
+  for (let i = 0; i < 15; i++) {
+    const startX = x + Math.random() * width;
+    const startY = y + Math.random() * height;
+    
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    
+    for (let j = 0; j < 5; j++) {
+      const cx = startX + (Math.random() - 0.5) * 80;
+      const cy = startY + (Math.random() - 0.5) * 40;
+      ctx.quadraticCurveTo(
+        cx, cy,
+        startX + (Math.random() - 0.5) * 100,
+        startY + (Math.random() - 0.5) * 60
+      );
+    }
+    ctx.stroke();
   }
+  
+  // 細微斑點
+  for (let i = 0; i < 40; i++) {
+    const mx = x + Math.random() * width;
+    const my = y + Math.random() * height;
+    const size = 1 + Math.floor(Math.random() * 3);
+    ctx.fillStyle = `rgba(200,200,200,${0.3 + Math.random() * 0.3})`;
+    ctx.fillRect(mx, my, size, size);
+  }
+  
+  // 光澤效果
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(x, y, width * 0.3, height);
 }
 
 function drawCarpetFloor(ctx, x, y, width, height, style) {
+  // 地毯基底
   ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
-  ctx.fillStyle = style.accentColor;
-  for (let i = 0; i < 50; i++) {
-    const cx = x + Math.random() * width;
-    const cy = y + Math.random() * height;
-    ctx.fillRect(cx, cy, 2, 3);
+  // 地毯邊框
+  ctx.fillStyle = adjustColor(style.baseColor, -30);
+  ctx.fillRect(x, y, width, 4);
+  ctx.fillRect(x, y + height - 4, width, 4);
+  ctx.fillRect(x, y, 4, height);
+  ctx.fillRect(x + width - 4, y, 4, height);
+  
+  // 內框裝飾
+  ctx.fillStyle = adjustColor(style.baseColor, 20);
+  ctx.fillRect(x + 8, y + 8, width - 16, 2);
+  ctx.fillRect(x + 8, y + height - 10, width - 16, 2);
+  ctx.fillRect(x + 8, y + 8, 2, height - 16);
+  ctx.fillRect(x + width - 10, y + 8, 2, height - 16);
+  
+  // 地毯毛絨紋理
+  ctx.fillStyle = style.accentColor || adjustColor(style.baseColor, -15);
+  for (let i = 0; i < 100; i++) {
+    const cx = x + 10 + Math.random() * (width - 20);
+    const cy = y + 10 + Math.random() * (height - 20);
+    ctx.fillRect(cx, cy, 2, 3 + Math.random() * 2);
+  }
+  
+  // 添加纖維紋理
+  for (let fy = y + 12; fy < y + height - 12; fy += 8) {
+    for (let fx = x + 12; fx < x + width - 12; fx += 8) {
+      ctx.fillStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.1})`;
+      ctx.fillRect(fx, fy, 2, 2);
+    }
   }
 }
 
 function drawConcreteFloor(ctx, x, y, width, height, style) {
-  ctx.fillStyle = style.baseColor;
+  // 混凝土漸層
+  const gradient = ctx.createLinearGradient(x, y, x, y + height);
+  gradient.addColorStop(0, adjustColor(style.baseColor, 5));
+  gradient.addColorStop(0.5, style.baseColor);
+  gradient.addColorStop(1, adjustColor(style.baseColor, -5));
+  ctx.fillStyle = gradient;
   ctx.fillRect(x, y, width, height);
   
-  ctx.fillStyle = style.accentColor;
-  for (let i = 0; i < 30; i++) {
+  // 混凝土裂縫和紋理
+  ctx.fillStyle = style.accentColor || adjustColor(style.baseColor, -20);
+  for (let i = 0; i < 20; i++) {
     const cx = x + Math.random() * width;
     const cy = y + Math.random() * height;
-    ctx.fillRect(cx, cy, Math.random() * 4 + 1, Math.random() * 4 + 1);
+    const size = Math.random() * 4 + 1;
+    ctx.fillRect(cx, cy, size, size);
   }
+  
+  // 細微顆粒紋理
+  for (let i = 0; i < width * height * 0.02; i++) {
+    const px = x + Math.random() * width;
+    const py = y + Math.random() * height;
+    const alpha = 0.05 + Math.random() * 0.1;
+    ctx.fillStyle = Math.random() > 0.5 
+      ? `rgba(255,255,255,${alpha})` 
+      : `rgba(0,0,0,${alpha})`;
+    ctx.fillRect(px, py, 1, 1);
+  }
+  
+  // 混凝土接縫
+  ctx.strokeStyle = adjustColor(style.baseColor, -15);
+  ctx.lineWidth = 1;
+  ctx.setLineDash([5, 5]);
+  ctx.strokeRect(x + 2, y + 2, width - 4, height - 4);
+  ctx.setLineDash([]);
 }
 
 function drawParquetFloor(ctx, x, y, width, height, style) {
-  ctx.fillStyle = style.baseColor;
+  // 拼花地板基底
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, style.baseColor);
+  gradient.addColorStop(1, adjustColor(style.baseColor, 10));
+  ctx.fillStyle = gradient;
   ctx.fillRect(x, y, width, height);
   
   const blockSize = 16;
   
+  // 拼花木塊
   for (let by = y; by < y + height; by += blockSize) {
     for (let bx = x; bx < x + width; bx += blockSize) {
+      const actualWidth = Math.min(blockSize, x + width - bx);
+      const actualHeight = Math.min(blockSize, y + height - by);
       const isAlternate = (Math.floor((bx - x) / blockSize) + Math.floor((by - y) / blockSize)) % 2;
-      ctx.fillStyle = isAlternate ? style.baseColor : style.accentColor;
-      ctx.fillRect(bx, by, Math.min(blockSize, x + width - bx), Math.min(blockSize, y + height - by));
+      
+      // 木塊顏色交替
+      const blockColor = isAlternate ? style.baseColor : (style.accentColor || adjustColor(style.baseColor, 15));
+      ctx.fillStyle = blockColor;
+      ctx.fillRect(bx, by, actualWidth, actualHeight);
+      
+      // 木塊邊緣陰影
+      ctx.fillStyle = adjustColor(blockColor, -20);
+      ctx.fillRect(bx, by + actualHeight - 1, actualWidth, 1);
+      ctx.fillRect(bx + actualWidth - 1, by, 1, actualHeight);
+      
+      // 木塊高光
+      ctx.fillStyle = adjustColor(blockColor, 30);
+      ctx.fillRect(bx, by, actualWidth, 1);
+      ctx.fillRect(bx, by, 1, actualHeight);
+      
+      // 木紋線條
+      ctx.strokeStyle = adjustColor(blockColor, -10);
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + actualWidth, by + actualHeight);
+      ctx.stroke();
     }
   }
+  
+  // 添加光澤
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(x, y, width, height * 0.3);
 }
 
 function drawWallPattern(ctx, x, y, width, height, style) {
@@ -1747,44 +3591,93 @@ function renderSprite(sprite, canvas, size = 96) {
   
   const scale = size / 96;
   const skin = sprite.skin || '#fde8c8';
+  const skinShadow = adjustColor(skin, -20);
+  const skinHighlight = adjustColor(skin, 15);
   const hair = sprite.haircolor || '#2d1b00';
+  const hairShadow = adjustColor(hair, -15);
   const outfit = sprite.outfitcolor || '#ff6b9d';
+  const outfitShadow = adjustColor(outfit, -25);
+  const outfitHighlight = adjustColor(outfit, 20);
   
   ctx.save();
   ctx.scale(scale, scale);
   
-  ctx.fillStyle = skin;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+  ctx.beginPath();
+  ctx.ellipse(48, 92, 20, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.fillStyle = outfit;
   if (sprite.body === 'slim') {
     ctx.fillRect(36, 32, 24, 44);
     ctx.fillRect(34, 76, 10, 16);
     ctx.fillRect(52, 76, 10, 16);
     ctx.fillRect(28, 34, 8, 28);
     ctx.fillRect(60, 34, 8, 28);
+    
+    ctx.fillStyle = outfitHighlight;
+    ctx.fillRect(36, 32, 4, 44);
+    ctx.fillRect(34, 76, 3, 16);
+    ctx.fillRect(52, 76, 3, 16);
+    ctx.fillRect(28, 34, 3, 28);
+    ctx.fillRect(60, 34, 3, 28);
+    
+    ctx.fillStyle = outfitShadow;
+    ctx.fillRect(56, 32, 4, 44);
+    ctx.fillRect(41, 76, 3, 16);
+    ctx.fillRect(59, 76, 3, 16);
+    ctx.fillRect(33, 34, 3, 28);
+    ctx.fillRect(65, 34, 3, 28);
   } else {
     ctx.fillRect(32, 32, 32, 44);
     ctx.fillRect(30, 76, 14, 16);
     ctx.fillRect(52, 76, 14, 16);
     ctx.fillRect(22, 34, 10, 28);
     ctx.fillRect(64, 34, 10, 28);
+    
+    ctx.fillStyle = outfitHighlight;
+    ctx.fillRect(32, 32, 4, 44);
+    ctx.fillRect(30, 76, 4, 16);
+    ctx.fillRect(52, 76, 4, 16);
+    ctx.fillRect(22, 34, 4, 28);
+    ctx.fillRect(64, 34, 4, 28);
+    
+    ctx.fillStyle = outfitShadow;
+    ctx.fillRect(60, 32, 4, 44);
+    ctx.fillRect(40, 76, 4, 16);
+    ctx.fillRect(62, 76, 4, 16);
+    ctx.fillRect(28, 34, 4, 28);
+    ctx.fillRect(70, 34, 4, 28);
   }
   
   ctx.fillStyle = skin;
   ctx.fillRect(32, 8, 32, 28);
+  
+  ctx.fillStyle = skinHighlight;
+  ctx.fillRect(32, 8, 4, 28);
+  
+  ctx.fillStyle = skinShadow;
+  ctx.fillRect(60, 8, 4, 28);
+  
   ctx.fillStyle = '#1a0a00';
   ctx.fillRect(36, 20, 4, 4);
   ctx.fillRect(56, 20, 4, 4);
+  
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(36, 20, 1, 1);
+  ctx.fillRect(56, 20, 1, 1);
+  
   ctx.fillStyle = '#ff9999';
   ctx.fillRect(40, 26, 16, 3);
-  
-  ctx.fillStyle = outfit;
-  ctx.fillRect(32, 44, 32, 28);
-  ctx.fillStyle = adjustColor(outfit, 20);
-  ctx.fillRect(32, 72, 32, 20);
   
   ctx.fillStyle = hair;
   ctx.fillRect(32, 4, 32, 16);
   ctx.fillRect(28, 8, 8, 16);
   ctx.fillRect(60, 8, 8, 16);
+  
+  ctx.fillStyle = hairShadow;
+  ctx.fillRect(60, 4, 4, 16);
+  ctx.fillRect(64, 8, 4, 16);
   
   ctx.restore();
   return canvas;
@@ -3010,17 +4903,13 @@ function renderCommunityBuildings(ctx, offsetX, offsetY, tileSize) {
 }
 
 function drawCommunityBuilding(ctx, x, y, width, height, data, tileSize) {
-  const wallColor = data.color || '#D2691E';
-  const roofColor = data.roofColor || '#8B0000';
+  const wallColor = data.color || '#EFEBE9';
+  const roofColor = data.roofColor || '#C62828';
   
-  ctx.fillStyle = wallColor;
-  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.65);
-  
-  ctx.fillStyle = adjustColor(wallColor, 20);
-  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.08);
-  
-  ctx.fillStyle = adjustColor(wallColor, -20);
-  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.84, height * 0.08);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+  ctx.beginPath();
+  ctx.ellipse(x + width / 2, y + height + 4, width * 0.4, height * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
   
   ctx.fillStyle = roofColor;
   ctx.beginPath();
@@ -3038,37 +4927,97 @@ function drawCommunityBuilding(ctx, x, y, width, height, data, tileSize) {
   ctx.closePath();
   ctx.fill();
   
-  ctx.fillStyle = '#87CEEB';
+  ctx.fillStyle = adjustColor(roofColor, -15);
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.5, y + height * 0.08);
+  ctx.lineTo(x + width * 0.98, y + height * 0.35);
+  ctx.lineTo(x + width * 0.5, y + height * 0.35);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.fillStyle = adjustColor(roofColor, -30);
+  for (let i = 0; i < 6; i++) {
+    const lineY = y + height * (0.12 + i * 0.04);
+    const offsetX = (Math.floor(Math.random() * 3) - 1);
+    ctx.fillRect(x + width * 0.05 + offsetX, lineY, width * 0.9, 1);
+  }
+  
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.57);
+  
+  ctx.fillStyle = adjustColor(wallColor, 15);
+  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.06, height * 0.57);
+  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.05);
+  
+  ctx.fillStyle = adjustColor(wallColor, -15);
+  ctx.fillRect(x + width * 0.86, y + height * 0.35, width * 0.06, height * 0.57);
+  
+  ctx.fillStyle = adjustColor(wallColor, -25);
+  ctx.fillRect(x + width * 0.08, y + height * 0.87, width * 0.84, height * 0.05);
+  
+  ctx.fillStyle = adjustColor(wallColor, -50);
+  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.84, height * 0.08);
+  ctx.fillStyle = adjustColor(wallColor, -60);
+  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.04, height * 0.08);
+  
   const winWidth = width * 0.14;
   const winHeight = height * 0.18;
-  ctx.fillRect(x + width * 0.18, y + height * 0.45, winWidth, winHeight);
-  ctx.fillRect(x + width * 0.68, y + height * 0.45, winWidth, winHeight);
+  const winX1 = x + width * 0.18;
+  const winX2 = x + width * 0.68;
+  const winY = y + height * 0.45;
   
-  ctx.fillStyle = '#B0E0E6';
-  ctx.fillRect(x + width * 0.18, y + height * 0.45, winWidth, winHeight * 0.25);
-  ctx.fillRect(x + width * 0.68, y + height * 0.45, winWidth, winHeight * 0.25);
+  ctx.fillStyle = '#5D4037';
+  ctx.fillRect(winX1 - 2, winY - 2, winWidth + 4, winHeight + 4);
+  ctx.fillRect(winX2 - 2, winY - 2, winWidth + 4, winHeight + 4);
   
-  ctx.fillStyle = '#5F9EA0';
-  ctx.fillRect(x + width * 0.18, y + height * 0.45 + winHeight * 0.75, winWidth, winHeight * 0.25);
-  ctx.fillRect(x + width * 0.68, y + height * 0.45 + winHeight * 0.75, winWidth, winHeight * 0.25);
+  ctx.fillStyle = '#90CAF9';
+  ctx.fillRect(winX1, winY, winWidth, winHeight);
+  ctx.fillRect(winX2, winY, winWidth, winHeight);
   
-  ctx.strokeStyle = '#4682B4';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + width * 0.18, y + height * 0.45, winWidth, winHeight);
-  ctx.strokeRect(x + width * 0.68, y + height * 0.45, winWidth, winHeight);
+  ctx.fillStyle = '#B3E5FC';
+  ctx.fillRect(winX1, winY, winWidth * 0.5, winHeight * 0.5);
+  ctx.fillRect(winX2, winY, winWidth * 0.5, winHeight * 0.5);
   
-  ctx.fillStyle = '#654321';
+  ctx.fillStyle = '#42A5F5';
+  ctx.fillRect(winX1 + winWidth / 2 - 1, winY, 2, winHeight);
+  ctx.fillRect(winX1, winY + winHeight / 2 - 1, winWidth, 2);
+  ctx.fillRect(winX2 + winWidth / 2 - 1, winY, 2, winHeight);
+  ctx.fillRect(winX2, winY + winHeight / 2 - 1, winWidth, 2);
+  
+  ctx.fillStyle = '#E3F2FD';
+  ctx.fillRect(winX1 + 2, winY + 2, 4, 4);
+  ctx.fillRect(winX2 + 2, winY + 2, 4, 4);
+  
+  ctx.fillStyle = '#8D6E63';
+  ctx.fillRect(winX1 - 2, winY + winHeight, winWidth + 4, 4);
+  ctx.fillRect(winX2 - 2, winY + winHeight, winWidth + 4, 4);
+  
   const doorWidth = width * 0.18;
-  const doorHeight = height * 0.35;
-  ctx.fillRect(x + width * 0.41, y + height * 0.65, doorWidth, doorHeight);
+  const doorHeight = height * 0.32;
+  const doorX = x + width * 0.41;
+  const doorY = y + height * 0.60;
   
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(x + width * 0.41, y + height * 0.65, doorWidth * 0.15, doorHeight);
+  ctx.fillStyle = '#3E2723';
+  ctx.fillRect(doorX - 2, doorY - 2, doorWidth + 4, doorHeight + 4);
   
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.54, y + height * 0.78, width * 0.025, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = '#6D4C41';
+  ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', 15);
+  ctx.fillRect(doorX, doorY, doorWidth * 0.2, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', -15);
+  ctx.fillRect(doorX + doorWidth * 0.8, doorY, doorWidth * 0.2, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', -10);
+  ctx.fillRect(doorX + doorWidth * 0.2, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
+  ctx.fillRect(doorX + doorWidth * 0.55, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
+  
+  ctx.fillStyle = '#FDD835';
+  ctx.fillRect(doorX + doorWidth * 0.75, doorY + doorHeight * 0.45, 4, 4);
+  
+  ctx.fillStyle = '#BDBDBD';
+  ctx.fillRect(doorX - 4, doorY + doorHeight, doorWidth + 8, 4);
   
   ctx.fillStyle = '#eaeaea';
   ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
@@ -3687,17 +5636,13 @@ function renderBuildings(ctx, offsetX, offsetY, tileSize) {
 }
 
 function drawBuilding(ctx, x, y, width, height, data, tileSize) {
-  const wallColor = data.color || '#D2691E';
-  const roofColor = data.roofColor || '#8B0000';
+  const wallColor = data.color || '#EFEBE9';
+  const roofColor = data.roofColor || '#C62828';
   
-  ctx.fillStyle = wallColor;
-  ctx.fillRect(x + width * 0.08, y + height * 0.32, width * 0.84, height * 0.68);
-  
-  ctx.fillStyle = adjustColor(wallColor, 25);
-  ctx.fillRect(x + width * 0.08, y + height * 0.32, width * 0.12, height * 0.68);
-  
-  ctx.fillStyle = adjustColor(wallColor, -25);
-  ctx.fillRect(x + width * 0.8, y + height * 0.32, width * 0.12, height * 0.68);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+  ctx.beginPath();
+  ctx.ellipse(x + width / 2, y + height + 4, width * 0.4, height * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
   
   ctx.fillStyle = roofColor;
   ctx.beginPath();
@@ -3723,43 +5668,89 @@ function drawBuilding(ctx, x, y, width, height, data, tileSize) {
   ctx.closePath();
   ctx.fill();
   
-  ctx.fillStyle = '#87CEEB';
+  ctx.fillStyle = adjustColor(roofColor, -30);
+  for (let i = 0; i < 5; i++) {
+    const lineY = y + height * (0.1 + i * 0.04);
+    const offsetX = (Math.floor(Math.random() * 3) - 1);
+    ctx.fillRect(x + width * 0.05 + offsetX, lineY, width * 0.9, 1);
+  }
+  
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(x + width * 0.08, y + height * 0.32, width * 0.84, height * 0.6);
+  
+  ctx.fillStyle = adjustColor(wallColor, 15);
+  ctx.fillRect(x + width * 0.08, y + height * 0.32, width * 0.06, height * 0.6);
+  ctx.fillRect(x + width * 0.08, y + height * 0.32, width * 0.84, height * 0.04);
+  
+  ctx.fillStyle = adjustColor(wallColor, -15);
+  ctx.fillRect(x + width * 0.86, y + height * 0.32, width * 0.06, height * 0.6);
+  
+  ctx.fillStyle = adjustColor(wallColor, -25);
+  ctx.fillRect(x + width * 0.08, y + height * 0.88, width * 0.84, height * 0.04);
+  
+  ctx.fillStyle = adjustColor(wallColor, -50);
+  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.84, height * 0.08);
+  ctx.fillStyle = adjustColor(wallColor, -60);
+  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.04, height * 0.08);
+  
   const winWidth = width * 0.12;
   const winHeight = height * 0.15;
-  ctx.fillRect(x + width * 0.18, y + height * 0.42, winWidth, winHeight);
-  ctx.fillRect(x + width * 0.7, y + height * 0.42, winWidth, winHeight);
+  const winX1 = x + width * 0.18;
+  const winX2 = x + width * 0.7;
+  const winY = y + height * 0.42;
   
-  ctx.fillStyle = '#B0E0E6';
-  ctx.fillRect(x + width * 0.18, y + height * 0.42, winWidth, winHeight * 0.3);
-  ctx.fillRect(x + width * 0.7, y + height * 0.42, winWidth, winHeight * 0.3);
+  ctx.fillStyle = '#5D4037';
+  ctx.fillRect(winX1 - 2, winY - 2, winWidth + 4, winHeight + 4);
+  ctx.fillRect(winX2 - 2, winY - 2, winWidth + 4, winHeight + 4);
   
-  ctx.strokeStyle = '#4682B4';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(x + width * 0.18, y + height * 0.42, winWidth, winHeight);
-  ctx.strokeRect(x + width * 0.7, y + height * 0.42, winWidth, winHeight);
+  ctx.fillStyle = '#90CAF9';
+  ctx.fillRect(winX1, winY, winWidth, winHeight);
+  ctx.fillRect(winX2, winY, winWidth, winHeight);
   
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.18 + winWidth / 2, y + height * 0.42);
-  ctx.lineTo(x + width * 0.18 + winWidth / 2, y + height * 0.42 + winHeight);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.7 + winWidth / 2, y + height * 0.42);
-  ctx.lineTo(x + width * 0.7 + winWidth / 2, y + height * 0.42 + winHeight);
-  ctx.stroke();
+  ctx.fillStyle = '#B3E5FC';
+  ctx.fillRect(winX1, winY, winWidth * 0.5, winHeight * 0.5);
+  ctx.fillRect(winX2, winY, winWidth * 0.5, winHeight * 0.5);
   
-  ctx.fillStyle = '#654321';
+  ctx.fillStyle = '#42A5F5';
+  ctx.fillRect(winX1 + winWidth / 2 - 1, winY, 2, winHeight);
+  ctx.fillRect(winX1, winY + winHeight / 2 - 1, winWidth, 2);
+  ctx.fillRect(winX2 + winWidth / 2 - 1, winY, 2, winHeight);
+  ctx.fillRect(winX2, winY + winHeight / 2 - 1, winWidth, 2);
+  
+  ctx.fillStyle = '#E3F2FD';
+  ctx.fillRect(winX1 + 2, winY + 2, 3, 3);
+  ctx.fillRect(winX2 + 2, winY + 2, 3, 3);
+  
+  ctx.fillStyle = '#8D6E63';
+  ctx.fillRect(winX1 - 2, winY + winHeight, winWidth + 4, 3);
+  ctx.fillRect(winX2 - 2, winY + winHeight, winWidth + 4, 3);
+  
   const doorWidth = width * 0.16;
-  const doorHeight = height * 0.32;
-  ctx.fillRect(x + width * 0.42, y + height * 0.68, doorWidth, doorHeight);
+  const doorHeight = height * 0.28;
+  const doorX = x + width * 0.42;
+  const doorY = y + height * 0.64;
   
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(x + width * 0.42, y + height * 0.68, doorWidth * 0.12, doorHeight);
-  ctx.fillRect(x + width * 0.42, y + height * 0.68, doorWidth, doorHeight * 0.08);
+  ctx.fillStyle = '#3E2723';
+  ctx.fillRect(doorX - 2, doorY - 2, doorWidth + 4, doorHeight + 4);
   
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.54, y + height * 0.82, width * 0.02, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = '#6D4C41';
+  ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', 15);
+  ctx.fillRect(doorX, doorY, doorWidth * 0.2, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', -15);
+  ctx.fillRect(doorX + doorWidth * 0.8, doorY, doorWidth * 0.2, doorHeight);
+  
+  ctx.fillStyle = adjustColor('#6D4C41', -10);
+  ctx.fillRect(doorX + doorWidth * 0.2, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
+  ctx.fillRect(doorX + doorWidth * 0.55, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
+  
+  ctx.fillStyle = '#FDD835';
+  ctx.fillRect(doorX + doorWidth * 0.75, doorY + doorHeight * 0.45, 3, 3);
+  
+  ctx.fillStyle = '#BDBDBD';
+  ctx.fillRect(doorX - 3, doorY + doorHeight, doorWidth + 6, 3);
   
   ctx.fillStyle = '#eaeaea';
   ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;

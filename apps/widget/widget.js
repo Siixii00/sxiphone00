@@ -96,10 +96,35 @@
     'clock-digital': {
       name: '數位時鐘', cat: 'clock', sizes: ['1x1','2x1','4x1'], preview: 'lib-preview-clock',
       render(w) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = now.getSeconds();
+        const isAM = now.getHours() < 12;
+        const hour = now.getHours();
+        
+        let gradient;
+        if (hour >= 6 && hour < 9) {
+          gradient = 'linear-gradient(135deg, #FF6B35, #FF8E53)';
+        } else if (hour >= 9 && hour < 17) {
+          gradient = 'linear-gradient(135deg, #4A90E2, #357ABD)';
+        } else if (hour >= 17 && hour < 20) {
+          gradient = 'linear-gradient(135deg, #834D9B, #D04ED6)';
+        } else {
+          gradient = 'linear-gradient(135deg, #0F2027, #203A43)';
+        }
+        
+        if (w.size === '4x1') {
+          return `<div class="widget-clock-lg" style="background: ${gradient}">
+            <span class="widget-time-lg">${hours}:${minutes}</span>
+            <span class="widget-am-pm">${isAM ? 'AM' : 'PM'}</span>
+            <span class="widget-date-lg">${fmtDate()}</span>
+            <div class="widget-seconds-bar" style="width: ${(seconds / 60) * 100}%"></div>
+          </div>`;
+        }
         const t = fmtTime();
         const d = fmtDate();
         if (w.size === '1x1') return `<span class="widget-time-sm">${t}</span>`;
-        if (w.size === '4x1') return `<span class="widget-time-lg">${t}</span><span class="widget-date-lg">${d}</span>`;
         return `<span class="widget-time">${t}</span><span class="widget-date">${d}</span>`;
       }
     },
@@ -2058,18 +2083,53 @@
       }
     });
     
-    // Desktop scroll update dots
-    $('desktopPagesScroll')?.addEventListener('scroll', () => {
-      const scroll = $('desktopPagesScroll');
-      const pages = scroll?.querySelectorAll('.desktop-page');
-      const dots = $('desktopPageDots')?.querySelectorAll('.dot');
-      if (!scroll || !pages || !dots) return;
+    // Desktop scroll: dots update + wheel + drag support
+    const scrollContainer = $('desktopPagesScroll');
+    if (scrollContainer) {
+      // Scroll event for dots
+      scrollContainer.addEventListener('scroll', () => {
+        const pages = scrollContainer.querySelectorAll('.desktop-page');
+        const dots = $('desktopPageDots')?.querySelectorAll('.dot');
+        if (!pages.length || !dots) return;
+        const index = Math.round(scrollContainer.scrollLeft / (pages[0]?.offsetWidth || 1));
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+      }, { passive: true });
       
-      const index = Math.round(scroll.scrollLeft / (pages[0]?.offsetWidth || 1));
-      dots.forEach((dot, i) => {
-        dot.classList.toggle('active', i === index);
+      // Wheel horizontal scroll
+      scrollContainer.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          e.preventDefault();
+          scrollContainer.scrollLeft += e.deltaY;
+        }
+      }, { passive: false });
+      
+      // Drag to scroll
+      let isDragging = false;
+      let startX = 0;
+      let scrollStart = 0;
+      
+      scrollContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        scrollStart = scrollContainer.scrollLeft;
+        scrollContainer.style.cursor = 'grabbing';
       });
-    }, { passive: true });
+      
+      scrollContainer.addEventListener('mouseleave', () => {
+        if (isDragging) { isDragging = false; scrollContainer.style.cursor = 'grab'; }
+      });
+      
+      scrollContainer.addEventListener('mouseup', () => {
+        if (isDragging) { isDragging = false; scrollContainer.style.cursor = 'grab'; }
+      });
+      
+      scrollContainer.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const dx = e.clientX - startX;
+        scrollContainer.scrollLeft = scrollStart - dx;
+      });
+    }
   }
 
   /* ==================== TIME UPDATE ==================== */

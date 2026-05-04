@@ -1665,4 +1665,224 @@ document.addEventListener('click', (event) => {
     generateAIVideos();
   }
 });
+
+let ytAIVideoGenState = {
+  isGenerating: false,
+  generatedVideoUrl: null,
+  generatedPrompt: null
+};
+
+const ytAIVideoGenModal = document.getElementById('yt-ai-video-gen-modal');
+const ytAIVideoGenStatus = document.getElementById('yt-ai-video-gen-status');
+const ytAIVideoGenForm = document.getElementById('yt-ai-video-gen-form');
+const ytAIVideoGenPreview = document.getElementById('yt-ai-video-gen-preview');
+const ytAIVideoGenProgressBar = document.getElementById('yt-ai-video-gen-progress-bar');
+const ytAIVideoGenMessage = document.getElementById('yt-ai-video-gen-message');
+const ytAIVideoPreviewPlayer = document.getElementById('yt-ai-video-preview-player');
+const ytAIVideoGenActions = document.getElementById('yt-ai-video-gen-actions');
+const ytStartVideoGenBtn = document.getElementById('yt-start-video-gen-btn');
+const ytAIVideoAdvancedOptions = document.getElementById('yt-ai-video-advanced-options');
+
+function openYTAIVideoGenModal() {
+  if (!ytAIVideoGenModal) return;
+  resetYTAIVideoGenModal();
+  ytAIVideoGenModal.hidden = false;
+}
+
+function closeYTAIVideoGenModal() {
+  if (!ytAIVideoGenModal) return;
+  ytAIVideoGenModal.hidden = true;
+  resetYTAIVideoGenModal();
+}
+
+function resetYTAIVideoGenModal() {
+  if (ytAIVideoGenStatus) ytAIVideoGenStatus.hidden = true;
+  if (ytAIVideoGenForm) ytAIVideoGenForm.hidden = false;
+  if (ytAIVideoGenPreview) ytAIVideoGenPreview.hidden = true;
+  if (ytAIVideoGenProgressBar) ytAIVideoGenProgressBar.style.width = '0%';
+  if (ytAIVideoGenMessage) ytAIVideoGenMessage.textContent = '準備中...';
+  if (ytStartVideoGenBtn) {
+    ytStartVideoGenBtn.disabled = false;
+    ytStartVideoGenBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 開始生成';
+  }
+  if (ytAIVideoGenActions) ytAIVideoGenActions.hidden = false;
+  ytAIVideoGenState.isGenerating = false;
+  ytAIVideoGenState.generatedVideoUrl = null;
+  ytAIVideoGenState.generatedPrompt = null;
+}
+
+function toggleYTAdvancedOptions() {
+  if (!ytAIVideoAdvancedOptions) return;
+  ytAIVideoAdvancedOptions.hidden = !ytAIVideoAdvancedOptions.hidden;
+  const btn = document.querySelector('#yt-ai-video-gen-modal [data-action="toggle-advanced"]');
+  if (btn) {
+    const icon = btn.querySelector('.fa-chevron-down, .fa-chevron-up');
+    if (icon) {
+      icon.classList.toggle('fa-chevron-down');
+      icon.classList.toggle('fa-chevron-up');
+    }
+  }
+}
+
+function updateYTRangeDisplay(inputId, valueId, suffix = '') {
+  const input = document.getElementById(inputId);
+  const display = document.getElementById(valueId);
+  if (input && display) {
+    display.textContent = input.value + suffix;
+  }
+}
+
+async function startYTAIVideoGeneration() {
+  const promptInput = document.getElementById('yt-ai-video-prompt');
+  const prompt = promptInput?.value?.trim();
+
+  if (!prompt) {
+    alert('請輸入影片描述');
+    return;
+  }
+
+  if (ytAIVideoGenState.isGenerating) {
+    return;
+  }
+
+  ytAIVideoGenState.isGenerating = true;
+  ytAIVideoGenState.generatedPrompt = prompt;
+
+  if (ytStartVideoGenBtn) {
+    ytStartVideoGenBtn.disabled = true;
+    ytStartVideoGenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+  }
+
+  if (ytAIVideoGenStatus) ytAIVideoGenStatus.hidden = false;
+  if (ytAIVideoGenForm) ytAIVideoGenForm.hidden = true;
+
+  const durationInput = document.getElementById('yt-ai-video-duration');
+  const widthInput = document.getElementById('yt-ai-video-width');
+  const heightInput = document.getElementById('yt-ai-video-height');
+  const guidanceInput = document.getElementById('yt-ai-video-guidance');
+
+  const options = {
+    duration: durationInput ? parseFloat(durationInput.value) : 2.0,
+    width: widthInput ? parseInt(widthInput.value) : 704,
+    height: heightInput ? parseInt(heightInput.value) : 512,
+    guidanceScale: guidanceInput ? parseFloat(guidanceInput.value) : 3.0
+  };
+
+  try {
+    const result = await VideoGenerationService.generateVideo(prompt, options, (progress) => {
+      if (ytAIVideoGenProgressBar) {
+        ytAIVideoGenProgressBar.style.width = `${progress.progress || 0}%`;
+      }
+      if (ytAIVideoGenMessage) {
+        ytAIVideoGenMessage.textContent = progress.message || '處理中...';
+      }
+    });
+
+    ytAIVideoGenState.generatedVideoUrl = result.videoUrl;
+
+    if (ytAIVideoPreviewPlayer) {
+      ytAIVideoPreviewPlayer.src = result.videoUrl;
+    }
+
+    if (ytAIVideoGenStatus) ytAIVideoGenStatus.hidden = true;
+    if (ytAIVideoGenPreview) ytAIVideoGenPreview.hidden = false;
+    if (ytAIVideoGenActions) ytAIVideoGenActions.hidden = false;
+
+  } catch (error) {
+    console.error('Video generation failed:', error);
+    alert(`生成失敗: ${error.message}`);
+    resetYTAIVideoGenModal();
+  }
+}
+
+async function downloadYTGeneratedVideo() {
+  if (!ytAIVideoGenState.generatedVideoUrl) {
+    alert('沒有可下載的影片');
+    return;
+  }
+
+  try {
+    await VideoGenerationService.downloadVideo(ytAIVideoGenState.generatedVideoUrl);
+  } catch (error) {
+    alert(`下載失敗: ${error.message}`);
+  }
+}
+
+function addYTGeneratedVideoToFeed() {
+  if (!ytAIVideoGenState.generatedVideoUrl) {
+    alert('沒有可加入的影片');
+    return;
+  }
+
+  const newVideo = {
+    id: `ai-vid-${Date.now()}`,
+    title: ytAIVideoGenState.generatedPrompt || 'AI 生成影片',
+    channel: 'AI Studio',
+    views: randomViews(),
+    time: '剛剛',
+    duration: '0:02',
+    tag: currentChip || 'all',
+    url: '',
+    thumb: '',
+    thumbGradient: generateThumbnail(),
+    videoUrl: ytAIVideoGenState.generatedVideoUrl,
+    isAIGenerated: true,
+    createdAt: new Date().toISOString()
+  };
+
+  currentFeed.unshift(newVideo);
+  renderFeed();
+  saveToStorage(STORAGE_KEY_FEED, currentFeed);
+
+  closeYTAIVideoGenModal();
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  switch (action) {
+    case 'open-ai-video-gen':
+      openYTAIVideoGenModal();
+      break;
+    case 'close-ai-video-gen':
+      closeYTAIVideoGenModal();
+      break;
+    case 'toggle-advanced':
+      if (target.closest('#yt-ai-video-gen-modal')) {
+        toggleYTAdvancedOptions();
+      }
+      break;
+    case 'start-video-gen':
+      if (target.closest('#yt-ai-video-gen-modal')) {
+        startYTAIVideoGeneration();
+      }
+      break;
+    case 'download-video':
+      if (target.closest('#yt-ai-video-gen-modal')) {
+        downloadYTGeneratedVideo();
+      }
+      break;
+    case 'add-to-feed':
+      if (target.closest('#yt-ai-video-gen-modal')) {
+        addYTGeneratedVideoToFeed();
+      }
+      break;
+  }
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'yt-ai-video-duration') {
+    updateYTRangeDisplay('yt-ai-video-duration', 'yt-ai-video-duration-value', 's');
+  } else if (event.target.id === 'yt-ai-video-width') {
+    updateYTRangeDisplay('yt-ai-video-width', 'yt-ai-video-width-value', '');
+  } else if (event.target.id === 'yt-ai-video-height') {
+    updateYTRangeDisplay('yt-ai-video-height', 'yt-ai-video-height-value', '');
+  } else if (event.target.id === 'yt-ai-video-guidance') {
+    updateYTRangeDisplay('yt-ai-video-guidance', 'yt-ai-video-guidance-value', '');
+  }
+});
+
 console.log('Loaded app: youtube (enhanced)');

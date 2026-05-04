@@ -48,31 +48,29 @@ const SceneRenderer = {
     drawCafeTiles(ctx, w, h) {
         const ts = this.tileSize;
         
-        const baseGradient = ctx.createLinearGradient(0, 0, w, h);
-        baseGradient.addColorStop(0, '#D4A574');
-        baseGradient.addColorStop(0.5, '#C49A6C');
-        baseGradient.addColorStop(1, '#B8865A');
-        ctx.fillStyle = baseGradient;
-        ctx.fillRect(0, 0, w, h);
+        const baseColor = '#C49A6C';
+        const highlightColor = '#D4A574';
+        const shadowColor = '#B8865A';
+        const depthColor = '#A07840';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 15;
-                const baseColor = ((x / ts) + (y / ts)) % 2 === 0 ? 180 : 160;
-                const r = Math.min(255, Math.max(0, baseColor + 40 + noise));
-                const g = Math.min(255, Math.max(0, baseColor + 20 + noise));
-                const b = Math.min(255, Math.max(0, baseColor - 40 + noise));
-                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                const isAlt = ((x / ts) + (y / ts)) % 2 === 0;
+                const base = isAlt ? baseColor : highlightColor;
+                
+                ctx.fillStyle = base;
                 ctx.fillRect(x, y, ts, ts);
                 
-                ctx.strokeStyle = `rgba(90, 50, 20, ${0.3 + Math.random() * 0.2})`;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(x, y + ts * 0.3);
-                ctx.lineTo(x + ts, y + ts * 0.3);
-                ctx.moveTo(x, y + ts * 0.7);
-                ctx.lineTo(x + ts, y + ts * 0.7);
-                ctx.stroke();
+                ctx.fillStyle = isAlt ? highlightColor : baseColor;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = shadowColor;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
+                ctx.fillStyle = depthColor;
+                ctx.fillRect(x + ts - 2, y + ts - 2, 2, 2);
             }
         }
         
@@ -81,21 +79,30 @@ const SceneRenderer = {
         const carpetW = w * 0.7;
         const carpetH = h * 0.55;
         
-        ctx.fillStyle = '#8B1A1A';
-        ctx.fillRect(carpetX - 5, carpetY - 5, carpetW + 10, carpetH + 10);
+        const carpetMain = '#8B1A1A';
+        const carpetHighlight = '#A52A2A';
+        const carpetShadow = '#6B0F0F';
+        const carpetDepth = '#4A0A0A';
         
-        const carpetGradient = ctx.createRadialGradient(
-            carpetX + carpetW / 2, carpetY + carpetH / 2, 0,
-            carpetX + carpetW / 2, carpetY + carpetH / 2, carpetW / 2
-        );
-        carpetGradient.addColorStop(0, '#A52A2A');
-        carpetGradient.addColorStop(0.5, '#8B1A1A');
-        carpetGradient.addColorStop(1, '#6B0F0F');
-        ctx.fillStyle = carpetGradient;
+        ctx.fillStyle = carpetShadow;
+        ctx.fillRect(carpetX - 3, carpetY - 3, carpetW + 6, carpetH + 6);
+        
+        ctx.fillStyle = carpetMain;
         ctx.fillRect(carpetX, carpetY, carpetW, carpetH);
         
+        ctx.fillStyle = carpetHighlight;
+        ctx.fillRect(carpetX, carpetY, carpetW, 3);
+        ctx.fillRect(carpetX, carpetY, 3, carpetH);
+        
+        ctx.fillStyle = carpetShadow;
+        ctx.fillRect(carpetX + carpetW - 3, carpetY, 3, carpetH);
+        ctx.fillRect(carpetX, carpetY + carpetH - 3, carpetW, 3);
+        
+        ctx.fillStyle = carpetDepth;
+        ctx.fillRect(carpetX + carpetW - 3, carpetY + carpetH - 3, 3, 3);
+        
         ctx.strokeStyle = '#DAA520';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.strokeRect(carpetX + 10, carpetY + 10, carpetW - 20, carpetH - 20);
         
         ctx.strokeStyle = '#B8860B';
@@ -103,13 +110,12 @@ const SceneRenderer = {
         const patternSize = 25;
         for (let py = carpetY + 20; py < carpetY + carpetH - 20; py += patternSize) {
             for (let px = carpetX + 20; px < carpetX + carpetW - 20; px += patternSize) {
-                ctx.beginPath();
-                ctx.arc(px, py, 5, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.fillStyle = carpetHighlight;
+                ctx.fillRect(px - 3, py - 3, 6, 6);
             }
         }
         
-        ctx.fillStyle = 'rgba(255, 200, 100, 0.15)';
+        ctx.fillStyle = 'rgba(255, 200, 100, 0.12)';
         ctx.beginPath();
         ctx.ellipse(w * 0.3, h * 0.15, 80, 40, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -117,31 +123,41 @@ const SceneRenderer = {
         ctx.ellipse(w * 0.7, h * 0.15, 80, 40, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.15);
+        this.drawNoise(ctx, 0, 0, w, h, 0.1);
     },
     
     drawParkTiles(ctx, w, h) {
         const ts = this.tileSize;
         
-        const grassGradient = ctx.createLinearGradient(0, 0, 0, h);
-        grassGradient.addColorStop(0, '#7CB342');
-        grassGradient.addColorStop(0.5, '#8BC34A');
-        grassGradient.addColorStop(1, '#689F38');
-        ctx.fillStyle = grassGradient;
-        ctx.fillRect(0, 0, w, h);
+        const grassMain = '#7CB342';
+        const grassHighlight = '#8BC34A';
+        const grassShadow = '#689F38';
+        const grassDark = '#558B2F';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const noise = (Math.sin(x * 0.05 + y * 0.03) + Math.cos(y * 0.07)) * 10;
-                const baseGreen = 140 + noise;
-                ctx.fillStyle = `rgba(${80 + Math.random() * 20}, ${baseGreen + Math.random() * 30}, ${40 + Math.random() * 20}, 0.4)`;
+                const variation = Math.random() * 0.3;
+                const base = variation > 0.15 ? grassMain : grassHighlight;
+                
+                ctx.fillStyle = base;
                 ctx.fillRect(x, y, ts, ts);
                 
-                for (let i = 0; i < 4; i++) {
-                    const gx = x + Math.random() * ts;
-                    const gy = y + Math.random() * ts;
-                    ctx.fillStyle = `rgba(34, 139, 34, ${0.3 + Math.random() * 0.3})`;
-                    ctx.fillRect(gx, gy, 1, 2 + Math.random() * 3);
+                ctx.fillStyle = grassHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = grassShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
+                ctx.fillStyle = grassDark;
+                ctx.fillRect(x + ts - 2, y + ts - 2, 2, 2);
+                
+                for (let i = 0; i < 3; i++) {
+                    const gx = x + Math.random() * (ts - 2);
+                    const gy = y + Math.random() * (ts - 2);
+                    ctx.fillStyle = grassDark;
+                    ctx.fillRect(gx, gy, 1, 2 + Math.random() * 2);
                 }
             }
         }
@@ -149,23 +165,33 @@ const SceneRenderer = {
         const pathX = w * 0.35;
         const pathW = w * 0.3;
         
+        const stoneMain = '#D4C4A8';
+        const stoneHighlight = '#E8DCC8';
+        const stoneShadow = '#B8A888';
+        const stoneDepth = '#9A8A6A';
+        
         for (let y = 0; y < h; y += ts) {
             const curve = Math.sin(y * 0.02) * 20;
             for (let x = pathX + curve; x < pathX + pathW + curve; x += ts) {
-                const stoneVar = Math.random() * 20;
-                ctx.fillStyle = `rgb(${210 + stoneVar}, ${190 + stoneVar}, ${150 + stoneVar})`;
+                ctx.fillStyle = stoneMain;
                 ctx.fillRect(x, y, ts, ts);
                 
+                ctx.fillStyle = stoneHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = stoneShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
                 if (Math.random() > 0.6) {
-                    ctx.fillStyle = `rgba(160, 130, 100, ${0.5 + Math.random() * 0.3})`;
-                    ctx.beginPath();
-                    ctx.arc(x + ts / 2, y + ts / 2, 2 + Math.random() * 4, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.fillStyle = stoneDepth;
+                    ctx.fillRect(x + 4 + Math.random() * 4, y + 4 + Math.random() * 4, 3, 3);
                 }
             }
         }
         
-        ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
+        ctx.fillStyle = 'rgba(135, 206, 235, 0.25)';
         ctx.beginPath();
         ctx.ellipse(w * 0.2, h * 0.1, 100, 30, -0.2, 0, Math.PI * 2);
         ctx.fill();
@@ -173,37 +199,54 @@ const SceneRenderer = {
         ctx.ellipse(w * 0.8, h * 0.15, 80, 25, 0.3, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.1);
+        this.drawNoise(ctx, 0, 0, w, h, 0.08);
     },
     
     drawCinemaTiles(ctx, w, h) {
         const ts = this.tileSize;
         
-        const bgGradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-        bgGradient.addColorStop(0, '#1E1E3F');
-        bgGradient.addColorStop(1, '#0D0D1F');
-        ctx.fillStyle = bgGradient;
-        ctx.fillRect(0, 0, w, h);
+        const floorMain = '#1E1E3F';
+        const floorHighlight = '#2A2A5A';
+        const floorShadow = '#161630';
+        const floorDepth = '#0D0D1F';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
                 const distFromCenter = Math.sqrt(Math.pow(x - w / 2, 2) + Math.pow(y - h / 2, 2));
-                const alpha = 0.05 + (distFromCenter / w) * 0.1;
-                ctx.fillStyle = `rgba(30, 30, 60, ${alpha})`;
+                const isDarker = distFromCenter > w * 0.3;
+                
+                ctx.fillStyle = isDarker ? floorDepth : floorMain;
                 ctx.fillRect(x, y, ts, ts);
+                
+                ctx.fillStyle = isDarker ? floorMain : floorHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = floorShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
             }
         }
         
         const aisleX = w * 0.45;
         const aisleW = w * 0.1;
         
+        const aisleMain = '#2A2A4A';
+        const aisleHighlight = '#3A3A5A';
+        const aisleShadow = '#1A1A3A';
+        
         for (let y = 0; y < h; y += ts) {
             for (let x = aisleX; x < aisleX + aisleW; x += ts) {
-                ctx.fillStyle = '#2A2A4A';
+                ctx.fillStyle = aisleMain;
                 ctx.fillRect(x, y, ts, ts);
                 
-                ctx.fillStyle = 'rgba(100, 100, 150, 0.3)';
-                ctx.fillRect(x + 2, y + ts - 3, ts - 4, 1);
+                ctx.fillStyle = aisleHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = aisleShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
             }
         }
         
@@ -211,66 +254,90 @@ const SceneRenderer = {
         for (let i = 0; i < 20; i++) {
             const sx = Math.random() * w;
             const sy = Math.random() * h;
-            ctx.beginPath();
-            ctx.arc(sx, sy, Math.random() * 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(sx, sy, 2, 2);
         }
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.08);
+        this.drawNoise(ctx, 0, 0, w, h, 0.06);
     },
     
     drawRestaurantTiles(ctx, w, h) {
         const ts = this.tileSize;
         
+        const tileDark = '#1A0F0A';
+        const tileDarkHighlight = '#2A1A12';
+        const tileDarkShadow = '#0A0505';
+        const tileLight = '#3D2314';
+        const tileLightHighlight = '#4D3020';
+        const tileLightShadow = '#2D180A';
+        
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const isBlack = ((x / ts) + (y / ts)) % 2 === 0;
+                const isDark = ((x / ts) + (y / ts)) % 2 === 0;
                 
-                if (isBlack) {
-                    ctx.fillStyle = '#1A0F0A';
-                } else {
-                    ctx.fillStyle = '#3D2314';
-                }
+                const main = isDark ? tileDark : tileLight;
+                const highlight = isDark ? tileDarkHighlight : tileLightHighlight;
+                const shadow = isDark ? tileDarkShadow : tileLightShadow;
+                
+                ctx.fillStyle = main;
                 ctx.fillRect(x, y, ts, ts);
                 
-                const gloss = Math.random() * 0.15;
-                ctx.fillStyle = `rgba(255, 255, 255, ${gloss})`;
-                ctx.fillRect(x, y, ts * 0.6, ts * 0.6);
+                ctx.fillStyle = highlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
                 
-                ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + Math.random() * 0.1})`;
-                ctx.fillRect(x + ts * 0.6, y + ts * 0.6, ts * 0.4, ts * 0.4);
+                ctx.fillStyle = shadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(x + 2, y + 2, ts * 0.5, ts * 0.5);
             }
         }
         
-        ctx.fillStyle = 'rgba(255, 200, 100, 0.2)';
         const candlePositions = [
             [w * 0.25, h * 0.3], [w * 0.75, h * 0.3],
             [w * 0.5, h * 0.6], [w * 0.2, h * 0.7], [w * 0.8, h * 0.7]
         ];
+        
         candlePositions.forEach(([cx, cy]) => {
             const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60);
-            glow.addColorStop(0, 'rgba(255, 200, 100, 0.3)');
-            glow.addColorStop(0.5, 'rgba(255, 150, 50, 0.15)');
+            glow.addColorStop(0, 'rgba(255, 200, 100, 0.25)');
+            glow.addColorStop(0.5, 'rgba(255, 150, 50, 0.12)');
             glow.addColorStop(1, 'rgba(255, 100, 0, 0)');
             ctx.fillStyle = glow;
             ctx.fillRect(cx - 60, cy - 60, 120, 120);
         });
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.12);
+        this.drawNoise(ctx, 0, 0, w, h, 0.1);
     },
     
     drawBeachTiles(ctx, w, h) {
         const ts = this.tileSize;
         
+        const waterMain = '#4A90D0';
+        const waterHighlight = '#5AA0E0';
+        const waterShadow = '#3A70A0';
+        const waterDeep = '#2A5080';
+        
         for (let y = 0; y < h * 0.45; y += ts) {
             const depth = y / (h * 0.45);
             for (let x = 0; x < w; x += ts) {
-                const wave = Math.sin(x * 0.05 + y * 0.1) * 10;
-                const r = 20 + depth * 30;
-                const g = 80 + depth * 60 + wave;
-                const b = 140 + depth * 80 + wave;
-                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                const wave = Math.sin(x * 0.05 + y * 0.1) * 0.3;
+                const isLight = wave > 0;
+                
+                const main = isLight ? waterHighlight : waterMain;
+                const shadow = isLight ? waterMain : waterShadow;
+                
+                ctx.fillStyle = main;
                 ctx.fillRect(x, y, ts, ts);
+                
+                ctx.fillStyle = waterHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = shadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
                 
                 if (Math.random() > 0.85) {
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
@@ -287,65 +354,81 @@ const SceneRenderer = {
             ctx.fillRect(x, foamY + Math.sin(x * 0.2) * 3, ts, foamHeight);
         }
         
+        const sandMain = '#F0D8A0';
+        const sandHighlight = '#FFE8B0';
+        const sandShadow = '#D8C090';
+        const sandDepth = '#C0A878';
+        
         for (let y = h * 0.45; y < h; y += ts) {
-            const sandDepth = (y - h * 0.45) / (h * 0.55);
+            const sandVariation = (y - h * 0.45) / (h * 0.55);
             for (let x = 0; x < w; x += ts) {
-                const noise = Math.sin(x * 0.03) * Math.cos(y * 0.05) * 15;
-                const r = 240 + noise - sandDepth * 20;
-                const g = 200 + noise - sandDepth * 30;
-                const b = 140 + noise - sandDepth * 40;
-                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                const noise = Math.sin(x * 0.03) * Math.cos(y * 0.05) * 0.3;
+                const isLight = noise > 0;
+                
+                ctx.fillStyle = isLight ? sandHighlight : sandMain;
                 ctx.fillRect(x, y, ts, ts);
                 
-                for (let i = 0; i < 3; i++) {
-                    ctx.fillStyle = `rgba(200, 180, 140, ${0.3 + Math.random() * 0.3})`;
+                ctx.fillStyle = sandHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = sandShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
+                for (let i = 0; i < 2; i++) {
+                    ctx.fillStyle = sandDepth;
                     ctx.fillRect(
-                        x + Math.random() * ts,
-                        y + Math.random() * ts,
+                        x + Math.random() * (ts - 2),
+                        y + Math.random() * (ts - 2),
                         1 + Math.random(), 1 + Math.random()
                     );
                 }
             }
         }
         
-        ctx.fillStyle = 'rgba(255, 255, 200, 0.15)';
+        ctx.fillStyle = 'rgba(255, 255, 200, 0.12)';
         ctx.beginPath();
         ctx.ellipse(w * 0.8, h * 0.1, 100, 60, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.1);
+        this.drawNoise(ctx, 0, 0, w, h, 0.08);
     },
     
     drawLibraryTiles(ctx, w, h) {
         const ts = this.tileSize;
         
-        const woodGradient = ctx.createLinearGradient(0, 0, w, 0);
-        woodGradient.addColorStop(0, '#8B7355');
-        woodGradient.addColorStop(0.5, '#A0826D');
-        woodGradient.addColorStop(1, '#8B7355');
-        ctx.fillStyle = woodGradient;
-        ctx.fillRect(0, 0, w, h);
+        const woodMain = '#8B7355';
+        const woodHighlight = '#A0826D';
+        const woodShadow = '#6B5344';
+        const woodDepth = '#5B4334';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const grain = Math.sin(y * 0.2 + x * 0.05) * 10;
-                const r = 139 + grain;
-                const g = 115 + grain;
-                const b = 85 + grain;
-                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.3)`;
+                const grain = Math.sin(y * 0.2 + x * 0.05) * 0.3;
+                const isLight = grain > 0;
+                
+                ctx.fillStyle = isLight ? woodHighlight : woodMain;
                 ctx.fillRect(x, y, ts, ts);
                 
-                ctx.strokeStyle = `rgba(100, 80, 60, ${0.2 + Math.random() * 0.2})`;
-                ctx.lineWidth = 1;
+                ctx.fillStyle = woodHighlight;
+                ctx.fillRect(x, y, ts, 2);
+                ctx.fillRect(x, y, 2, ts);
+                
+                ctx.fillStyle = woodShadow;
+                ctx.fillRect(x + ts - 2, y, 2, ts);
+                ctx.fillRect(x, y + ts - 2, ts, 2);
+                
+                ctx.fillStyle = woodDepth;
+                ctx.fillRect(x + ts - 2, y + ts - 2, 2, 2);
+                
                 const lineY = y + ts * 0.5 + Math.sin(x * 0.1) * 2;
-                ctx.beginPath();
-                ctx.moveTo(x, lineY);
-                ctx.lineTo(x + ts, lineY);
-                ctx.stroke();
+                ctx.fillStyle = woodDepth;
+                ctx.fillRect(x, lineY, ts, 1);
             }
         }
         
-        ctx.fillStyle = 'rgba(255, 240, 200, 0.15)';
+        ctx.fillStyle = 'rgba(255, 240, 200, 0.12)';
         ctx.beginPath();
         ctx.ellipse(w * 0.5, h * 0.3, 150, 80, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -356,7 +439,7 @@ const SceneRenderer = {
         ctx.ellipse(w * 0.7, h * 0.6, 100, 60, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.12);
+        this.drawNoise(ctx, 0, 0, w, h, 0.1);
     },
     
     drawDefaultTiles(ctx, w, h) {
@@ -429,6 +512,16 @@ const SceneRenderer = {
         ctx.restore();
     },
     
+    adjustColor(hex, amt) {
+        let r = parseInt(hex.slice(1, 3), 16);
+        let g = parseInt(hex.slice(3, 5), 16);
+        let b = parseInt(hex.slice(5, 7), 16);
+        r = Math.max(0, Math.min(255, r + amt));
+        g = Math.max(0, Math.min(255, g + amt));
+        b = Math.max(0, Math.min(255, b + amt));
+        return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    },
+    
     drawShadow(ctx, x, y, w, h, blur = 5) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.beginPath();
@@ -439,79 +532,106 @@ const SceneRenderer = {
     drawTableTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h, 8);
         
-        const tableGradient = ctx.createLinearGradient(x, y, x + w, y + h);
-        tableGradient.addColorStop(0, '#A0522D');
-        tableGradient.addColorStop(0.5, '#8B4513');
-        tableGradient.addColorStop(1, '#6B3410');
-        ctx.fillStyle = tableGradient;
+        const tableTop = '#C9A66B';
+        const tableMain = '#A07840';
+        const tableShadow = '#704820';
+        const tableDepth = '#503010';
         
+        ctx.fillStyle = tableMain;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 8);
         ctx.fill();
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.beginPath();
-        ctx.roundRect(x + 4, y + 4, w - 8, h / 3, 4);
-        ctx.fill();
+        ctx.fillStyle = tableTop;
+        ctx.fillRect(x + 2, y + 2, w - 4, 4);
+        ctx.fillRect(x + 2, y + 2, 4, h - 8);
         
-        ctx.strokeStyle = '#4A2C1A';
-        ctx.lineWidth = 3;
+        ctx.fillStyle = tableShadow;
+        ctx.fillRect(x + w - 6, y + 2, 4, h - 8);
+        ctx.fillRect(x + 2, y + h - 6, w - 4, 4);
+        
+        ctx.fillStyle = tableDepth;
+        ctx.fillRect(x + 4, y + h, w - 8, 6);
+        ctx.fillStyle = adjustColor(tableDepth, -15);
+        ctx.fillRect(x, y + h, 4, 6);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillRect(x + 6, y + 6, w - 12, 3);
+        
+        ctx.strokeStyle = tableShadow;
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 8);
         ctx.stroke();
-        
-        ctx.fillStyle = 'rgba(139, 69, 19, 0.3)';
-        ctx.fillRect(x + 8, y + 8, w - 16, h - 16);
-        
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.3, y + h * 0.4, 8, 0, Math.PI * 2);
-        ctx.fill();
     },
     
     drawChairTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h, 4);
         
-        const seatGradient = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w / 2);
-        seatGradient.addColorStop(0, '#8B5A2B');
-        seatGradient.addColorStop(1, '#654321');
-        ctx.fillStyle = seatGradient;
+        const chairTop = '#A07840';
+        const chairMain = '#8B5A2B';
+        const chairShadow = '#5D3A1A';
+        const chairDepth = '#4A2F1A';
         
+        ctx.fillStyle = chairMain;
         ctx.beginPath();
         ctx.roundRect(x + 2, y + 2, w - 4, h - 4, 6);
         ctx.fill();
         
-        ctx.fillStyle = '#5D3A1A';
-        ctx.fillRect(x + 4, y - h * 0.25, w - 8, h * 0.3);
+        ctx.fillStyle = chairTop;
+        ctx.fillRect(x + 4, y + 4, w - 8, 3);
+        ctx.fillRect(x + 4, y + 4, 3, h - 8);
         
-        ctx.strokeStyle = '#3D2A1A';
+        ctx.fillStyle = chairShadow;
+        ctx.fillRect(x + w - 7, y + 4, 3, h - 8);
+        ctx.fillRect(x + 4, y + h - 7, w - 8, 3);
+        
+        ctx.fillStyle = chairDepth;
+        ctx.fillRect(x + 6, y + h, w - 12, 4);
+        ctx.fillStyle = adjustColor(chairDepth, -15);
+        ctx.fillRect(x + 2, y + h, 4, 4);
+        
+        ctx.fillStyle = chairShadow;
+        ctx.fillRect(x + 4, y - h * 0.25, w - 8, h * 0.3);
+        ctx.fillStyle = adjustColor(chairShadow, -15);
+        ctx.fillRect(x + w - 8, y - h * 0.25, 4, h * 0.3);
+        
+        ctx.strokeStyle = chairShadow;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.roundRect(x + 2, y + 2, w - 4, h - 4, 6);
         ctx.stroke();
-        
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.35, y + h * 0.35, 4, 0, Math.PI * 2);
-        ctx.fill();
     },
     
     drawCounterTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h, 10);
         
-        const counterGradient = ctx.createLinearGradient(x, y, x, y + h);
-        counterGradient.addColorStop(0, '#D2691E');
-        counterGradient.addColorStop(0.15, '#CD853F');
-        counterGradient.addColorStop(0.15, '#8B4513');
-        counterGradient.addColorStop(1, '#654321');
-        ctx.fillStyle = counterGradient;
+        const counterTop = '#D2691E';
+        const counterMain = '#8B4513';
+        const counterShadow = '#654321';
+        const counterDepth = '#4A2F1A';
+        
+        ctx.fillStyle = counterMain;
         ctx.fillRect(x, y, w, h);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.fillRect(x + 5, y + 3, w - 10, h * 0.1);
+        ctx.fillStyle = counterTop;
+        ctx.fillRect(x + 3, y + 3, w - 6, 6);
+        ctx.fillRect(x + 3, y + 3, 6, h - 6);
         
-        ctx.strokeStyle = '#4A2C1A';
-        ctx.lineWidth = 4;
+        ctx.fillStyle = counterShadow;
+        ctx.fillRect(x + w - 9, y + 3, 6, h - 6);
+        ctx.fillRect(x + 3, y + h - 9, w - 6, 6);
+        
+        ctx.fillStyle = counterDepth;
+        ctx.fillRect(x + 6, y + h, w - 12, 8);
+        ctx.fillStyle = adjustColor(counterDepth, -15);
+        ctx.fillRect(x, y + h, 6, 8);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.fillRect(x + 8, y + 6, w - 16, 3);
+        
+        ctx.strokeStyle = counterShadow;
+        ctx.lineWidth = 3;
         ctx.strokeRect(x, y, w, h);
         
         for (let i = 0; i < 3; i++) {
@@ -530,19 +650,35 @@ const SceneRenderer = {
     drawBenchTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h, 6);
         
-        const benchGradient = ctx.createLinearGradient(x, y, x, y + h);
-        benchGradient.addColorStop(0, '#A0522D');
-        benchGradient.addColorStop(1, '#8B4513');
-        ctx.fillStyle = benchGradient;
+        const benchTop = '#A0522D';
+        const benchMain = '#8B4513';
+        const benchShadow = '#654321';
+        const benchDepth = '#4A2F1A';
         
+        ctx.fillStyle = benchMain;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 4);
         ctx.fill();
         
-        ctx.fillStyle = '#654321';
-        ctx.fillRect(x + 5, y - h * 0.15, w - 10, h * 0.2);
+        ctx.fillStyle = benchTop;
+        ctx.fillRect(x + 2, y + 2, w - 4, 4);
+        ctx.fillRect(x + 2, y + 2, 4, h - 4);
         
-        ctx.strokeStyle = '#4A2C1A';
+        ctx.fillStyle = benchShadow;
+        ctx.fillRect(x + w - 6, y + 2, 4, h - 4);
+        ctx.fillRect(x + 2, y + h - 6, w - 4, 4);
+        
+        ctx.fillStyle = benchDepth;
+        ctx.fillRect(x + 4, y + h, w - 8, 5);
+        ctx.fillStyle = adjustColor(benchDepth, -15);
+        ctx.fillRect(x, y + h, 4, 5);
+        
+        ctx.fillStyle = benchShadow;
+        ctx.fillRect(x + 5, y - h * 0.15, w - 10, h * 0.2);
+        ctx.fillStyle = adjustColor(benchShadow, -15);
+        ctx.fillRect(x + w - 9, y - h * 0.15, 4, h * 0.2);
+        
+        ctx.strokeStyle = benchShadow;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 4);
@@ -550,106 +686,163 @@ const SceneRenderer = {
         
         for (let i = 0; i < 3; i++) {
             const lx = x + 15 + i * (w / 3);
-            ctx.fillStyle = '#5D3A1A';
+            ctx.fillStyle = benchDepth;
             ctx.fillRect(lx, y + h + 2, 8, 12);
+            ctx.fillStyle = adjustColor(benchDepth, -20);
+            ctx.fillRect(lx + 6, y + h + 2, 2, 12);
         }
     },
     
     drawTreeTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h * 0.3, 15);
         
-        for (let layer = 3; layer >= 0; layer--) {
-            const layerRadius = (w / 2) * (1 - layer * 0.15);
-            const layerY = y + h / 2 + layer * 5;
-            
-            const treeGradient = ctx.createRadialGradient(
-                x + w / 2, layerY, 0,
-                x + w / 2, layerY, layerRadius
-            );
-            treeGradient.addColorStop(0, '#228B22');
-            treeGradient.addColorStop(0.5, '#1E7B1E');
-            treeGradient.addColorStop(1, '#145214');
-            
-            ctx.fillStyle = treeGradient;
-            ctx.beginPath();
-            ctx.arc(x + w / 2, layerY, layerRadius, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        const leafTop = '#4CAF50';
+        const leafMain = '#388E3C';
+        const leafShadow = '#2E7D32';
+        const leafDepth = '#1B5E20';
+        const trunkMain = '#8B4513';
+        const trunkShadow = '#5D3A1A';
+        const trunkDepth = '#4A2F1A';
         
-        ctx.fillStyle = '#8B4513';
-        ctx.beginPath();
-        ctx.arc(x + w / 2, y + h / 2, w / 6, 0, Math.PI * 2);
-        ctx.fill();
+        const layers = [
+            { radius: w * 0.45, offsetY: 0 },
+            { radius: w * 0.38, offsetY: 8 },
+            { radius: w * 0.30, offsetY: 16 },
+            { radius: w * 0.20, offsetY: 24 }
+        ];
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.35, y + h * 0.35, w * 0.15, 0, Math.PI * 2);
-        ctx.fill();
+        layers.forEach((layer, idx) => {
+            const cx = x + w / 2;
+            const cy = y + h * 0.35 + layer.offsetY;
+            const r = layer.radius;
+            
+            ctx.fillStyle = leafMain;
+            ctx.fillRect(cx - r, cy - r * 0.8, r * 2, r * 1.6);
+            ctx.fillRect(cx - r * 0.8, cy - r, r * 1.6, r * 2);
+            
+            ctx.fillStyle = leafTop;
+            ctx.fillRect(cx - r, cy - r * 0.8, r * 0.3, r * 1.6);
+            ctx.fillRect(cx - r * 0.8, cy - r, r * 1.6, r * 0.3);
+            
+            ctx.fillStyle = leafShadow;
+            ctx.fillRect(cx + r * 0.7, cy - r * 0.8, r * 0.3, r * 1.6);
+            ctx.fillRect(cx - r * 0.8, cy + r * 0.7, r * 1.6, r * 0.3);
+        });
+        
+        const trunkW = w * 0.18;
+        const trunkH = h * 0.25;
+        const trunkX = x + w / 2 - trunkW / 2;
+        const trunkY = y + h * 0.45;
+        
+        ctx.fillStyle = trunkMain;
+        ctx.fillRect(trunkX, trunkY, trunkW, trunkH);
+        
+        ctx.fillStyle = trunkShadow;
+        ctx.fillRect(trunkX + trunkW - 3, trunkY, 3, trunkH);
+        
+        ctx.fillStyle = trunkDepth;
+        ctx.fillRect(trunkX + 2, trunkY + trunkH, trunkW - 4, 4);
+        ctx.fillStyle = adjustColor(trunkDepth, -15);
+        ctx.fillRect(trunkX, trunkY + trunkH, 2, 4);
     },
     
     drawFlowerTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h * 0.3, 3);
         
-        const petalColors = ['#FF69B4', '#FFB6C1', '#FF1493', '#DB7093'];
+        const petalTop = '#FFB6C1';
+        const petalMain = '#FF69B4';
+        const petalShadow = '#DB7093';
+        const centerTop = '#FFD700';
+        const centerMain = '#FFA500';
+        const centerShadow = '#FF8C00';
+        const stemMain = '#228B22';
+        const stemShadow = '#1B5E20';
+        
         const petalCount = 5;
+        const cx = x + w / 2;
+        const cy = y + h * 0.4;
         
         for (let i = 0; i < petalCount; i++) {
             const angle = (i * Math.PI * 2) / petalCount;
-            const px = x + w / 2 + Math.cos(angle) * w * 0.3;
-            const py = y + h / 2 + Math.sin(angle) * h * 0.3;
+            const px = cx + Math.cos(angle) * w * 0.25;
+            const py = cy + Math.sin(angle) * h * 0.2;
+            const petalW = w * 0.22;
+            const petalH = w * 0.18;
             
-            const petalGradient = ctx.createRadialGradient(px, py, 0, px, py, w * 0.25);
-            petalGradient.addColorStop(0, '#FFB6C1');
-            petalGradient.addColorStop(1, petalColors[i % petalColors.length]);
+            ctx.fillStyle = petalMain;
+            ctx.fillRect(px - petalW / 2, py - petalH / 2, petalW, petalH);
             
-            ctx.fillStyle = petalGradient;
-            ctx.beginPath();
-            ctx.ellipse(px, py, w * 0.22, w * 0.18, angle, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillStyle = petalTop;
+            ctx.fillRect(px - petalW / 2, py - petalH / 2, 3, petalH);
+            ctx.fillRect(px - petalW / 2, py - petalH / 2, petalW, 3);
+            
+            ctx.fillStyle = petalShadow;
+            ctx.fillRect(px + petalW / 2 - 3, py - petalH / 2, 3, petalH);
+            ctx.fillRect(px - petalW / 2, py + petalH / 2 - 3, petalW, 3);
         }
         
-        const centerGradient = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w * 0.15);
-        centerGradient.addColorStop(0, '#FFD700');
-        centerGradient.addColorStop(1, '#FFA500');
-        ctx.fillStyle = centerGradient;
-        ctx.beginPath();
-        ctx.arc(x + w / 2, y + h / 2, w * 0.15, 0, Math.PI * 2);
-        ctx.fill();
+        const centerR = w * 0.12;
+        ctx.fillStyle = centerMain;
+        ctx.fillRect(cx - centerR, cy - centerR, centerR * 2, centerR * 2);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.4, y + h * 0.4, 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = centerTop;
+        ctx.fillRect(cx - centerR, cy - centerR, 3, centerR * 2);
+        ctx.fillRect(cx - centerR, cy - centerR, centerR * 2, 3);
+        
+        ctx.fillStyle = centerShadow;
+        ctx.fillRect(cx + centerR - 3, cy - centerR, 3, centerR * 2);
+        ctx.fillRect(cx - centerR, cy + centerR - 3, centerR * 2, 3);
+        
+        ctx.fillStyle = stemMain;
+        ctx.fillRect(cx - 2, cy + centerR, 4, h * 0.35);
+        
+        ctx.fillStyle = stemShadow;
+        ctx.fillRect(cx, cy + centerR, 2, h * 0.35);
     },
 
     drawScreenTop(ctx, x, y, w, h) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(x + 5, y + 5, w, h);
         
-        const screenGradient = ctx.createLinearGradient(x, y, x + w, y + h);
-        screenGradient.addColorStop(0, '#1a1a2e');
-        screenGradient.addColorStop(0.5, '#16213e');
-        screenGradient.addColorStop(1, '#0f172a');
-        ctx.fillStyle = screenGradient;
+        const frameTop = '#4a5568';
+        const frameMain = '#2d3748';
+        const frameShadow = '#1a202c';
+        const screenMain = '#1a1a2e';
+        const screenHighlight = '#16213e';
         
+        ctx.fillStyle = frameMain;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 4);
         ctx.fill();
         
-        ctx.strokeStyle = '#4a5568';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 4);
-        ctx.stroke();
+        ctx.fillStyle = frameTop;
+        ctx.fillRect(x + 2, y + 2, w - 4, 3);
+        ctx.fillRect(x + 2, y + 2, 3, h - 4);
         
-        ctx.fillStyle = 'rgba(100, 150, 255, 0.1)';
-        ctx.fillRect(x + 10, y + 10, w - 20, h - 20);
+        ctx.fillStyle = frameShadow;
+        ctx.fillRect(x + w - 5, y + 2, 3, h - 4);
+        ctx.fillRect(x + 2, y + h - 5, w - 4, 3);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        const screenX = x + 8;
+        const screenY = y + 8;
+        const screenW = w - 16;
+        const screenH = h - 16;
+        
+        ctx.fillStyle = screenMain;
+        ctx.fillRect(screenX, screenY, screenW, screenH);
+        
+        ctx.fillStyle = screenHighlight;
+        ctx.fillRect(screenX, screenY, screenW, 3);
+        ctx.fillRect(screenX, screenY, 3, screenH);
+        
+        ctx.fillStyle = 'rgba(100, 150, 255, 0.15)';
+        ctx.fillRect(screenX + 4, screenY + 4, screenW - 8, screenH - 8);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
         for (let i = 0; i < 5; i++) {
-            const sx = x + 20 + Math.random() * (w - 40);
-            const sy = y + 20 + Math.random() * (h - 40);
-            ctx.fillRect(sx, sy, 30, 2);
+            const sx = screenX + 10 + Math.random() * (screenW - 20);
+            const sy = screenY + 10 + Math.random() * (screenH - 20);
+            ctx.fillRect(sx, sy, 20, 2);
         }
     },
 
@@ -659,34 +852,46 @@ const SceneRenderer = {
         const seatW = w / cols;
         const seatH = h / rows;
         
+        const seatTop = '#6b21a8';
+        const seatMain = '#4c1d95';
+        const seatShadow = '#3b0764';
+        const seatDepth = '#2f1b3f';
+        
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const sx = x + c * seatW + 4;
                 const sy = y + r * seatH + 4;
+                const sw = seatW - 8;
+                const sh = seatH - 8;
                 
-                const seatGradient = ctx.createLinearGradient(sx, sy, sx, sy + seatH - 8);
-                seatGradient.addColorStop(0, '#4c1d95');
-                seatGradient.addColorStop(1, '#2f1b3f');
-                ctx.fillStyle = seatGradient;
-                
+                ctx.fillStyle = seatMain;
                 ctx.beginPath();
-                ctx.roundRect(sx, sy, seatW - 8, seatH - 8, 4);
+                ctx.roundRect(sx, sy, sw, sh, 4);
                 ctx.fill();
                 
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.fillRect(sx + 3, sy + 3, seatW - 14, 5);
+                ctx.fillStyle = seatTop;
+                ctx.fillRect(sx + 2, sy + 2, sw - 4, 3);
+                ctx.fillRect(sx + 2, sy + 2, 3, sh - 4);
                 
-                ctx.strokeStyle = '#6b21a8';
+                ctx.fillStyle = seatShadow;
+                ctx.fillRect(sx + sw - 5, sy + 2, 3, sh - 4);
+                ctx.fillRect(sx + 2, sy + sh - 5, sw - 4, 3);
+                
+                ctx.fillStyle = seatDepth;
+                ctx.fillRect(sx + 4, sy + sh, sw - 8, 3);
+                ctx.fillStyle = adjustColor(seatDepth, -15);
+                ctx.fillRect(sx, sy + sh, 4, 3);
+                
+                ctx.strokeStyle = seatShadow;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.roundRect(sx, sy, seatW - 8, seatH - 8, 4);
+                ctx.roundRect(sx, sy, sw, sh, 4);
                 ctx.stroke();
             }
         }
     },
 
     drawCandleTop(ctx, x, y, w, h) {
-        ctx.fillStyle = 'rgba(255, 200, 100, 0.3)';
         const glow = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w * 2);
         glow.addColorStop(0, 'rgba(255, 200, 100, 0.4)');
         glow.addColorStop(0.5, 'rgba(255, 150, 50, 0.2)');
@@ -694,82 +899,133 @@ const SceneRenderer = {
         ctx.fillStyle = glow;
         ctx.fillRect(x - w, y - h, w * 3, h * 3);
         
-        const candleGradient = ctx.createLinearGradient(x, y, x + w, y);
-        candleGradient.addColorStop(0, '#f8fafc');
-        candleGradient.addColorStop(0.5, '#e2e8f0');
-        candleGradient.addColorStop(1, '#cbd5e1');
-        ctx.fillStyle = candleGradient;
+        const candleTop = '#f8fafc';
+        const candleMain = '#e2e8f0';
+        const candleShadow = '#cbd5e1';
+        const candleDepth = '#94a3b8';
         
+        const candleW = w - 4;
+        const candleH = h * 0.7;
+        const candleX = x + 2;
+        const candleY = y + h * 0.3;
+        
+        ctx.fillStyle = candleMain;
         ctx.beginPath();
-        ctx.roundRect(x + 2, y + h * 0.3, w - 4, h * 0.7, 2);
+        ctx.roundRect(candleX, candleY, candleW, candleH, 2);
         ctx.fill();
         
-        const flameGradient = ctx.createRadialGradient(x + w / 2, y + 5, 0, x + w / 2, y + 5, w * 0.4);
-        flameGradient.addColorStop(0, '#fff7ed');
-        flameGradient.addColorStop(0.3, '#fbbf24');
-        flameGradient.addColorStop(0.7, '#f97316');
-        flameGradient.addColorStop(1, '#dc2626');
-        ctx.fillStyle = flameGradient;
-        ctx.beginPath();
-        ctx.ellipse(x + w / 2, y + 5, w * 0.35, h * 0.25, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = candleTop;
+        ctx.fillRect(candleX + 1, candleY + 1, candleW - 2, 2);
+        ctx.fillRect(candleX + 1, candleY + 1, 2, candleH - 2);
+        
+        ctx.fillStyle = candleShadow;
+        ctx.fillRect(candleX + candleW - 3, candleY + 1, 2, candleH - 2);
+        ctx.fillRect(candleX + 1, candleY + candleH - 3, candleW - 2, 2);
+        
+        ctx.fillStyle = candleDepth;
+        ctx.fillRect(candleX + 2, candleY + candleH, candleW - 4, 2);
+        
+        const flameW = w * 0.5;
+        const flameH = h * 0.35;
+        const flameX = x + w / 2 - flameW / 2;
+        const flameY = y;
+        
+        ctx.fillStyle = '#fff7ed';
+        ctx.fillRect(flameX + 2, flameY + 2, flameW - 4, flameH - 4);
+        
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(flameX + 4, flameY + 4, flameW - 8, flameH - 8);
+        
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(flameX + 6, flameY + 6, flameW - 12, flameH - 12);
+        
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(flameX + 8, flameY + flameH * 0.6, flameW - 16, flameH * 0.3);
     },
 
     drawUmbrellaTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h * 0.3, 10);
         
-        const stripeColors = ['#f97316', '#ffffff', '#f97316', '#ffffff'];
+        const stripeTop = '#fdba74';
+        const stripeMain = '#f97316';
+        const stripeShadow = '#ea580c';
+        const poleMain = '#78350f';
+        const poleShadow = '#451a03';
+        
+        const cx = x + w / 2;
+        const cy = y + h * 0.4;
+        const radius = w / 2;
+        
         const stripeCount = 8;
         const stripeAngle = (Math.PI * 2) / stripeCount;
         
         for (let i = 0; i < stripeCount; i++) {
-            const startAngle = i * stripeAngle;
+            const isOrange = i % 2 === 0;
+            const startAngle = i * stripeAngle - Math.PI / 2;
             const endAngle = startAngle + stripeAngle;
             
-            ctx.fillStyle = stripeColors[i % stripeColors.length];
-            ctx.beginPath();
-            ctx.moveTo(x + w / 2, y + h / 2);
-            ctx.arc(x + w / 2, y + h / 2, w / 2, startAngle, endAngle);
-            ctx.closePath();
-            ctx.fill();
+            const stripeW = radius * 0.8;
+            const stripeH = radius * 0.4;
+            const angle = startAngle + stripeAngle / 2;
+            const px = cx + Math.cos(angle) * radius * 0.3;
+            const py = cy + Math.sin(angle) * radius * 0.2;
+            
+            ctx.fillStyle = isOrange ? stripeMain : '#ffffff';
+            ctx.fillRect(px - stripeW / 4, py - stripeH / 4, stripeW / 2, stripeH / 2);
+            
+            if (isOrange) {
+                ctx.fillStyle = stripeTop;
+                ctx.fillRect(px - stripeW / 4, py - stripeH / 4, 2, stripeH / 2);
+            } else {
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(px + stripeW / 4 - 2, py - stripeH / 4, 2, stripeH / 2);
+            }
         }
         
-        ctx.strokeStyle = '#fb923c';
+        ctx.strokeStyle = stripeShadow;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(x + w / 2, y + h / 2, w / 2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius * 0.8, 0, Math.PI * 2);
         ctx.stroke();
         
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(x + w / 2, y + h / 2);
-        ctx.lineTo(x + w / 2, y + h);
-        ctx.stroke();
+        ctx.fillStyle = poleMain;
+        ctx.fillRect(cx - 2, cy, 4, h * 0.6);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.arc(x + w * 0.35, y + h * 0.35, w * 0.15, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = poleShadow;
+        ctx.fillRect(cx, cy, 2, h * 0.6);
     },
 
     drawTowelTop(ctx, x, y, w, h) {
-        const towelGradient = ctx.createLinearGradient(x, y, x + w, y + h);
-        towelGradient.addColorStop(0, '#60a5fa');
-        towelGradient.addColorStop(0.5, '#3b82f6');
-        towelGradient.addColorStop(1, '#2563eb');
-        ctx.fillStyle = towelGradient;
+        const towelTop = '#93c5fd';
+        const towelMain = '#60a5fa';
+        const towelShadow = '#3b82f6';
+        const towelDepth = '#2563eb';
         
+        ctx.fillStyle = towelMain;
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 4);
         ctx.fill();
         
+        ctx.fillStyle = towelTop;
+        ctx.fillRect(x + 2, y + 2, w - 4, 3);
+        ctx.fillRect(x + 2, y + 2, 3, h - 4);
+        
+        ctx.fillStyle = towelShadow;
+        ctx.fillRect(x + w - 5, y + 2, 3, h - 4);
+        ctx.fillRect(x + 2, y + h - 5, w - 4, 3);
+        
+        ctx.fillStyle = towelDepth;
+        ctx.fillRect(x + 4, y + h, w - 8, 4);
+        ctx.fillStyle = adjustColor(towelDepth, -15);
+        ctx.fillRect(x, y + h, 4, 4);
+        
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.lineWidth = 2;
         for (let ty = y + 8; ty < y + h - 5; ty += 8) {
+            const offset = Math.sin(ty * 0.5) * 1;
             ctx.beginPath();
-            ctx.moveTo(x + 5, ty);
-            ctx.lineTo(x + w - 5, ty);
+            ctx.moveTo(x + 5 + offset, ty);
+            ctx.lineTo(x + w - 5 + offset, ty);
             ctx.stroke();
         }
         
@@ -783,36 +1039,64 @@ const SceneRenderer = {
     drawBookshelfTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h, 8);
         
-        const shelfGradient = ctx.createLinearGradient(x, y, x + w, y);
-        shelfGradient.addColorStop(0, '#6b4f3f');
-        shelfGradient.addColorStop(0.5, '#8b6b5a');
-        shelfGradient.addColorStop(1, '#6b4f3f');
-        ctx.fillStyle = shelfGradient;
+        const shelfTop = '#8b6b5a';
+        const shelfMain = '#6b4f3f';
+        const shelfShadow = '#4a3628';
+        const shelfDepth = '#3f2a1d';
+        
+        ctx.fillStyle = shelfMain;
         ctx.fillRect(x, y, w, h);
         
-        ctx.strokeStyle = '#3f2a1d';
+        ctx.fillStyle = shelfTop;
+        ctx.fillRect(x + 2, y + 2, w - 4, 3);
+        ctx.fillRect(x + 2, y + 2, 3, h - 4);
+        
+        ctx.fillStyle = shelfShadow;
+        ctx.fillRect(x + w - 5, y + 2, 3, h - 4);
+        ctx.fillRect(x + 2, y + h - 5, w - 4, 3);
+        
+        ctx.fillStyle = shelfDepth;
+        ctx.fillRect(x + 4, y + h, w - 8, 6);
+        ctx.fillStyle = adjustColor(shelfDepth, -15);
+        ctx.fillRect(x, y + h, 4, 6);
+        
+        ctx.strokeStyle = shelfDepth;
         ctx.lineWidth = 3;
         ctx.strokeRect(x, y, w, h);
         
-        const shelfY = y + h * 0.35;
-        const shelfY2 = y + h * 0.65;
+        const shelfY1 = y + h * 0.33;
+        const shelfY2 = y + h * 0.66;
         ctx.strokeStyle = '#2f2016';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(x + 4, shelfY);
-        ctx.lineTo(x + w - 4, shelfY);
+        ctx.moveTo(x + 4, shelfY1);
+        ctx.lineTo(x + w - 4, shelfY1);
         ctx.moveTo(x + 4, shelfY2);
         ctx.lineTo(x + w - 4, shelfY2);
         ctx.stroke();
         
-        const bookColors = ['#dc2626', '#2563eb', '#16a34a', '#9333ea', '#ca8a04'];
+        const bookColors = [
+            { main: '#dc2626', shadow: '#991b1b' },
+            { main: '#2563eb', shadow: '#1d4ed8' },
+            { main: '#16a34a', shadow: '#15803d' },
+            { main: '#9333ea', shadow: '#7e22ce' },
+            { main: '#ca8a04', shadow: '#a16207' }
+        ];
+        
         for (let row = 0; row < 3; row++) {
-            const rowY = y + 8 + row * (h / 3 - 4);
+            const rowY = y + 6 + row * (h / 3);
             let bookX = x + 6;
             while (bookX < x + w - 10) {
-                const bookW = 6 + Math.random() * 8;
-                ctx.fillStyle = bookColors[Math.floor(Math.random() * bookColors.length)];
-                ctx.fillRect(bookX, rowY, bookW, h / 3 - 12);
+                const bookW = 5 + Math.random() * 6;
+                const colorIdx = Math.floor(Math.random() * bookColors.length);
+                const bookColor = bookColors[colorIdx];
+                
+                ctx.fillStyle = bookColor.main;
+                ctx.fillRect(bookX, rowY, bookW, h / 3 - 10);
+                
+                ctx.fillStyle = bookColor.shadow;
+                ctx.fillRect(bookX + bookW - 2, rowY, 2, h / 3 - 10);
+                
                 bookX += bookW + 2;
             }
         }
@@ -821,35 +1105,70 @@ const SceneRenderer = {
     drawPlantTop(ctx, x, y, w, h) {
         this.drawShadow(ctx, x, y, w, h * 0.3, 5);
         
+        const leafTop = '#4CAF50';
+        const leafMain = '#388E3C';
+        const leafShadow = '#2E7D32';
+        const potTop = '#D7CCC8';
+        const potMain = '#BCAAA4';
+        const potShadow = '#8D6E63';
+        const potDepth = '#6D4C41';
+        
+        const cx = x + w / 2;
+        const cy = y + h * 0.35;
+        
         for (let i = 0; i < 5; i++) {
-            const leafAngle = (i * Math.PI * 2) / 5 + Math.random() * 0.3;
-            const leafX = x + w / 2 + Math.cos(leafAngle) * w * 0.25;
-            const leafY = y + h * 0.4 + Math.sin(leafAngle) * h * 0.2;
+            const angle = (i * Math.PI * 2) / 5 + Math.random() * 0.3;
+            const leafX = cx + Math.cos(angle) * w * 0.25;
+            const leafY = cy + Math.sin(angle) * h * 0.15;
+            const leafW = w * 0.25;
+            const leafH = w * 0.15;
             
-            const leafGradient = ctx.createRadialGradient(leafX, leafY, 0, leafX, leafY, w * 0.3);
-            leafGradient.addColorStop(0, '#22c55e');
-            leafGradient.addColorStop(1, '#16a34a');
-            ctx.fillStyle = leafGradient;
-            ctx.beginPath();
-            ctx.ellipse(leafX, leafY, w * 0.25, w * 0.15, leafAngle, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillStyle = leafMain;
+            ctx.fillRect(leafX - leafW / 2, leafY - leafH / 2, leafW, leafH);
+            
+            ctx.fillStyle = leafTop;
+            ctx.fillRect(leafX - leafW / 2, leafY - leafH / 2, 2, leafH);
+            ctx.fillRect(leafX - leafW / 2, leafY - leafH / 2, leafW, 2);
+            
+            ctx.fillStyle = leafShadow;
+            ctx.fillRect(leafX + leafW / 2 - 2, leafY - leafH / 2, 2, leafH);
+            ctx.fillRect(leafX - leafW / 2, leafY + leafH / 2 - 2, leafW, 2);
         }
         
-        const potGradient = ctx.createLinearGradient(x + w * 0.2, y + h * 0.6, x + w * 0.8, y + h);
-        potGradient.addColorStop(0, '#a3714f');
-        potGradient.addColorStop(1, '#8b5e3c');
-        ctx.fillStyle = potGradient;
+        const potW = w * 0.6;
+        const potH = h * 0.35;
+        const potX = cx - potW / 2;
+        const potY = y + h * 0.65;
         
+        ctx.fillStyle = potMain;
         ctx.beginPath();
-        ctx.moveTo(x + w * 0.2, y + h * 0.65);
-        ctx.lineTo(x + w * 0.15, y + h);
-        ctx.lineTo(x + w * 0.85, y + h);
-        ctx.lineTo(x + w * 0.8, y + h * 0.65);
+        ctx.moveTo(potX, potY);
+        ctx.lineTo(potX - 4, potY + potH);
+        ctx.lineTo(potX + potW + 4, potY + potH);
+        ctx.lineTo(potX + potW, potY);
         ctx.closePath();
         ctx.fill();
         
-        ctx.strokeStyle = '#6b4423';
+        ctx.fillStyle = potTop;
+        ctx.fillRect(potX, potY, potW, 3);
+        ctx.fillRect(potX, potY, 3, potH);
+        
+        ctx.fillStyle = potShadow;
+        ctx.fillRect(potX + potW - 3, potY, 3, potH);
+        
+        ctx.fillStyle = potDepth;
+        ctx.fillRect(potX + 4, potY + potH, potW - 8, 4);
+        ctx.fillStyle = adjustColor(potDepth, -15);
+        ctx.fillRect(potX - 4, potY + potH, 8, 4);
+        
+        ctx.strokeStyle = potShadow;
         ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(potX, potY);
+        ctx.lineTo(potX - 4, potY + potH);
+        ctx.lineTo(potX + potW + 4, potY + potH);
+        ctx.lineTo(potX + potW, potY);
+        ctx.closePath();
         ctx.stroke();
     }
 };

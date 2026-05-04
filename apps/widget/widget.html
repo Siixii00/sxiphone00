@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="widget.css">
+  <link rel="stylesheet" href="ios-styles.css">
 </head>
 <body>
   <div class="widget-app">
@@ -43,17 +44,6 @@
           <div class="desktop-page-dots" id="desktopPageDots"></div>
         </div>
         
-        <!-- 小工具放置區 -->
-        <div class="widget-catalog" id="widgetCatalog">
-          <section class="widget-section">
-            <h2 class="section-title">小工具<span style="font-weight:400;color:var(--text-tertiary);font-size:10px">從這裡開始添加</span></h2>
-            <div class="widget-row" data-size-row="main"></div>
-          </section>
-          <section class="widget-section">
-            <h2 class="section-title">鎖屏小工具</h2>
-            <div class="widget-row" data-size-row="lock-1x"></div>
-          </section>
-        </div>
       </div>
       
       <!-- 小工具元件庫（可拖曳） -->
@@ -90,6 +80,18 @@
           <p class="settings-hint">點擊切換顯示/隱藏</p>
           <div class="shortcuts-grid" id="shortcutsGrid"></div>
         </div>
+      </div>
+      
+      <!-- 小工具放置區 -->
+      <div class="widget-catalog" id="widgetCatalog">
+        <section class="widget-section">
+          <h2 class="section-title">小工具<span style="font-weight:400;color:var(--text-tertiary);font-size:10px">從這裡開始添加</span></h2>
+          <div class="widget-row" data-size-row="main"></div>
+        </section>
+        <section class="widget-section">
+          <h2 class="section-title">鎖屏小工具</h2>
+          <div class="widget-row" data-size-row="lock-1x"></div>
+        </section>
       </div>
     </main>
 

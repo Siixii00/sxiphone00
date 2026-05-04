@@ -1678,5 +1678,211 @@ document.addEventListener('click', (event) => {
   }
 });
 
+let aiVideoGenState = {
+  isGenerating: false,
+  generatedVideoUrl: null,
+  generatedPrompt: null
+};
+
+const aiVideoGenModal = document.getElementById('ai-video-gen-modal');
+const aiVideoGenStatus = document.getElementById('ai-video-gen-status');
+const aiVideoGenForm = document.getElementById('ai-video-gen-form');
+const aiVideoGenPreview = document.getElementById('ai-video-gen-preview');
+const aiVideoGenProgressBar = document.getElementById('ai-video-gen-progress-bar');
+const aiVideoGenMessage = document.getElementById('ai-video-gen-message');
+const aiVideoPreviewPlayer = document.getElementById('ai-video-preview-player');
+const aiVideoGenActions = document.getElementById('ai-video-gen-actions');
+const startVideoGenBtn = document.getElementById('start-video-gen-btn');
+const aiVideoAdvancedOptions = document.getElementById('ai-video-advanced-options');
+
+function openAIVideoGenModal() {
+  if (!aiVideoGenModal) return;
+  resetAIVideoGenModal();
+  aiVideoGenModal.hidden = false;
+}
+
+function closeAIVideoGenModal() {
+  if (!aiVideoGenModal) return;
+  aiVideoGenModal.hidden = true;
+  resetAIVideoGenModal();
+}
+
+function resetAIVideoGenModal() {
+  if (aiVideoGenStatus) aiVideoGenStatus.hidden = true;
+  if (aiVideoGenForm) aiVideoGenForm.hidden = false;
+  if (aiVideoGenPreview) aiVideoGenPreview.hidden = true;
+  if (aiVideoGenProgressBar) aiVideoGenProgressBar.style.width = '0%';
+  if (aiVideoGenMessage) aiVideoGenMessage.textContent = '準備中...';
+  if (startVideoGenBtn) {
+    startVideoGenBtn.disabled = false;
+    startVideoGenBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 開始生成';
+  }
+  if (aiVideoGenActions) aiVideoGenActions.hidden = false;
+  aiVideoGenState.isGenerating = false;
+  aiVideoGenState.generatedVideoUrl = null;
+  aiVideoGenState.generatedPrompt = null;
+}
+
+function toggleAdvancedOptions() {
+  if (!aiVideoAdvancedOptions) return;
+  aiVideoAdvancedOptions.hidden = !aiVideoAdvancedOptions.hidden;
+  const btn = document.querySelector('[data-action="toggle-advanced"]');
+  if (btn) {
+    const icon = btn.querySelector('.fa-chevron-down, .fa-chevron-up');
+    if (icon) {
+      icon.classList.toggle('fa-chevron-down');
+      icon.classList.toggle('fa-chevron-up');
+    }
+  }
+}
+
+function updateRangeDisplay(inputId, valueId, suffix = '') {
+  const input = document.getElementById(inputId);
+  const display = document.getElementById(valueId);
+  if (input && display) {
+    display.textContent = input.value + suffix;
+  }
+}
+
+async function startAIVideoGeneration() {
+  const promptInput = document.getElementById('ai-video-prompt');
+  const prompt = promptInput?.value?.trim();
+
+  if (!prompt) {
+    alert('請輸入影片描述');
+    return;
+  }
+
+  if (aiVideoGenState.isGenerating) {
+    return;
+  }
+
+  aiVideoGenState.isGenerating = true;
+  aiVideoGenState.generatedPrompt = prompt;
+
+  if (startVideoGenBtn) {
+    startVideoGenBtn.disabled = true;
+    startVideoGenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+  }
+
+  if (aiVideoGenStatus) aiVideoGenStatus.hidden = false;
+  if (aiVideoGenForm) aiVideoGenForm.hidden = true;
+
+  const durationInput = document.getElementById('ai-video-duration');
+  const widthInput = document.getElementById('ai-video-width');
+  const heightInput = document.getElementById('ai-video-height');
+  const guidanceInput = document.getElementById('ai-video-guidance');
+
+  const options = {
+    duration: durationInput ? parseFloat(durationInput.value) : 2.0,
+    width: widthInput ? parseInt(widthInput.value) : 704,
+    height: heightInput ? parseInt(heightInput.value) : 512,
+    guidanceScale: guidanceInput ? parseFloat(guidanceInput.value) : 3.0
+  };
+
+  try {
+    const result = await VideoGenerationService.generateVideo(prompt, options, (progress) => {
+      if (aiVideoGenProgressBar) {
+        aiVideoGenProgressBar.style.width = `${progress.progress || 0}%`;
+      }
+      if (aiVideoGenMessage) {
+        aiVideoGenMessage.textContent = progress.message || '處理中...';
+      }
+    });
+
+    aiVideoGenState.generatedVideoUrl = result.videoUrl;
+
+    if (aiVideoPreviewPlayer) {
+      aiVideoPreviewPlayer.src = result.videoUrl;
+    }
+
+    if (aiVideoGenStatus) aiVideoGenStatus.hidden = true;
+    if (aiVideoGenPreview) aiVideoGenPreview.hidden = false;
+    if (aiVideoGenActions) aiVideoGenActions.hidden = false;
+
+  } catch (error) {
+    console.error('Video generation failed:', error);
+    alert(`生成失敗: ${error.message}`);
+    resetAIVideoGenModal();
+  }
+}
+
+async function downloadGeneratedVideo() {
+  if (!aiVideoGenState.generatedVideoUrl) {
+    alert('沒有可下載的影片');
+    return;
+  }
+
+  try {
+    await VideoGenerationService.downloadVideo(aiVideoGenState.generatedVideoUrl);
+  } catch (error) {
+    alert(`下載失敗: ${error.message}`);
+  }
+}
+
+function addGeneratedVideoToFeed() {
+  if (!aiVideoGenState.generatedVideoUrl) {
+    alert('沒有可加入的影片');
+    return;
+  }
+
+  const newVideo = {
+    title: aiVideoGenState.generatedPrompt || 'AI 生成影片',
+    tag: currentTab || 'recommend',
+    views: randomViews(),
+    danmu: randomDanmu(),
+    thumbGradient: generateThumbnail(),
+    videoUrl: aiVideoGenState.generatedVideoUrl,
+    isAIGenerated: true,
+    createdAt: new Date().toISOString()
+  };
+
+  sample[newVideo.tag].unshift(newVideo);
+  render(newVideo.tag);
+  persistFeed(newVideo.tag);
+
+  closeAIVideoGenModal();
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+
+  const action = target.dataset.action;
+
+  switch (action) {
+    case 'open-ai-video-gen':
+      openAIVideoGenModal();
+      break;
+    case 'close-ai-video-gen':
+      closeAIVideoGenModal();
+      break;
+    case 'toggle-advanced':
+      toggleAdvancedOptions();
+      break;
+    case 'start-video-gen':
+      startAIVideoGeneration();
+      break;
+    case 'download-video':
+      downloadGeneratedVideo();
+      break;
+    case 'add-to-feed':
+      addGeneratedVideoToFeed();
+      break;
+  }
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'ai-video-duration') {
+    updateRangeDisplay('ai-video-duration', 'ai-video-duration-value', 's');
+  } else if (event.target.id === 'ai-video-width') {
+    updateRangeDisplay('ai-video-width', 'ai-video-width-value', '');
+  } else if (event.target.id === 'ai-video-height') {
+    updateRangeDisplay('ai-video-height', 'ai-video-height-value', '');
+  } else if (event.target.id === 'ai-video-guidance') {
+    updateRangeDisplay('ai-video-guidance', 'ai-video-guidance-value', '');
+  }
+});
+
 console.log('Loaded app: bilibili');
 

@@ -247,6 +247,12 @@
         </div>
         <div class="yt-modal-body">
           <div class="yt-modal-row">
+            <button class="yt-primary-btn yt-ai-gen-video-btn" data-action="open-ai-video-gen">
+              <i class="fas fa-magic"></i> AI 生成影片
+            </button>
+          </div>
+          <div class="yt-modal-divider"><span>或手動新增</span></div>
+          <div class="yt-modal-row">
             <label class="yt-modal-label" for="add-video-title">影片標題</label>
             <input id="add-video-title" type="text" class="yt-text-input" placeholder="輸入影片標題">
           </div>
@@ -333,6 +339,70 @@
       </div>
     </div>
 
+    <div class="yt-modal" id="yt-ai-video-gen-modal" hidden>
+      <div class="yt-modal-backdrop" data-action="close-ai-video-gen"></div>
+      <div class="yt-modal-card yt-ai-video-gen-modal-card">
+        <div class="yt-modal-header">
+          <div class="yt-modal-title"><i class="fas fa-magic"></i> AI 影片生成</div>
+          <button class="yt-icon small" data-action="close-ai-video-gen" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="yt-modal-body">
+          <div class="yt-ai-video-gen-status" id="yt-ai-video-gen-status" hidden>
+            <div class="yt-ai-video-gen-progress">
+              <div class="yt-ai-video-gen-progress-bar" id="yt-ai-video-gen-progress-bar"></div>
+            </div>
+            <div class="yt-ai-video-gen-message" id="yt-ai-video-gen-message">準備中...</div>
+          </div>
+          <div class="yt-ai-video-gen-form" id="yt-ai-video-gen-form">
+            <div class="yt-modal-row">
+              <label class="yt-modal-label" for="yt-ai-video-prompt">影片描述 *</label>
+              <textarea id="yt-ai-video-prompt" class="yt-text-input yt-ai-video-textarea" placeholder="描述你想生成的影片內容，例如：一隻可愛的貓咪在陽光下打盹" rows="3"></textarea>
+            </div>
+            <div class="yt-ai-video-advanced-toggle">
+              <button class="yt-ghost-btn small" data-action="toggle-advanced" type="button">
+                <i class="fas fa-sliders-h"></i> 進階選項 <i class="fas fa-chevron-down"></i>
+              </button>
+            </div>
+            <div class="yt-ai-video-advanced-options" id="yt-ai-video-advanced-options" hidden>
+              <div class="yt-modal-row">
+                <label class="yt-modal-label" for="yt-ai-video-duration">時長（秒）</label>
+                <input id="yt-ai-video-duration" type="range" min="0.3" max="8.5" step="0.1" value="2.0">
+                <span class="yt-ai-video-range-value" id="yt-ai-video-duration-value">2.0s</span>
+              </div>
+              <div class="yt-modal-row">
+                <label class="yt-modal-label" for="yt-ai-video-width">寬度</label>
+                <input id="yt-ai-video-width" type="range" min="256" max="1280" step="32" value="704">
+                <span class="yt-ai-video-range-value" id="yt-ai-video-width-value">704</span>
+              </div>
+              <div class="yt-modal-row">
+                <label class="yt-modal-label" for="yt-ai-video-height">高度</label>
+                <input id="yt-ai-video-height" type="range" min="256" max="1280" step="32" value="512">
+                <span class="yt-ai-video-range-value" id="yt-ai-video-height-value">512</span>
+              </div>
+              <div class="yt-modal-row">
+                <label class="yt-modal-label" for="yt-ai-video-guidance">引導強度</label>
+                <input id="yt-ai-video-guidance" type="range" min="1" max="10" step="0.5" value="3.0">
+                <span class="yt-ai-video-range-value" id="yt-ai-video-guidance-value">3.0</span>
+              </div>
+            </div>
+            <div class="yt-ai-video-gen-preview" id="yt-ai-video-gen-preview" hidden>
+              <video id="yt-ai-video-preview-player" controls playsinline></video>
+              <div class="yt-ai-video-gen-preview-actions">
+                <button class="yt-ghost-btn" data-action="download-video"><i class="fas fa-download"></i> 下載影片</button>
+                <button class="yt-ghost-btn" data-action="add-to-feed"><i class="fas fa-plus"></i> 加入 Feed</button>
+              </div>
+            </div>
+          </div>
+          <div class="yt-modal-actions" id="yt-ai-video-gen-actions">
+            <button class="yt-ghost-btn" data-action="close-ai-video-gen">取消</button>
+            <button class="yt-primary-btn" data-action="start-video-gen" id="yt-start-video-gen-btn">
+              <i class="fas fa-wand-magic-sparkles"></i> 開始生成
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <nav class="yt-tabbar" aria-label="底部選單">
       <button class="tab active" data-view="home" type="button"><i class="fas fa-house"></i><span>首頁</span></button>
       <button class="tab" data-view="shorts" type="button"><i class="fas fa-bolt"></i><span>Shorts</span></button>
@@ -345,6 +415,7 @@
   <script src="../scripts/shared-settings.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>
 <script src="../scripts/app-appearance-configs.js"></script>
+<script src="../scripts/video-generation-service.js"></script>
 <script src="youtube.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {

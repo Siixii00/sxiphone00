@@ -196,6 +196,12 @@
         </div>
         <div class="modal-body">
           <div class="modal-row">
+            <button class="primary-btn ai-gen-video-btn" data-action="open-ai-video-gen">
+              <i class="fas fa-magic"></i> AI 生成影片
+            </button>
+          </div>
+          <div class="modal-divider"><span>或手動新增</span></div>
+          <div class="modal-row">
             <label class="modal-label" for="add-video-title">影片標題</label>
             <input id="add-video-title" type="text" class="text-input" placeholder="輸入影片標題" aria-label="影片標題">
           </div>
@@ -244,6 +250,70 @@
       </div>
     </div>
 
+    <div class="modal" id="ai-video-gen-modal" hidden>
+      <div class="modal-backdrop" data-action="close-ai-video-gen"></div>
+      <div class="modal-card ai-video-gen-modal-card" role="dialog" aria-modal="true" aria-label="AI 影片生成">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-magic"></i> AI 影片生成</div>
+          <button class="icon-btn small" data-action="close-ai-video-gen" aria-label="關閉"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="ai-video-gen-status" id="ai-video-gen-status" hidden>
+            <div class="ai-video-gen-progress">
+              <div class="ai-video-gen-progress-bar" id="ai-video-gen-progress-bar"></div>
+            </div>
+            <div class="ai-video-gen-message" id="ai-video-gen-message">準備中...</div>
+          </div>
+          <div class="ai-video-gen-form" id="ai-video-gen-form">
+            <div class="modal-row">
+              <label class="modal-label" for="ai-video-prompt">影片描述 *</label>
+              <textarea id="ai-video-prompt" class="text-input ai-video-textarea" placeholder="描述你想生成的影片內容，例如：一隻可愛的貓咪在陽光下打盹" rows="3"></textarea>
+            </div>
+            <div class="ai-video-advanced-toggle">
+              <button class="ghost-btn small" data-action="toggle-advanced" type="button">
+                <i class="fas fa-sliders-h"></i> 進階選項 <i class="fas fa-chevron-down"></i>
+              </button>
+            </div>
+            <div class="ai-video-advanced-options" id="ai-video-advanced-options" hidden>
+              <div class="modal-row">
+                <label class="modal-label" for="ai-video-duration">時長（秒）</label>
+                <input id="ai-video-duration" type="range" min="0.3" max="8.5" step="0.1" value="2.0">
+                <span class="ai-video-range-value" id="ai-video-duration-value">2.0s</span>
+              </div>
+              <div class="modal-row">
+                <label class="modal-label" for="ai-video-width">寬度</label>
+                <input id="ai-video-width" type="range" min="256" max="1280" step="32" value="704">
+                <span class="ai-video-range-value" id="ai-video-width-value">704</span>
+              </div>
+              <div class="modal-row">
+                <label class="modal-label" for="ai-video-height">高度</label>
+                <input id="ai-video-height" type="range" min="256" max="1280" step="32" value="512">
+                <span class="ai-video-range-value" id="ai-video-height-value">512</span>
+              </div>
+              <div class="modal-row">
+                <label class="modal-label" for="ai-video-guidance">引導強度</label>
+                <input id="ai-video-guidance" type="range" min="1" max="10" step="0.5" value="3.0">
+                <span class="ai-video-range-value" id="ai-video-guidance-value">3.0</span>
+              </div>
+            </div>
+            <div class="ai-video-gen-preview" id="ai-video-gen-preview" hidden>
+              <video id="ai-video-preview-player" controls playsinline></video>
+              <div class="ai-video-gen-preview-actions">
+                <button class="ghost-btn" data-action="download-video"><i class="fas fa-download"></i> 下載影片</button>
+                <button class="ghost-btn" data-action="add-to-feed"><i class="fas fa-plus"></i> 加入 Feed</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions" id="ai-video-gen-actions">
+            <button class="ghost-btn" data-action="close-ai-video-gen">取消</button>
+            <button class="primary-btn" data-action="start-video-gen" id="start-video-gen-btn">
+              <i class="fas fa-wand-magic-sparkles"></i> 開始生成
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <footer class="bottombar">
       <button class="nav-btn active" data-view="home"><i class="fas fa-home"></i><span>首頁</span></button>
       <button class="nav-btn" data-view="feed"><i class="far fa-compass"></i><span>追番</span></button>
@@ -256,6 +326,7 @@
   <script src="../scripts/shared-settings.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>
 <script src="../scripts/app-appearance-configs.js"></script>
+<script src="../scripts/video-generation-service.js"></script>
 <script src="bilibili.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', function() {
