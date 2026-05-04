@@ -31,6 +31,15 @@ const BUILTIN_WORLDBOOKS = [
     { id: 'mino', file: 'mino_worldbook.json', name: 'Mino 預設', desc: 'Mino 專用優化', lang: 'zh' },
     { id: 'literary_style', file: 'literary_style_worldbook.json', name: '文學風格預設', desc: '文學寫作風格設定', lang: 'zh' },
     { id: 'eating', file: 'eating_worldbook.json', name: '飲食預設', desc: '飲食相關設定', lang: 'zh' },
+    { id: 'intimate', file: 'intimate_worldbook.json', name: '親密行為預設', desc: '親密場景敘事風格模組（含開關）', lang: 'zh' },
+    { id: 'outfit_female', file: 'outfit_female_worldbook.json', name: '女性情趣裝扮', desc: '女性情趣衣物描述模組（含開關）', lang: 'zh' },
+    { id: 'outfit_male', file: 'outfit_male_worldbook.json', name: '男性情趣裝扮', desc: '男性情趣衣物描述模組（含開關）', lang: 'zh' },
+    { id: 'xeno_male', file: 'xeno_male_worldbook.json', name: '男性人外特徵', desc: '男性人外生理特徵模組（互斥開關）', lang: 'zh' },
+    { id: 'xeno_female', file: 'xeno_female_worldbook.json', name: '女性人外特徵', desc: '女性人外生理特徵模組（互斥開關）', lang: 'zh' },
+    { id: 'xeno_common', file: 'xeno_common_worldbook.json', name: '人外共通感官', desc: '跨性別人外感官細節模組（可選開關）', lang: 'zh' },
+    { id: 'body_round', file: 'body_round_worldbook.json', name: '圓潤/豐腴體型', desc: '豐腴體型描述模組（含詞庫）', lang: 'zh' },
+    { id: 'body_normal', file: 'body_normal_worldbook.json', name: '正常/勻稱體型', desc: '勻稱體型描述模組（含詞庫）', lang: 'zh' },
+    { id: 'body_slender', file: 'body_slender_worldbook.json', name: '骨感/纖細體型', desc: '纖細體型描述模組（含詞庫）', lang: 'zh' },
     { id: 'universal_reset', file: 'universal_reset_worldbook.json', name: '通用重置預設', desc: '通用重置設定', lang: 'zh' }
 ];
 
