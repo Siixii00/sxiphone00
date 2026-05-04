@@ -40,6 +40,8 @@ const BUILTIN_WORLDBOOKS = [
     { id: 'body_round', file: 'body_round_worldbook.json', name: '圓潤/豐腴體型', desc: '豐腴體型描述模組（含詞庫）', lang: 'zh' },
     { id: 'body_normal', file: 'body_normal_worldbook.json', name: '正常/勻稱體型', desc: '勻稱體型描述模組（含詞庫）', lang: 'zh' },
     { id: 'body_slender', file: 'body_slender_worldbook.json', name: '骨感/纖細體型', desc: '纖細體型描述模組（含詞庫）', lang: 'zh' },
+    { id: 'toy_female', file: 'toy_female_worldbook.json', name: '女用情趣器具', desc: '女性器具使用描述模組', lang: 'zh' },
+    { id: 'toy_male', file: 'toy_male_worldbook.json', name: '男用情趣器具', desc: '男性器具使用描述模組', lang: 'zh' },
     { id: 'universal_reset', file: 'universal_reset_worldbook.json', name: '通用重置預設', desc: '通用重置設定', lang: 'zh' }
 ];
 
