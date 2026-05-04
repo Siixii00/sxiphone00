@@ -8713,8 +8713,7 @@ function renderMapEditCatalog(category) {
     div.appendChild(name);
     
     const price = document.createElement('span');
-    price.style.color = '#ffd700';
-    price.style.fontSize = '10px';
+    price.className = 'price';
     price.textContent = `$${item.price}`;
     div.appendChild(price);
     

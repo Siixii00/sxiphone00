@@ -1983,26 +1983,55 @@ body::-webkit-scrollbar {
 
 .map-edit-item {
   aspect-ratio: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--home-border);
-  border-radius: 8px;
+  background: var(--home-surface);
+  border: 3px solid var(--home-border);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   padding: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    2px 2px 0 rgba(93, 64, 55, 0.15),
+    inset -2px -2px 0 rgba(93, 64, 55, 0.05),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+.map-edit-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.map-edit-item:hover::before {
+  transform: translateX(100%);
 }
 
 .map-edit-item:hover {
-  background: rgba(232, 168, 124, 0.2);
+  background: var(--home-surface);
   border-color: var(--home-accent);
+  transform: translateY(-2px);
+  box-shadow:
+    3px 3px 0 rgba(93, 64, 55, 0.2),
+    inset -2px -2px 0 rgba(93, 64, 55, 0.05),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.8);
 }
 
 .map-edit-item.selected {
-  background: rgba(232, 168, 124, 0.3);
+  background: rgba(232, 168, 124, 0.15);
   border-color: var(--home-accent);
+  transform: scale(0.97);
+  box-shadow:
+    1px 1px 0 rgba(93, 64, 55, 0.1),
+    inset -1px -1px 0 rgba(93, 64, 55, 0.05),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .map-edit-item canvas {
@@ -2015,6 +2044,11 @@ body::-webkit-scrollbar {
   font-size: 10px;
   margin-top: 4px;
   color: var(--home-text-secondary);
+}
+
+.map-edit-item .price {
+  color: #c9a227;
+  font-size: 9px;
 }
 
 .room-size-display {
