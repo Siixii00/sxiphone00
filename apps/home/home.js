@@ -3926,68 +3926,264 @@ function generateCommunityMap() {
 
 function getCommunityTile(community, x, y) {
   const config = COMMUNITY_MAP_CONFIG;
+  const terrain = community.terrain || community.id;
   
-  if (community.terrain === 'residential') {
-    const roadY = Math.floor(config.height / 2);
-    const roadX = Math.floor(config.width / 2);
-    
-    if (y >= roadY - 1 && y <= roadY + 2) {
-      if (x >= roadX - 1 && x <= roadX + 2) {
+  // ========================================
+  // 溫馨住宅區 - 十字形主幹道 + 巷道 + 花園
+  // ========================================
+  if (terrain === 'residential') {
+    // 主幹道 H：y ∈ [13,16]（4格寬）
+    if (y >= 13 && y <= 16) {
+      // 主幹道 V：x ∈ [18,21]（4格寬）
+      if (x >= 18 && x <= 21) {
         return COMMUNITY_TILE_TYPES.ROAD_CROSS;
       }
       return COMMUNITY_TILE_TYPES.ROAD_H;
     }
-    if (x >= roadX - 1 && x <= roadX + 2) {
+    // 主幹道 V
+    if (x >= 18 && x <= 21) {
       return COMMUNITY_TILE_TYPES.ROAD_V;
     }
-    if (y === roadY - 2 || y === roadY + 3) {
-      return COMMUNITY_TILE_TYPES.SIDEWALK;
+    // 人行道：道路外側各1格
+    if (y === 12 || y === 17) {
+      if (x < 18 || x > 21) return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    if (x === 17 || x === 22) {
+      if (y < 13 || y > 16) return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    // 北側巷道 H（2格寬）：y=6-7
+    if (y >= 6 && y <= 7) {
+      if (x < 18 || x > 21) return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    // 南側巷道 H（2格寬）：y=22-23
+    if (y >= 22 && y <= 23) {
+      if (x < 18 || x > 21) return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    // 西側巷道 V（2格寬）：x=8-9
+    if (x >= 8 && x <= 9) {
+      if (y < 6 || y > 23 || (y >= 13 && y <= 16)) {
+        // 與主幹道交叉口
+        if (y >= 13 && y <= 16) return COMMUNITY_TILE_TYPES.ROAD_CROSS;
+        return COMMUNITY_TILE_TYPES.ROAD_V;
+      }
+    }
+    // 東側巷道 V（2格寬）：x=30-31
+    if (x >= 30 && x <= 31) {
+      if (y < 6 || y > 23 || (y >= 13 && y <= 16)) {
+        if (y >= 13 && y <= 16) return COMMUNITY_TILE_TYPES.ROAD_CROSS;
+        return COMMUNITY_TILE_TYPES.ROAD_V;
+      }
+    }
+    // 花園地塊：部分格子
+    if (x >= 5 && x <= 15 && y >= 3 && y <= 12) {
+      if ((x + y) % 5 === 0) return COMMUNITY_TILE_TYPES.GARDEN;
     }
     return COMMUNITY_TILE_TYPES.GRASS;
   }
   
-  if (community.terrain === 'commercial') {
-    const roadY = Math.floor(config.height / 2);
-    
-    if (y >= roadY - 1 && y <= roadY + 2) {
+  // ========================================
+  // 繁華商業區 - 平行道路 + 大面積水泥地
+  // ========================================
+  if (terrain === 'commercial') {
+    // 主街道 H（4格寬）：y ∈ [7,10]
+    if (y >= 7 && y <= 10) {
+      // 縱向巷道交叉口
+      if ((x >= 13 && x <= 14) || (x >= 26 && x <= 27)) {
+        return COMMUNITY_TILE_TYPES.ROAD_CROSS;
+      }
       return COMMUNITY_TILE_TYPES.ROAD_H;
     }
-    if (y === roadY - 2 || y === roadY + 3) {
+    // 次街道 H（2格寬）：y ∈ [17,18]
+    if (y >= 17 && y <= 18) {
+      if ((x >= 13 && x <= 14) || (x >= 26 && x <= 27)) {
+        return COMMUNITY_TILE_TYPES.ROAD_CROSS;
+      }
+      return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    // 次街道 H（2格寬）：y ∈ [24,25]
+    if (y >= 24 && y <= 25) {
+      return COMMUNITY_TILE_TYPES.ROAD_H;
+    }
+    // 縱向巷道 V（2格寬）：x ∈ [13,14]
+    if (x >= 13 && x <= 14) {
+      return COMMUNITY_TILE_TYPES.ROAD_V;
+    }
+    // 縱向巷道 V（2格寬）：x ∈ [26,27]
+    if (x >= 26 && x <= 27) {
+      return COMMUNITY_TILE_TYPES.ROAD_V;
+    }
+    // 人行道：道路外側1格
+    if (y === 6 || y === 11 || y === 16 || y === 19 || y === 23 || y === 26) {
       return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    if (x === 12 || x === 15 || x === 25 || x === 28) {
+      return COMMUNITY_TILE_TYPES.SIDEWALK;
+    }
+    // 背後巷道 STONE_PATH：x ∈ [0,3]
+    if (x >= 0 && x <= 3) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 廣場/停車場 CONCRETE
+    if (y >= 0 && y <= 5 && x >= 5 && x <= 35) {
+      return COMMUNITY_TILE_TYPES.CONCRETE;
     }
     return COMMUNITY_TILE_TYPES.CONCRETE;
   }
   
-  if (community.terrain === 'leisure') {
-    if (Math.random() > 0.85) {
+  // ========================================
+  // 休閒公園區 - 有機步道 + 水池 + 花圃
+  // ========================================
+  if (terrain === 'leisure') {
+    // 中央水池 WATER：x ∈ [16,24] 且 y ∈ [10,18]
+    if (x >= 16 && x <= 24 && y >= 10 && y <= 18) {
+      return COMMUNITY_TILE_TYPES.WATER;
+    }
+    // 水池岸邊 SAND
+    if (x >= 15 && x <= 25 && y >= 9 && y <= 19) {
+      if (!(x >= 16 && x <= 24 && y >= 10 && y <= 18)) {
+        return COMMUNITY_TILE_TYPES.SAND;
+      }
+    }
+    // 主步道 STONE_PATH（2格寬）：固定路徑
+    // 橫向主步道
+    if (y >= 4 && y <= 5) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    if (y >= 24 && y <= 25) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    // 縱向主步道
+    if (x >= 4 && x <= 5) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    if (x >= 34 && x <= 35) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    // 連接水池的步道
+    if (x >= 12 && x <= 13 && y >= 8 && y <= 9) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    if (x >= 27 && x <= 28 && y >= 8 && y <= 9) return COMMUNITY_TILE_TYPES.STONE_PATH;
+    // 花圃帶 GARDEN：沿步道外側
+    if ((y === 3 || y === 6 || y === 23 || y === 26) && x >= 6 && x <= 33) {
+      return COMMUNITY_TILE_TYPES.GARDEN;
+    }
+    if ((x === 3 || x === 6 || x === 33 || x === 36) && y >= 7 && y <= 22) {
       return COMMUNITY_TILE_TYPES.GARDEN;
     }
     return COMMUNITY_TILE_TYPES.GRASS;
   }
   
-  if (community.terrain === 'nature') {
-    if (Math.random() > 0.9) {
+  // ========================================
+  // 自然森林區 - 茂密森林 + S形河流 + 石徑
+  // ========================================
+  if (terrain === 'nature') {
+    // S形河流 WATER（3格寬蜿蜒）
+    let riverY = 14;
+    if (x < 10) riverY = 12;
+    if (x > 30) riverY = 16;
+    if (y >= riverY - 1 && y <= riverY + 1) {
+      return COMMUNITY_TILE_TYPES.WATER;
+    }
+    // 河岸沙地 SAND
+    if (y >= riverY - 2 && y <= riverY + 2) {
+      if (!(y >= riverY - 1 && y <= riverY + 1)) {
+        return COMMUNITY_TILE_TYPES.SAND;
+      }
+    }
+    // 石徑 STONE_PATH（1格寬）：斜向小路
+    const pathY = Math.floor(25 - x * 20 / 39);
+    if (Math.abs(y - pathY) < 1) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 林間空地 GRASS
+    if (x >= 5 && x <= 15 && y >= 3 && y <= 10) {
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    if (x >= 25 && x <= 35 && y >= 20 && y <= 28) {
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    // 濃密森林 FOREST：用 hash 散佈
+    if (((x * 3 + y * 5) % 4) > 0) {
       return COMMUNITY_TILE_TYPES.FOREST;
     }
     return COMMUNITY_TILE_TYPES.GRASS;
   }
   
-  if (community.terrain === 'seaside') {
-    if (y > config.height - 6) {
+  // ========================================
+  // 海濱度假區 - 水平分層：草地→沙灘→海水
+  // ========================================
+  if (terrain === 'seaside') {
+    // 深海 WATER：y >= 24
+    if (y >= 24) {
+      return COMMUNITY_TILE_TYPES.WATER;
+    }
+    // 海水 WATER：y >= 20
+    if (y >= 20) {
+      return COMMUNITY_TILE_TYPES.WATER;
+    }
+    // 沙灘 BEACH：y ∈ [17,19]
+    if (y >= 17 && y <= 19) {
       return COMMUNITY_TILE_TYPES.BEACH;
     }
-    if (y > config.height - 4) {
+    // 沙地過渡 SAND：y ∈ [15,16]
+    if (y >= 15 && y <= 16) {
       return COMMUNITY_TILE_TYPES.SAND;
+    }
+    // 海岸步道 STONE_PATH（1格）：y=14
+    if (y === 14) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 碼頭區 CONCRETE：x ∈ [33,38] 且 y ∈ [12,19]
+    if (x >= 33 && x <= 38 && y >= 12 && y <= 19) {
+      return COMMUNITY_TILE_TYPES.CONCRETE;
+    }
+    // 棧橋 ROAD_H：伸入海中
+    if (x >= 34 && x <= 37 && y >= 20 && y <= 22) {
+      return COMMUNITY_TILE_TYPES.ROAD_H;
     }
     return COMMUNITY_TILE_TYPES.GRASS;
   }
   
-  if (community.terrain === 'cultural') {
-    const centerX = Math.floor(config.width / 2);
-    const centerY = Math.floor(config.height / 2);
-    
-    if (Math.abs(x - centerX) < 8 && Math.abs(y - centerY) < 6) {
+  // ========================================
+  // 文化藝術區 - 中央廣場 + 放射步道 + 對稱草坪
+  // ========================================
+  if (terrain === 'cultural') {
+    // 中央大廣場 STONE_PATH：x ∈ [14,25] 且 y ∈ [10,20]
+    if (x >= 14 && x <= 25 && y >= 10 && y <= 20) {
       return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 放射步道 STONE_PATH（2格寬）
+    // 北步道：x ∈ [19,20]，y ∈ [0,10]
+    if (x >= 19 && x <= 20 && y >= 0 && y <= 9) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 南步道：x ∈ [19,20]，y ∈ [21,29]
+    if (x >= 19 && x <= 20 && y >= 21 && y <= 29) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 西步道：y ∈ [14,15]，x ∈ [0,14]
+    if (y >= 14 && y <= 15 && x >= 0 && x <= 13) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 東步道：y ∈ [14,15]，x ∈ [26,39]
+    if (y >= 14 && y <= 15 && x >= 26 && x <= 39) {
+      return COMMUNITY_TILE_TYPES.STONE_PATH;
+    }
+    // 對稱草坪（四角）
+    // 西北角
+    if (x >= 2 && x <= 12 && y >= 2 && y <= 9) {
+      if ((x + y) % 3 === 0) return COMMUNITY_TILE_TYPES.GARDEN;
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    // 東北角
+    if (x >= 27 && x <= 37 && y >= 2 && y <= 9) {
+      if ((x + y) % 3 === 0) return COMMUNITY_TILE_TYPES.GARDEN;
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    // 西南角
+    if (x >= 2 && x <= 12 && y >= 21 && y <= 27) {
+      if ((x + y) % 3 === 0) return COMMUNITY_TILE_TYPES.GARDEN;
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    // 東南角
+    if (x >= 27 && x <= 37 && y >= 21 && y <= 27) {
+      if ((x + y) % 3 === 0) return COMMUNITY_TILE_TYPES.GARDEN;
+      return COMMUNITY_TILE_TYPES.GRASS;
+    }
+    // 建築基座 CONCRETE
+    if (y >= 0 && y <= 4) {
+      return COMMUNITY_TILE_TYPES.CONCRETE;
     }
     return COMMUNITY_TILE_TYPES.GRASS;
   }
@@ -4399,70 +4595,92 @@ function renderCustomTerrain(ctx, offsetX, offsetY, tileSize) {
 }
 
 function drawCustomTerrainTile(ctx, x, y, size, terrainType) {
+  const p = size / 32; // 像素單位
+  
   switch (terrainType) {
-    case 'grass':
+    case 'grass': {
       ctx.fillStyle = '#7CB342';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#8BC34A';
+      // 固定位置草紋
       for (let i = 0; i < 3; i++) {
-        const gx = x + Math.random() * size;
-        const gy = y + Math.random() * size;
-        ctx.fillRect(gx, gy, 2, 3);
+        const gx = x + (i * 11 + 5) % size;
+        const gy = y + (i * 7 + 3) % size;
+        ctx.fillRect(gx, gy, 2 * p, 3 * p);
       }
+      // 高光
+      ctx.fillStyle = adjustColor('#7CB342', 20);
+      ctx.fillRect(x, y, size, 2 * p);
       break;
+    }
       
-    case 'dirt':
+    case 'dirt': {
       ctx.fillStyle = '#8B7355';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#7B6345';
+      // 固定位置泥土紋理
       for (let i = 0; i < 4; i++) {
-        const dx = x + Math.random() * size;
-        const dy = y + Math.random() * size;
-        ctx.fillRect(dx, dy, 3, 2);
+        const dx = x + (i * 8 + 3) % size;
+        const dy = y + (i * 12 + 5) % size;
+        ctx.fillRect(dx, dy, 3 * p, 2 * p);
       }
       break;
+    }
       
-    case 'stone':
+    case 'stone': {
       ctx.fillStyle = '#808080';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#909090';
       ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.35, size * 0.35);
       ctx.fillRect(x + size * 0.55, y + size * 0.55, size * 0.35, size * 0.35);
-      ctx.strokeStyle = '#606060';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+      // 石縫
+      ctx.fillStyle = '#606060';
+      ctx.fillRect(x + 2 * p, y + 2 * p, size - 4 * p, p);
+      ctx.fillRect(x + 2 * p, y + 2 * p, p, size - 4 * p);
       break;
+    }
       
-    case 'sand':
+    case 'sand': {
       ctx.fillStyle = '#f4d03f';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#e6c229';
+      // 固定位置沙粒
       for (let i = 0; i < 5; i++) {
-        const sx = x + Math.random() * size;
-        const sy = y + Math.random() * size;
-        ctx.fillRect(sx, sy, 2, 1);
+        const sx = x + (i * 7 + 2) % size;
+        const sy = y + (i * 13 + 4) % size;
+        ctx.fillRect(sx, sy, 2 * p, p);
       }
+      // 高光
+      ctx.fillStyle = '#f8e04f';
+      ctx.fillRect(x, y, size, 2 * p);
       break;
+    }
       
-    case 'water':
+    case 'water': {
       ctx.fillStyle = '#4682B4';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#5B92D4';
       ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.3, size * 0.2);
       ctx.fillStyle = '#3B72A4';
       ctx.fillRect(x + size * 0.5, y + size * 0.6, size * 0.4, size * 0.3);
+      // 水波紋
+      ctx.fillStyle = '#6BA2D4';
+      ctx.fillRect(x, y + size * 0.4, size, 2 * p);
       break;
+    }
       
-    case 'paved':
+    case 'paved': {
       ctx.fillStyle = '#5a5a5a';
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = '#6a6a6a';
       ctx.fillRect(x + size * 0.05, y + size * 0.05, size * 0.45, size * 0.45);
       ctx.fillRect(x + size * 0.5, y + size * 0.5, size * 0.45, size * 0.45);
-      ctx.strokeStyle = '#4a4a4a';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x, y, size, size);
+      // 邊框
+      ctx.fillStyle = '#4a4a4a';
+      ctx.fillRect(x, y, size, p);
+      ctx.fillRect(x, y, p, size);
       break;
+    }
   }
 }
 
@@ -4518,100 +4736,231 @@ function renderCommunityTiles(ctx, offsetX, offsetY, tileSize, community) {
       const py = offsetY + y * tileSize;
       const tileType = map[y][x];
       
-      drawCommunityTile(ctx, px, py, tileSize, tileType, community);
+      // 傳入 tile 座標 (x, y) 用於確定性 hash
+      drawCommunityTile(ctx, px, py, tileSize, tileType, community, x, y);
     }
   }
 }
 
-function drawCommunityTile(ctx, x, y, size, type, community) {
+function drawCommunityTile(ctx, px, py, size, type, community, tileX = 0, tileY = 0) {
+  // NDS 風格：所有地磚都用 fillRect，禁用 arc，使用確定性 hash 避免閃爍
+  const p = size / 32; // 像素單位
+  
+  // 確定性 hash 函數（用於紋理偏移）
+  const h = (tileX * 7 + tileY * 13 + tileX * tileY) % (size - 4);
+  const h2 = (tileX * 11 + tileY * 5) % (size - 4);
+  
   switch (type) {
-    case COMMUNITY_TILE_TYPES.GRASS:
-      ctx.fillStyle = community.terrain === 'nature' ? '#1a4a1a' : '#2d5a27';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = community.terrain === 'nature' ? '#2a5a2a' : '#3a6b34';
-      for (let i = 0; i < 3; i++) {
-        const gx = x + Math.random() * size;
-        const gy = y + Math.random() * size;
-        ctx.fillRect(gx, gy, 2, 4);
+    case COMMUNITY_TILE_TYPES.GRASS: {
+      // 草地基底
+      const baseColor = community.terrain === 'nature' ? '#1a4a1a' : '#7CB87C';
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(px, py, size, size);
+      
+      // 固定位置的草葉（使用 tile hash）
+      ctx.fillStyle = community.terrain === 'nature' ? '#2a5a2a' : '#5A9A5A';
+      ctx.fillRect(px + h, py + h2, 2 * p, 3 * p);
+      ctx.fillRect(px + (h + size / 3) % size, py + (h2 + size / 2) % size, p, 4 * p);
+      
+      // 左上高光角
+      ctx.fillStyle = '#8DC88D';
+      ctx.fillRect(px, py, size, 2 * p);
+      ctx.fillRect(px, py, 2 * p, size);
+      break;
+    }
+      
+    case COMMUNITY_TILE_TYPES.ROAD_H: {
+      // 柏油路底色
+      ctx.fillStyle = '#484848';
+      ctx.fillRect(px, py, size, size);
+      // 上緣白色道路線
+      ctx.fillStyle = '#DDDDDD';
+      ctx.fillRect(px, py, size, p);
+      // 下緣暗線
+      ctx.fillStyle = '#2A2A2A';
+      ctx.fillRect(px, py + size - p, size, p);
+      // 路面深色紋理（偶數格才畫）
+      if ((tileX + tileY) % 2 === 0) {
+        ctx.fillStyle = '#404040';
+        ctx.fillRect(px + 2 * p, py + 2 * p, size - 4 * p, size - 4 * p);
+      }
+      // 中央虛線
+      if (tileX % 2 === 0) {
+        ctx.fillStyle = '#FFCC00';
+        ctx.fillRect(px + size * 0.1, py + size * 0.45, size * 0.35, 2 * p);
       }
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.ROAD_H:
-    case COMMUNITY_TILE_TYPES.ROAD_V:
-      ctx.fillStyle = '#3a3a3a';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#4a4a4a';
-      ctx.fillRect(x + size * 0.1, y + size * 0.4, size * 0.8, size * 0.2);
-      ctx.fillStyle = '#ffcc00';
-      if (type === COMMUNITY_TILE_TYPES.ROAD_H) {
-        ctx.fillRect(x + size * 0.2, y + size * 0.45, size * 0.3, size * 0.1);
+    case COMMUNITY_TILE_TYPES.ROAD_V: {
+      ctx.fillStyle = '#484848';
+      ctx.fillRect(px, py, size, size);
+      ctx.fillStyle = '#DDDDDD';
+      ctx.fillRect(px, py, p, size);
+      ctx.fillStyle = '#2A2A2A';
+      ctx.fillRect(px + size - p, py, p, size);
+      if ((tileX + tileY) % 2 === 0) {
+        ctx.fillStyle = '#404040';
+        ctx.fillRect(px + 2 * p, py + 2 * p, size - 4 * p, size - 4 * p);
+      }
+      if (tileY % 2 === 0) {
+        ctx.fillStyle = '#FFCC00';
+        ctx.fillRect(px + size * 0.45, py + size * 0.1, 2 * p, size * 0.35);
+      }
+      break;
+    }
+      
+    case COMMUNITY_TILE_TYPES.ROAD_CROSS: {
+      ctx.fillStyle = '#484848';
+      ctx.fillRect(px, py, size, size);
+      // 對角線高光讓十字路口有別於直路
+      ctx.fillStyle = '#404040';
+      ctx.fillRect(px + 2 * p, py + 2 * p, size - 4 * p, size - 4 * p);
+      ctx.fillStyle = '#555555';
+      ctx.fillRect(px + size * 0.2, py + size * 0.2, size * 0.6, size * 0.6);
+      break;
+    }
+      
+    case COMMUNITY_TILE_TYPES.SIDEWALK: {
+      ctx.fillStyle = '#C8B89A';
+      ctx.fillRect(px, py, size, size);
+      // 磚縫（每格畫一條橫縫或縱縫，交替）
+      ctx.fillStyle = '#A89878';
+      if (tileY % 2 === 0) {
+        ctx.fillRect(px, py + size * 0.5, size, p);
       } else {
-        ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.3);
+        ctx.fillRect(px + size * 0.5, py, p, size);
       }
+      // 左上高光
+      ctx.fillStyle = '#D8C8AA';
+      ctx.fillRect(px, py, size, p);
+      ctx.fillRect(px, py, p, size);
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.ROAD_CROSS:
-      ctx.fillStyle = '#3a3a3a';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#4a4a4a';
-      ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.8, size * 0.8);
+    case COMMUNITY_TILE_TYPES.WATER: {
+      ctx.fillStyle = '#90C8D8';
+      ctx.fillRect(px, py, size, size);
+      // 固定波紋（使用 tile hash）
+      const wh = (tileX * 5 + tileY * 9) % 4;
+      ctx.fillStyle = '#B8E0F0';
+      ctx.fillRect(px, py + wh * p, size, 2 * p);
+      ctx.fillRect(px, py + wh * p + size / 3, size * 0.6, p);
+      ctx.fillRect(px + size * 0.4, py + wh * p + size * 2 / 3, size * 0.5, p);
+      // 右下深色（陰影感）
+      ctx.fillStyle = '#68B0C0';
+      ctx.fillRect(px + size * 0.7, py + size * 0.7, size * 0.3, size * 0.3);
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.SIDEWALK:
-      ctx.fillStyle = '#8a8a8a';
-      ctx.fillRect(x, y, size, size);
-      ctx.strokeStyle = '#7a7a7a';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 2, y + 2, size - 4, size - 4);
+    case COMMUNITY_TILE_TYPES.SAND: {
+      ctx.fillStyle = '#F4D03F';
+      ctx.fillRect(px, py, size, size);
+      // 沙粒（使用確定性 hash）
+      const sh = (tileX * 9 + tileY * 3) % (size - 3 * p);
+      ctx.fillStyle = '#D4A020';
+      ctx.fillRect(px + sh, py + sh, 2 * p, p);
+      ctx.fillRect(px + (sh * 2) % size, py + (sh + size / 2) % size, p, p);
+      ctx.fillStyle = '#FAE070';
+      ctx.fillRect(px, py, size, p);
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.CONCRETE:
-      ctx.fillStyle = '#5a5a5a';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#6a6a6a';
-      ctx.fillRect(x + size * 0.05, y + size * 0.05, size * 0.45, size * 0.45);
-      ctx.fillRect(x + size * 0.5, y + size * 0.5, size * 0.45, size * 0.45);
+    case COMMUNITY_TILE_TYPES.BEACH: {
+      // 比 SAND 更細緻，有海水侵蝕感
+      ctx.fillStyle = '#F5DD6E';
+      ctx.fillRect(px, py, size, size);
+      // 海水侵蝕的深色條（下方）
+      ctx.fillStyle = '#D4B83A';
+      ctx.fillRect(px, py + size * 0.7, size, size * 0.3);
+      // 乾燥沙面高光（上方）
+      ctx.fillStyle = '#FFF0A0';
+      ctx.fillRect(px, py, size, size * 0.2);
+      // 貝殼碎片
+      const bh = (tileX * 11 + tileY * 7) % size;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(px + bh, py + size * 0.6, 2 * p, p);
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.GARDEN:
-      ctx.fillStyle = '#228B22';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#32CD32';
-      for (let i = 0; i < 4; i++) {
-        ctx.fillRect(x + Math.random() * size * 0.8, y + Math.random() * size * 0.8, 3, 3);
-      }
+    case COMMUNITY_TILE_TYPES.FOREST: {
+      ctx.fillStyle = '#1A4A1A';
+      ctx.fillRect(px, py, size, size);
+      // 樹冠陰影斑紋（使用 tile hash）
+      ctx.fillStyle = '#0D3A0D';
+      const fh = (tileX * 13 + tileY * 7) % (size - 6 * p);
+      ctx.fillRect(px + fh, py + fh, 6 * p, 6 * p);
+      ctx.fillRect(px + (fh + size / 2) % size, py + (fh + size / 3) % size, 4 * p, 4 * p);
       break;
+    }
       
-    case COMMUNITY_TILE_TYPES.FOREST:
-      ctx.fillStyle = '#0d3a0d';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#1a5a1a';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-      
-    case COMMUNITY_TILE_TYPES.SAND:
-    case COMMUNITY_TILE_TYPES.BEACH:
-      ctx.fillStyle = type === COMMUNITY_TILE_TYPES.BEACH ? '#f4d03f' : '#e6c229';
-      ctx.fillRect(x, y, size, size);
-      ctx.fillStyle = '#d4ac0d';
-      for (let i = 0; i < 2; i++) {
-        ctx.fillRect(x + Math.random() * size, y + Math.random() * size, 2, 2);
-      }
-      break;
-      
-    case COMMUNITY_TILE_TYPES.STONE_PATH:
-      ctx.fillStyle = '#8B7355';
-      ctx.fillRect(x, y, size, size);
+    case COMMUNITY_TILE_TYPES.STONE_PATH: {
       ctx.fillStyle = '#9B8365';
-      ctx.fillRect(x + size * 0.1, y + size * 0.1, size * 0.35, size * 0.35);
-      ctx.fillRect(x + size * 0.55, y + size * 0.55, size * 0.35, size * 0.35);
+      ctx.fillRect(px, py, size, size);
+      // 石板格（偶數行用偏移製造鋪排感）
+      ctx.fillStyle = '#B09070';
+      const offset = (tileY % 2 === 0) ? 0 : size / 2;
+      for (let i = 0; i < 2; i++) {
+        const sx = px + (i * (size / 2) + offset) % size;
+        ctx.fillRect(sx + p, py + p, size / 2 - 2 * p, size - 2 * p);
+      }
+      // 磚縫
+      ctx.fillStyle = '#7B6345';
+      ctx.fillRect(px + size * 0.5, py, p, size);
+      ctx.fillRect(px, py + size * 0.5, size, p);
+      // 高光
+      ctx.fillStyle = '#C0A880';
+      ctx.fillRect(px, py, size, p);
       break;
+    }
       
-    default:
-      ctx.fillStyle = community.bgColor;
-      ctx.fillRect(x, y, size, size);
+    case COMMUNITY_TILE_TYPES.CONCRETE: {
+      ctx.fillStyle = '#6A6A6A';
+      ctx.fillRect(px, py, size, size);
+      // 水泥板接縫（每2格一條）
+      ctx.fillStyle = '#505050';
+      if (tileX % 2 === 0) {
+        ctx.fillRect(px + size - p, py, p, size);
+      }
+      if (tileY % 2 === 0) {
+        ctx.fillRect(px, py + size - p, size, p);
+      }
+      // 高光角
+      ctx.fillStyle = '#7A7A7A';
+      ctx.fillRect(px, py, size, p);
+      ctx.fillRect(px, py, p, size);
+      break;
+    }
+      
+    case COMMUNITY_TILE_TYPES.GARDEN: {
+      ctx.fillStyle = '#3A7A3A';
+      ctx.fillRect(px, py, size, size);
+      // 深色草紋
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(px, py, size / 2, size / 2);
+      ctx.fillRect(px + size / 2, py + size / 2, size / 2, size / 2);
+      // 花點（確定性）
+      const gh = (tileX * 5 + tileY * 11) % 2;
+      ctx.fillStyle = gh === 0 ? '#FF69B4' : '#FFD700';
+      ctx.fillRect(px + size * 0.3, py + size * 0.3, 3 * p, 3 * p);
+      ctx.fillRect(px + size * 0.6, py + size * 0.6, 3 * p, 3 * p);
+      break;
+    }
+      
+    case COMMUNITY_TILE_TYPES.STREAM: {
+      ctx.fillStyle = '#4169E1';
+      ctx.fillRect(px, py, size, size);
+      ctx.fillStyle = '#87CEEB';
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(px + (i * 8 + 2) % size, py + size * 0.3, size * 0.25, 2 * p);
+      }
+      break;
+    }
+      
+    default: {
+      ctx.fillStyle = community.bgColor || '#2d5a27';
+      ctx.fillRect(px, py, size, size);
+    }
   }
 }
 
@@ -4636,171 +4985,310 @@ function renderCommunityDecorations(ctx, offsetX, offsetY, tileSize) {
 }
 
 function drawCommunityDecoration(ctx, x, y, size, type, width = 1, height = 1) {
+  const p = size / 32; // 像素單位
+  
   switch (type) {
     case 'tree':
-    case 'big_tree':
+    case 'big_tree': {
       const treeSize = type === 'big_tree' ? 1.5 : 1;
-      ctx.fillStyle = '#5a3a1a';
-      ctx.fillRect(x + size * 0.4, y + size * 0.5, size * 0.2 * treeSize, size * 0.5);
-      ctx.fillStyle = '#228B22';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.35, size * 0.35 * treeSize, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#32CD32';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.35, y + size * 0.25, size * 0.15 * treeSize, 0, Math.PI * 2);
-      ctx.fill();
-      break;
+      const trunkW = size * 0.2 * treeSize;
+      const trunkH = size * 0.5;
+      const trunkX = x + size * 0.4;
+      const trunkY = y + size * 0.5;
       
-    case 'lamp':
+      // 樹幹（羽化陰影 + 立體感）
+      drawFeatheredShadow(ctx, trunkX, trunkY + trunkH - 2 * p, trunkW, 4 * p, p);
+      ctx.fillStyle = '#5a3a1a';
+      ctx.fillRect(trunkX, trunkY, trunkW, trunkH);
+      ctx.fillStyle = adjustColor('#5a3a1a', 20);
+      ctx.fillRect(trunkX, trunkY, 2 * p, trunkH);
+      ctx.fillStyle = adjustColor('#5a3a1a', -20);
+      ctx.fillRect(trunkX + trunkW - 2 * p, trunkY, 2 * p, trunkH);
+      
+      // 樹冠（用矩形堆疊模擬圓形）
+      const crownRadius = size * 0.35 * treeSize;
+      const crownCX = x + size * 0.5;
+      const crownCY = y + size * 0.35;
+      
+      // 深色底層
+      ctx.fillStyle = '#1a6b1a';
+      for (let dy = -crownRadius; dy <= crownRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, crownRadius * crownRadius - dy * dy)) * 2;
+        ctx.fillRect(crownCX - rowWidth / 2, crownCY + dy, rowWidth, 2 * p);
+      }
+      
+      // 淺色頂層
+      ctx.fillStyle = '#228B22';
+      const innerRadius = crownRadius * 0.85;
+      for (let dy = -innerRadius; dy <= innerRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, innerRadius * innerRadius - dy * dy)) * 2;
+        ctx.fillRect(crownCX - rowWidth / 2, crownCY + dy, rowWidth, 2 * p);
+      }
+      
+      // 高光
+      ctx.fillStyle = '#32CD32';
+      const highlightRadius = crownRadius * 0.5;
+      for (let dy = -highlightRadius; dy <= 0; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, highlightRadius * highlightRadius - dy * dy)) * 2;
+        ctx.fillRect(crownCX - rowWidth / 2 - crownRadius * 0.2, crownCY + dy - crownRadius * 0.3, rowWidth * 0.6, 2 * p);
+      }
+      break;
+    }
+      
+    case 'lamp': {
+      // 燈桿
       ctx.fillStyle = '#333';
       ctx.fillRect(x + size * 0.45, y + size * 0.3, size * 0.1, size * 0.6);
+      ctx.fillStyle = adjustColor('#333', 20);
+      ctx.fillRect(x + size * 0.45, y + size * 0.3, 2 * p, size * 0.6);
+      
+      // 燈罩
       ctx.fillStyle = '#666';
       ctx.fillRect(x + size * 0.35, y + size * 0.25, size * 0.3, size * 0.1);
+      ctx.fillStyle = adjustColor('#666', 20);
+      ctx.fillRect(x + size * 0.35, y + size * 0.25, size * 0.3, 2 * p);
+      
+      // 燈光（用矩形堆疊模擬圓形發光）
       ctx.fillStyle = '#ffeb3b';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.2, size * 0.1, 0, Math.PI * 2);
-      ctx.fill();
+      const lightRadius = size * 0.1;
+      const lightCX = x + size * 0.5;
+      const lightCY = y + size * 0.2;
+      for (let dy = -lightRadius; dy <= lightRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, lightRadius * lightRadius - dy * dy)) * 2;
+        ctx.fillRect(lightCX - rowWidth / 2, lightCY + dy, rowWidth, 2 * p);
+      }
+      
+      // 發光暈（半透明）
+      ctx.fillStyle = 'rgba(255, 235, 59, 0.3)';
+      const glowRadius = size * 0.2;
+      for (let dy = -glowRadius; dy <= glowRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, glowRadius * glowRadius - dy * dy)) * 2;
+        ctx.fillRect(lightCX - rowWidth / 2, lightCY + dy, rowWidth, 2 * p);
+      }
       break;
+    }
       
     case 'flower':
-    case 'wildflower':
+    case 'wildflower': {
       const colors = ['#FF69B4', '#FFD700', '#FF6347', '#9370DB'];
       for (let i = 0; i < 4; i++) {
+        const flowerX = x + size * (0.2 + i * 0.2);
+        const flowerY = y + size * 0.5;
+        const flowerRadius = size * 0.08;
+        
+        // 用矩形堆疊模擬圓形花朵
         ctx.fillStyle = colors[i];
-        ctx.beginPath();
-        ctx.arc(x + size * (0.2 + i * 0.2), y + size * 0.5, size * 0.08, 0, Math.PI * 2);
-        ctx.fill();
+        for (let dy = -flowerRadius; dy <= flowerRadius; dy += 2 * p) {
+          const rowWidth = Math.sqrt(Math.max(0, flowerRadius * flowerRadius - dy * dy)) * 2;
+          ctx.fillRect(flowerX - rowWidth / 2, flowerY + dy, rowWidth, 2 * p);
+        }
       }
       break;
+    }
       
-    case 'garden':
+    case 'garden': {
       ctx.fillStyle = '#228B22';
       ctx.fillRect(x, y, size * width, size * height);
+      // 固定位置花朵
       ctx.fillStyle = '#FF69B4';
       for (let i = 0; i < 6; i++) {
-        ctx.beginPath();
-        ctx.arc(x + Math.random() * size * width, y + Math.random() * size * height, size * 0.05, 0, Math.PI * 2);
-        ctx.fill();
+        const flowerX = x + ((i * 7 + 3) % (size * width));
+        const flowerY = y + ((i * 11 + 5) % (size * height));
+        const flowerRadius = size * 0.05;
+        for (let dy = -flowerRadius; dy <= flowerRadius; dy += 2 * p) {
+          const rowWidth = Math.sqrt(Math.max(0, flowerRadius * flowerRadius - dy * dy)) * 2;
+          ctx.fillRect(flowerX - rowWidth / 2, flowerY + dy, rowWidth, 2 * p);
+        }
       }
       break;
+    }
       
-    case 'mailbox':
+    case 'mailbox': {
+      // 信箱主體
       ctx.fillStyle = '#c73e54';
       ctx.fillRect(x + size * 0.3, y + size * 0.4, size * 0.4, size * 0.3);
+      ctx.fillStyle = adjustColor('#c73e54', 20);
+      ctx.fillRect(x + size * 0.3, y + size * 0.4, 2 * p, size * 0.3);
+      // 支桿
       ctx.fillStyle = '#333';
       ctx.fillRect(x + size * 0.45, y + size * 0.3, size * 0.1, size * 0.6);
       break;
+    }
       
-    case 'fountain':
+    case 'fountain': {
+      // 噴泉底座（用矩形堆疊模擬橢圓）
       ctx.fillStyle = '#4169E1';
-      ctx.beginPath();
-      ctx.ellipse(x + size * 0.5, y + size * 0.6, size * 0.4, size * 0.25, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const baseRX = size * 0.4;
+      const baseRY = size * 0.25;
+      const baseCX = x + size * 0.5;
+      const baseCY = y + size * 0.6;
+      for (let dy = -baseRY; dy <= baseRY; dy += 2 * p) {
+        const ratio = dy / baseRY;
+        const rowWidth = baseRX * Math.sqrt(Math.max(0, 1 - ratio * ratio)) * 2;
+        ctx.fillRect(baseCX - rowWidth / 2, baseCY + dy, rowWidth, 2 * p);
+      }
+      
+      // 水面
       ctx.fillStyle = '#87CEEB';
-      ctx.beginPath();
-      ctx.ellipse(x + size * 0.5, y + size * 0.6, size * 0.3, size * 0.18, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const waterRX = size * 0.3;
+      const waterRY = size * 0.18;
+      for (let dy = -waterRY; dy <= waterRY; dy += 2 * p) {
+        const ratio = dy / waterRY;
+        const rowWidth = waterRX * Math.sqrt(Math.max(0, 1 - ratio * ratio)) * 2;
+        ctx.fillRect(baseCX - rowWidth / 2, baseCY + dy, rowWidth, 2 * p);
+      }
+      
+      // 中央柱
       ctx.fillStyle = '#4169E1';
       ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.4);
       break;
+    }
       
-    case 'bench':
+    case 'bench': {
+      // 長椅座位
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(x, y + size * 0.4, size, size * 0.15);
+      ctx.fillStyle = adjustColor('#8B4513', 20);
+      ctx.fillRect(x, y + size * 0.4, size, 2 * p);
+      // 椅腿
       ctx.fillRect(x + size * 0.1, y + size * 0.55, size * 0.1, size * 0.3);
       ctx.fillRect(x + size * 0.8, y + size * 0.55, size * 0.1, size * 0.3);
       break;
+    }
       
-    case 'flower_bed':
+    case 'flower_bed': {
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(x, y, size, size);
+      // 固定位置花朵
       ctx.fillStyle = '#FF69B4';
       for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.arc(x + size * (0.25 + i * 0.25), y + size * 0.5, size * 0.12, 0, Math.PI * 2);
-        ctx.fill();
+        const flowerX = x + size * (0.25 + i * 0.25);
+        const flowerY = y + size * 0.5;
+        const flowerRadius = size * 0.12;
+        for (let dy = -flowerRadius; dy <= flowerRadius; dy += 2 * p) {
+          const rowWidth = Math.sqrt(Math.max(0, flowerRadius * flowerRadius - dy * dy)) * 2;
+          ctx.fillRect(flowerX - rowWidth / 2, flowerY + dy, rowWidth, 2 * p);
+        }
       }
       break;
+    }
       
-    case 'coconut_tree':
+    case 'coconut_tree': {
+      // 椰子樹幹
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(x + size * 0.4, y + size * 0.3, size * 0.2, size * 0.7);
+      ctx.fillStyle = adjustColor('#8B4513', 20);
+      ctx.fillRect(x + size * 0.4, y + size * 0.3, 2 * p, size * 0.7);
+      
+      // 椰子葉（用矩形表示）
       ctx.fillStyle = '#228B22';
       for (let i = 0; i < 5; i++) {
         const angle = (i / 5) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.ellipse(x + size * 0.5 + Math.cos(angle) * size * 0.3, y + size * 0.2 + Math.sin(angle) * size * 0.15, size * 0.25, size * 0.08, angle, 0, Math.PI * 2);
-        ctx.fill();
+        const leafX = x + size * 0.5 + Math.cos(angle) * size * 0.15;
+        const leafY = y + size * 0.2 + Math.sin(angle) * size * 0.1;
+        ctx.save();
+        ctx.translate(leafX, leafY);
+        ctx.rotate(angle);
+        ctx.fillRect(-size * 0.25, -2 * p, size * 0.25, 4 * p);
+        ctx.restore();
       }
       break;
+    }
       
-    case 'beach_chair':
+    case 'beach_chair': {
       ctx.fillStyle = '#ff6b6b';
       ctx.fillRect(x + size * 0.1, y + size * 0.3, size * 0.8, size * 0.4);
       ctx.fillStyle = '#fff';
       ctx.fillRect(x + size * 0.15, y + size * 0.35, size * 0.7, size * 0.3);
       break;
+    }
       
-    case 'wave':
+    case 'wave': {
       ctx.fillStyle = 'rgba(65, 105, 225, 0.5)';
       for (let i = 0; i < width; i++) {
-        ctx.beginPath();
-        ctx.arc(x + i * size + size * 0.5, y + size * 0.5, size * 0.3, 0, Math.PI);
-        ctx.fill();
+        // 用矩形堆疊模擬波浪
+        const waveY = y + size * 0.5;
+        const waveRadius = size * 0.3;
+        const waveCX = x + i * size + size * 0.5;
+        for (let dy = 0; dy <= waveRadius; dy += 2 * p) {
+          const rowWidth = Math.sqrt(Math.max(0, waveRadius * waveRadius - dy * dy)) * 2;
+          ctx.fillRect(waveCX - rowWidth / 2, waveY + dy, rowWidth, 2 * p);
+        }
       }
       break;
+    }
       
-    case 'shell':
+    case 'shell': {
+      // 貝殼（用矩形堆疊）
       ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.15, 0, Math.PI * 2);
-      ctx.fill();
+      const shellRadius = size * 0.15;
+      const shellCX = x + size * 0.5;
+      const shellCY = y + size * 0.5;
+      for (let dy = -shellRadius; dy <= shellRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, shellRadius * shellRadius - dy * dy)) * 2;
+        ctx.fillRect(shellCX - rowWidth / 2, shellCY + dy, rowWidth, 2 * p);
+      }
+      // 內部
       ctx.fillStyle = '#f5f5dc';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.5, size * 0.1, 0, Math.PI);
-      ctx.fill();
+      const innerRadius = size * 0.1;
+      for (let dy = 0; dy <= innerRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, innerRadius * innerRadius - dy * dy)) * 2;
+        ctx.fillRect(shellCX - rowWidth / 2, shellCY + dy, rowWidth, 2 * p);
+      }
       break;
+    }
       
-    case 'boat':
+    case 'boat': {
+      // 船身（用多個矩形組成）
       ctx.fillStyle = '#8B4513';
-      ctx.beginPath();
-      ctx.moveTo(x + size * 0.1, y + size * 0.5);
-      ctx.lineTo(x + size * 0.9, y + size * 0.5);
-      ctx.lineTo(x + size * 0.7, y + size * 0.7);
-      ctx.lineTo(x + size * 0.3, y + size * 0.7);
-      ctx.closePath();
-      ctx.fill();
+      ctx.fillRect(x + size * 0.1, y + size * 0.5, size * 0.8, size * 0.2);
+      ctx.fillRect(x + size * 0.2, y + size * 0.6, size * 0.6, size * 0.1);
+      // 帆
       ctx.fillStyle = '#fff';
       ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.35);
       ctx.fillRect(x + size * 0.3, y + size * 0.35, size * 0.4, size * 0.15);
       break;
+    }
       
-    case 'statue':
-      ctx.fillStyle = '#9E9E9E';
-      ctx.fillRect(x + size * 0.35, y + size * 0.2, size * 0.3, size * 0.6);
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.15, size * 0.15, 0, Math.PI * 2);
-      ctx.fill();
+    case 'statue': {
+      // 雕像底座
       ctx.fillStyle = '#757575';
       ctx.fillRect(x + size * 0.3, y + size * 0.8, size * 0.4, size * 0.1);
+      // 雕像身體
+      ctx.fillStyle = '#9E9E9E';
+      ctx.fillRect(x + size * 0.35, y + size * 0.2, size * 0.3, size * 0.6);
+      // 雕像頭部（用矩形堆疊）
+      const headRadius = size * 0.15;
+      const headCX = x + size * 0.5;
+      const headCY = y + size * 0.15;
+      for (let dy = -headRadius; dy <= headRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, headRadius * headRadius - dy * dy)) * 2;
+        ctx.fillRect(headCX - rowWidth / 2, headCY + dy, rowWidth, 2 * p);
+      }
       break;
+    }
       
-    case 'flag':
+    case 'flag': {
+      // 旗桿
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(x + size * 0.45, y + size * 0.2, size * 0.1, size * 0.7);
+      // 旗幟
       ctx.fillStyle = '#e94560';
       ctx.fillRect(x + size * 0.55, y + size * 0.2, size * 0.35, size * 0.25);
+      ctx.fillStyle = adjustColor('#e94560', 20);
+      ctx.fillRect(x + size * 0.55, y + size * 0.2, 2 * p, size * 0.25);
       break;
+    }
       
-    case 'neon_sign':
+    case 'neon_sign': {
       ctx.fillStyle = '#ff00ff';
       ctx.fillRect(x, y + size * 0.3, size * 0.8, size * 0.4);
       ctx.fillStyle = '#00ffff';
       ctx.fillRect(x + size * 0.1, y + size * 0.35, size * 0.6, size * 0.3);
       break;
+    }
       
-    case 'billboard':
+    case 'billboard': {
       ctx.fillStyle = '#333';
       ctx.fillRect(x + size * 0.1, y, size * 0.8, size * 0.6);
       ctx.fillStyle = '#fff';
@@ -4808,49 +5296,77 @@ function drawCommunityDecoration(ctx, x, y, size, type, width = 1, height = 1) {
       ctx.fillStyle = '#666';
       ctx.fillRect(x + size * 0.4, y + size * 0.6, size * 0.2, size * 0.4);
       break;
+    }
       
-    case 'bus_stop':
+    case 'bus_stop': {
       ctx.fillStyle = '#4CAF50';
       ctx.fillRect(x + size * 0.2, y + size * 0.3, size * 0.6, size * 0.5);
       ctx.fillStyle = '#fff';
       ctx.fillRect(x + size * 0.25, y + size * 0.35, size * 0.5, size * 0.1);
       break;
+    }
       
-    case 'vending_machine':
+    case 'vending_machine': {
       ctx.fillStyle = '#e74c3c';
       ctx.fillRect(x + size * 0.2, y, size * 0.6, size);
       ctx.fillStyle = '#fff';
       ctx.fillRect(x + size * 0.25, y + size * 0.2, size * 0.5, size * 0.5);
       break;
+    }
       
-    case 'rock':
+    case 'rock': {
+      // 岩石（用矩形堆疊）
       ctx.fillStyle = '#696969';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.5, y + size * 0.6, size * 0.35, 0, Math.PI * 2);
-      ctx.fill();
+      const rockRadius = size * 0.35;
+      const rockCX = x + size * 0.5;
+      const rockCY = y + size * 0.6;
+      for (let dy = -rockRadius; dy <= rockRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, rockRadius * rockRadius - dy * dy)) * 2;
+        ctx.fillRect(rockCX - rowWidth / 2, rockCY + dy, rowWidth, 2 * p);
+      }
+      // 高光
       ctx.fillStyle = '#808080';
-      ctx.beginPath();
-      ctx.arc(x + size * 0.4, y + size * 0.5, size * 0.2, 0, Math.PI * 2);
-      ctx.fill();
+      const highlightRadius = size * 0.2;
+      const highlightCX = x + size * 0.4;
+      const highlightCY = y + size * 0.5;
+      for (let dy = -highlightRadius; dy <= highlightRadius; dy += 2 * p) {
+        const rowWidth = Math.sqrt(Math.max(0, highlightRadius * highlightRadius - dy * dy)) * 2;
+        ctx.fillRect(highlightCX - rowWidth / 2, highlightCY + dy, rowWidth, 2 * p);
+      }
       break;
+    }
       
-    case 'lake':
+    case 'lake': {
+      // 湖泊（用矩形堆疊模擬橢圓）
       ctx.fillStyle = '#4169E1';
-      ctx.beginPath();
-      ctx.ellipse(x + size * width * 0.5, y + size * height * 0.5, size * width * 0.4, size * height * 0.35, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const lakeRX = size * width * 0.4;
+      const lakeRY = size * height * 0.35;
+      const lakeCX = x + size * width * 0.5;
+      const lakeCY = y + size * height * 0.5;
+      for (let dy = -lakeRY; dy <= lakeRY; dy += 2 * p) {
+        const ratio = dy / lakeRY;
+        const rowWidth = lakeRX * Math.sqrt(Math.max(0, 1 - ratio * ratio)) * 2;
+        ctx.fillRect(lakeCX - rowWidth / 2, lakeCY + dy, rowWidth, 2 * p);
+      }
+      // 水面高光
       ctx.fillStyle = '#87CEEB';
-      ctx.beginPath();
-      ctx.ellipse(x + size * width * 0.5, y + size * height * 0.5, size * width * 0.3, size * height * 0.25, 0, 0, Math.PI * 2);
-      ctx.fill();
+      const waterRX = size * width * 0.3;
+      const waterRY = size * height * 0.25;
+      for (let dy = -waterRY; dy <= waterRY; dy += 2 * p) {
+        const ratio = dy / waterRY;
+        const rowWidth = waterRX * Math.sqrt(Math.max(0, 1 - ratio * ratio)) * 2;
+        ctx.fillRect(lakeCX - rowWidth / 2, lakeCY + dy, rowWidth, 2 * p);
+      }
       break;
+    }
       
-    case 'stream':
+    case 'stream': {
       ctx.fillStyle = '#4169E1';
       ctx.fillRect(x, y + size * 0.3, size * width, size * height * 0.4);
       ctx.fillStyle = '#87CEEB';
       ctx.fillRect(x + size * 0.1, y + size * 0.4, size * width * 0.8, size * height * 0.2);
       break;
+    }
   }
 }
 
@@ -4877,7 +5393,7 @@ function renderCommunityBuildings(ctx, offsetX, offsetY, tileSize) {
     } else if (building.type === 'SPORTS_FIELD') {
       drawSportsField(ctx, px, py, width, height, tileSize);
     } else {
-      drawCommunityBuilding(ctx, px, py, width, height, building.data, tileSize);
+      drawCommunityBuilding(ctx, px, py, width, height, building.data, tileSize, building.type);
     }
   });
   
@@ -4902,123 +5418,333 @@ function renderCommunityBuildings(ctx, offsetX, offsetY, tileSize) {
   }
 }
 
-function drawCommunityBuilding(ctx, x, y, width, height, data, tileSize) {
+function drawCommunityBuilding(ctx, x, y, width, height, data, tileSize, buildingType) {
   const wallColor = data.color || '#EFEBE9';
   const roofColor = data.roofColor || '#C62828';
+  const p = Math.max(1, tileSize / 32); // 像素單位
+  const type = buildingType || data.id || 'default';
   
+  // 1. 地面橢圓投影（NDS 建築可保留 ellipse）
   ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
   ctx.beginPath();
-  ctx.ellipse(x + width / 2, y + height + 4, width * 0.4, height * 0.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + width / 2, y + height + 4, width * 0.4, height * 0.08, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.fillStyle = roofColor;
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.5, y + height * 0.08);
-  ctx.lineTo(x + width * 0.02, y + height * 0.35);
-  ctx.lineTo(x + width * 0.98, y + height * 0.35);
-  ctx.closePath();
-  ctx.fill();
+  // 根據建築類型調整屋頂高度
+  let roofHeightRatio = 0.35;
+  let wallHeightRatio = 0.57;
+  let wallYRatio = 0.35;
   
-  ctx.fillStyle = adjustColor(roofColor, 30);
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.5, y + height * 0.08);
-  ctx.lineTo(x + width * 0.02, y + height * 0.35);
-  ctx.lineTo(x + width * 0.5, y + height * 0.35);
-  ctx.closePath();
-  ctx.fill();
-  
-  ctx.fillStyle = adjustColor(roofColor, -15);
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.5, y + height * 0.08);
-  ctx.lineTo(x + width * 0.98, y + height * 0.35);
-  ctx.lineTo(x + width * 0.5, y + height * 0.35);
-  ctx.closePath();
-  ctx.fill();
-  
-  ctx.fillStyle = adjustColor(roofColor, -30);
-  for (let i = 0; i < 6; i++) {
-    const lineY = y + height * (0.12 + i * 0.04);
-    const offsetX = (Math.floor(Math.random() * 3) - 1);
-    ctx.fillRect(x + width * 0.05 + offsetX, lineY, width * 0.9, 1);
+  // 特殊建築類型調整
+  if (type === 'char_house' || type === 'CHAR_HOUSE') {
+    // 現代公寓：屋頂較平緩
+    roofHeightRatio = 0.2;
+    wallHeightRatio = 0.65;
+    wallYRatio = 0.2;
+  } else if (type === 'supermarket' || type === 'SUPERMARKET') {
+    // 超市：屋頂幾乎水平
+    roofHeightRatio = 0.15;
+    wallHeightRatio = 0.7;
+    wallYRatio = 0.15;
+  } else if (type === 'museum' || type === 'MUSEUM') {
+    // 博物館：屋頂平坦
+    roofHeightRatio = 0.1;
+    wallHeightRatio = 0.75;
+    wallYRatio = 0.1;
+  } else if (type === 'forest_cabin' || type === 'FOREST_CABIN') {
+    // 森林小屋：屋頂較陡
+    roofHeightRatio = 0.45;
+    wallHeightRatio = 0.47;
+    wallYRatio = 0.45;
   }
   
-  ctx.fillStyle = wallColor;
-  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.57);
+  // 2. 屋頂 - 使用逐行掃描的像素梯形
+  const roofTop = y + height * 0.05;
+  const roofBottom = y + height * roofHeightRatio;
+  const roofHeight = roofBottom - roofTop;
+  const roofRows = Math.max(1, Math.floor(roofHeight / p));
   
-  ctx.fillStyle = adjustColor(wallColor, 15);
-  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.06, height * 0.57);
-  ctx.fillRect(x + width * 0.08, y + height * 0.35, width * 0.84, height * 0.05);
+  for (let i = 0; i < roofRows; i++) {
+    const progress = i / roofRows;
+    const rowWidth = width * (0.04 + progress * 0.94);
+    const rowX = x + (width - rowWidth) / 2;
+    const rowY = roofTop + i * p;
+    
+    ctx.fillStyle = i % 2 === 0 ? roofColor : adjustColor(roofColor, -10);
+    ctx.fillRect(rowX, rowY, rowWidth, p);
+    
+    ctx.fillStyle = adjustColor(roofColor, 20);
+    ctx.fillRect(rowX, rowY, 2 * p, p);
+    
+    ctx.fillStyle = adjustColor(roofColor, -20);
+    ctx.fillRect(rowX + rowWidth - 2 * p, rowY, 2 * p, p);
+  }
+  
+  // 屋頂頂部高光
+  ctx.fillStyle = adjustColor(roofColor, 30);
+  ctx.fillRect(x + width * 0.45, roofTop, width * 0.1, 3 * p);
+  
+  // 3. 牆體 - 三段式光影
+  const wallX = x + width * 0.08;
+  const wallY = y + height * wallYRatio;
+  const wallW = width * 0.84;
+  const wallH = height * wallHeightRatio;
+  
+  ctx.fillStyle = wallColor;
+  ctx.fillRect(wallX, wallY, wallW, wallH);
+  
+  ctx.fillStyle = adjustColor(wallColor, 20);
+  ctx.fillRect(wallX, wallY, 4 * p, wallH);
   
   ctx.fillStyle = adjustColor(wallColor, -15);
-  ctx.fillRect(x + width * 0.86, y + height * 0.35, width * 0.06, height * 0.57);
+  ctx.fillRect(wallX + wallW - 4 * p, wallY, 4 * p, wallH);
+  
+  ctx.fillStyle = adjustColor(wallColor, 15);
+  ctx.fillRect(wallX, wallY, wallW, 3 * p);
   
   ctx.fillStyle = adjustColor(wallColor, -25);
-  ctx.fillRect(x + width * 0.08, y + height * 0.87, width * 0.84, height * 0.05);
+  ctx.fillRect(wallX, wallY + wallH - 3 * p, wallW, 3 * p);
   
+  // 4. 底部深度層
   ctx.fillStyle = adjustColor(wallColor, -50);
-  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.84, height * 0.08);
+  ctx.fillRect(wallX, wallY + wallH, wallW, 4 * p);
   ctx.fillStyle = adjustColor(wallColor, -60);
-  ctx.fillRect(x + width * 0.08, y + height * 0.92, width * 0.04, height * 0.08);
+  ctx.fillRect(wallX, wallY + wallH, 2 * p, 4 * p);
   
-  const winWidth = width * 0.14;
-  const winHeight = height * 0.18;
-  const winX1 = x + width * 0.18;
-  const winX2 = x + width * 0.68;
-  const winY = y + height * 0.45;
+  // ========================================
+  // 根據建築類型添加獨特特徵
+  // ========================================
   
-  ctx.fillStyle = '#5D4037';
-  ctx.fillRect(winX1 - 2, winY - 2, winWidth + 4, winHeight + 4);
-  ctx.fillRect(winX2 - 2, winY - 2, winWidth + 4, winHeight + 4);
+  // 玩家家 - 日式平房，白色圍欄
+  if (type === 'player_house' || type === 'PLAYER_HOUSE') {
+    // 白色圍欄
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 4; i++) {
+      ctx.fillRect(wallX - 2 * p, wallY + i * (wallH / 4), 3 * p, 2 * p);
+      ctx.fillRect(wallX + wallW - p, wallY + i * (wallH / 4), 3 * p, 2 * p);
+    }
+    // 門廊台階
+    ctx.fillStyle = '#B8B8B8';
+    const stepY = wallY + wallH;
+    ctx.fillRect(x + width * 0.35, stepY, width * 0.3, 4 * p);
+    // 盆栽
+    ctx.fillStyle = '#228B22';
+    ctx.fillRect(x + width * 0.25, wallY + wallH - 8 * p, 4 * p, 6 * p);
+    ctx.fillRect(x + width * 0.7, wallY + wallH - 8 * p, 4 * p, 6 * p);
+  }
   
-  ctx.fillStyle = '#90CAF9';
-  ctx.fillRect(winX1, winY, winWidth, winHeight);
-  ctx.fillRect(winX2, winY, winWidth, winHeight);
+  // TA的家 - 現代公寓，橫向線條
+  else if (type === 'char_house' || type === 'CHAR_HOUSE') {
+    // 橫向藍色線條
+    ctx.fillStyle = '#A0C0E0';
+    for (let i = 0; i < 4; i++) {
+      const lineY = wallY + wallH * (0.15 + i * 0.2);
+      ctx.fillRect(wallX, lineY, wallW, p);
+    }
+    // 陽台
+    ctx.fillStyle = '#888888';
+    ctx.fillRect(wallX + wallW * 0.3, wallY + wallH * 0.5, wallW * 0.4, 6 * p);
+    ctx.fillStyle = adjustColor('#888888', 20);
+    ctx.fillRect(wallX + wallW * 0.3, wallY + wallH * 0.5, wallW * 0.4, 2 * p);
+  }
   
-  ctx.fillStyle = '#B3E5FC';
-  ctx.fillRect(winX1, winY, winWidth * 0.5, winHeight * 0.5);
-  ctx.fillRect(winX2, winY, winWidth * 0.5, winHeight * 0.5);
+  // 便利商店 - 綠色招牌
+  else if (type === 'convenience' || type === 'CONVENIENCE') {
+    // 招牌橫條
+    ctx.fillStyle = '#27AE60';
+    ctx.fillRect(wallX, wallY, wallW, height * 0.12);
+    ctx.fillStyle = '#2ECC71';
+    ctx.fillRect(wallX, wallY, wallW, 2 * p);
+    // 落地窗
+    ctx.fillStyle = '#E8F8E8';
+    ctx.fillRect(wallX + 2 * p, wallY + height * 0.15, wallW - 4 * p, height * 0.35);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(wallX + 2 * p, wallY + height * 0.15, wallW - 4 * p, 3 * p);
+  }
   
-  ctx.fillStyle = '#42A5F5';
-  ctx.fillRect(winX1 + winWidth / 2 - 1, winY, 2, winHeight);
-  ctx.fillRect(winX1, winY + winHeight / 2 - 1, winWidth, 2);
-  ctx.fillRect(winX2 + winWidth / 2 - 1, winY, 2, winHeight);
-  ctx.fillRect(winX2, winY + winHeight / 2 - 1, winWidth, 2);
+  // 咖啡廳 - 磚牆質感
+  else if (type === 'cafe' || type === 'CAFE') {
+    // 磚牆紋理
+    ctx.fillStyle = adjustColor(wallColor, -10);
+    for (let row = 0; row < 6; row++) {
+      const brickY = wallY + row * (wallH / 6);
+      const offset = (row % 2 === 0) ? 0 : wallW * 0.25;
+      for (let col = 0; col < 3; col++) {
+        const brickX = wallX + offset + col * (wallW / 3);
+        ctx.fillRect(brickX + p, brickY + p, wallW / 3 - 2 * p, wallH / 6 - 2 * p);
+      }
+    }
+    // 露天雨遮
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x + width * 0.1, wallY - 4 * p, width * 0.8, 4 * p);
+  }
   
-  ctx.fillStyle = '#E3F2FD';
-  ctx.fillRect(winX1 + 2, winY + 2, 4, 4);
-  ctx.fillRect(winX2 + 2, winY + 2, 4, 4);
+  // 超市 - 大型招牌
+  else if (type === 'supermarket' || type === 'SUPERMARKET') {
+    // 大型招牌
+    ctx.fillStyle = '#C0392B';
+    ctx.fillRect(wallX, wallY, wallW, height * 0.15);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(wallX + wallW * 0.1, wallY + 2 * p, wallW * 0.8, height * 0.1);
+    // 寬敞入口
+    ctx.fillStyle = '#E8E8E8';
+    ctx.fillRect(wallX + wallW * 0.25, wallY + wallH * 0.5, wallW * 0.5, wallH * 0.5);
+    // 購物車圖示
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(wallX + wallW * 0.1, wallY + wallH * 0.7, 6 * p, 4 * p);
+    ctx.fillRect(wallX + wallW * 0.1 + 2 * p, wallY + wallH * 0.65, 2 * p, 5 * p);
+  }
   
-  ctx.fillStyle = '#8D6E63';
-  ctx.fillRect(winX1 - 2, winY + winHeight, winWidth + 4, 4);
-  ctx.fillRect(winX2 - 2, winY + winHeight, winWidth + 4, 4);
+  // 餐廳 - 紅燈籠
+  else if (type === 'restaurant' || type === 'RESTAURANT') {
+    // 紅燈籠
+    ctx.fillStyle = '#E74C3C';
+    ctx.fillRect(x + width * 0.2, wallY + height * 0.1, 6 * p, 10 * p);
+    ctx.fillRect(x + width * 0.75, wallY + height * 0.1, 6 * p, 10 * p);
+    ctx.fillStyle = '#C0392B';
+    ctx.fillRect(x + width * 0.2, wallY + height * 0.1, 6 * p, 2 * p);
+    ctx.fillRect(x + width * 0.2, wallY + height * 0.1 + 8 * p, 6 * p, 2 * p);
+    ctx.fillRect(x + width * 0.75, wallY + height * 0.1, 6 * p, 2 * p);
+    ctx.fillRect(x + width * 0.75, wallY + height * 0.1 + 8 * p, 6 * p, 2 * p);
+  }
   
+  // 書店 - 深色牆面，暖黃窗
+  else if (type === 'bookstore' || type === 'BOOKSTORE') {
+    // 暖黃色落地窗
+    ctx.fillStyle = '#F4A460';
+    ctx.fillRect(wallX + 2 * p, wallY + wallH * 0.2, wallW * 0.5 - 4 * p, wallH * 0.6);
+    ctx.fillStyle = 'rgba(255,200,100,0.3)';
+    ctx.fillRect(wallX + 2 * p, wallY + wallH * 0.2, wallW * 0.5 - 4 * p, wallH * 0.6);
+    // 書本展示
+    const bookColors = ['#C0392B', '#2980B9', '#27AE60', '#F39C12'];
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = bookColors[i];
+      ctx.fillRect(wallX + wallW * 0.55 + i * (wallW * 0.1), wallY + wallH * 0.3, wallW * 0.08, wallH * 0.4);
+    }
+  }
+  
+  // 蛋糕店 - 粉彩黃色
+  else if (type === 'bakery' || type === 'BAKERY') {
+    // 斜紋遮陽棚
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = i % 2 === 0 ? '#F9D56E' : '#E6C22A';
+      ctx.fillRect(wallX + i * (wallW / 8), wallY - 6 * p, wallW / 8, 6 * p);
+    }
+    // 蛋糕展示
+    ctx.fillStyle = '#FFB6C1';
+    ctx.fillRect(wallX + wallW * 0.3, wallY + wallH * 0.4, wallW * 0.4, wallH * 0.3);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(wallX + wallW * 0.35, wallY + wallH * 0.35, wallW * 0.3, wallH * 0.15);
+  }
+  
+  // 博物館 - 石柱
+  else if (type === 'museum' || type === 'MUSEUM') {
+    // 石柱
+    ctx.fillStyle = '#E8E8E8';
+    for (let i = 0; i < 4; i++) {
+      const pillarX = wallX + wallW * (0.1 + i * 0.27);
+      ctx.fillRect(pillarX, wallY, 4 * p, wallH);
+      ctx.fillStyle = adjustColor('#E8E8E8', 20);
+      ctx.fillRect(pillarX, wallY, p, wallH);
+      ctx.fillStyle = '#E8E8E8';
+    }
+    // 柱頂橫梁
+    ctx.fillStyle = '#D0D0D0';
+    ctx.fillRect(wallX - 4 * p, wallY, wallW + 8 * p, 4 * p);
+    // 台階
+    ctx.fillStyle = '#C0C0C0';
+    ctx.fillRect(wallX, wallY + wallH, wallW, 4 * p);
+    ctx.fillRect(wallX + 2 * p, wallY + wallH + 4 * p, wallW - 4 * p, 3 * p);
+  }
+  
+  // 圖書館 - 玻璃帷幕
+  else if (type === 'library' || type === 'LIBRARY') {
+    // 玻璃格線
+    ctx.fillStyle = 'rgba(100,150,220,0.4)';
+    ctx.fillRect(wallX, wallY, wallW, wallH);
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(wallX + i * (wallW / 6), wallY, p, wallH);
+    }
+    for (let i = 0; i < 5; i++) {
+      ctx.fillRect(wallX, wallY + i * (wallH / 5), wallW, p);
+    }
+  }
+  
+  // 學校 - 磚紅色，旗桿
+  else if (type === 'school' || type === 'SCHOOL') {
+    // 旗桿
+    ctx.fillStyle = '#666666';
+    ctx.fillRect(x + width * 0.5 - p, y + height * 0.05, 2 * p, height * 0.4);
+    // 旗幟
+    ctx.fillStyle = '#E74C3C';
+    ctx.fillRect(x + width * 0.5 + p, y + height * 0.05, 8 * p, 6 * p);
+    // 鐘樓
+    ctx.fillStyle = '#AA3300';
+    ctx.fillRect(x + width * 0.4, y + height * 0.02, width * 0.2, height * 0.08);
+  }
+  
+  // 森林小屋 - 木紋
+  else if (type === 'forest_cabin' || type === 'FOREST_CABIN') {
+    // 木材紋理
+    ctx.fillStyle = adjustColor(wallColor, 10);
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(wallX, wallY + i * (wallH / 6), wallW, p);
+    }
+    // 煙囟
+    ctx.fillStyle = '#9E9E9E';
+    ctx.fillRect(x + width * 0.7, y + height * 0.1, width * 0.08, height * 0.2);
+    // 煙霧
+    ctx.fillStyle = 'rgba(200,200,200,0.5)';
+    ctx.fillRect(x + width * 0.7 - 2 * p, y + height * 0.05, 6 * p, 4 * p);
+  }
+  
+  // 海灘小屋 - 茅草屋頂
+  else if (type === 'beach_hut' || type === 'BEACH_HUT') {
+    // 茅草紋理
+    ctx.fillStyle = '#D4A020';
+    for (let i = 0; i < 10; i++) {
+      ctx.fillRect(x + width * 0.1 + i * (width * 0.08), roofTop + i * p, width * 0.8 - i * (width * 0.06), 2 * p);
+    }
+    // 木支柱
+    ctx.fillStyle = '#5D4037';
+    ctx.fillRect(wallX, wallY, 3 * p, wallH);
+    ctx.fillRect(wallX + wallW - 3 * p, wallY, 3 * p, wallH);
+  }
+  
+  // 碼頭 - 木板紋
+  else if (type === 'dock' || type === 'DOCK') {
+    // 橫向木板
+    ctx.fillStyle = adjustColor(wallColor, -10);
+    for (let i = 0; i < 8; i++) {
+      ctx.fillRect(wallX, wallY + i * (wallH / 8), wallW, p);
+    }
+    // 纜繩柱
+    ctx.fillStyle = '#4A4A4A';
+    ctx.fillRect(wallX, wallY, 4 * p, wallH);
+    ctx.fillRect(wallX + wallW - 4 * p, wallY, 4 * p, wallH);
+  }
+  
+  // 5. 窗戶 - 使用 drawNDSWindow（部分建築類型已有特殊處理）
+  if (!['convenience', 'CONVENIENCE', 'supermarket', 'SUPERMARKET', 'library', 'LIBRARY'].includes(type)) {
+    const winSize = Math.min(width * 0.14, height * 0.18);
+    const winX1 = x + width * 0.18;
+    const winX2 = x + width * 0.68;
+    const winY = y + height * 0.45;
+    
+    drawNDSWindow(ctx, winX1, winY, winSize, p);
+    drawNDSWindow(ctx, winX2, winY, winSize, p);
+  }
+  
+  // 6. 門 - 使用 drawNDSDoor
   const doorWidth = width * 0.18;
   const doorHeight = height * 0.32;
   const doorX = x + width * 0.41;
   const doorY = y + height * 0.60;
   
-  ctx.fillStyle = '#3E2723';
-  ctx.fillRect(doorX - 2, doorY - 2, doorWidth + 4, doorHeight + 4);
+  drawNDSDoor(ctx, doorX, doorY, doorWidth, doorHeight, p);
   
-  ctx.fillStyle = '#6D4C41';
-  ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
-  
-  ctx.fillStyle = adjustColor('#6D4C41', 15);
-  ctx.fillRect(doorX, doorY, doorWidth * 0.2, doorHeight);
-  
-  ctx.fillStyle = adjustColor('#6D4C41', -15);
-  ctx.fillRect(doorX + doorWidth * 0.8, doorY, doorWidth * 0.2, doorHeight);
-  
-  ctx.fillStyle = adjustColor('#6D4C41', -10);
-  ctx.fillRect(doorX + doorWidth * 0.2, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
-  ctx.fillRect(doorX + doorWidth * 0.55, doorY + doorHeight * 0.15, doorWidth * 0.25, doorHeight * 0.35);
-  
-  ctx.fillStyle = '#FDD835';
-  ctx.fillRect(doorX + doorWidth * 0.75, doorY + doorHeight * 0.45, 4, 4);
-  
-  ctx.fillStyle = '#BDBDBD';
-  ctx.fillRect(doorX - 4, doorY + doorHeight, doorWidth + 8, 4);
-  
+  // 7. 建築名稱文字
   ctx.fillStyle = '#eaeaea';
   ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
   ctx.textAlign = 'center';

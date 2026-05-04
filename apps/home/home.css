@@ -40,7 +40,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'Press Start 2P', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--home-bg);
   color: var(--home-text);
   scrollbar-width: none;
@@ -202,9 +202,9 @@ body::-webkit-scrollbar {
 }
 
 .app-title {
-  font-size: 14px;
-  font-weight: 400;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 18px;
+  font-weight: 600;
+  font-family: 'Noto Sans TC', sans-serif;
   background: linear-gradient(180deg, #e8a87c 0%, #d4a070 50%, #e8a87c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -259,9 +259,9 @@ body::-webkit-scrollbar {
   border: 3px solid var(--home-accent-tertiary);
   border-radius: 12px;
   color: #c9a227;
-  font-size: 11px;
-  font-family: 'Press Start 2P', cursive;
-  font-weight: 400;
+  font-size: 14px;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: 600;
   box-shadow: 
     2px 2px 0 rgba(93, 64, 55, 0.15),
     inset -2px -2px 0 rgba(93, 64, 55, 0.05),
@@ -494,8 +494,8 @@ body::-webkit-scrollbar {
   border-radius: 12px;
   color: var(--home-text-secondary);
   cursor: pointer;
-  font-size: 10px;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
   white-space: nowrap;
   transition: all 0.15s ease;
   box-shadow: 
@@ -625,8 +625,8 @@ body::-webkit-scrollbar {
 }
 
 .furniture-item span {
-  font-size: 8px;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 11px;
+  font-family: 'Noto Sans TC', sans-serif;
   margin-top: 3px;
   color: var(--home-text-secondary);
 }
@@ -643,8 +643,8 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 10px;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
   z-index: 60;
   box-shadow: 
     2px 2px 0 rgba(93, 64, 55, 0.2),
@@ -685,10 +685,10 @@ body::-webkit-scrollbar {
   border: 3px solid var(--home-accent);
   padding: 4px 12px;
   border-radius: 10px;
-  font-size: 9px;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 13px;
+  font-family: 'Noto Sans TC', sans-serif;
   cursor: pointer;
-  font-weight: 400;
+  font-weight: 600;
   box-shadow: 
     2px 2px 0 rgba(93, 64, 55, 0.15),
     inset -2px -2px 0 rgba(93, 64, 55, 0.05),
@@ -782,8 +782,8 @@ body::-webkit-scrollbar {
 }
 
 .bottom-toolbar .tool-btn span {
-  font-size: 10px;
-  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  font-family: 'Noto Sans TC', sans-serif;
 }
 
 .room-tabs {
@@ -935,14 +935,13 @@ body::-webkit-scrollbar {
   border-radius: 10px;
   color: var(--home-text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   transition: all 0.15s ease;
   box-shadow: 
     2px 2px 0 rgba(93, 64, 55, 0.15),
     inset -2px -2px 0 rgba(93, 64, 55, 0.05),
     inset 2px 2px 0 rgba(255, 255, 255, 0.8);
-  font-family: 'Press Start 2P', cursive;
-  font-size: 10px;
+  font-family: 'Noto Sans TC', sans-serif;
   position: relative;
   overflow: hidden;
 }
@@ -1425,12 +1424,12 @@ body::-webkit-scrollbar {
 }
 
 .community-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--home-text);
   margin-bottom: 4px;
   text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'Noto Sans TC', sans-serif;
   letter-spacing: 1px;
 }
 

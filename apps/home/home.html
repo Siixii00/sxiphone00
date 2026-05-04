@@ -15,90 +15,345 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap');
+    
     .arcade-intro {
       position: fixed;
       inset: 0;
       z-index: 10000;
-      background: linear-gradient(135deg, #f5e6d3 0%, #ebe0d0 50%, #f5e6d3 100%);
+      background: linear-gradient(180deg, #f5f0e6 0%, #e8e0d0 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      animation: introFadeIn 0.3s ease;
+      overflow: hidden;
     }
     .arcade-intro.hidden { display: none; }
-    .arcade-intro.fade-out { animation: introFadeOut 0.5s ease forwards; }
-    .neon-frame {
+    .arcade-intro.fade-out { animation: introFadeOut 0.8s ease forwards; }
+    
+    .door-container {
       position: relative;
-      padding: 20px 40px;
-      border: 4px solid var(--home-accent, #e8a87c);
+      width: 280px;
+      height: 380px;
+      perspective: 1000px;
+    }
+    
+    .door {
+      position: absolute;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(180deg, #8b7355 0%, #6b5344 50%, #5a4636 100%);
+      border: 3px solid #4a3626;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+      transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .door-left {
+      left: 0;
+      border-radius: 8px 0 0 8px;
+      transform-origin: left center;
+      transform: perspective(1000px) rotateY(0deg);
+    }
+    
+    .door-right {
+      right: 0;
+      border-radius: 0 8px 8px 0;
+      transform-origin: right center;
+      transform: perspective(1000px) rotateY(0deg);
+    }
+    
+    .arcade-intro.opening .door-left {
+      transform: perspective(1000px) rotateY(-110deg);
+    }
+    
+    .arcade-intro.opening .door-right {
+      transform: perspective(1000px) rotateY(110deg);
+    }
+    
+    .door-handle {
+      position: absolute;
+      width: 12px;
+      height: 30px;
+      background: linear-gradient(180deg, #d4a574, #b8956a);
+      border-radius: 6px;
+      top: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .door-left .door-handle { right: 15px; }
+    .door-right .door-handle { left: 15px; }
+    
+    .door-frame {
+      position: absolute;
+      inset: -10px;
+      border: 8px solid #4a3626;
       border-radius: 16px;
-      background: rgba(255, 248, 240, 0.9);
-      animation: frameGlow 0.4s ease forwards;
+      pointer-events: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    .welcome-text-container {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0;
-      box-shadow: 4px 4px 0 rgba(93, 64, 55, 0.2);
+      transition: opacity 0.8s ease 0.6s;
+      z-index: -1;
     }
-    .neon-text {
-      font-size: 32px;
-      font-weight: 400;
-      font-family: 'Press Start 2P', cursive;
-      color: #e8a87c;
-      text-shadow: 2px 2px 0 rgba(93, 64, 55, 0.3);
-      letter-spacing: 4px;
+    
+    .arcade-intro.opening .welcome-text-container {
+      opacity: 1;
+      z-index: 1;
     }
-    .neon-text span { display: inline-block; opacity: 0; animation: charGlow 0.3s ease forwards; }
-    .neon-text span:nth-child(1) { animation-delay: 0.3s; }
-    .neon-text span:nth-child(2) { animation-delay: 0.5s; }
-    .neon-text span:nth-child(3) { animation-delay: 0.7s; }
-    .neon-text.flicker { animation: none; }
-    .neon-decoration { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; overflow: hidden; }
-    .neon-line { position: absolute; height: 2px; background: linear-gradient(90deg, transparent, #e8a87c, transparent); animation: lineScan 2s ease infinite; opacity: 0.3; }
-    .neon-line:nth-child(1) { top: 20%; animation-delay: 0s; }
-    .neon-line:nth-child(2) { top: 50%; animation-delay: 0.5s; }
-    .neon-line:nth-child(3) { top: 80%; animation-delay: 1s; }
+    
+    .welcome-text {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 48px;
+      color: #5a4636;
+      text-align: center;
+      line-height: 1.2;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      animation: textFloat 3s ease-in-out infinite;
+    }
+    
+    .welcome-text span {
+      display: inline-block;
+      opacity: 0;
+      animation: charReveal 0.5s ease forwards;
+    }
+    
+    .wind-chime {
+      position: absolute;
+      top: -20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+    }
+    
+    .wind-chime.left { left: 20px; }
+    .wind-chime.right { right: 20px; }
+    
+    .chime-string {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(180deg, #8b7355, transparent);
+    }
+    
+    .chime-bell {
+      width: 20px;
+      height: 24px;
+      background: linear-gradient(135deg, #f5e6d3 0%, #d4c4b0 50%, #c4b4a0 100%);
+      border-radius: 0 0 50% 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      animation: chimeSwing 2s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .wind-chime.right .chime-bell {
+      animation-delay: 0.3s;
+    }
+    
+    .chime-clapper {
+      width: 6px;
+      height: 6px;
+      background: #8b7355;
+      border-radius: 50%;
+      margin-top: 2px;
+      animation: clapperSwing 2s ease-in-out infinite;
+    }
+    
+    .wind-chime.right .chime-clapper {
+      animation-delay: 0.3s;
+    }
+    
+    .furin-glass {
+      position: absolute;
+      top: -60px;
+      width: 35px;
+      height: 40px;
+      background: linear-gradient(135deg, rgba(200, 220, 255, 0.7) 0%, rgba(180, 200, 240, 0.5) 50%, rgba(160, 180, 220, 0.6) 100%);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      box-shadow: 0 4px 15px rgba(100, 150, 200, 0.3), inset 0 -10px 20px rgba(255,255,255,0.3);
+      animation: furinSwing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .furin-string {
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 25px;
+      background: #8b7355;
+    }
+    
+    .furin-tongue {
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(180deg, #6b5344, #4a3626);
+      border-radius: 0 0 2px 2px;
+    }
+    
+    .furin-strip {
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 60px;
+      background: linear-gradient(180deg, #fff8f0, #f5e6d3);
+      border: 1px solid #d4c4b0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      animation: stripSwing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .arcade-intro.opening .furin-glass,
+    .arcade-intro.opening .furin-strip {
+      animation: furinSwingStrong 1s ease-out;
+    }
+    
     .skip-btn {
-      position: absolute; bottom: 40px; right: 40px;
-      padding: 12px 20px; background: #fff8f0; border: 3px solid #e8a87c; border-radius: 12px;
-      color: #5d4037; font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s ease; z-index: 10001;
-      font-family: 'Press Start 2P', cursive; font-size: 10px;
-      box-shadow: 2px 2px 0 rgba(93, 64, 55, 0.15);
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      padding: 10px 20px;
+      background: rgba(255, 248, 240, 0.9);
+      border: 2px solid #b8956a;
+      border-radius: 20px;
+      color: #5a4636;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10001;
+      font-family: 'Noto Sans TC', sans-serif;
     }
-    .skip-btn:hover { background: #e8a87c; color: white; transform: scale(0.95); }
-    @keyframes introFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .skip-btn:hover {
+      background: #b8956a;
+      color: white;
+      transform: scale(1.05);
+    }
+    
+    .particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(180, 160, 140, 0.4);
+      border-radius: 50%;
+      animation: particleFloat 4s ease-in-out infinite;
+    }
+    
     @keyframes introFadeOut { from { opacity: 1; } to { opacity: 0; } }
-    @keyframes frameGlow { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
-    @keyframes charGlow { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
-    @keyframes lineScan { 0% { transform: translateX(-100%); opacity: 0; } 50% { opacity: 0.3; } 100% { transform: translateX(100%); opacity: 0; } }
+    @keyframes chimeSwing { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+    @keyframes clapperSwing { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+    @keyframes furinSwing { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @keyframes stripSwing { 0%, 100% { transform: rotate(-2deg) translateX(-50%); } 50% { transform: rotate(2deg) translateX(-50%); } }
+    @keyframes furinSwingStrong { 0% { transform: rotate(-15deg); } 20% { transform: rotate(20deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } 100% { transform: rotate(0deg); } }
+    @keyframes textFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    @keyframes charReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes particleFloat { 0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-100px) rotate(180deg); opacity: 0; } }
   </style>
 </head>
 <body>
   <div class="arcade-intro" id="arcade-intro">
-    <div class="neon-frame">
-      <div class="neon-text" id="neon-text">
-        <span>宅</span><span>家</span>
+    <div class="particles" id="particles"></div>
+    
+    <div class="wind-chime left">
+      <div class="furin-string"></div>
+      <div class="furin-glass">
+        <div class="furin-tongue"></div>
       </div>
-      <div class="neon-decoration">
-        <div class="neon-line"></div>
-        <div class="neon-line"></div>
-        <div class="neon-line"></div>
+      <div class="furin-strip"></div>
+    </div>
+    
+    <div class="wind-chime right">
+      <div class="furin-string"></div>
+      <div class="furin-glass">
+        <div class="furin-tongue"></div>
+      </div>
+      <div class="furin-strip"></div>
+    </div>
+    
+    <div class="door-container">
+      <div class="door-frame"></div>
+      <div class="door door-left">
+        <div class="door-handle"></div>
+      </div>
+      <div class="door door-right">
+        <div class="door-handle"></div>
+      </div>
+      <div class="welcome-text-container">
+        <div class="welcome-text" id="welcome-text"></div>
       </div>
     </div>
+    
     <button class="skip-btn" onclick="skipIntro()">跳過</button>
   </div>
   <script>
+    function createParticles() {
+      const container = document.getElementById('particles');
+      if (!container) return;
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 4 + 's';
+        particle.style.animationDuration = (3 + Math.random() * 2) + 's';
+        container.appendChild(particle);
+      }
+    }
+    
+    function animateWelcomeText() {
+      const text = document.getElementById('welcome-text');
+      if (!text) return;
+      const message = 'Welcome Home';
+      text.innerHTML = '';
+      message.split('').forEach((char, i) => {
+        const span = document.createElement('span');
+        span.textContent = char === ' ' ? '\u00A0' : char;
+        span.style.animationDelay = (0.8 + i * 0.08) + 's';
+        text.appendChild(span);
+      });
+    }
+    
     function skipIntro() {
       const intro = document.getElementById('arcade-intro');
       if (intro) {
         intro.classList.add('fade-out');
-        setTimeout(() => intro.classList.add('hidden'), 500);
+        setTimeout(() => intro.classList.add('hidden'), 800);
       }
     }
-    setTimeout(() => {
-      const text = document.getElementById('neon-text');
-      if (text) text.classList.add('flicker');
-    }, 1000);
-    setTimeout(skipIntro, 2500);
+    
+    function startDoorAnimation() {
+      const intro = document.getElementById('arcade-intro');
+      if (intro) {
+        setTimeout(() => {
+          intro.classList.add('opening');
+        }, 800);
+      }
+    }
+    
+    createParticles();
+    animateWelcomeText();
+    startDoorAnimation();
+    setTimeout(skipIntro, 3500);
   </script>
   <div class="home-app">
     <div id="world-nav-view" class="world-nav-view">
