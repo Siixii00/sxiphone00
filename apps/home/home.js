@@ -77,7 +77,17 @@ const HomeApp = {
   selectedMapItem: null,
   draggedMapItem: null,
   brushSize: 1,
-  showGrid: true
+  showGrid: true,
+  // 房間縮放和平移狀態
+  roomScale: 1.0,
+  roomOffset: { x: 0, y: 0 },
+  isPanningRoom: false,
+  panStartX: 0,
+  panStartY: 0,
+  lastRoomOffsetX: 0,
+  lastRoomOffsetY: 0,
+  pinchStartDist: 0,
+  pinchStartScale: 1
 };
 
 const MAP_CONFIG = {
@@ -4246,11 +4256,19 @@ function loadSavedData() {
         updateRoomSize();
       }
       
-      if (data.customPlacedBuildings) {
-        HomeApp.customPlacedBuildings = data.customPlacedBuildings;
+      if (data.customPlacedBuildings && Array.isArray(data.customPlacedBuildings)) {
+        // 驗證 customPlacedBuildings 格式，只接受正確格式的資料
+        HomeApp.customPlacedBuildings = data.customPlacedBuildings.filter(b => 
+          b && typeof b.x === 'number' && typeof b.y === 'number' && 
+          typeof b.width === 'number' && typeof b.height === 'number' &&
+          b.color && b.roofColor && b.name
+        );
       }
-      if (data.customPlacedDecorations) {
-        HomeApp.customPlacedDecorations = data.customPlacedDecorations;
+      if (data.customPlacedDecorations && Array.isArray(data.customPlacedDecorations)) {
+        // 驗證 customPlacedDecorations 格式
+        HomeApp.customPlacedDecorations = data.customPlacedDecorations.filter(d =>
+          d && typeof d.x === 'number' && typeof d.y === 'number' && d.type
+        );
       }
       
       loadOwnedFurnitureToCatalog(data.ownedFurniture || []);
@@ -6836,6 +6854,60 @@ function initRoomCanvas() {
   HomeApp.canvas.addEventListener('mouseup', handleMouseUp);
   HomeApp.canvas.addEventListener('contextmenu', handleContextMenu);
   
+  // 滾輪縮放
+  HomeApp.canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    HomeApp.roomScale = Math.max(0.3, Math.min(3.0, HomeApp.roomScale + delta));
+    renderRoom();
+  }, { passive: false });
+  
+  // 觸控事件 - 雙指縮放和單指平移
+  HomeApp.canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      // 雙指縮放
+      HomeApp.pinchStartDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      HomeApp.pinchStartScale = HomeApp.roomScale;
+    } else if (e.touches.length === 1 && !HomeApp.editMode) {
+      // 單指平移（非編輯模式）
+      const rect = HomeApp.canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      HomeApp.isPanningRoom = true;
+      HomeApp.panStartX = x - HomeApp.roomOffset.x;
+      HomeApp.panStartY = y - HomeApp.roomOffset.y;
+    }
+  }, { passive: false });
+  
+  HomeApp.canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      // 雙指縮放
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      HomeApp.roomScale = Math.max(0.3, Math.min(3.0, HomeApp.pinchStartScale * (dist / HomeApp.pinchStartDist)));
+      renderRoom();
+    } else if (e.touches.length === 1 && HomeApp.isPanningRoom) {
+      // 單指平移
+      const rect = HomeApp.canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      HomeApp.roomOffset.x = x - HomeApp.panStartX;
+      HomeApp.roomOffset.y = y - HomeApp.panStartY;
+      renderRoom();
+    }
+  }, { passive: false });
+  
+  HomeApp.canvas.addEventListener('touchend', () => {
+    HomeApp.isPanningRoom = false;
+  });
+  
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.context-menu') && !e.target.closest('#room-canvas')) {
       hideContextMenu();
@@ -6850,6 +6922,7 @@ function resizeRoomCanvas() {
   const rect = container.getBoundingClientRect();
   HomeApp.canvas.width = rect.width;
   HomeApp.canvas.height = rect.height;
+  fitRoomToCanvas();
   renderRoom();
 }
 
@@ -6891,14 +6964,24 @@ function exitRoom() {
   }
 }
 
+function fitRoomToCanvas() {
+  const canvas = HomeApp.canvas;
+  if (!canvas) return;
+  
+  const scaleX = (canvas.width * 0.85) / (HomeApp.roomWidth * HomeApp.gridSize);
+  const scaleY = (canvas.height * 0.85) / (HomeApp.roomHeight * HomeApp.gridSize);
+  HomeApp.roomScale = Math.min(scaleX, scaleY, 2.0);
+  HomeApp.roomOffset = { x: 0, y: 0 };
+}
+
 function renderRoom() {
   const ctx = HomeApp.ctx;
   const canvas = HomeApp.canvas;
   if (!ctx || !canvas) return;
   
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
   const room = ROOM_TYPES[HomeApp.currentSubRoom];
   
@@ -6911,7 +6994,7 @@ function renderRoom() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = '#8B7355';
-    ctx.fillRect(offsetX, offsetY + 2 * gridSize, HomeApp.roomWidth * gridSize, (HomeApp.roomHeight - 2) * gridSize);
+    ctx.fillRect(offsetX, offsetY + 2 * scaledGrid, HomeApp.roomWidth * scaledGrid, (HomeApp.roomHeight - 2) * scaledGrid);
   } else {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -6919,21 +7002,21 @@ function renderRoom() {
     const wallStyle = WALL_STYLES.find(s => s.id === HomeApp.wallStyle) || { pattern: 'paint', baseColor: HomeApp.wallColor };
     const floorStyle = FLOOR_STYLES.find(s => s.id === HomeApp.floorStyle) || { pattern: 'solid', baseColor: HomeApp.floorColor };
     
-    drawWallPattern(ctx, offsetX, offsetY, HomeApp.roomWidth * gridSize, HomeApp.roomHeight * gridSize, wallStyle);
-    drawFloorPattern(ctx, offsetX, offsetY + 2 * gridSize, HomeApp.roomWidth * gridSize, (HomeApp.roomHeight - 2) * gridSize, floorStyle);
+    drawWallPattern(ctx, offsetX, offsetY, HomeApp.roomWidth * scaledGrid, HomeApp.roomHeight * scaledGrid, wallStyle);
+    drawFloorPattern(ctx, offsetX, offsetY + 2 * scaledGrid, HomeApp.roomWidth * scaledGrid, (HomeApp.roomHeight - 2) * scaledGrid, floorStyle);
   }
   
   for (let x = 0; x <= HomeApp.roomWidth; x++) {
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.beginPath();
-    ctx.moveTo(offsetX + x * gridSize, offsetY);
-    ctx.lineTo(offsetX + x * gridSize, offsetY + HomeApp.roomHeight * gridSize);
+    ctx.moveTo(offsetX + x * scaledGrid, offsetY);
+    ctx.lineTo(offsetX + x * scaledGrid, offsetY + HomeApp.roomHeight * scaledGrid);
     ctx.stroke();
   }
   for (let y = 0; y <= HomeApp.roomHeight; y++) {
     ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY + y * gridSize);
-    ctx.lineTo(offsetX + HomeApp.roomWidth * gridSize, offsetY + y * gridSize);
+    ctx.moveTo(offsetX, offsetY + y * scaledGrid);
+    ctx.lineTo(offsetX + HomeApp.roomWidth * scaledGrid, offsetY + y * scaledGrid);
     ctx.stroke();
   }
   
@@ -6962,9 +7045,9 @@ function getCurrentFurniture() {
 function renderPlacedFurniture() {
   const ctx = HomeApp.ctx;
   const canvas = HomeApp.canvas;
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
   const furniture = getCurrentFurniture();
   
@@ -6973,17 +7056,17 @@ function renderPlacedFurniture() {
     if (!catalogItem) return;
     
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = catalogItem.width * gridSize;
-    tempCanvas.height = catalogItem.height * gridSize;
+    tempCanvas.width = catalogItem.width * scaledGrid;
+    tempCanvas.height = catalogItem.height * scaledGrid;
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.imageSmoothingEnabled = false;
     
     if (catalogItem.pixels) {
-      catalogItem.pixels(tempCtx, Math.max(catalogItem.width, catalogItem.height) * gridSize);
+      catalogItem.pixels(tempCtx, Math.max(catalogItem.width, catalogItem.height) * scaledGrid);
     }
     
-    const x = offsetX + item.x * gridSize;
-    const y = offsetY + item.y * gridSize;
+    const x = offsetX + item.x * scaledGrid;
+    const y = offsetY + item.y * scaledGrid;
     
     ctx.save();
     if (item.rotation) {
@@ -7001,21 +7084,21 @@ function renderCharacter() {
   const layer = document.getElementById('character-layer');
   layer.innerHTML = '';
   
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
   const sprite = HomeApp.characterSprite.user;
   if (!sprite) return;
   
   const canvas = document.createElement('canvas');
-  canvas.width = 64;
-  canvas.height = 64;
+  canvas.width = 64 * HomeApp.roomScale;
+  canvas.height = 64 * HomeApp.roomScale;
   canvas.style.position = 'absolute';
   canvas.style.imageRendering = 'pixelated';
-  canvas.style.left = (offsetX + (HomeApp.roomWidth / 2 - 1) * gridSize) + 'px';
-  canvas.style.top = (offsetY + (HomeApp.roomHeight / 2 - 1) * gridSize) + 'px';
-  renderSprite(sprite, canvas, 64);
+  canvas.style.left = (offsetX + (HomeApp.roomWidth / 2 - 1) * scaledGrid) + 'px';
+  canvas.style.top = (offsetY + (HomeApp.roomHeight / 2 - 1) * scaledGrid) + 'px';
+  renderSprite(sprite, canvas, 64 * HomeApp.roomScale);
   layer.appendChild(canvas);
 }
 
@@ -7119,12 +7202,12 @@ function handleCanvasClick(e) {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
-  const gridX = Math.floor((x - offsetX) / gridSize);
-  const gridY = Math.floor((y - offsetY) / gridSize);
+  const gridX = Math.floor((x - offsetX) / scaledGrid);
+  const gridY = Math.floor((y - offsetY) / scaledGrid);
   
   const furniture = getCurrentFurniture();
   
@@ -7141,41 +7224,57 @@ function handleCanvasClick(e) {
 }
 
 function handleMouseDown(e) {
-  if (!HomeApp.editMode || HomeApp.selectedFurniture === null) return;
-  
-  const furniture = getCurrentFurniture();
-  
-  const item = furniture[HomeApp.selectedFurniture];
-  if (!item) return;
-  
   const rect = HomeApp.canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  // 非編輯模式下，拖曳平移視角
+  if (!HomeApp.editMode) {
+    HomeApp.isPanningRoom = true;
+    HomeApp.panStartX = x - HomeApp.roomOffset.x;
+    HomeApp.panStartY = y - HomeApp.roomOffset.y;
+    return;
+  }
+  
+  // 編輯模式下，拖曳家具
+  if (HomeApp.selectedFurniture === null) return;
+  
+  const furniture = getCurrentFurniture();
+  const item = furniture[HomeApp.selectedFurniture];
+  if (!item) return;
+  
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
   HomeApp.draggedFurniture = HomeApp.selectedFurniture;
   HomeApp.dragOffset = {
-    x: x - (offsetX + item.x * gridSize),
-    y: y - (offsetY + item.y * gridSize)
+    x: x - (offsetX + item.x * scaledGrid),
+    y: y - (offsetY + item.y * scaledGrid)
   };
 }
 
 function handleMouseMove(e) {
-  if (HomeApp.draggedFurniture === null) return;
-  
   const rect = HomeApp.canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
+  // 非編輯模式下，平移視角
+  if (HomeApp.isPanningRoom && !HomeApp.editMode) {
+    HomeApp.roomOffset.x = x - HomeApp.panStartX;
+    HomeApp.roomOffset.y = y - HomeApp.panStartY;
+    renderRoom();
+    return;
+  }
+  
+  // 編輯模式下，拖曳家具
+  if (HomeApp.draggedFurniture === null) return;
+  
+  const scaledGrid = HomeApp.gridSize * HomeApp.roomScale;
+  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * scaledGrid) / 2 + HomeApp.roomOffset.x;
+  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * scaledGrid) / 2 + HomeApp.roomOffset.y;
   
   const furniture = getCurrentFurniture();
-  
   const item = furniture[HomeApp.draggedFurniture];
   if (!item) return;
   
@@ -7183,8 +7282,8 @@ function handleMouseMove(e) {
   const w = catalogItem?.width || 1;
   const h = catalogItem?.height || 1;
   
-  let newX = Math.floor((x - HomeApp.dragOffset.x - offsetX) / gridSize);
-  let newY = Math.floor((y - HomeApp.dragOffset.y - offsetY) / gridSize);
+  let newX = Math.floor((x - HomeApp.dragOffset.x - offsetX) / scaledGrid);
+  let newY = Math.floor((y - HomeApp.dragOffset.y - offsetY) / scaledGrid);
   
   newX = Math.max(0, Math.min(HomeApp.roomWidth - w, newX));
   newY = Math.max(0, Math.min(HomeApp.roomHeight - h, newY));
@@ -7220,66 +7319,12 @@ function deleteFurniture() {
   hideContextMenu();
 }
 
-function handleMouseDown(e) {
-  if (!HomeApp.editMode || HomeApp.selectedFurniture === null) return;
-  
-  const furniture = HomeApp.placedFurniture[HomeApp.currentRoom] || [];
-  
-  const item = furniture[HomeApp.selectedFurniture];
-  if (!item) return;
-  
-  const rect = HomeApp.canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
-  
-  HomeApp.draggedFurniture = HomeApp.selectedFurniture;
-  HomeApp.dragOffset = {
-    x: x - (offsetX + item.x * gridSize),
-    y: y - (offsetY + item.y * gridSize)
-  };
-}
-
-function handleMouseMove(e) {
-  if (HomeApp.draggedFurniture === null) return;
-  
-  const rect = HomeApp.canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  
-  const gridSize = HomeApp.gridSize;
-  const offsetX = (HomeApp.canvas.width - HomeApp.roomWidth * gridSize) / 2;
-  const offsetY = (HomeApp.canvas.height - HomeApp.roomHeight * gridSize) / 2;
-  
-  const furniture = HomeApp.placedFurniture[HomeApp.currentRoom] || [];
-  
-  const item = furniture[HomeApp.draggedFurniture];
-  if (!item) return;
-  
-  const catalogItem = FURNITURE_CATALOG.find(f => f.id === item.id);
-  const w = catalogItem?.width || 1;
-  const h = catalogItem?.height || 1;
-  
-  let newX = Math.floor((x - HomeApp.dragOffset.x - offsetX) / gridSize);
-  let newY = Math.floor((y - HomeApp.dragOffset.y - offsetY) / gridSize);
-  
-  newX = Math.max(0, Math.min(HomeApp.roomWidth - w, newX));
-  newY = Math.max(0, Math.min(HomeApp.roomHeight - h, newY));
-  
-  item.x = newX;
-  item.y = newY;
-  
-  renderRoom();
-}
-
 function handleMouseUp() {
   if (HomeApp.draggedFurniture !== null) {
     saveData();
   }
   HomeApp.draggedFurniture = null;
+  HomeApp.isPanningRoom = false;
 }
 
 function handleContextMenu(e) {
