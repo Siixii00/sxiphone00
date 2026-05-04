@@ -102,51 +102,95 @@ const ImageHostService = {
     }
 };
 
-let supabaseMessageCountSinceLastBackup = 0;
-const SUPABASE_BACKUP_INTERVAL = 10;
+let backupMessageCountSinceLastBackup = 0;
+const BACKUP_INTERVAL = 10;
 
-async function autoBackupToSupabase() {
-    const url = localStorage.getItem('sx_supabase_url');
-    const key = localStorage.getItem('sx_supabase_key');
+async function generateDataHash(data) {
+    const sortedData = JSON.stringify(data, Object.keys(data).sort());
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(sortedData);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function autoBackupToCloud() {
+    const provider = localStorage.getItem('sx_backup_provider') || 'supabase';
     const autoEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
-    const table = localStorage.getItem('sx_supabase_table') || 'sxiphone_backups';
-
-    if (!url || !key || !autoEnabled) return;
+    
+    if (!autoEnabled) return;
+    
+    const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
+    let url, key;
+    
+    if (provider === 'supabase') {
+        url = localStorage.getItem('sx_supabase_url');
+        key = localStorage.getItem('sx_supabase_key');
+    } else {
+        url = localStorage.getItem('sx_xata_url');
+        key = localStorage.getItem('sx_xata_key');
+    }
+    
+    if (!url || !key) return;
 
     try {
         const allData = await collectAllStorageData();
+        const dataHash = await generateDataHash(allData);
+        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+        
+        if (dataHash === lastHash) {
+            console.log(`[${provider}] 資料無變動，跳過備份`);
+            return;
+        }
+
         const payload = {
             id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             version: '3.0',
             exported_at: new Date().toISOString(),
             device: navigator.userAgent,
             data: allData,
+            data_hash: dataHash,
             user_id: localStorage.getItem('sx_user_name') || 'default'
         };
 
-        const resp = await fetch(`${url}/rest/v1/${table}`, {
-            method: 'POST',
-            headers: {
-                'apikey': key,
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify(payload)
-        });
+        let resp;
+        if (provider === 'supabase') {
+            resp = await fetch(`${url}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': key,
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            resp = await fetch(`${url}:main/tables/${table}/data`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${key}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+        }
 
         if (resp.ok) {
-            const newCount = (parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1).toString();
-            localStorage.setItem('sx_supabase_backup_count', newCount);
-            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
-            console.log('[Supabase] 自動備份成功，累計', newCount, '次');
+            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            const newCount = (parseInt(localStorage.getItem('sx_backup_count') || '0') + 1).toString();
+            localStorage.setItem('sx_backup_count', newCount);
+            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            console.log(`[${provider}] 自動備份成功，累計`, newCount, '次');
         } else {
-            console.warn('[Supabase] 自動備份失敗:', resp.status);
+            console.warn(`[${provider}] 自動備份失敗:`, resp.status);
         }
     } catch (e) {
-        console.warn('[Supabase] 自動備份錯誤:', e);
+        console.warn(`[${provider}] 自動備份錯誤:`, e);
     }
 }
+
+const autoBackupToSupabase = autoBackupToCloud;
 
 async function collectAllStorageData() {
     const data = {};
@@ -1996,6 +2040,65 @@ function triggerPasskeyControlHandoff(reason, payload = {}) {
     if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: 'PASSKEY_CONTROL_HANDOFF', payload: detail }, '*');
     }
+}
+
+function parseDeviceCommands(text) {
+    if (!text) return [];
+    const regex = /\[DEVICE:\s*intensity=(\d),\s*duration=(\d+)\]/g;
+    const commands = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        commands.push({
+            intensity: parseInt(match[1]),
+            duration: parseInt(match[2])
+        });
+    }
+    return commands;
+}
+
+function sendDeviceCommands(commands) {
+    if (!commands || commands.length === 0) return;
+    if (!isPasskeyControlEnabled()) return;
+    
+    commands.forEach((cmd, index) => {
+        setTimeout(() => {
+            const detail = {
+                reason: 'device_command',
+                intensity: cmd.intensity,
+                duration: cmd.duration,
+                chatId: getActiveChatId() || '',
+                timestamp: Date.now(),
+                character: localStorage.getItem('sx_passkey_character') || ''
+            };
+            
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ 
+                    type: 'LOVESPOUSE_COMMAND', 
+                    payload: detail 
+                }, '*');
+            }
+            
+            localStorage.setItem('sx_lovespouse_command', JSON.stringify(detail));
+            
+            console.log('[Chat] Device command sent:', cmd);
+        }, index * 500);
+    });
+}
+
+function processAiResponseForDevice(text) {
+    if (!text || !isPasskeyControlEnabled()) return text;
+    
+    const commands = parseDeviceCommands(text);
+    if (commands.length > 0) {
+        sendDeviceCommands(commands);
+        text = text.replace(/\[DEVICE:\s*intensity=\d,\s*duration=\d+\]/g, '').trim();
+    }
+    
+    if (checkNsfwTopic(text)) {
+        triggerPasskeyControlHandoff('nsfw_detected', { text });
+    }
+    
+    return text;
 }
 /**
  * 補定義：檢查角色是否被拉黑
@@ -7468,10 +7571,10 @@ function scheduleReadUpdate(msgId, delay) {
         });
     }
 
-    supabaseMessageCountSinceLastBackup++;
-    if (supabaseMessageCountSinceLastBackup >= SUPABASE_BACKUP_INTERVAL) {
-        supabaseMessageCountSinceLastBackup = 0;
-        autoBackupToSupabase();
+    backupMessageCountSinceLastBackup++;
+    if (backupMessageCountSinceLastBackup >= BACKUP_INTERVAL) {
+        backupMessageCountSinceLastBackup = 0;
+        autoBackupToCloud();
     }
 }
 
@@ -7706,6 +7809,7 @@ async function handleTriggerAI() {
         let aiReply = await callAIAPI(payload);
         aiReply = applyForbiddenGuard(aiReply, forbiddenList);
         aiReply = sanitizeEllipsis(aiReply);
+        aiReply = processAiResponseForDevice(aiReply);
         
         const generationMode = ChatEngine.getGenerationMode();
         if (generationMode === 'multi' || generationMode === 'multi-text') {

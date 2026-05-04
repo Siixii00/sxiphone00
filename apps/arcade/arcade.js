@@ -293,6 +293,8 @@ function openGameFromMap(machineId, machine) {
     whackamole: renderWhackAMoleGame,
     memory: renderMemoryGame,
     pinball: renderPinballGame,
+    pachinko: renderPachinkoGame,
+    pachislot: renderPachislotGame,
     dart: renderDartGame,
     gacha_genshin: () => renderGachaGameForMachine('genshin'),
     gacha_starrail: () => renderGachaGameForMachine('starrail'),
@@ -3166,6 +3168,331 @@ function pinballGameLoop() {
   pinballCtx.fill();
   
   pinballAnimationId = requestAnimationFrame(pinballGameLoop);
+}
+
+// ============ 柏青哥 ============
+let pachinkoCanvas = null;
+let pachinkoCtx = null;
+let pachinkoScore = 0;
+let pachinkoBalls = 10;
+let pachinkoBallQueue = [];
+let pachinkoPegs = [];
+let pachinkoSlots = [];
+let pachinkoAnimationId = null;
+
+function renderPachinkoGame() {
+  const area = document.getElementById('game-area');
+  area.innerHTML = `
+    <div class="pachinko-container">
+      <div class="pachinko-header">
+        <div class="pachinko-stat">
+          <span class="label">分數</span>
+          <span class="value" id="pachinko-score">0</span>
+        </div>
+        <div class="pachinko-stat">
+          <span class="label">球數</span>
+          <span class="value" id="pachinko-balls">10</span>
+        </div>
+      </div>
+      <canvas id="pachinko-canvas" width="300" height="500"></canvas>
+      <div class="pachinko-controls">
+        <button class="pachinko-btn" id="pachinko-left" onclick="pachinkoAim(-15)">◀</button>
+        <button class="pachinko-btn launch" onclick="launchPachinkoBall()">發射</button>
+        <button class="pachinko-btn" id="pachinko-right" onclick="pachinkoAim(15)">▶</button>
+      </div>
+      <div class="pachinko-aim-bar">
+        <div class="pachinko-aim-indicator" id="pachinko-aim"></div>
+      </div>
+    </div>
+  `;
+  
+  initPachinko();
+}
+
+let pachinkoAimPos = 150;
+
+function initPachinko() {
+  pachinkoCanvas = document.getElementById('pachinko-canvas');
+  pachinkoCtx = pachinkoCanvas.getContext('2d');
+  pachinkoScore = 0;
+  pachinkoBalls = 10;
+  pachinkoBallQueue = [];
+  pachinkoAimPos = 150;
+  
+  pachinkoPegs = [];
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 6; col++) {
+      const x = 50 + col * 40 + (row % 2) * 20;
+      const y = 80 + row * 45;
+      pachinkoPegs.push({ x, y, r: 6 });
+    }
+  }
+  
+  pachinkoSlots = [
+    { x: 30, w: 30, mult: 10 },
+    { x: 60, w: 30, mult: 5 },
+    { x: 90, w: 30, mult: 2 },
+    { x: 120, w: 30, mult: 1 },
+    { x: 150, w: 30, mult: 50 },
+    { x: 180, w: 30, mult: 1 },
+    { x: 210, w: 30, mult: 2 },
+    { x: 240, w: 30, mult: 5 },
+    { x: 270, w: 30, mult: 10 }
+  ];
+  
+  pachinkoGameLoop();
+}
+
+function pachinkoAim(delta) {
+  pachinkoAimPos = Math.max(50, Math.min(250, pachinkoAimPos + delta));
+  const indicator = document.getElementById('pachinko-aim');
+  if (indicator) {
+    indicator.style.left = (pachinkoAimPos - 5) + 'px';
+  }
+}
+
+function launchPachinkoBall() {
+  if (pachinkoBalls <= 0) return;
+  
+  pachinkoBalls--;
+  document.getElementById('pachinko-balls').textContent = pachinkoBalls;
+  
+  pachinkoBallQueue.push({
+    x: pachinkoAimPos,
+    y: 30,
+    vx: (Math.random() - 0.5) * 2,
+    vy: 2,
+    r: 8
+  });
+}
+
+function pachinkoGameLoop() {
+  if (!pachinkoCtx) return;
+  
+  pachinkoCtx.fillStyle = '#1a1a2e';
+  pachinkoCtx.fillRect(0, 0, 300, 500);
+  
+  pachinkoCtx.fillStyle = '#fbbf24';
+  pachinkoPegs.forEach(peg => {
+    pachinkoCtx.beginPath();
+    pachinkoCtx.arc(peg.x, peg.y, peg.r, 0, Math.PI * 2);
+    pachinkoCtx.fill();
+  });
+  
+  pachinkoSlots.forEach((slot, i) => {
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#a855f7', '#22c55e', '#eab308', '#f97316', '#ef4444'];
+    pachinkoCtx.fillStyle = colors[i];
+    pachinkoCtx.fillRect(slot.x - 15, 450, slot.w, 50);
+    
+    pachinkoCtx.fillStyle = '#fff';
+    pachinkoCtx.font = 'bold 12px sans-serif';
+    pachinkoCtx.textAlign = 'center';
+    pachinkoCtx.fillText('x' + slot.mult, slot.x, 480);
+  });
+  
+  for (let i = pachinkoBallQueue.length - 1; i >= 0; i--) {
+    const ball = pachinkoBallQueue[i];
+    
+    ball.vy += 0.15;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+    
+    pachinkoPegs.forEach(peg => {
+      const dx = ball.x - peg.x;
+      const dy = ball.y - peg.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < ball.r + peg.r) {
+        const angle = Math.atan2(dy, dx);
+        ball.vx = Math.cos(angle) * 3 + (Math.random() - 0.5);
+        ball.vy = Math.sin(angle) * 3;
+        ball.y = peg.y - peg.r - ball.r;
+      }
+    });
+    
+    if (ball.x < 10 || ball.x > 290) {
+      ball.vx *= -0.8;
+      ball.x = Math.max(10, Math.min(290, ball.x));
+    }
+    
+    if (ball.y > 450) {
+      pachinkoSlots.forEach(slot => {
+        if (Math.abs(ball.x - slot.x) < 15) {
+          pachinkoScore += slot.mult * 10;
+          document.getElementById('pachinko-score').textContent = pachinkoScore;
+        }
+      });
+      pachinkoBallQueue.splice(i, 1);
+    }
+  }
+  
+  pachinkoCtx.fillStyle = '#ef4444';
+  pachinkoBallQueue.forEach(ball => {
+    pachinkoCtx.beginPath();
+    pachinkoCtx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    pachinkoCtx.fill();
+  });
+  
+  if (pachinkoBalls <= 0 && pachinkoBallQueue.length === 0) {
+    alert(`遊戲結束！得分: ${pachinkoScore}`);
+    updateHighScore('pachinko', pachinkoScore);
+    return;
+  }
+  
+  pachinkoAnimationId = requestAnimationFrame(pachinkoGameLoop);
+}
+
+// ============ 柏青嫂 ============
+let pachislotCanvas = null;
+let pachislotCtx = null;
+let pachislotScore = 0;
+let pachislotSpinning = false;
+let pachislotReels = [0, 0, 0];
+let pachislotTargetReels = [0, 0, 0];
+let pachislotAnimationId = null;
+
+const PACHISLOT_SYMBOLS = ['🍒', '🔔', '⭐', '7️⃣', '💎', '🍀', '🎰', '👑'];
+const PACHISLOT_PAYOUTS = {
+  '👑👑👑': 1000,
+  '💎💎💎': 500,
+  '7️⃣7️⃣7️⃣': 300,
+  '⭐⭐⭐': 200,
+  '🔔🔔🔔': 100,
+  '🍒🍒🍒': 50,
+  '💎💎': 30,
+  '7️⃣7️⃣': 20,
+  '⭐⭐': 15,
+  '🔔🔔': 10,
+  '🍒🍒': 5
+};
+
+function renderPachislotGame() {
+  const area = document.getElementById('game-area');
+  area.innerHTML = `
+    <div class="pachislot-container">
+      <div class="pachislot-header">
+        <div class="pachislot-stat">
+          <span class="label">分數</span>
+          <span class="value" id="pachislot-score">0</span>
+        </div>
+        <div class="pachislot-stat">
+          <span class="label">轉動</span>
+          <span class="value" id="pachislot-spins">0</span>
+        </div>
+      </div>
+      <div class="pachislot-machine">
+        <div class="pachislot-reels">
+          <div class="pachislot-reel" id="pachislot-reel-0">🍒</div>
+          <div class="pachislot-reel" id="pachislot-reel-1">🍒</div>
+          <div class="pachislot-reel" id="pachislot-reel-2">🍒</div>
+        </div>
+        <div class="pachislot-payline"></div>
+      </div>
+      <div class="pachislot-controls">
+        <button class="pachislot-spin-btn" id="pachislot-spin" onclick="spinPachislot()">轉動</button>
+      </div>
+      <div class="pachislot-paytable">
+        <div class="pachislot-paytitle">賠獎表</div>
+        <div class="pachislot-paylist">
+          <div>👑👑👑 = 1000</div>
+          <div>💎💎💎 = 500</div>
+          <div>7️⃣7️⃣7️⃣ = 300</div>
+          <div>⭐⭐⭐ = 200</div>
+          <div>🔔🔔🔔 = 100</div>
+          <div>🍒🍒🍒 = 50</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  pachislotScore = 0;
+  pachislotSpinning = false;
+  pachislotReels = [0, 0, 0];
+}
+
+let pachislotSpins = 0;
+
+function spinPachislot() {
+  if (pachislotSpinning) return;
+  
+  pachislotSpinning = true;
+  pachislotSpins++;
+  document.getElementById('pachislot-spins').textContent = pachislotSpins;
+  
+  const btn = document.getElementById('pachislot-spin');
+  btn.disabled = true;
+  btn.textContent = '轉動中...';
+  
+  pachislotTargetReels = [
+    Math.floor(Math.random() * PACHISLOT_SYMBOLS.length),
+    Math.floor(Math.random() * PACHISLOT_SYMBOLS.length),
+    Math.floor(Math.random() * PACHISLOT_SYMBOLS.length)
+  ];
+  
+  let spinCount = 0;
+  const maxSpins = 30;
+  
+  const spinInterval = setInterval(() => {
+    spinCount++;
+    
+    for (let i = 0; i < 3; i++) {
+      if (spinCount < maxSpins - (i * 5)) {
+        pachislotReels[i] = (pachislotReels[i] + 1) % PACHISLOT_SYMBOLS.length;
+      } else {
+        pachislotReels[i] = pachislotTargetReels[i];
+      }
+      
+      const reelEl = document.getElementById(`pachislot-reel-${i}`);
+      if (reelEl) {
+        reelEl.textContent = PACHISLOT_SYMBOLS[pachislotReels[i]];
+      }
+    }
+    
+    if (spinCount >= maxSpins) {
+      clearInterval(spinInterval);
+      pachislotSpinning = false;
+      btn.disabled = false;
+      btn.textContent = '轉動';
+      
+      checkPachislotWin();
+    }
+  }, 80);
+}
+
+function checkPachislotWin() {
+  const result = PACHISLOT_SYMBOLS[pachislotReels[0]] + 
+                 PACHISLOT_SYMBOLS[pachislotReels[1]] + 
+                 PACHISLOT_SYMBOLS[pachislotReels[2]];
+  
+  let winAmount = 0;
+  
+  for (const [pattern, payout] of Object.entries(PACHISLOT_PAYOUTS)) {
+    if (result === pattern) {
+      winAmount = payout;
+      break;
+    }
+  }
+  
+  if (winAmount === 0) {
+    const twoMatch = PACHISLOT_SYMBOLS[pachislotReels[0]] + PACHISLOT_SYMBOLS[pachislotReels[1]];
+    const twoMatch2 = PACHISLOT_SYMBOLS[pachislotReels[1]] + PACHISLOT_SYMBOLS[pachislotReels[2]];
+    
+    for (const [pattern, payout] of Object.entries(PACHISLOT_PAYOUTS)) {
+      if (pattern.length === 2 && (twoMatch === pattern || twoMatch2 === pattern)) {
+        winAmount = payout;
+        break;
+      }
+    }
+  }
+  
+  if (winAmount > 0) {
+    pachislotScore += winAmount;
+    document.getElementById('pachislot-score').textContent = pachislotScore;
+    
+    const reels = document.querySelectorAll('.pachislot-reel');
+    reels.forEach(reel => reel.classList.add('win'));
+    setTimeout(() => reels.forEach(reel => reel.classList.remove('win')), 500);
+  }
 }
 
 // ============ 射飛鏢 ============

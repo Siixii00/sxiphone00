@@ -5088,3 +5088,222 @@ body {
   height: 20px;
   border-radius: 50%;
 }
+
+/* 柏青哥樣式 */
+.pachinko-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.pachinko-header {
+  display: flex;
+  gap: 30px;
+}
+
+.pachinko-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.pachinko-stat .label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pachinko-stat .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+#pachinko-canvas {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.pachinko-controls {
+  display: flex;
+  gap: 16px;
+}
+
+.pachinko-btn {
+  width: 50px;
+  height: 50px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pachinko-btn:hover {
+  background: #fbbf24;
+  color: #000;
+}
+
+.pachinko-btn.launch {
+  width: 80px;
+  background: #fbbf24;
+  color: #000;
+}
+
+.pachinko-aim-bar {
+  width: 200px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  position: relative;
+}
+
+.pachinko-aim-indicator {
+  width: 10px;
+  height: 10px;
+  background: #fbbf24;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 145px;
+  transition: left 0.1s ease;
+}
+
+/* 柏青嫂樣式 */
+.pachislot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.pachislot-header {
+  display: flex;
+  gap: 30px;
+}
+
+.pachislot-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.pachislot-stat .label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pachislot-stat .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ec4899;
+}
+
+.pachislot-machine {
+  position: relative;
+  padding: 30px 40px;
+  background: linear-gradient(135deg, #1a1a2e, #2a2a4e);
+  border: 4px solid #ec4899;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.3);
+}
+
+.pachislot-reels {
+  display: flex;
+  gap: 16px;
+}
+
+.pachislot-reel {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #0d0d1a, #1a1a2e);
+  border: 2px solid #ec4899;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  transition: all 0.1s ease;
+}
+
+.pachislot-reel.win {
+  animation: reelWin 0.5s ease;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.8);
+}
+
+@keyframes reelWin {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.pachislot-payline {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 50%;
+  height: 4px;
+  background: #fbbf24;
+  transform: translateY(-50%);
+  opacity: 0.5;
+}
+
+.pachislot-controls {
+  margin-top: 10px;
+}
+
+.pachislot-spin-btn {
+  padding: 16px 48px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pachislot-spin-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+.pachislot-spin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pachislot-paytable {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.pachislot-paytitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ec4899;
+  margin-bottom: 8px;
+}
+
+.pachislot-paylist {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text);
+}

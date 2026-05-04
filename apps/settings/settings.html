@@ -1309,35 +1309,50 @@
             <summary class="group-summary">
                 <div class="summary-left">
                     <i data-lucide="cloud"></i>
-                    <span>Supabase 緊急備援</span>
+                    <span>雲端備份 (Supabase / Xata)</span>
                 </div>
                 <i data-lucide="chevron-right" class="arrow"></i>
             </summary>
             <div class="list-card">
                 <div class="cell-v">
-                    <span class="cell-label">Supabase 雲端備份</span>
-                    <p class="ios-caption">當 GitHub 備份無法使用時的緊急備援方案。需要 Supabase 專案的 URL 和 anon key。</p>
+                    <span class="cell-label">備份服務選擇</span>
+                    <p class="ios-caption">選擇 Supabase 或 Xata 作為雲端備份服務。Xata 免費空間較大 (15GB)。</p>
                     
-                    <label class="cell-label" for="supabase-url">Supabase URL</label>
-                    <input id="supabase-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
+                    <select id="backup-provider" class="ios-select" style="margin-bottom:12px;">
+                        <option value="supabase">Supabase (500MB 免費)</option>
+                        <option value="xata">Xata (15GB 免費)</option>
+                    </select>
                     
-                    <label class="cell-label" for="supabase-key">Anon Key</label>
-                    <input id="supabase-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
-                    
-                    <label class="cell-label" for="supabase-table">資料表名稱</label>
-                    <input id="supabase-table" class="ios-input" type="text" placeholder="backups" value="sxiphone_backups">
-                    
-                    <div class="btn-row" style="margin-top:12px;">
-                        <button class="ios-btn" id="supabase-save" type="button">儲存設定</button>
-                        <button class="ios-btn primary" id="supabase-push" type="button">推送備份</button>
-                        <button class="ios-btn" id="supabase-pull" type="button">拉取還原</button>
+                    <div id="supabase-config">
+                        <label class="cell-label" for="supabase-url">Supabase URL</label>
+                        <input id="supabase-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
+                        
+                        <label class="cell-label" for="supabase-key">Anon Key</label>
+                        <input id="supabase-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
                     </div>
                     
-                    <p class="ios-caption" id="supabase-status">尚未設定</p>
+                    <div id="xata-config" style="display:none;">
+                        <label class="cell-label" for="xata-url">Xata Database URL</label>
+                        <input id="xata-url" class="ios-input" type="text" placeholder="https://your-workspace-xxx.us-east-1.xata.sh/db/your-db">
+                        
+                        <label class="cell-label" for="xata-key">API Key</label>
+                        <input id="xata-key" class="ios-input" type="password" placeholder="xau_...">
+                    </div>
+                    
+                    <label class="cell-label" for="backup-table">資料表名稱</label>
+                    <input id="backup-table" class="ios-input" type="text" placeholder="backups" value="sxiphone_backups">
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn" id="backup-save" type="button">儲存設定</button>
+                        <button class="ios-btn primary" id="backup-push" type="button">推送備份</button>
+                        <button class="ios-btn" id="backup-pull" type="button">拉取還原</button>
+                    </div>
+                    
+                    <p class="ios-caption" id="backup-status">尚未設定</p>
                     
                     <div class="btn-row" style="margin-top:8px;">
-                        <button class="ios-btn" id="supabase-test" type="button">測試連線</button>
-                        <button class="ios-btn" id="supabase-clear" type="button" style="color:#FF453A;">清除設定</button>
+                        <button class="ios-btn" id="backup-test" type="button">測試連線</button>
+                        <button class="ios-btn" id="backup-clear" type="button" style="color:#FF453A;">清除設定</button>
                     </div>
                 </div>
             </div>

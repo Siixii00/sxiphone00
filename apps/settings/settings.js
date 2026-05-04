@@ -1405,214 +1405,361 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (success) refreshGitHubSection();
     });
 
-    // ==================== Supabase 緊急備援 ====================
+    // ==================== 雲端備份 (Supabase / Xata) ====================
+    const BACKUP_PROVIDER_KEY = 'sx_backup_provider';
     const SUPABASE_URL_KEY = 'sx_supabase_url';
     const SUPABASE_KEY_KEY = 'sx_supabase_key';
-    const SUPABASE_TABLE_KEY = 'sx_supabase_table';
+    const XATA_URL_KEY = 'sx_xata_url';
+    const XATA_KEY_KEY = 'sx_xata_key';
+    const BACKUP_TABLE_KEY = 'sx_backup_table';
 
+    const backupProviderSelect = document.getElementById('backup-provider');
+    const supabaseConfigDiv = document.getElementById('supabase-config');
+    const xataConfigDiv = document.getElementById('xata-config');
     const supabaseUrlInput = document.getElementById('supabase-url');
     const supabaseKeyInput = document.getElementById('supabase-key');
-    const supabaseTableInput = document.getElementById('supabase-table');
-    const supabaseSaveBtn = document.getElementById('supabase-save');
-    const supabasePushBtn = document.getElementById('supabase-push');
-    const supabasePullBtn = document.getElementById('supabase-pull');
-    const supabaseTestBtn = document.getElementById('supabase-test');
-    const supabaseClearBtn = document.getElementById('supabase-clear');
-    const supabaseStatusEl = document.getElementById('supabase-status');
+    const xataUrlInput = document.getElementById('xata-url');
+    const xataKeyInput = document.getElementById('xata-key');
+    const backupTableInput = document.getElementById('backup-table');
+    const backupSaveBtn = document.getElementById('backup-save');
+    const backupPushBtn = document.getElementById('backup-push');
+    const backupPullBtn = document.getElementById('backup-pull');
+    const backupTestBtn = document.getElementById('backup-test');
+    const backupClearBtn = document.getElementById('backup-clear');
+    const backupStatusEl = document.getElementById('backup-status');
 
-    const loadSupabaseSettings = () => {
-        const savedUrl = localStorage.getItem(SUPABASE_URL_KEY);
-        const savedKey = localStorage.getItem(SUPABASE_KEY_KEY);
-        const savedTable = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
+    const loadBackupSettings = () => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const supabaseUrl = localStorage.getItem(SUPABASE_URL_KEY);
+        const supabaseKey = localStorage.getItem(SUPABASE_KEY_KEY);
+        const xataUrl = localStorage.getItem(XATA_URL_KEY);
+        const xataKey = localStorage.getItem(XATA_KEY_KEY);
+        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
         
-        if (supabaseUrlInput) supabaseUrlInput.value = savedUrl || '';
-        if (supabaseKeyInput) supabaseKeyInput.value = savedKey || '';
-        if (supabaseTableInput) supabaseTableInput.value = savedTable;
+        if (backupProviderSelect) backupProviderSelect.value = provider;
+        if (supabaseUrlInput) supabaseUrlInput.value = supabaseUrl || '';
+        if (supabaseKeyInput) supabaseKeyInput.value = supabaseKey || '';
+        if (xataUrlInput) xataUrlInput.value = xataUrl || '';
+        if (xataKeyInput) xataKeyInput.value = xataKey || '';
+        if (backupTableInput) backupTableInput.value = table;
         
-        if (savedUrl && savedKey) {
-            if (supabaseStatusEl) supabaseStatusEl.textContent = '已設定，尚未測試連線';
+        toggleBackupProviderUI(provider);
+        updateBackupStatus();
+    };
+
+    const toggleBackupProviderUI = (provider) => {
+        if (supabaseConfigDiv) supabaseConfigDiv.style.display = provider === 'supabase' ? 'block' : 'none';
+        if (xataConfigDiv) xataConfigDiv.style.display = provider === 'xata' ? 'block' : 'none';
+    };
+
+    const updateBackupStatus = () => {
+        if (!backupStatusEl) return;
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
+        const hasXata = localStorage.getItem(XATA_URL_KEY) && localStorage.getItem(XATA_KEY_KEY);
+        
+        if ((provider === 'supabase' && hasSupabase) || (provider === 'xata' && hasXata)) {
+            backupStatusEl.textContent = `✅ ${provider === 'supabase' ? 'Supabase' : 'Xata'} 已設定`;
+        } else {
+            backupStatusEl.textContent = '尚未設定';
         }
     };
 
-    const setSupabaseStatus = (text) => {
-        if (supabaseStatusEl) supabaseStatusEl.textContent = text;
+    const setBackupStatus = (text) => {
+        if (backupStatusEl) backupStatusEl.textContent = text;
     };
 
-    const getSupabaseHeaders = (key) => ({
-        'apikey': key,
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-    });
-
-    const testSupabaseConnection = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
-
-        if (!url || !key) {
-            setSupabaseStatus('❌ 請先設定 URL 和 Key');
-            return false;
+    const getBackupHeaders = () => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const key = provider === 'supabase' 
+            ? localStorage.getItem(SUPABASE_KEY_KEY)
+            : localStorage.getItem(XATA_KEY_KEY);
+        
+        if (provider === 'supabase') {
+            return {
+                'apikey': key,
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            };
+        } else {
+            return {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json'
+            };
         }
+    };
 
-        setSupabaseStatus('正在測試連線...');
+    const getBackupApiUrl = (action = 'list') => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+        
+        if (provider === 'supabase') {
+            const baseUrl = localStorage.getItem(SUPABASE_URL_KEY);
+            switch (action) {
+                case 'insert': return `${baseUrl}/rest/v1/${table}`;
+                case 'list': return `${baseUrl}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`;
+                default: return `${baseUrl}/rest/v1/${table}`;
+            }
+        } else {
+            const baseUrl = localStorage.getItem(XATA_URL_KEY);
+            const branch = 'main';
+            switch (action) {
+                case 'insert': return `${baseUrl}:${branch}/tables/${table}/data`;
+                case 'list': return `${baseUrl}:${branch}/tables/${table}/query`;
+                default: return `${baseUrl}:${branch}/tables/${table}/data`;
+            }
+        }
+    };
+
+    const testBackupConnection = async () => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        setBackupStatus('正在測試連線...');
+        
         try {
-            const resp = await fetch(`${url}/rest/v1/${table}?select=count&limit=1`, {
-                headers: getSupabaseHeaders(key)
-            });
-            
-            if (resp.ok) {
-                setSupabaseStatus('✅ 連線成功');
-                return true;
-            } else if (resp.status === 404) {
-                setSupabaseStatus('⚠️ 資料表不存在，將自動建立');
-                return true;
+            if (provider === 'supabase') {
+                const url = localStorage.getItem(SUPABASE_URL_KEY);
+                const key = localStorage.getItem(SUPABASE_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                    return false;
+                }
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}/rest/v1/${table}?select=count&limit=1`, {
+                    headers: getBackupHeaders()
+                });
+                if (resp.ok) {
+                    setBackupStatus('✅ Supabase 連線成功');
+                    return true;
+                } else if (resp.status === 404) {
+                    setBackupStatus('⚠️ 資料表不存在，需手動建立');
+                    return true;
+                }
+                throw new Error(`連線失敗 (${resp.status})`);
             } else {
-                const errData = await resp.json().catch(() => ({}));
-                setSupabaseStatus(`❌ 連線失敗: ${errData.message || resp.status}`);
-                return false;
+                const url = localStorage.getItem(XATA_URL_KEY);
+                const key = localStorage.getItem(XATA_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                    return false;
+                }
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}:main/tables/${table}/query`, {
+                    method: 'POST',
+                    headers: getBackupHeaders(),
+                    body: JSON.stringify({ page: { size: 1 } })
+                });
+                if (resp.ok) {
+                    setBackupStatus('✅ Xata 連線成功');
+                    return true;
+                }
+                throw new Error(`連線失敗 (${resp.status})`);
             }
         } catch (err) {
-            setSupabaseStatus(`❌ 連線錯誤: ${err.message}`);
+            setBackupStatus(`❌ 連線錯誤: ${err.message}`);
             return false;
         }
     };
 
-    const supabasePushBackup = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
-
-        if (!url || !key) {
-            setSupabaseStatus('❌ 請先設定 URL 和 Key');
-            return false;
-        }
-
-        setSupabaseStatus('正在收集資料...');
+    const pushBackup = async () => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        setBackupStatus('正在收集資料...');
+        
         try {
             const allData = await collectAllStorageData();
+            const dataHash = await generateDataHash(allData);
+            const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+            
+            if (dataHash === lastHash) {
+                setBackupStatus('資料無變動，跳過備份');
+                return true;
+            }
+
             const payload = {
                 id: `backup_${Date.now()}`,
                 version: '3.0',
                 exported_at: new Date().toISOString(),
                 device: navigator.userAgent,
                 data: allData,
+                data_hash: dataHash,
                 user_id: localStorage.getItem('sx_user_name') || 'default'
             };
 
-            setSupabaseStatus('正在上傳備份...');
-            const resp = await fetch(`${url}/rest/v1/${table}`, {
-                method: 'POST',
-                headers: getSupabaseHeaders(key),
-                body: JSON.stringify(payload)
-            });
-
-            if (!resp.ok) {
-                const errData = await resp.json().catch(() => ({}));
-                
-                if (resp.status === 404) {
-                    setSupabaseStatus('資料表不存在，請先在 Supabase 建立資料表');
+            setBackupStatus('正在上傳備份...');
+            
+            if (provider === 'supabase') {
+                const url = localStorage.getItem(SUPABASE_URL_KEY);
+                const key = localStorage.getItem(SUPABASE_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
                     return false;
                 }
-                
-                throw new Error(errData.message || `上傳失敗 (${resp.status})`);
-            }
-
-            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
-            setSupabaseStatus('✅ 推送備份完成');
-
-            if (typeof UnifiedStorageManager !== 'undefined') {
-                const manager = new UnifiedStorageManager();
-                manager.progressiveCleanupAfterBackup({ success: true, source: 'supabase' }).catch(e => {
-                    console.warn('[Supabase] 漸進式清理失敗:', e);
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}/rest/v1/${table}`, {
+                    method: 'POST',
+                    headers: getBackupHeaders(),
+                    body: JSON.stringify(payload)
                 });
+                if (!resp.ok) {
+                    if (resp.status === 404) {
+                        setBackupStatus('資料表不存在，請先建立');
+                        return false;
+                    }
+                    throw new Error(`上傳失敗 (${resp.status})`);
+                }
+            } else {
+                const url = localStorage.getItem(XATA_URL_KEY);
+                const key = localStorage.getItem(XATA_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                    return false;
+                }
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}:main/tables/${table}/data`, {
+                    method: 'POST',
+                    headers: getBackupHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.message || `上傳失敗 (${resp.status})`);
+                }
             }
 
+            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            setBackupStatus(`✅ ${provider === 'supabase' ? 'Supabase' : 'Xata'} 備份完成`);
             return true;
         } catch (err) {
-            console.error('[Supabase] 備份錯誤:', err);
-            setSupabaseStatus(`❌ 推送失敗: ${err.message}`);
+            console.error('[Backup] 錯誤:', err);
+            setBackupStatus(`❌ 備份失敗: ${err.message}`);
             return false;
         }
     };
 
-    const supabasePullBackup = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_backups';
-
-        if (!url || !key) {
-            setSupabaseStatus('❌ 請先設定 URL 和 Key');
-            return false;
-        }
-
-        setSupabaseStatus('正在下載備份...');
+    const pullBackup = async () => {
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        setBackupStatus('正在下載備份...');
+        
         try {
-            const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
-                headers: getSupabaseHeaders(key)
-            });
-
-            if (!resp.ok) {
-                throw new Error(`下載失敗 (${resp.status})`);
+            let latestBackup;
+            
+            if (provider === 'supabase') {
+                const url = localStorage.getItem(SUPABASE_URL_KEY);
+                const key = localStorage.getItem(SUPABASE_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                    return false;
+                }
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
+                    headers: getBackupHeaders()
+                });
+                if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
+                const backups = await resp.json();
+                if (!backups || backups.length === 0) {
+                    setBackupStatus('❌ 找不到備份資料');
+                    return false;
+                }
+                latestBackup = backups[0];
+            } else {
+                const url = localStorage.getItem(XATA_URL_KEY);
+                const key = localStorage.getItem(XATA_KEY_KEY);
+                if (!url || !key) {
+                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                    return false;
+                }
+                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+                const resp = await fetch(`${url}:main/tables/${table}/query`, {
+                    method: 'POST',
+                    headers: getBackupHeaders(),
+                    body: JSON.stringify({
+                        sort: { column: 'exported_at', direction: 'desc' },
+                        page: { size: 1 }
+                    })
+                });
+                if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
+                const result = await resp.json();
+                if (!result.records || result.records.length === 0) {
+                    setBackupStatus('❌ 找不到備份資料');
+                    return false;
+                }
+                latestBackup = result.records[0];
             }
 
-            const backups = await resp.json();
-            if (!backups || backups.length === 0) {
-                setSupabaseStatus('❌ 找不到備份資料');
-                return false;
-            }
-
-            const latestBackup = backups[0];
-            setSupabaseStatus('正在還原資料...');
-
+            setBackupStatus('正在還原資料...');
             const dataToRestore = latestBackup.data;
-            if (!dataToRestore) {
-                throw new Error('備份格式不正確');
-            }
-
+            if (!dataToRestore) throw new Error('備份格式不正確');
+            
             const count = await restoreAllStorageData(dataToRestore);
-            
-            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
-            setSupabaseStatus(`✅ 拉取還原完成 (${count} 筆資料)`);
-            
+            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            setBackupStatus(`✅ 還原完成 (${count} 筆資料)`);
             alert(`✅ 已成功還原 ${count} 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。`);
             return true;
         } catch (err) {
-            console.error('[Supabase] 還原錯誤:', err);
-            setSupabaseStatus(`❌ 拉取失敗: ${err.message}`);
+            console.error('[Backup] 還原錯誤:', err);
+            setBackupStatus(`❌ 還原失敗: ${err.message}`);
             return false;
         }
     };
 
-    supabaseSaveBtn?.addEventListener('click', () => {
-        if (supabaseUrlInput?.value) {
-            localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
-        }
-        if (supabaseKeyInput?.value) {
-            localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
-        }
-        if (supabaseTableInput?.value) {
-            localStorage.setItem(SUPABASE_TABLE_KEY, supabaseTableInput.value.trim());
-        }
-        setSupabaseStatus('✅ 設定已儲存');
+    const generateDataHash = async (data) => {
+        const sortedData = JSON.stringify(data, Object.keys(data).sort());
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(sortedData);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    backupProviderSelect?.addEventListener('change', (e) => {
+        const provider = e.target.value;
+        localStorage.setItem(BACKUP_PROVIDER_KEY, provider);
+        toggleBackupProviderUI(provider);
+        updateBackupStatus();
     });
 
-    supabaseTestBtn?.addEventListener('click', testSupabaseConnection);
-    supabasePushBtn?.addEventListener('click', supabasePushBackup);
-    supabasePullBtn?.addEventListener('click', supabasePullBackup);
+    backupSaveBtn?.addEventListener('click', () => {
+        const provider = backupProviderSelect?.value || 'supabase';
+        localStorage.setItem(BACKUP_PROVIDER_KEY, provider);
+        
+        if (provider === 'supabase') {
+            if (supabaseUrlInput?.value) localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
+            if (supabaseKeyInput?.value) localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
+        } else {
+            if (xataUrlInput?.value) localStorage.setItem(XATA_URL_KEY, xataUrlInput.value.trim());
+            if (xataKeyInput?.value) localStorage.setItem(XATA_KEY_KEY, xataKeyInput.value.trim());
+        }
+        if (backupTableInput?.value) localStorage.setItem(BACKUP_TABLE_KEY, backupTableInput.value.trim());
+        
+        setBackupStatus('✅ 設定已儲存');
+    });
 
-    supabaseClearBtn?.addEventListener('click', () => {
-        if (!confirm('確定要清除 Supabase 設定？')) return;
+    backupTestBtn?.addEventListener('click', testBackupConnection);
+    backupPushBtn?.addEventListener('click', pushBackup);
+    backupPullBtn?.addEventListener('click', pullBackup);
+
+    backupClearBtn?.addEventListener('click', () => {
+        if (!confirm('確定要清除備份設定？')) return;
+        localStorage.removeItem(BACKUP_PROVIDER_KEY);
         localStorage.removeItem(SUPABASE_URL_KEY);
         localStorage.removeItem(SUPABASE_KEY_KEY);
-        localStorage.removeItem(SUPABASE_TABLE_KEY);
-        localStorage.removeItem('sx_supabase_last_sync');
+        localStorage.removeItem(XATA_URL_KEY);
+        localStorage.removeItem(XATA_KEY_KEY);
+        localStorage.removeItem(BACKUP_TABLE_KEY);
+        localStorage.removeItem('sx_backup_last_sync');
+        localStorage.removeItem('sx_backup_last_data_hash');
+        
         if (supabaseUrlInput) supabaseUrlInput.value = '';
         if (supabaseKeyInput) supabaseKeyInput.value = '';
-        setSupabaseStatus('已清除設定');
+        if (xataUrlInput) xataUrlInput.value = '';
+        if (xataKeyInput) xataKeyInput.value = '';
+        if (backupProviderSelect) backupProviderSelect.value = 'supabase';
+        toggleBackupProviderUI('supabase');
+        setBackupStatus('已清除設定');
     });
 
-    loadSupabaseSettings();
+    loadBackupSettings();
 
     // ==================== 圖床設定 ====================
     const imageHostEnabledToggle = document.getElementById('image-host-enabled');

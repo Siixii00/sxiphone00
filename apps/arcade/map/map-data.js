@@ -50,6 +50,8 @@ const MACHINES = {
   whackamole: { name: '打地鼠', type: 'game', cost: 8, icon: 'fa-hand-fist', color: '#8b5cf6', floor: '2F' },
   memory: { name: '記憶翻牌', type: 'game', cost: 5, icon: 'fa-layer-group', color: '#ec4899', floor: '2F' },
   pinball: { name: '彈珠台', type: 'game', cost: 15, icon: 'fa-circle-dot', color: '#06b6d4', floor: '2F' },
+  pachinko: { name: '柏青哥', type: 'game', cost: 20, icon: 'fa-star', color: '#fbbf24', floor: '2F' },
+  pachislot: { name: '柏青嫂', type: 'game', cost: 25, icon: 'fa-diamond', color: '#ec4899', floor: '2F' },
   dart: { name: '射飛鏢', type: 'game', cost: 10, icon: 'fa-crosshairs', color: '#ef4444', floor: '2F' },
   
   // 一般抽卡遊戲
@@ -171,6 +173,11 @@ function generateFloor2F() {
   
   map[9][16] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
   map[9][17] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
+  
+  map[12][3] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
+  map[12][4] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
+  map[12][7] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
+  map[12][8] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
   
   map[6][12] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
   map[6][13] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };

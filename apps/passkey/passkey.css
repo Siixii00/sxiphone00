@@ -464,3 +464,167 @@
     grid-template-columns: 1fr;
   }
 }
+
+.mode-switch {
+  margin-bottom: 16px;
+}
+
+.mode-toggle-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #5856d6, #af52de);
+  border: none;
+  color: white;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.mode-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 86, 214, 0.3);
+}
+
+.lovespouse-settings {
+  background: #1c1c1e;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.lovespouse-settings h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8e8e93;
+}
+
+.settings-section {
+  margin-bottom: 16px;
+}
+
+.ip-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ip-input-group label {
+  font-size: 13px;
+  color: #8e8e93;
+}
+
+.ip-input-group input {
+  background: #3a3a3c;
+  color: white;
+  border: 1px solid #48484a;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.ip-input-group input:focus {
+  outline: none;
+  border-color: #0a84ff;
+}
+
+.lovespouse-controls {
+  margin-top: 16px;
+}
+
+.intensity-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.intensity-btn {
+  background: #3a3a3c;
+  border: none;
+  color: white;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.intensity-btn:hover {
+  background: #48484a;
+  transform: translateY(-1px);
+}
+
+.intensity-btn:active {
+  transform: translateY(0);
+}
+
+.intensity-btn.stop-btn {
+  background: #ff3b30;
+  grid-column: span 2;
+}
+
+.intensity-btn.stop-btn:hover {
+  background: #ff4f45;
+}
+
+.lovespouse-only {
+  display: none;
+}
+
+.lovespouse-only.active {
+  display: block;
+}
+
+.gatt-only {
+  display: block;
+}
+
+.gatt-only.hidden {
+  display: none;
+}
+
+.lovespouse-help {
+  margin-top: 16px;
+  padding: 12px;
+  background: #2c2c2e;
+  border-radius: 12px;
+}
+
+.lovespouse-help h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #0a84ff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-content {
+  font-size: 13px;
+  color: #8e8e93;
+  line-height: 1.6;
+}
+
+.help-content p {
+  margin: 8px 0;
+}
+
+.help-content strong {
+  color: #ffffff;
+}
+
+.help-content code {
+  display: block;
+  background: #1c1c1e;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #34c759;
+  margin: 4px 0 12px 0;
+  word-break: break-all;
+}

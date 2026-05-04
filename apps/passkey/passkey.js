@@ -3,6 +3,7 @@ console.log('Loaded app: passkey');
 const PASSKEY_STORAGE_KEY = 'sx_passkey_saved_devices';
 const PASSKEY_RECONNECT_DELAY = 1000;
 const PASSKEY_MAX_RECONNECT_ATTEMPTS = 3;
+const LOVESPOUSE_SERVER_KEY = 'sx_lovespouse_server_ip';
 
 const PasskeyApp = {
   connectedDevice: null,
@@ -19,14 +20,173 @@ const PasskeyApp = {
   savedDevices: [],
   activeCharacteristic: null,
   notifyCharacteristic: null,
+  
+  loveSpouseMode: false,
+  loveSpouseServerIp: '',
+  loveSpouseConnected: false,
+  loveSpouseHealthCheckInterval: null,
 
   init() {
     console.log('Passkey app initialized');
     this.loadSavedDevices();
+    this.loadLoveSpouseSettings();
     this.updateConnectionStatus();
     this.applyStoredCharacterProfile();
     this.bindPasskeyHandoffListener();
     this.checkBluetoothAvailability();
+    this.bindLoveSpouseEvents();
+  },
+
+  loadLoveSpouseSettings() {
+    this.loveSpouseServerIp = localStorage.getItem(LOVESPOUSE_SERVER_KEY) || '';
+    const modeEnabled = localStorage.getItem('sx_lovespouse_mode') === '1';
+    this.loveSpouseMode = modeEnabled;
+    
+    const ipInput = document.getElementById('lovespouse-server-ip');
+    if (ipInput && this.loveSpouseServerIp) {
+      ipInput.value = this.loveSpouseServerIp;
+    }
+    
+    if (modeEnabled) {
+      this.enableLoveSpouseMode();
+    }
+  },
+
+  bindLoveSpouseEvents() {
+    const ipInput = document.getElementById('lovespouse-server-ip');
+    if (ipInput) {
+      ipInput.addEventListener('change', () => {
+        this.loveSpouseServerIp = ipInput.value.trim();
+        localStorage.setItem(LOVESPOUSE_SERVER_KEY, this.loveSpouseServerIp);
+        if (this.loveSpouseMode) {
+          this.checkLoveSpouseConnection();
+        }
+      });
+    }
+  },
+
+  enableLoveSpouseMode() {
+    this.loveSpouseMode = true;
+    localStorage.setItem('sx_lovespouse_mode', '1');
+    this.updateModeUI();
+    this.startLoveSpouseHealthCheck();
+    
+    const gattElements = document.querySelectorAll('.gatt-only');
+    gattElements.forEach(el => el.style.display = 'none');
+    
+    const lsElements = document.querySelectorAll('.lovespouse-only');
+    lsElements.forEach(el => el.style.display = 'block');
+  },
+
+  disableLoveSpouseMode() {
+    this.loveSpouseMode = false;
+    localStorage.setItem('sx_lovespouse_mode', '0');
+    this.stopLoveSpouseHealthCheck();
+    this.updateModeUI();
+    
+    const gattElements = document.querySelectorAll('.gatt-only');
+    gattElements.forEach(el => el.style.display = 'block');
+    
+    const lsElements = document.querySelectorAll('.lovespouse-only');
+    lsElements.forEach(el => el.style.display = 'none');
+  },
+
+  toggleMode() {
+    if (this.loveSpouseMode) {
+      this.disableLoveSpouseMode();
+    } else {
+      this.enableLoveSpouseMode();
+    }
+  },
+
+  updateModeUI() {
+    const modeBtn = document.getElementById('mode-toggle-btn');
+    if (modeBtn) {
+      modeBtn.textContent = this.loveSpouseMode ? 'GATT 模式' : 'Love Spouse';
+    }
+    this.updateConnectionStatus();
+  },
+
+  async checkLoveSpouseConnection() {
+    if (!this.loveSpouseServerIp) {
+      this.loveSpouseConnected = false;
+      this.updateConnectionStatus();
+      return false;
+    }
+
+    try {
+      const url = `http://${this.loveSpouseServerIp}:8080/health`;
+      const response = await fetch(url, { 
+        method: 'GET',
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.loveSpouseConnected = true;
+        console.log('Love Spouse server connected:', data);
+        this.updateConnectionStatus();
+        return true;
+      }
+    } catch (error) {
+      console.warn('Love Spouse server not reachable:', error.message);
+    }
+    
+    this.loveSpouseConnected = false;
+    this.updateConnectionStatus();
+    return false;
+  },
+
+  startLoveSpouseHealthCheck() {
+    this.stopLoveSpouseHealthCheck();
+    this.checkLoveSpouseConnection();
+    this.loveSpouseHealthCheckInterval = setInterval(() => {
+      this.checkLoveSpouseConnection();
+    }, 5000);
+  },
+
+  stopLoveSpouseHealthCheck() {
+    if (this.loveSpouseHealthCheckInterval) {
+      clearInterval(this.loveSpouseHealthCheckInterval);
+      this.loveSpouseHealthCheckInterval = null;
+    }
+  },
+
+  async sendLoveSpouseCommand(intensity, duration) {
+    if (!this.loveSpouseMode || !this.loveSpouseServerIp) {
+      console.warn('Love Spouse mode not enabled or server IP not set');
+      return false;
+    }
+
+    try {
+      const url = `http://${this.loveSpouseServerIp}:8080/vibrate`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intensity, duration }),
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Love Spouse command sent:', data);
+        return true;
+      } else {
+        console.error('Love Spouse command failed:', response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error('Love Spouse command error:', error);
+      return false;
+    }
+  },
+
+  async sendLoveSpouseIntensity(level) {
+    return this.sendLoveSpouseCommand(level, 0);
+  },
+
+  async sendLoveSpouseStop() {
+    return this.sendLoveSpouseCommand(0, 0);
   },
 
   checkBluetoothAvailability() {
@@ -597,6 +757,20 @@ const PasskeyApp = {
     const deviceElement = document.getElementById('connected-device');
     const deviceNameElement = document.getElementById('device-name');
     
+    if (this.loveSpouseMode) {
+      if (this.loveSpouseConnected) {
+        statusElement.textContent = 'Love Spouse 已連線';
+        statusElement.style.color = '#4ade80';
+        deviceNameElement.textContent = `Server: ${this.loveSpouseServerIp}:8080`;
+        deviceElement.style.display = 'flex';
+      } else {
+        statusElement.textContent = 'Love Spouse 未連線';
+        statusElement.style.color = '#ef4444';
+        deviceElement.style.display = 'none';
+      }
+      return;
+    }
+    
     if (this.connectionStatus === 'connected' && this.connectedDevice) {
       statusElement.textContent = '已連接';
       statusElement.style.color = '#4ade80';
@@ -761,6 +935,10 @@ const PasskeyApp = {
         const payload = data.payload || {};
         this.handleHandoffPayload(payload);
       }
+      if (data.type === 'LOVESPOUSE_COMMAND') {
+        const payload = data.payload || {};
+        this.handleLoveSpouseCommand(payload);
+      }
     });
 
     const stored = localStorage.getItem('sx_passkey_control_handoff');
@@ -772,6 +950,30 @@ const PasskeyApp = {
         console.warn('無法解析交接資料:', error);
       }
     }
+    
+    const lsCommand = localStorage.getItem('sx_lovespouse_command');
+    if (lsCommand) {
+      try {
+        const payload = JSON.parse(lsCommand);
+        this.handleLoveSpouseCommand(payload);
+        localStorage.removeItem('sx_lovespouse_command');
+      } catch (error) {
+        console.warn('無法解析 Love Spouse 命令:', error);
+      }
+    }
+  },
+
+  handleLoveSpouseCommand(payload) {
+    if (!this.loveSpouseMode) {
+      console.log('Love Spouse mode not enabled, ignoring command');
+      return;
+    }
+    
+    const intensity = payload.intensity || 0;
+    const duration = payload.duration || 0;
+    
+    console.log('Handling Love Spouse command:', { intensity, duration });
+    this.sendLoveSpouseCommand(intensity, duration);
   },
 
   handleHandoffPayload(payload = {}) {
@@ -824,6 +1026,13 @@ const PasskeyApp = {
 
     const intensityValue = this.pickValue(profile.intensity);
     const frequencyValue = this.pickValue(profile.frequency);
+    
+    if (this.loveSpouseMode) {
+      const lsIntensity = Math.min(3, Math.floor(intensityValue / 25));
+      await this.sendLoveSpouseCommand(lsIntensity, 0);
+      console.log('Love Spouse control applied:', { lsIntensity, contextText });
+      return;
+    }
 
     await this.sendIntensity(intensityValue);
     await this.sendFrequency(frequencyValue);
@@ -915,6 +1124,22 @@ function loadCharactersFromSettings() {
 
 function onCharacterSelectChange(selectElement) {
   PasskeyApp.onCharacterSelectChange(selectElement);
+}
+
+function toggleMode() {
+  PasskeyApp.toggleMode();
+}
+
+function sendLoveSpouseIntensity(level) {
+  PasskeyApp.sendLoveSpouseIntensity(level);
+}
+
+function sendLoveSpouseStop() {
+  PasskeyApp.sendLoveSpouseStop();
+}
+
+function checkLoveSpouseConnection() {
+  PasskeyApp.checkLoveSpouseConnection();
 }
 
 // 初始化應用

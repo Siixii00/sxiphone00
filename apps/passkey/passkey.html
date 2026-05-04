@@ -26,6 +26,49 @@
 
     <!-- 主要內容區域 -->
     <div class="main-content">
+      <!-- 模式切換 -->
+      <div class="mode-switch">
+        <button class="mode-toggle-btn" id="mode-toggle-btn" onclick="toggleMode()">
+          Love Spouse
+        </button>
+      </div>
+      
+      <!-- Love Spouse 設定區 -->
+      <div class="lovespouse-settings lovespouse-only" style="display: none;">
+        <div class="settings-section">
+          <h4>伺服器設定</h4>
+          <div class="ip-input-group">
+            <label for="lovespouse-server-ip">電腦 IP 位址:</label>
+            <input type="text" id="lovespouse-server-ip" placeholder="例如: 192.168.1.100">
+          </div>
+          <button class="control-btn" onclick="checkLoveSpouseConnection()">
+            <i class="fas fa-plug"></i> 測試連線
+          </button>
+        </div>
+        
+        <div class="lovespouse-help">
+          <h4><i class="fas fa-info-circle"></i> 使用說明</h4>
+          <div class="help-content">
+            <p><strong>步驟 1:</strong> 在電腦上啟動伺服器</p>
+            <code>cd lovespouse-server && mvn spring-boot:run</code>
+            <p><strong>步驟 2:</strong> 查看電腦 IP</p>
+            <code>ipconfig</code> (找 IPv4 位址)
+            <p><strong>步驟 3:</strong> 手機與電腦需在同一 Wi-Fi</p>
+            <p><strong>步驟 4:</strong> 輸入 IP 後點「測試連線」</p>
+          </div>
+        </div>
+        
+        <div class="lovespouse-controls">
+          <h4>快速控制</h4>
+          <div class="intensity-buttons">
+            <button class="intensity-btn" onclick="sendLoveSpouseIntensity(1)">強度 1</button>
+            <button class="intensity-btn" onclick="sendLoveSpouseIntensity(2)">強度 2</button>
+            <button class="intensity-btn" onclick="sendLoveSpouseIntensity(3)">強度 3</button>
+            <button class="intensity-btn stop-btn" onclick="sendLoveSpouseStop()">停止</button>
+          </div>
+        </div>
+      </div>
+      
       <!-- 角色選擇 -->
       <div class="character-control">
         <div class="control-section">
@@ -53,14 +96,14 @@
         </div>
         <div class="connected-device" id="connected-device" style="display: none;">
           <span>已連接: <strong id="device-name">-</strong></span>
-          <button class="disconnect-btn" onclick="disconnectDevice()">
+          <button class="disconnect-btn gatt-only" onclick="disconnectDevice()">
             <i class="fas fa-unlink"></i> 斷開連接
           </button>
         </div>
       </div>
 
       <!-- 搜尋控制 -->
-      <div class="search-controls">
+      <div class="search-controls gatt-only">
         <button class="search-btn" id="search-btn" onclick="startScanning()">
           <i class="fas fa-search"></i> 搜尋藍牙設備
         </button>
@@ -73,7 +116,7 @@
       </div>
 
       <!-- 設備列表 -->
-      <div class="device-list" id="device-list">
+      <div class="device-list gatt-only" id="device-list">
         <div class="empty-state">
           <i class="fas fa-bluetooth fa-2x"></i>
           <p>點擊上方按鈕搜尋藍牙設備</p>
@@ -81,7 +124,7 @@
       </div>
 
       <!-- 控制面板 -->
-      <div class="control-panel" id="control-panel" style="display: none;">
+      <div class="control-panel gatt-only" id="control-panel" style="display: none;">
         <h3>設備控制</h3>
         <div class="control-section">
           <h4>通用控制</h4>
