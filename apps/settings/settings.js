@@ -1559,17 +1559,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}/rest/v1/${table}?select=count&limit=1`, {
+                const resp = await fetch(url + '/rest/v1/' + table + '?select=count&limit=1', {
                     headers: getBackupHeaders()
                 });
                 if (resp.ok) {
                     setBackupStatus('✅ Supabase 連線成功');
                     return true;
                 } else if (resp.status === 404) {
-                    setBackupStatus('⚠️ 資料表不存在，需手動建立');
-                    return true;
+                    // 資料表不存在，顯示 SQL 並提示使用者
+                    setBackupStatus('⚠️ 資料表不存在');
+                    const shouldCopy = confirm(
+                        'Supabase 資料表不存在！\n\n' +
+                        '請到 Supabase Dashboard → SQL Editor 建立資料表。\n\n' +
+                        '是否複製 SQL 語句到剪貼板？'
+                    );
+                    if (shouldCopy) {
+                        try {
+                            await navigator.clipboard.writeText(SUPABASE_TABLE_SQL);
+                            alert('SQL 已複製！\n\n請到 Supabase SQL Editor 貼上並執行，然後再測試連線。');
+                        } catch (e) {
+                            alert('無法複製，請手動複製以下 SQL：\n\n' + SUPABASE_TABLE_SQL);
+                        }
+                    }
+                    return false;
                 }
-                throw new Error(`連線失敗 (${resp.status})`);
+                throw new Error('連線失敗 (' + resp.status + ')');
             } else {
                 const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
                 if (!xataConfig) {
@@ -2321,6 +2335,22 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     }
 
     // ==================== Supabase/Xata 增量備份函數 ====================
+    const SUPABASE_TABLE_SQL = `
+CREATE TABLE sxiphone_backups (
+  id TEXT PRIMARY KEY,
+  version TEXT,
+  exported_at TIMESTAMPTZ,
+  device TEXT,
+  data JSONB,
+  data_hash TEXT,
+  user_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE sxiphone_backups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WITH CHECK (true);
+`;
+
     const supabasePushBackup = async () => {
         const url = localStorage.getItem(SUPABASE_URL_KEY);
         const key = localStorage.getItem(SUPABASE_KEY_KEY);
@@ -2366,7 +2396,16 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             console.log('[Supabase] 增量備份成功');
             return true;
         }
-        console.warn('[Supabase] 增量備份失敗:', resp.status);
+        
+        // 處理 404 錯誤（資料表不存在）
+        if (resp.status === 404) {
+            console.warn('[Supabase] 資料表不存在，請到 Supabase SQL Editor 建立資料表');
+            alert('Supabase 資料表不存在！\n\n請到 Supabase Dashboard → SQL Editor 執行以下 SQL：\n\n' + SUPABASE_TABLE_SQL);
+            return false;
+        }
+        
+        const errData = await resp.json().catch(() => ({}));
+        console.warn('[Supabase] 增量備份失敗:', resp.status, errData.message || '');
         return false;
     };
 

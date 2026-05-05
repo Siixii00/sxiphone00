@@ -194,6 +194,11 @@ async function autoBackupToCloud() {
                     localStorage.setItem('sx_backup_last_data_hash', dataHash);
                     localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
                     console.log('[Supabase] 即時備份成功');
+                } else if (resp.status === 404) {
+                    // 資料表不存在，提示使用者
+                    console.warn('[Supabase] 資料表不存在');
+                    const supabaseTableSQL = 'CREATE TABLE sxiphone_backups (id TEXT PRIMARY KEY, version TEXT, exported_at TIMESTAMPTZ, device TEXT, data JSONB, data_hash TEXT, user_id TEXT, created_at TIMESTAMPTZ DEFAULT NOW()); ALTER TABLE sxiphone_backups ENABLE ROW LEVEL SECURITY; CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WITH CHECK (true);';
+                    alert('Supabase 資料表不存在！\n\n請到 Supabase Dashboard → SQL Editor 執行以下 SQL：\n\n' + supabaseTableSQL);
                 } else {
                     console.warn('[Supabase] 即時備份失敗:', resp.status);
                 }
