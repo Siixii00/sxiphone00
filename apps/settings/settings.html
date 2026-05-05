@@ -1332,12 +1332,13 @@
                     </div>
                     
                     <div id="xata-config" style="display:none;">
-                        <label class="cell-label" for="xata-url">Xata REST API URL</label>
-                        <input id="xata-url" class="ios-input" type="text" placeholder="https://workspace-id.us-east-1.xata.tech/db/dbname">
-                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">從 Xata Dashboard 取得 API URL（非 PostgreSQL 連線字串）</p>
+                        <label class="cell-label" for="xata-url">Xata PostgreSQL Connection String</label>
+                        <input id="xata-url" class="ios-input" type="text" placeholder="postgresql://xata:password@workspace.region.xata.tech/postgres">
+                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">從 Xata Dashboard 取得 PostgreSQL 連線字串</p>
                         
-                        <label class="cell-label" for="xata-key">API Key</label>
+                        <label class="cell-label" for="xata-key">API Key (可選)</label>
                         <input id="xata-key" class="ios-input" type="password" placeholder="xau_...">
+                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">使用 PostgreSQL 連線字串時不需要 API Key</p>
                     </div>
                     
                     <label class="cell-label" for="backup-table">資料表名稱</label>

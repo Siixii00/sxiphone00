@@ -119,67 +119,30 @@ function parseXataConnectionString(connStr) {
     
     connStr = connStr.trim();
     
-    // 格式 1: PostgreSQL connection string (自動轉換為 REST API URL)
-    const pgMatch = connStr.match(/^postgresql:\/\/[^:]+:[^@]+@([^.]+)\.([^.]+)\.xata\.tech\/postgres/);
+    // PostgreSQL connection string 格式
+    const pgMatch = connStr.match(/^postgresql:\/\/([^:]+):([^@]+)@([^.]+)\.([^.]+)\.xata\.tech\/postgres(\?.*)?$/);
     if (pgMatch) {
-        const [, workspaceId, region] = pgMatch;
+        const [, user, password, workspaceId, region] = pgMatch;
         return {
-            baseUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/db/postgres',
-            branch: 'main'
+            type: 'postgresql',
+            connectionString: connStr,
+            gatewayUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/sql',
+            workspaceId: workspaceId,
+            region: region
         };
     }
     
-    // 格式 2: xata://workspace:branch@region.xata.sh/dbname
-    const xataProtocolMatch = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
-    if (xataProtocolMatch) {
-        const [, workspace, branch, region, dbName] = xataProtocolMatch;
-        return {
-            baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
-            branch: branch
-        };
-    }
-    
-    // 格式 3: HTTPS URL 格式 (REST API URL)
-    if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
-        const withBranchMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+):([^\/]+)$/);
-        if (withBranchMatch) {
-            return {
-                baseUrl: withBranchMatch[1],
-                branch: withBranchMatch[2]
-            };
-        }
-        const basicMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:\/]+)$/);
-        if (basicMatch) {
-            return {
-                baseUrl: basicMatch[1],
-                branch: 'main'
-            };
-        }
-        if (connStr.includes('/db/')) {
-            const parts = connStr.split('/db/');
-            const host = parts[0];
-            const dbPart = parts[1] || '';
-            const [dbName, branch] = dbPart.split(':');
-            return {
-                baseUrl: host + '/db/' + dbName,
-                branch: branch || 'main'
-            };
-        }
-        return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
-    }
-    
-    // 格式 4: workspace:branch@region/dbname
-    const noProtocolMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
-    if (noProtocolMatch) {
-        const [, workspace, branch, region, dbName] = noProtocolMatch;
-        return {
-            baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
-            branch: branch
-        };
-    }
-    
-    console.warn('[Xata] 無法解析 Connect String:', connStr);
+    console.warn('[Xata] 無法解析 Connection String，請使用 PostgreSQL 連線字串格式');
     return null;
+}
+
+function getXataHeaders(xataConfig) {
+    if (!xataConfig) return null;
+    
+    return {
+        'Content-Type': 'application/json',
+        'Connection-String': xataConfig.connectionString
+    };
 }
 
 async function autoBackupToCloud() {
@@ -194,13 +157,11 @@ async function autoBackupToCloud() {
     if (provider === 'supabase') {
         url = localStorage.getItem('sx_supabase_url');
         key = localStorage.getItem('sx_supabase_key');
+        if (!url || !key) return;
     } else {
         xataConfig = parseXataConnectionString(localStorage.getItem('sx_xata_url'));
-        key = localStorage.getItem('sx_xata_key');
+        if (!xataConfig) return;
     }
-    
-    if (provider === 'supabase' && (!url || !key)) return;
-    if (provider === 'xata' && (!xataConfig || !key)) return;
 
     try {
         const allData = await collectAllStorageData();
@@ -208,12 +169,12 @@ async function autoBackupToCloud() {
         const lastHash = localStorage.getItem('sx_backup_last_data_hash');
         
         if (dataHash === lastHash) {
-            console.log(`[${provider}] 資料無變動，跳過備份`);
+            console.log('[' + provider + '] 資料無變動，跳過備份');
             return;
         }
 
         const payload = {
-            id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             version: '3.0',
             exported_at: new Date().toISOString(),
             device: navigator.userAgent,
@@ -224,24 +185,27 @@ async function autoBackupToCloud() {
 
         let resp;
         if (provider === 'supabase') {
-            resp = await fetch(`${url}/rest/v1/${table}`, {
+            resp = await fetch(url + '/rest/v1/' + table, {
                 method: 'POST',
                 headers: {
                     'apikey': key,
-                    'Authorization': `Bearer ${key}`,
+                    'Authorization': 'Bearer ' + key,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=minimal'
                 },
                 body: JSON.stringify(payload)
             });
         } else {
-            resp = await fetch(xataConfig.baseUrl + ':' + xataConfig.branch + '/tables/' + table + '/data', {
+            // 使用 SQL Gateway
+            const dataJson = JSON.stringify(payload.data);
+            const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+            resp = await fetch(xataConfig.gatewayUrl, {
                 method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + key,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
+                headers: getXataHeaders(xataConfig),
+                body: JSON.stringify({
+                    query: insertQuery,
+                    params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
+                })
             });
         }
 
@@ -250,9 +214,9 @@ async function autoBackupToCloud() {
             const newCount = (parseInt(localStorage.getItem('sx_backup_count') || '0') + 1).toString();
             localStorage.setItem('sx_backup_count', newCount);
             localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            console.log(`[${provider}] 自動備份成功，累計`, newCount, '次');
+            console.log('[' + provider + '] 自動備份成功，累計', newCount, '次');
         } else {
-            console.warn(`[${provider}] 自動備份失敗:`, resp.status);
+            console.warn('[' + provider + '] 自動備份失敗:', resp.status);
         }
     } catch (e) {
         console.warn(`[${provider}] 自動備份錯誤:`, e);

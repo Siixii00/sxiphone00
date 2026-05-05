@@ -1452,85 +1452,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (xataConfigDiv) xataConfigDiv.style.display = provider === 'xata' ? 'block' : 'none';
     };
 
-    const parseXataConnectionString = (connStr) => {
-        if (!connStr) return null;
-        
-        connStr = connStr.trim();
-        
-        // 格式 1: PostgreSQL connection string (自動轉換為 REST API URL)
-        // 例如: postgresql://xata:PASSWORD@m0pdiqu3pt4ipbtfvmniqco5sk.us-east-1.xata.tech/postgres
-        const pgMatch = connStr.match(/^postgresql:\/\/[^:]+:[^@]+@([^.]+)\.([^.]+)\.xata\.tech\/postgres/);
-        if (pgMatch) {
-            const [, workspaceId, region] = pgMatch;
-            return {
-                baseUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/db/postgres',
-                branch: 'main'
-            };
-        }
-        
-        // 格式 2: xata://workspace:branch@region.xata.sh/dbname
-        const xataProtocolMatch = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
-        if (xataProtocolMatch) {
-            const [, workspace, branch, region, dbName] = xataProtocolMatch;
-            return {
-                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
-                branch: branch
-            };
-        }
-        
-        // 格式 3: HTTPS URL 格式 (REST API URL)
-        // 例如: https://workspace-id.us-east-1.xata.tech/db/dbname
-        if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
-            // 匹配帶 branch 的格式
-            const withBranchMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+):([^\/]+)$/);
-            if (withBranchMatch) {
-                return {
-                    baseUrl: withBranchMatch[1],
-                    branch: withBranchMatch[2]
-                };
-            }
-            // 匹配基本格式
-            const basicMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:\/]+)$/);
-            if (basicMatch) {
-                return {
-                    baseUrl: basicMatch[1],
-                    branch: 'main'
-                };
-            }
-            // 如果有 /db/ 但格式不同，嘗試提取
-            if (connStr.includes('/db/')) {
-                const parts = connStr.split('/db/');
-                const host = parts[0];
-                const dbPart = parts[1] || '';
-                const [dbName, branch] = dbPart.split(':');
-                return {
-                    baseUrl: host + '/db/' + dbName,
-                    branch: branch || 'main'
-                };
-            }
-            // 最後嘗試直接使用
-            return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
-        }
-        
-        // 格式 4: workspace:branch@region/dbname (無協議前綴)
-        const noProtocolMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
-        if (noProtocolMatch) {
-            const [, workspace, branch, region, dbName] = noProtocolMatch;
-            return {
-                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
-                branch: branch
-            };
-        }
-        
-        console.warn('[Xata] 無法解析 Connect String:', connStr);
-        return null;
-    };
-
     const updateBackupStatus = () => {
         if (!backupStatusEl) return;
         const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
-        const hasXata = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY)) && localStorage.getItem(XATA_KEY_KEY);
+        const hasXata = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
         
         if ((provider === 'supabase' && hasSupabase) || (provider === 'xata' && hasXata)) {
             backupStatusEl.textContent = provider === 'supabase' ? '✅ Supabase 已設定' : '✅ Xata 已設定';
@@ -1539,8 +1465,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    const setBackupStatus = (text) => {
-        if (backupStatusEl) backupStatusEl.textContent = text;
+    const parseXataConnectionString = (connStr) => {
+        if (!connStr) return null;
+        
+        connStr = connStr.trim();
+        
+        // PostgreSQL connection string 格式
+        // postgresql://xata:PASSWORD@workspace-id.region.xata.tech/postgres?sslmode=require
+        const pgMatch = connStr.match(/^postgresql:\/\/([^:]+):([^@]+)@([^.]+)\.([^.]+)\.xata\.tech\/postgres(\?.*)?$/);
+        if (pgMatch) {
+            const [, user, password, workspaceId, region] = pgMatch;
+            return {
+                type: 'postgresql',
+                connectionString: connStr,
+                gatewayUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/sql',
+                workspaceId: workspaceId,
+                region: region
+            };
+        }
+        
+        console.warn('[Xata] 無法解析 Connection String，請使用 PostgreSQL 連線字串格式');
+        return null;
+    };
+
+    const getXataHeaders = () => {
+        const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
+        if (!xataConfig) return null;
+        
+        return {
+            'Content-Type': 'application/json',
+            'Connection-String': xataConfig.connectionString
+        };
     };
 
     const getBackupHeaders = () => {
@@ -1613,22 +1568,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(`連線失敗 (${resp.status})`);
             } else {
                 const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!xataConfig || !key) {
-                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
+                if (!xataConfig) {
+                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/query`, {
+                const resp = await fetch(xataConfig.gatewayUrl, {
                     method: 'POST',
-                    headers: getBackupHeaders(),
-                    body: JSON.stringify({ page: { size: 1 } })
+                    headers: getXataHeaders(),
+                    body: JSON.stringify({ query: 'SELECT 1 as test' })
                 });
                 if (resp.ok) {
                     setBackupStatus('✅ Xata 連線成功');
                     return true;
                 }
-                throw new Error(`連線失敗 (${resp.status})`);
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.message || `連線失敗 (${resp.status})`);
             }
         } catch (err) {
             setBackupStatus(`❌ 連線錯誤: ${err.message}`);
@@ -1684,20 +1639,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!xataConfig || !key) {
-                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
+                if (!xataConfig) {
+                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/data`, {
+                
+                // 使用 SQL INSERT
+                const dataJson = JSON.stringify(payload.data);
+                const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+                const resp = await fetch(xataConfig.gatewayUrl, {
                     method: 'POST',
-                    headers: getBackupHeaders(),
-                    body: JSON.stringify(payload)
+                    headers: getXataHeaders(),
+                    body: JSON.stringify({
+                        query: insertQuery,
+                        params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
+                    })
                 });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.message || `上傳失敗 (${resp.status})`);
+                    if (errData.message && errData.message.includes('does not exist')) {
+                        setBackupStatus('❌ 資料表不存在，請先建立');
+                        return false;
+                    }
+                    throw new Error(errData.message || '上傳失敗 (' + resp.status + ')');
                 }
             }
 
@@ -1739,27 +1704,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 latestBackup = backups[0];
             } else {
                 const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!xataConfig || !key) {
-                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
+                if (!xataConfig) {
+                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/query`, {
+                const resp = await fetch(xataConfig.gatewayUrl, {
                     method: 'POST',
-                    headers: getBackupHeaders(),
+                    headers: getXataHeaders(),
                     body: JSON.stringify({
-                        sort: { column: 'exported_at', direction: 'desc' },
-                        page: { size: 1 }
+                        query: 'SELECT * FROM ' + table + ' ORDER BY exported_at DESC LIMIT 1'
                     })
                 });
-                if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
+                if (!resp.ok) throw new Error('下載失敗 (' + resp.status + ')');
                 const result = await resp.json();
-                if (!result.records || result.records.length === 0) {
+                if (!result.rows || result.rows.length === 0) {
                     setBackupStatus('❌ 找不到備份資料');
                     return false;
                 }
-                latestBackup = result.records[0];
+                latestBackup = result.rows[0];
+                // 解析 data 欄位（可能是 JSON 字串）
+                if (typeof latestBackup.data === 'string') {
+                    latestBackup.data = JSON.parse(latestBackup.data);
+                }
             }
 
             setBackupStatus('正在還原資料...');
