@@ -2443,8 +2443,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const autoBackupSaveBtn = document.getElementById('auto-backup-save');
     const autoBackupNowBtn = document.getElementById('auto-backup-now');
     const autoBackupStatusEl = document.getElementById('auto-backup-status');
+    
+    // 即時自動備份設定
+    const autoBackupRealtimeEnabledToggle = document.getElementById('auto-backup-realtime-enabled');
+    const autoBackupRealtimeProviderSelect = document.getElementById('auto-backup-realtime-provider');
 
     const loadAutoBackupSettings = () => {
+        // 睡眠後備份設定
         const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
         const github = localStorage.getItem('sx_auto_backup_github') === 'true';
         const supabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
@@ -2456,6 +2461,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         if (autoBackupSupabaseToggle) autoBackupSupabaseToggle.checked = supabase;
         if (autoBackupXataToggle) autoBackupXataToggle.checked = xata;
         if (autoBackupLocalToggle) autoBackupLocalToggle.checked = local;
+        
+        // 即時自動備份設定
+        const realtimeEnabled = localStorage.getItem('sx_auto_backup_realtime_enabled') === 'true';
+        const realtimeProvider = localStorage.getItem('sx_auto_backup_realtime_provider') || 'supabase';
+        
+        if (autoBackupRealtimeEnabledToggle) autoBackupRealtimeEnabledToggle.checked = realtimeEnabled;
+        if (autoBackupRealtimeProviderSelect) autoBackupRealtimeProviderSelect.value = realtimeProvider;
 
         updateAutoBackupStatus();
     };
@@ -2463,6 +2475,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const updateAutoBackupStatus = () => {
         if (!autoBackupStatusEl) return;
 
+        // 即時備份狀態
+        const realtimeEnabled = localStorage.getItem('sx_auto_backup_realtime_enabled') === 'true';
+        const realtimeProvider = localStorage.getItem('sx_auto_backup_realtime_provider') || 'supabase';
+        
+        // 睡眠後備份狀態
         const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
         const targets = [];
         
@@ -2471,21 +2488,41 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         if (localStorage.getItem('sx_auto_backup_xata') === 'true') targets.push('Xata');
         if (localStorage.getItem('sx_auto_backup_local') === 'true') targets.push('本地');
 
-        if (!enabled) {
-            autoBackupStatusEl.textContent = '自動備份已停用';
-        } else if (targets.length === 0) {
-            autoBackupStatusEl.textContent = '已啟用，但未選擇備份目標';
+        let statusText = '';
+        
+        // 即時備份狀態
+        if (realtimeEnabled) {
+            statusText += '🔄 即時備份: ' + realtimeProvider.toUpperCase();
         } else {
-            autoBackupStatusEl.textContent = '已啟用，備份到: ' + targets.join(', ');
+            statusText += '⏸️ 即時備份: 停用';
         }
+        
+        statusText += '\n';
+        
+        // 睡眠後備份狀態
+        if (!enabled) {
+            statusText += '💤 睡眠備份: 停用';
+        } else if (targets.length === 0) {
+            statusText += '💤 睡眠備份: 未選擇目標';
+        } else {
+            statusText += '💤 睡眠備份: ' + targets.join(', ');
+        }
+        
+        autoBackupStatusEl.textContent = statusText;
+        autoBackupStatusEl.style.whiteSpace = 'pre-line';
     };
 
     autoBackupSaveBtn?.addEventListener('click', () => {
+        // 睡眠後備份設定
         localStorage.setItem('sx_auto_backup_enabled', autoBackupEnabledToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_xata', autoBackupXataToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
+        
+        // 即時自動備份設定
+        localStorage.setItem('sx_auto_backup_realtime_enabled', autoBackupRealtimeEnabledToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_realtime_provider', autoBackupRealtimeProviderSelect?.value || 'supabase');
 
         updateAutoBackupStatus();
         if (autoBackupStatusEl) {

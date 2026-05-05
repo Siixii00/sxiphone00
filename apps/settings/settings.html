@@ -1112,11 +1112,32 @@
             </summary>
             <div class="list-card">
                 <div class="cell-v">
+                    <span class="cell-label">即時自動備份</span>
+                    <p class="ios-caption">選擇要使用 Supabase 或 Xata 作為即時自動備份的目標。</p>
+                    
+                    <div class="ios-toggle-row">
+                        <span class="toggle-label">啟用即時自動備份</span>
+                        <label class="ios-toggle">
+                            <input type="checkbox" id="auto-backup-realtime-enabled">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div style="margin: 12px 0;">
+                        <label class="cell-label" for="auto-backup-realtime-provider">備份目標</label>
+                        <select id="auto-backup-realtime-provider" class="ios-input" style="margin-top: 4px;">
+                            <option value="supabase">Supabase</option>
+                            <option value="xata">Xata</option>
+                        </select>
+                    </div>
+                    
+                    <hr style="border: none; border-top: 1px solid var(--separator-color); margin: 16px 0;">
+                    
                     <span class="cell-label">睡眠後自動備份</span>
                     <p class="ios-caption">每次記憶睡眠流程完成後，自動將資料備份到已連接的服務。</p>
                     
                     <div class="ios-toggle-row">
-                        <span class="toggle-label">啟用自動備份</span>
+                        <span class="toggle-label">啟用睡眠備份</span>
                         <label class="ios-toggle">
                             <input type="checkbox" id="auto-backup-enabled" checked>
                             <span class="toggle-slider"></span>

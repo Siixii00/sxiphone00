@@ -146,13 +146,11 @@ function getXataHeaders(xataConfig) {
 }
 
 async function autoBackupToCloud() {
-    const autoEnabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
-    if (!autoEnabled) return;
+    // 即時自動備份（單一目標）
+    const realtimeEnabled = localStorage.getItem('sx_auto_backup_realtime_enabled') === 'true';
+    const realtimeProvider = localStorage.getItem('sx_auto_backup_realtime_provider') || 'supabase';
     
-    const backupToSupabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
-    const backupToXata = localStorage.getItem('sx_auto_backup_xata') === 'true';
-    
-    if (!backupToSupabase && !backupToXata) return;
+    if (!realtimeEnabled) return;
     
     const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
     
@@ -162,7 +160,7 @@ async function autoBackupToCloud() {
     const lastHash = localStorage.getItem('sx_backup_last_data_hash');
     
     if (dataHash === lastHash) {
-        console.log('[AutoBackup] 資料無變動，跳過備份');
+        console.log('[RealtimeBackup] 資料無變動，跳過備份');
         return;
     }
 
@@ -176,8 +174,8 @@ async function autoBackupToCloud() {
         user_id: localStorage.getItem('sx_user_name') || 'default'
     };
 
-    // 備份到 Supabase
-    if (backupToSupabase) {
+    // 根據選擇的 provider 執行備份
+    if (realtimeProvider === 'supabase') {
         const url = localStorage.getItem('sx_supabase_url');
         const key = localStorage.getItem('sx_supabase_key');
         if (url && key) {
@@ -193,18 +191,19 @@ async function autoBackupToCloud() {
                     body: JSON.stringify(payload)
                 });
                 if (resp.ok) {
-                    console.log('[Supabase] 自動備份成功');
+                    localStorage.setItem('sx_backup_last_data_hash', dataHash);
+                    localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+                    console.log('[Supabase] 即時備份成功');
                 } else {
-                    console.warn('[Supabase] 自動備份失敗:', resp.status);
+                    console.warn('[Supabase] 即時備份失敗:', resp.status);
                 }
             } catch (e) {
-                console.warn('[Supabase] 自動備份錯誤:', e);
+                console.warn('[Supabase] 即時備份錯誤:', e);
             }
+        } else {
+            console.warn('[Supabase] 未設定 URL 或 Key');
         }
-    }
-
-    // 備份到 Xata
-    if (backupToXata) {
+    } else if (realtimeProvider === 'xata') {
         const xataConfig = parseXataConnectionString(localStorage.getItem('sx_xata_url'));
         if (xataConfig) {
             try {
@@ -235,19 +234,19 @@ async function autoBackupToCloud() {
                     })
                 });
                 if (resp.ok) {
-                    console.log('[Xata] 自動備份成功');
+                    localStorage.setItem('sx_backup_last_data_hash', dataHash);
+                    localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+                    console.log('[Xata] 即時備份成功');
                 } else {
-                    console.warn('[Xata] 自動備份失敗:', resp.status);
+                    console.warn('[Xata] 即時備份失敗:', resp.status);
                 }
             } catch (e) {
-                console.warn('[Xata] 自動備份錯誤:', e);
+                console.warn('[Xata] 即時備份錯誤:', e);
             }
+        } else {
+            console.warn('[Xata] 未設定 Connection String');
         }
     }
-
-    // 更新 hash
-    localStorage.setItem('sx_backup_last_data_hash', dataHash);
-    localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
 }
 
 const autoBackupToSupabase = autoBackupToCloud;
