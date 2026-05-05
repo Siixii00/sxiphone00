@@ -37,8 +37,8 @@
 
   function applyHomeOverrides() {
     if (typeof HomeApp !== 'undefined' && HomeApp.ctx) {
-      HomeApp.gridSize = 64;
-      HomeApp.roomScale = 2.5;
+      HomeApp.gridSize = 48;
+      HomeApp.roomScale = 1.8;
       HomeApp.roomOffset = { x: 0, y: 0 };
       if (typeof renderRoom === 'function') {
         renderRoom();

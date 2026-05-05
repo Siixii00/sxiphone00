@@ -605,10 +605,10 @@
 
 /* ---- Room tabs ---- */
 [data-theme="nds-pixel"] .room-tabs {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 8px !important;
-  padding: 10px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  padding: 8px !important;
   background: var(--nds-panel) !important;
   border-bottom: 3px solid var(--nds-border) !important;
   overflow-x: visible !important;
@@ -616,24 +616,24 @@
 }
 [data-theme="nds-pixel"] .room-tab {
   background: var(--nds-panel-alt) !important;
-  border: 3px solid var(--nds-border) !important;
+  border: 2px solid var(--nds-border) !important;
   border-radius: 0 !important;
   box-shadow: var(--nds-shadow) !important;
   font-family: var(--nds-font-pixel) !important;
-  font-size: 12px !important;
+  font-size: 10px !important;
   color: var(--nds-ink) !important;
-  padding: 12px 8px !important;
-  min-height: 48px !important;
+  padding: 8px 12px !important;
+  min-height: auto !important;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 4px !important;
   transition: none !important;
 }
 [data-theme="nds-pixel"] .room-tab svg {
-  width: 20px !important;
-  height: 20px !important;
+  width: 14px !important;
+  height: 14px !important;
 }
 [data-theme="nds-pixel"] .room-tab.active {
   background: var(--nds-accent-4) !important;
@@ -646,6 +646,57 @@
   box-shadow: 1px 1px 0 var(--nds-border) !important;
 }
 [data-theme="nds-pixel"] .room-tab:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+/* ---- Room view layout fix ---- */
+[data-theme="nds-pixel"] .room-view {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+[data-theme="nds-pixel"] .room-view .main-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+[data-theme="nds-pixel"] .room-view .bottom-toolbar {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+}
+
+/* ---- Bottom toolbar ---- */
+[data-theme="nds-pixel"] .bottom-toolbar {
+  background: var(--nds-panel) !important;
+  border-top: 3px solid var(--nds-border) !important;
+  box-shadow: 0 -3px 0 var(--nds-border) !important;
+  padding: 10px 8px !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar::before {
+  display: none !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn {
+  background: var(--nds-panel-alt) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 9px !important;
+  color: var(--nds-ink) !important;
+  padding: 8px 12px !important;
+  transition: none !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn:hover {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn:active {
   transform: translate(2px, 2px);
   box-shadow: none !important;
 }

@@ -114,6 +114,42 @@ async function generateDataHash(data) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function parseXataConnectionString(connStr) {
+    if (!connStr) return null;
+    
+    if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
+        const match = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+)(?::(.+))?$/);
+        if (match) {
+            return {
+                baseUrl: match[1],
+                branch: match[2] || 'main'
+            };
+        }
+        return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
+    }
+    
+    const match = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/db:([^:]+)(?::(.+))?$/);
+    if (match) {
+        const [, workspace, branch, region, dbName, explicitBranch] = match;
+        const actualBranch = explicitBranch || branch;
+        return {
+            baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+            branch: actualBranch
+        };
+    }
+    
+    const simpleMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/([^:]+):(.+)$/);
+    if (simpleMatch) {
+        const [, workspace, branch, region, , dbName] = simpleMatch;
+        return {
+            baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+            branch: branch
+        };
+    }
+    
+    return null;
+}
+
 async function autoBackupToCloud() {
     const provider = localStorage.getItem('sx_backup_provider') || 'supabase';
     const autoEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
@@ -121,17 +157,18 @@ async function autoBackupToCloud() {
     if (!autoEnabled) return;
     
     const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
-    let url, key;
+    let url, key, xataConfig;
     
     if (provider === 'supabase') {
         url = localStorage.getItem('sx_supabase_url');
         key = localStorage.getItem('sx_supabase_key');
     } else {
-        url = localStorage.getItem('sx_xata_url');
+        xataConfig = parseXataConnectionString(localStorage.getItem('sx_xata_url'));
         key = localStorage.getItem('sx_xata_key');
     }
     
-    if (!url || !key) return;
+    if (provider === 'supabase' && (!url || !key)) return;
+    if (provider === 'xata' && (!xataConfig || !key)) return;
 
     try {
         const allData = await collectAllStorageData();
@@ -166,10 +203,10 @@ async function autoBackupToCloud() {
                 body: JSON.stringify(payload)
             });
         } else {
-            resp = await fetch(`${url}:main/tables/${table}/data`, {
+            resp = await fetch(xataConfig.baseUrl + ':' + xataConfig.branch + '/tables/' + table + '/data', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${key}`,
+                    'Authorization': 'Bearer ' + key,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)

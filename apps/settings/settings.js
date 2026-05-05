@@ -1469,6 +1469,42 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (backupStatusEl) backupStatusEl.textContent = text;
     };
 
+    const parseXataConnectionString = (connStr) => {
+        if (!connStr) return null;
+        
+        if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
+            const match = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+)(?::(.+))?$/);
+            if (match) {
+                return {
+                    baseUrl: match[1],
+                    branch: match[2] || 'main'
+                };
+            }
+            return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
+        }
+        
+        const match = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/db:([^:]+)(?::(.+))?$/);
+        if (match) {
+            const [, workspace, branch, region, dbName, explicitBranch] = match;
+            const actualBranch = explicitBranch || branch;
+            return {
+                baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+                branch: actualBranch
+            };
+        }
+        
+        const simpleMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/([^:]+):(.+)$/);
+        if (simpleMatch) {
+            const [, workspace, branch, region, , dbName] = simpleMatch;
+            return {
+                baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+                branch: branch
+            };
+        }
+        
+        return null;
+    };
+
     const getBackupHeaders = () => {
         const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         const key = provider === 'supabase' 
@@ -1502,8 +1538,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 default: return `${baseUrl}/rest/v1/${table}`;
             }
         } else {
-            const baseUrl = localStorage.getItem(XATA_URL_KEY);
-            const branch = 'main';
+            const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
+            if (!xataConfig) return null;
+            const { baseUrl, branch } = xataConfig;
             switch (action) {
                 case 'insert': return `${baseUrl}:${branch}/tables/${table}/data`;
                 case 'list': return `${baseUrl}:${branch}/tables/${table}/query`;
@@ -1537,14 +1574,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 throw new Error(`連線失敗 (${resp.status})`);
             } else {
-                const url = localStorage.getItem(XATA_URL_KEY);
+                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
                 const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                if (!xataConfig || !key) {
+                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}:main/tables/${table}/query`, {
+                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/query`, {
                     method: 'POST',
                     headers: getBackupHeaders(),
                     body: JSON.stringify({ page: { size: 1 } })
@@ -1608,14 +1645,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     throw new Error(`上傳失敗 (${resp.status})`);
                 }
             } else {
-                const url = localStorage.getItem(XATA_URL_KEY);
+                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
                 const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                if (!xataConfig || !key) {
+                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}:main/tables/${table}/data`, {
+                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/data`, {
                     method: 'POST',
                     headers: getBackupHeaders(),
                     body: JSON.stringify(payload)
@@ -1663,14 +1700,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 latestBackup = backups[0];
             } else {
-                const url = localStorage.getItem(XATA_URL_KEY);
+                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
                 const key = localStorage.getItem(XATA_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
+                if (!xataConfig || !key) {
+                    setBackupStatus('❌ 請先設定 Connection String 和 Key');
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}:main/tables/${table}/query`, {
+                const resp = await fetch(`${xataConfig.baseUrl}:${xataConfig.branch}/tables/${table}/query`, {
                     method: 'POST',
                     headers: getBackupHeaders(),
                     body: JSON.stringify({

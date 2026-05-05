@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1c1c1e">
+    <title>角色卡發送系統</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>角色卡發送系統</h1>
+            <p class="subtitle">加密分享您的角色卡</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="register">創作者註冊</button>
+            <button class="tab" data-tab="cards">角色卡管理</button>
+            <button class="tab" data-tab="send">發送角色卡</button>
+            <button class="tab" data-tab="logs">使用記錄</button>
+        </nav>
+
+        <main>
+            <section id="register" class="tab-content active">
+                <div class="card">
+                    <h2>創作者註冊</h2>
+                    <div id="registerForm">
+                        <div class="form-group">
+                            <label for="creatorName">名稱</label>
+                            <input type="text" id="creatorName" placeholder="您的名稱">
+                        </div>
+                        <div class="form-group">
+                            <label for="creatorEmail">Email</label>
+                            <input type="email" id="creatorEmail" placeholder="your@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="creatorWebsite">網站 (選填)</label>
+                            <input type="url" id="creatorWebsite" placeholder="https://your-website.com">
+                        </div>
+                        <button class="btn primary" id="registerBtn">註冊</button>
+                    </div>
+                    <div id="creatorInfo" class="hidden">
+                        <div class="info-box">
+                            <p><strong>創作者 ID:</strong> <span id="displayCreatorId"></span></p>
+                            <p><strong>名稱:</strong> <span id="displayCreatorName"></span></p>
+                            <p><strong>Email:</strong> <span id="displayCreatorEmail"></span></p>
+                            <p class="warning"><strong>金鑰:</strong> <span id="displayCreatorKey"></span></p>
+                            <p class="hint">請妥善保存您的金鑰，它不會再次顯示。</p>
+                        </div>
+                        <button class="btn secondary" id="logoutBtn">登出</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="cards" class="tab-content">
+                <div class="card">
+                    <h2>我的角色卡</h2>
+                    <div id="cardsList" class="cards-grid"></div>
+                    <div id="noCards" class="empty-state">
+                        <p>尚未上傳任何角色卡</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>上傳角色卡</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="cardFile" accept=".json" hidden>
+                        <div class="upload-hint">
+                            <p>點擊或拖曳 JSON 檔案到此處</p>
+                        </div>
+                    </div>
+                    <div id="cardPreview" class="hidden">
+                        <h3>預覽</h3>
+                        <div class="preview-content">
+                            <div class="form-group">
+                                <label for="cardName">角色卡名稱</label>
+                                <input type="text" id="cardName" placeholder="輸入角色卡名稱">
+                            </div>
+                            <div class="character-preview">
+                                <img id="previewAvatar" src="" alt="" class="avatar-preview hidden">
+                                <div class="preview-text">
+                                    <p><strong>名稱:</strong> <span id="previewName"></span></p>
+                                    <p><strong>個性:</strong> <span id="previewPersonality"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn primary" id="encryptBtn">加密並上傳</button>
+                            <button class="btn secondary" id="cancelUploadBtn">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="send" class="tab-content">
+                <div class="card">
+                    <h2>選擇角色卡</h2>
+                    <select id="cardSelect" class="select-input">
+                        <option value="">選擇要發送的角色卡</option>
+                    </select>
+                </div>
+                <div id="sendOptions" class="card hidden">
+                    <h2>發送選項</h2>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="includeKey" checked>
+                            包含一次性金鑰 (測試用)
+                        </label>
+                    </div>
+                    <button class="btn primary" id="generateCodeBtn">生成加密代碼</button>
+                </div>
+                <div id="sendResult" class="card hidden">
+                    <h2>發送結果</h2>
+                    <div class="result-section">
+                        <h3>加密代碼</h3>
+                        <div class="code-box">
+                            <code id="encryptedCode"></code>
+                            <button class="btn-icon" id="copyCodeBtn" title="複製">
+                                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,1 21,21V7A2,2 0 0,1 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="result-section">
+                        <h3>QR Code</h3>
+                        <div id="qrcode"></div>
+                    </div>
+                    <div class="result-section">
+                        <h3>分享連結</h3>
+                        <div class="code-box">
+                            <code id="shareLink"></code>
+                            <button class="btn-icon" id="copyLinkBtn" title="複製">
+                                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,1 21,21V7A2,2 0 0,1 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="logs" class="tab-content">
+                <div class="card">
+                    <h2>使用記錄</h2>
+                    <div id="logsList" class="logs-table-container">
+                        <table class="logs-table">
+                            <thead>
+                                <tr>
+                                    <th>角色卡</th>
+                                    <th>使用者</th>
+                                    <th>狀態</th>
+                                    <th>時間</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="noLogs" class="empty-state">
+                        <p>尚無使用記錄</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div id="toast" class="toast hidden"></div>
+        <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script src="crypto.js"></script>
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
