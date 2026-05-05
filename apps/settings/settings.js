@@ -1455,36 +1455,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     const parseXataConnectionString = (connStr) => {
         if (!connStr) return null;
         
-        if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
-            const match = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+)(?::(.+))?$/);
-            if (match) {
-                return {
-                    baseUrl: match[1],
-                    branch: match[2] || 'main'
-                };
-            }
-            return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
-        }
+        connStr = connStr.trim();
         
-        const match = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/db:([^:]+)(?::(.+))?$/);
-        if (match) {
-            const [, workspace, branch, region, dbName, explicitBranch] = match;
-            const actualBranch = explicitBranch || branch;
+        // 格式 1: PostgreSQL connection string (自動轉換為 REST API URL)
+        // 例如: postgresql://xata:PASSWORD@m0pdiqu3pt4ipbtfvmniqco5sk.us-east-1.xata.tech/postgres
+        const pgMatch = connStr.match(/^postgresql:\/\/[^:]+:[^@]+@([^.]+)\.([^.]+)\.xata\.tech\/postgres/);
+        if (pgMatch) {
+            const [, workspaceId, region] = pgMatch;
             return {
-                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
-                branch: actualBranch
+                baseUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/db/postgres',
+                branch: 'main'
             };
         }
         
-        const simpleMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/([^:]+):(.+)$/);
-        if (simpleMatch) {
-            const [, workspace, branch, region, , dbName] = simpleMatch;
+        // 格式 2: xata://workspace:branch@region.xata.sh/dbname
+        const xataProtocolMatch = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
+        if (xataProtocolMatch) {
+            const [, workspace, branch, region, dbName] = xataProtocolMatch;
             return {
                 baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
                 branch: branch
             };
         }
         
+        // 格式 3: HTTPS URL 格式 (REST API URL)
+        // 例如: https://workspace-id.us-east-1.xata.tech/db/dbname
+        if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
+            // 匹配帶 branch 的格式
+            const withBranchMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+):([^\/]+)$/);
+            if (withBranchMatch) {
+                return {
+                    baseUrl: withBranchMatch[1],
+                    branch: withBranchMatch[2]
+                };
+            }
+            // 匹配基本格式
+            const basicMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:\/]+)$/);
+            if (basicMatch) {
+                return {
+                    baseUrl: basicMatch[1],
+                    branch: 'main'
+                };
+            }
+            // 如果有 /db/ 但格式不同，嘗試提取
+            if (connStr.includes('/db/')) {
+                const parts = connStr.split('/db/');
+                const host = parts[0];
+                const dbPart = parts[1] || '';
+                const [dbName, branch] = dbPart.split(':');
+                return {
+                    baseUrl: host + '/db/' + dbName,
+                    branch: branch || 'main'
+                };
+            }
+            // 最後嘗試直接使用
+            return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
+        }
+        
+        // 格式 4: workspace:branch@region/dbname (無協議前綴)
+        const noProtocolMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
+        if (noProtocolMatch) {
+            const [, workspace, branch, region, dbName] = noProtocolMatch;
+            return {
+                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
+                branch: branch
+            };
+        }
+        
+        console.warn('[Xata] 無法解析 Connect String:', connStr);
         return null;
     };
 

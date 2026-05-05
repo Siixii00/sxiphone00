@@ -117,36 +117,68 @@ async function generateDataHash(data) {
 function parseXataConnectionString(connStr) {
     if (!connStr) return null;
     
+    connStr = connStr.trim();
+    
+    // 格式 1: PostgreSQL connection string (自動轉換為 REST API URL)
+    const pgMatch = connStr.match(/^postgresql:\/\/[^:]+:[^@]+@([^.]+)\.([^.]+)\.xata\.tech\/postgres/);
+    if (pgMatch) {
+        const [, workspaceId, region] = pgMatch;
+        return {
+            baseUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/db/postgres',
+            branch: 'main'
+        };
+    }
+    
+    // 格式 2: xata://workspace:branch@region.xata.sh/dbname
+    const xataProtocolMatch = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
+    if (xataProtocolMatch) {
+        const [, workspace, branch, region, dbName] = xataProtocolMatch;
+        return {
+            baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
+            branch: branch
+        };
+    }
+    
+    // 格式 3: HTTPS URL 格式 (REST API URL)
     if (connStr.startsWith('http://') || connStr.startsWith('https://')) {
-        const match = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+)(?::(.+))?$/);
-        if (match) {
+        const withBranchMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:]+):([^\/]+)$/);
+        if (withBranchMatch) {
             return {
-                baseUrl: match[1],
-                branch: match[2] || 'main'
+                baseUrl: withBranchMatch[1],
+                branch: withBranchMatch[2]
+            };
+        }
+        const basicMatch = connStr.match(/^(https?:\/\/[^\/]+\/db\/[^:\/]+)$/);
+        if (basicMatch) {
+            return {
+                baseUrl: basicMatch[1],
+                branch: 'main'
+            };
+        }
+        if (connStr.includes('/db/')) {
+            const parts = connStr.split('/db/');
+            const host = parts[0];
+            const dbPart = parts[1] || '';
+            const [dbName, branch] = dbPart.split(':');
+            return {
+                baseUrl: host + '/db/' + dbName,
+                branch: branch || 'main'
             };
         }
         return { baseUrl: connStr.replace(/\/$/, ''), branch: 'main' };
     }
     
-    const match = connStr.match(/^xata:\/\/([^:]+):([^@]+)@([^\/]+)\/db:([^:]+)(?::(.+))?$/);
-    if (match) {
-        const [, workspace, branch, region, dbName, explicitBranch] = match;
-        const actualBranch = explicitBranch || branch;
+    // 格式 4: workspace:branch@region/dbname
+    const noProtocolMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/(.+)$/);
+    if (noProtocolMatch) {
+        const [, workspace, branch, region, dbName] = noProtocolMatch;
         return {
-            baseUrl: `https://${workspace}.${region}/db/${dbName}`,
-            branch: actualBranch
-        };
-    }
-    
-    const simpleMatch = connStr.match(/^([^:]+):([^@]+)@([^\/]+)\/([^:]+):(.+)$/);
-    if (simpleMatch) {
-        const [, workspace, branch, region, , dbName] = simpleMatch;
-        return {
-            baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+            baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
             branch: branch
         };
     }
     
+    console.warn('[Xata] 無法解析 Connect String:', connStr);
     return null;
 }
 
