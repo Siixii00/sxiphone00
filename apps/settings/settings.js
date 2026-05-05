@@ -1452,23 +1452,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (xataConfigDiv) xataConfigDiv.style.display = provider === 'xata' ? 'block' : 'none';
     };
 
-    const updateBackupStatus = () => {
-        if (!backupStatusEl) return;
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
-        const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
-        const hasXata = localStorage.getItem(XATA_URL_KEY) && localStorage.getItem(XATA_KEY_KEY);
-        
-        if ((provider === 'supabase' && hasSupabase) || (provider === 'xata' && hasXata)) {
-            backupStatusEl.textContent = `✅ ${provider === 'supabase' ? 'Supabase' : 'Xata'} 已設定`;
-        } else {
-            backupStatusEl.textContent = '尚未設定';
-        }
-    };
-
-    const setBackupStatus = (text) => {
-        if (backupStatusEl) backupStatusEl.textContent = text;
-    };
-
     const parseXataConnectionString = (connStr) => {
         if (!connStr) return null;
         
@@ -1488,7 +1471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const [, workspace, branch, region, dbName, explicitBranch] = match;
             const actualBranch = explicitBranch || branch;
             return {
-                baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
                 branch: actualBranch
             };
         }
@@ -1497,12 +1480,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (simpleMatch) {
             const [, workspace, branch, region, , dbName] = simpleMatch;
             return {
-                baseUrl: `https://${workspace}.${region}/db/${dbName}`,
+                baseUrl: 'https://' + workspace + '.' + region + '/db/' + dbName,
                 branch: branch
             };
         }
         
         return null;
+    };
+
+    const updateBackupStatus = () => {
+        if (!backupStatusEl) return;
+        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
+        const hasXata = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY)) && localStorage.getItem(XATA_KEY_KEY);
+        
+        if ((provider === 'supabase' && hasSupabase) || (provider === 'xata' && hasXata)) {
+            backupStatusEl.textContent = provider === 'supabase' ? '✅ Supabase 已設定' : '✅ Xata 已設定';
+        } else {
+            backupStatusEl.textContent = '尚未設定';
+        }
+    };
+
+    const setBackupStatus = (text) => {
+        if (backupStatusEl) backupStatusEl.textContent = text;
     };
 
     const getBackupHeaders = () => {
