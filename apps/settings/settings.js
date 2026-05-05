@@ -1981,8 +1981,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
 
     const attemptCreateSupabaseTable = async (url, key, table) => {
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超時
+
             const testPayload = {
-                id: `test_${Date.now()}`,
+                id: 'test_' + Date.now(),
                 version: '3.0',
                 exported_at: new Date().toISOString(),
                 device: 'test',
@@ -1990,16 +1993,19 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 user_id: 'test'
             };
 
-            const resp = await fetch(`${url}/rest/v1/${table}`, {
+            const resp = await fetch(url + '/rest/v1/' + table, {
                 method: 'POST',
                 headers: {
                     'apikey': key,
-                    'Authorization': `Bearer ${key}`,
+                    'Authorization': 'Bearer ' + key,
                     'Content-Type': 'application/json',
                     'Prefer': 'return=minimal'
                 },
-                body: JSON.stringify(testPayload)
+                body: JSON.stringify(testPayload),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (resp.ok) {
                 return { success: true };
@@ -2013,10 +2019,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 const errData = await resp.json().catch(() => ({}));
                 return { 
                     success: false, 
-                    error: errData.message || `HTTP ${resp.status}`
+                    error: errData.message || 'HTTP ' + resp.status
                 };
             }
         } catch (e) {
+            if (e.name === 'AbortError') {
+                return { success: false, error: '連線逾時，請檢查 URL 是否正確' };
+            }
             return { success: false, error: e.message };
         }
     };
