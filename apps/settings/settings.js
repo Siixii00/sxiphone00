@@ -1498,6 +1498,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     };
 
+    const setBackupStatus = (text) => {
+        if (backupStatusEl) backupStatusEl.textContent = text;
+    };
+
     const getBackupHeaders = () => {
         const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         const key = provider === 'supabase' 
@@ -2307,10 +2311,125 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         supabaseMemorySyncStatusEl.textContent = `上次同步: ${lastMemorySync}`;
     }
 
+    // ==================== Supabase/Xata 增量備份函數 ====================
+    const supabasePushBackup = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        if (!url || !key) {
+            console.warn('[Supabase] 未設定 URL 或 Key');
+            return false;
+        }
+        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+        
+        const allData = await collectAllStorageData();
+        const dataHash = await generateDataHash(allData);
+        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+        
+        if (dataHash === lastHash) {
+            console.log('[Supabase] 資料無變動，跳過備份');
+            return true;
+        }
+
+        const payload = {
+            id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            version: '3.0',
+            exported_at: new Date().toISOString(),
+            device: navigator.userAgent,
+            data: allData,
+            data_hash: dataHash,
+            user_id: localStorage.getItem('sx_user_name') || 'default'
+        };
+
+        const resp = await fetch(url + '/rest/v1/' + table, {
+            method: 'POST',
+            headers: {
+                'apikey': key,
+                'Authorization': 'Bearer ' + key,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            console.log('[Supabase] 增量備份成功');
+            return true;
+        }
+        console.warn('[Supabase] 增量備份失敗:', resp.status);
+        return false;
+    };
+
+    const xataPushBackup = async () => {
+        const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
+        if (!xataConfig) {
+            console.warn('[Xata] 未設定 Connection String');
+            return false;
+        }
+        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+        
+        const allData = await collectAllStorageData();
+        const dataHash = await generateDataHash(allData);
+        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+        
+        if (dataHash === lastHash) {
+            console.log('[Xata] 資料無變動，跳過備份');
+            return true;
+        }
+
+        // 確保資料表存在
+        const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
+            'id TEXT PRIMARY KEY, ' +
+            'version TEXT, ' +
+            'exported_at TIMESTAMPTZ, ' +
+            'device TEXT, ' +
+            'data JSONB, ' +
+            'data_hash TEXT, ' +
+            'user_id TEXT' +
+            ')';
+        await fetch(xataConfig.gatewayUrl, {
+            method: 'POST',
+            headers: getXataHeaders(),
+            body: JSON.stringify({ query: createTableSQL })
+        });
+
+        const payload = {
+            id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            version: '3.0',
+            exported_at: new Date().toISOString(),
+            device: navigator.userAgent,
+            data: allData,
+            data_hash: dataHash,
+            user_id: localStorage.getItem('sx_user_name') || 'default'
+        };
+
+        const dataJson = JSON.stringify(payload.data);
+        const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+        const resp = await fetch(xataConfig.gatewayUrl, {
+            method: 'POST',
+            headers: getXataHeaders(),
+            body: JSON.stringify({
+                query: insertQuery,
+                params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
+            })
+        });
+
+        if (resp.ok) {
+            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            console.log('[Xata] 增量備份成功');
+            return true;
+        }
+        console.warn('[Xata] 增量備份失敗:', resp.status);
+        return false;
+    };
+
     // ==================== 自動備份設定 ====================
     const autoBackupEnabledToggle = document.getElementById('auto-backup-enabled');
     const autoBackupGithubToggle = document.getElementById('auto-backup-github');
     const autoBackupSupabaseToggle = document.getElementById('auto-backup-supabase');
+    const autoBackupXataToggle = document.getElementById('auto-backup-xata');
     const autoBackupLocalToggle = document.getElementById('auto-backup-local');
     const autoBackupSaveBtn = document.getElementById('auto-backup-save');
     const autoBackupNowBtn = document.getElementById('auto-backup-now');
@@ -2320,11 +2439,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
         const github = localStorage.getItem('sx_auto_backup_github') === 'true';
         const supabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
+        const xata = localStorage.getItem('sx_auto_backup_xata') === 'true';
         const local = localStorage.getItem('sx_auto_backup_local') === 'true';
 
         if (autoBackupEnabledToggle) autoBackupEnabledToggle.checked = enabled;
         if (autoBackupGithubToggle) autoBackupGithubToggle.checked = github;
         if (autoBackupSupabaseToggle) autoBackupSupabaseToggle.checked = supabase;
+        if (autoBackupXataToggle) autoBackupXataToggle.checked = xata;
         if (autoBackupLocalToggle) autoBackupLocalToggle.checked = local;
 
         updateAutoBackupStatus();
@@ -2338,6 +2459,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         if (localStorage.getItem('sx_auto_backup_github') === 'true') targets.push('GitHub');
         if (localStorage.getItem('sx_auto_backup_supabase') === 'true') targets.push('Supabase');
+        if (localStorage.getItem('sx_auto_backup_xata') === 'true') targets.push('Xata');
         if (localStorage.getItem('sx_auto_backup_local') === 'true') targets.push('本地');
 
         if (!enabled) {
@@ -2345,7 +2467,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         } else if (targets.length === 0) {
             autoBackupStatusEl.textContent = '已啟用，但未選擇備份目標';
         } else {
-            autoBackupStatusEl.textContent = `已啟用，備份到: ${targets.join(', ')}`;
+            autoBackupStatusEl.textContent = '已啟用，備份到: ' + targets.join(', ');
         }
     };
 
@@ -2353,6 +2475,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         localStorage.setItem('sx_auto_backup_enabled', autoBackupEnabledToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_xata', autoBackupXataToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
 
         updateAutoBackupStatus();
@@ -2365,7 +2488,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     autoBackupNowBtn?.addEventListener('click', async () => {
         if (autoBackupStatusEl) autoBackupStatusEl.textContent = '正在執行備份...';
 
-        const results = { github: null, supabase: null, local: null };
+        const results = { github: null, supabase: null, xata: null, local: null };
 
         if (localStorage.getItem('sx_auto_backup_github') === 'true') {
             try {
@@ -2380,6 +2503,14 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 results.supabase = await supabasePushBackup();
             } catch (e) {
                 results.supabase = false;
+            }
+        }
+
+        if (localStorage.getItem('sx_auto_backup_xata') === 'true') {
+            try {
+                results.xata = await xataPushBackup();
+            } catch (e) {
+                results.xata = false;
             }
         }
 

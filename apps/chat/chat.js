@@ -146,97 +146,108 @@ function getXataHeaders(xataConfig) {
 }
 
 async function autoBackupToCloud() {
-    const provider = localStorage.getItem('sx_backup_provider') || 'supabase';
-    const autoEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
-    
+    const autoEnabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
     if (!autoEnabled) return;
     
-    const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
-    let url, key, xataConfig;
+    const backupToSupabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
+    const backupToXata = localStorage.getItem('sx_auto_backup_xata') === 'true';
     
-    if (provider === 'supabase') {
-        url = localStorage.getItem('sx_supabase_url');
-        key = localStorage.getItem('sx_supabase_key');
-        if (!url || !key) return;
-    } else {
-        xataConfig = parseXataConnectionString(localStorage.getItem('sx_xata_url'));
-        if (!xataConfig) return;
+    if (!backupToSupabase && !backupToXata) return;
+    
+    const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
+    
+    // 檢查資料是否有變動
+    const allData = await collectAllStorageData();
+    const dataHash = await generateDataHash(allData);
+    const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+    
+    if (dataHash === lastHash) {
+        console.log('[AutoBackup] 資料無變動，跳過備份');
+        return;
     }
 
-    try {
-        const allData = await collectAllStorageData();
-        const dataHash = await generateDataHash(allData);
-        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
-        
-        if (dataHash === lastHash) {
-            console.log('[' + provider + '] 資料無變動，跳過備份');
-            return;
-        }
+    const payload = {
+        id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        version: '3.0',
+        exported_at: new Date().toISOString(),
+        device: navigator.userAgent,
+        data: allData,
+        data_hash: dataHash,
+        user_id: localStorage.getItem('sx_user_name') || 'default'
+    };
 
-        const payload = {
-            id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            version: '3.0',
-            exported_at: new Date().toISOString(),
-            device: navigator.userAgent,
-            data: allData,
-            data_hash: dataHash,
-            user_id: localStorage.getItem('sx_user_name') || 'default'
-        };
-
-        let resp;
-        if (provider === 'supabase') {
-            resp = await fetch(url + '/rest/v1/' + table, {
-                method: 'POST',
-                headers: {
-                    'apikey': key,
-                    'Authorization': 'Bearer ' + key,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(payload)
-            });
-        } else {
-            // 使用 SQL Gateway
-            // 先確保資料表存在
-            const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
-                'id TEXT PRIMARY KEY, ' +
-                'version TEXT, ' +
-                'exported_at TIMESTAMPTZ, ' +
-                'device TEXT, ' +
-                'data JSONB, ' +
-                'data_hash TEXT, ' +
-                'user_id TEXT' +
-                ')';
-            await fetch(xataConfig.gatewayUrl, {
-                method: 'POST',
-                headers: getXataHeaders(xataConfig),
-                body: JSON.stringify({ query: createTableSQL })
-            });
-            
-            const dataJson = JSON.stringify(payload.data);
-            const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
-            resp = await fetch(xataConfig.gatewayUrl, {
-                method: 'POST',
-                headers: getXataHeaders(xataConfig),
-                body: JSON.stringify({
-                    query: insertQuery,
-                    params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
-                })
-            });
+    // 備份到 Supabase
+    if (backupToSupabase) {
+        const url = localStorage.getItem('sx_supabase_url');
+        const key = localStorage.getItem('sx_supabase_key');
+        if (url && key) {
+            try {
+                const resp = await fetch(url + '/rest/v1/' + table, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': key,
+                        'Authorization': 'Bearer ' + key,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (resp.ok) {
+                    console.log('[Supabase] 自動備份成功');
+                } else {
+                    console.warn('[Supabase] 自動備份失敗:', resp.status);
+                }
+            } catch (e) {
+                console.warn('[Supabase] 自動備份錯誤:', e);
+            }
         }
-
-        if (resp.ok) {
-            localStorage.setItem('sx_backup_last_data_hash', dataHash);
-            const newCount = (parseInt(localStorage.getItem('sx_backup_count') || '0') + 1).toString();
-            localStorage.setItem('sx_backup_count', newCount);
-            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            console.log('[' + provider + '] 自動備份成功，累計', newCount, '次');
-        } else {
-            console.warn('[' + provider + '] 自動備份失敗:', resp.status);
-        }
-    } catch (e) {
-        console.warn(`[${provider}] 自動備份錯誤:`, e);
     }
+
+    // 備份到 Xata
+    if (backupToXata) {
+        const xataConfig = parseXataConnectionString(localStorage.getItem('sx_xata_url'));
+        if (xataConfig) {
+            try {
+                // 確保資料表存在
+                const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
+                    'id TEXT PRIMARY KEY, ' +
+                    'version TEXT, ' +
+                    'exported_at TIMESTAMPTZ, ' +
+                    'device TEXT, ' +
+                    'data JSONB, ' +
+                    'data_hash TEXT, ' +
+                    'user_id TEXT' +
+                    ')';
+                await fetch(xataConfig.gatewayUrl, {
+                    method: 'POST',
+                    headers: getXataHeaders(xataConfig),
+                    body: JSON.stringify({ query: createTableSQL })
+                });
+                
+                const dataJson = JSON.stringify(payload.data);
+                const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+                const resp = await fetch(xataConfig.gatewayUrl, {
+                    method: 'POST',
+                    headers: getXataHeaders(xataConfig),
+                    body: JSON.stringify({
+                        query: insertQuery,
+                        params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
+                    })
+                });
+                if (resp.ok) {
+                    console.log('[Xata] 自動備份成功');
+                } else {
+                    console.warn('[Xata] 自動備份失敗:', resp.status);
+                }
+            } catch (e) {
+                console.warn('[Xata] 自動備份錯誤:', e);
+            }
+        }
+    }
+
+    // 更新 hash
+    localStorage.setItem('sx_backup_last_data_hash', dataHash);
+    localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
 }
 
 const autoBackupToSupabase = autoBackupToCloud;
