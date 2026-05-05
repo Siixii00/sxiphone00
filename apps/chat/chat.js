@@ -197,6 +197,22 @@ async function autoBackupToCloud() {
             });
         } else {
             // 使用 SQL Gateway
+            // 先確保資料表存在
+            const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
+                'id TEXT PRIMARY KEY, ' +
+                'version TEXT, ' +
+                'exported_at TIMESTAMPTZ, ' +
+                'device TEXT, ' +
+                'data JSONB, ' +
+                'data_hash TEXT, ' +
+                'user_id TEXT' +
+                ')';
+            await fetch(xataConfig.gatewayUrl, {
+                method: 'POST',
+                headers: getXataHeaders(xataConfig),
+                body: JSON.stringify({ query: createTableSQL })
+            });
+            
             const dataJson = JSON.stringify(payload.data);
             const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
             resp = await fetch(xataConfig.gatewayUrl, {

@@ -1573,17 +1573,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return false;
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(xataConfig.gatewayUrl, {
+                
+                // 嘗試建立資料表（如果不存在）
+                const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
+                    'id TEXT PRIMARY KEY, ' +
+                    'version TEXT, ' +
+                    'exported_at TIMESTAMPTZ, ' +
+                    'device TEXT, ' +
+                    'data JSONB, ' +
+                    'data_hash TEXT, ' +
+                    'user_id TEXT' +
+                    ')';
+                
+                const createResp = await fetch(xataConfig.gatewayUrl, {
                     method: 'POST',
                     headers: getXataHeaders(),
-                    body: JSON.stringify({ query: 'SELECT 1 as test' })
+                    body: JSON.stringify({ query: createTableSQL })
                 });
-                if (resp.ok) {
-                    setBackupStatus('✅ Xata 連線成功');
-                    return true;
+                
+                if (!createResp.ok) {
+                    const errData = await createResp.json().catch(() => ({}));
+                    throw new Error(errData.message || '建立資料表失敗');
                 }
-                const errData = await resp.json().catch(() => ({}));
-                throw new Error(errData.message || `連線失敗 (${resp.status})`);
+                
+                // 建立索引
+                const createIndexSQL = 'CREATE INDEX IF NOT EXISTS idx_' + table + '_exported_at ON ' + table + '(exported_at DESC)';
+                await fetch(xataConfig.gatewayUrl, {
+                    method: 'POST',
+                    headers: getXataHeaders(),
+                    body: JSON.stringify({ query: createIndexSQL })
+                });
+                
+                setBackupStatus('✅ Xata 連線成功，資料表已就緒');
+                return true;
             }
         } catch (err) {
             setBackupStatus(`❌ 連線錯誤: ${err.message}`);
@@ -1645,6 +1667,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
                 
+                // 先確保資料表存在
+                const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
+                    'id TEXT PRIMARY KEY, ' +
+                    'version TEXT, ' +
+                    'exported_at TIMESTAMPTZ, ' +
+                    'device TEXT, ' +
+                    'data JSONB, ' +
+                    'data_hash TEXT, ' +
+                    'user_id TEXT' +
+                    ')';
+                await fetch(xataConfig.gatewayUrl, {
+                    method: 'POST',
+                    headers: getXataHeaders(),
+                    body: JSON.stringify({ query: createTableSQL })
+                });
+                
                 // 使用 SQL INSERT
                 const dataJson = JSON.stringify(payload.data);
                 const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
@@ -1658,10 +1696,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
-                    if (errData.message && errData.message.includes('does not exist')) {
-                        setBackupStatus('❌ 資料表不存在，請先建立');
-                        return false;
-                    }
                     throw new Error(errData.message || '上傳失敗 (' + resp.status + ')');
                 }
             }
