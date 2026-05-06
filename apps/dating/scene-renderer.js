@@ -3,6 +3,31 @@
 const SceneRenderer = {
     tileSize: 16,
     
+    PALETTE: {
+        wood: { dark: '#3a2a1a', main: '#5c4a32', light: '#7a6a52' },
+        dirt: { dark: '#3a2a1a', main: '#5c4033', light: '#7a6053' },
+        grass: { dark: '#4a6a2a', main: '#7ec850', light: '#9ae870' },
+        water: { dark: '#2a4a6a', main: '#4a90c2', light: '#6ab0e2' },
+        stone: { dark: '#5a5a5a', main: '#7a7a7a', light: '#9a9a9a' },
+        roof: { main: '#c44a4a', light: '#e46a6a' },
+        gold: '#ffd700',
+        parchment: '#f4e8c1'
+    },
+    
+    tileHash(x, y, seed = 0) {
+        let h = seed + x * 374761393 + y * 668265263;
+        h = (h ^ (h >> 13)) * 1274126177;
+        return (h ^ (h >> 16)) & 0xff;
+    },
+    
+    hashPick(x, y, seed = 0) {
+        return this.tileHash(x, y, seed) / 255;
+    },
+    
+    hashInt(x, y, min, max, seed = 0) {
+        return min + (this.tileHash(x, y, seed) % (max - min + 1));
+    },
+    
     generateBackground(sceneKey, width = 800, height = 600) {
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -35,27 +60,34 @@ const SceneRenderer = {
         return canvas.toDataURL();
     },
     
-    drawNoise(ctx, x, y, w, h, density = 0.3) {
-        for (let i = 0; i < w * h * density / 10; i++) {
-            const nx = x + Math.random() * w;
-            const ny = y + Math.random() * h;
-            const alpha = 0.1 + Math.random() * 0.2;
-            ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-            ctx.fillRect(nx, ny, 1, 1);
+    drawNoise(ctx, x, y, w, h, density = 0.3, seed = 0) {
+        let count = 0;
+        for (let ny = y; ny < y + h; ny += 2) {
+            for (let nx = x; nx < x + w; nx += 2) {
+                if (this.hashPick(nx, ny, seed) < density * 0.1) {
+                    const alpha = 0.1 + this.hashPick(nx, ny, seed + 1) * 0.2;
+                    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+                    ctx.fillRect(nx, ny, 1, 1);
+                    count++;
+                }
+            }
         }
     },
     
     drawCafeTiles(ctx, w, h) {
         const ts = this.tileSize;
+        const P = this.PALETTE;
         
-        const baseColor = '#C49A6C';
-        const highlightColor = '#D4A574';
-        const shadowColor = '#B8865A';
-        const depthColor = '#A07840';
+        const baseColor = P.wood.main;
+        const highlightColor = P.wood.light;
+        const shadowColor = '#4a3a22';
+        const depthColor = P.wood.dark;
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const isAlt = ((x / ts) + (y / ts)) % 2 === 0;
+                const tileX = x / ts;
+                const tileY = y / ts;
+                const isAlt = ((tileX) + (tileY)) % 2 === 0;
                 const base = isAlt ? baseColor : highlightColor;
                 
                 ctx.fillStyle = base;
@@ -101,7 +133,7 @@ const SceneRenderer = {
         ctx.fillStyle = carpetDepth;
         ctx.fillRect(carpetX + carpetW - 3, carpetY + carpetH - 3, 3, 3);
         
-        ctx.strokeStyle = '#DAA520';
+        ctx.strokeStyle = P.gold;
         ctx.lineWidth = 3;
         ctx.strokeRect(carpetX + 10, carpetY + 10, carpetW - 20, carpetH - 20);
         
@@ -123,21 +155,24 @@ const SceneRenderer = {
         ctx.ellipse(w * 0.7, h * 0.15, 80, 40, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.1);
+        this.drawNoise(ctx, 0, 0, w, h, 0.1, 12345);
     },
     
     drawParkTiles(ctx, w, h) {
         const ts = this.tileSize;
+        const P = this.PALETTE;
         
-        const grassMain = '#7CB342';
-        const grassHighlight = '#8BC34A';
-        const grassShadow = '#689F38';
-        const grassDark = '#558B2F';
+        const grassMain = P.grass.main;
+        const grassHighlight = P.grass.light;
+        const grassShadow = P.grass.dark;
+        const grassDark = '#3a5a1a';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
-                const variation = Math.random() * 0.3;
-                const base = variation > 0.15 ? grassMain : grassHighlight;
+                const tileX = x / ts;
+                const tileY = y / ts;
+                const variation = this.hashPick(tileX, tileY, 54321);
+                const base = variation > 0.5 ? grassMain : grassHighlight;
                 
                 ctx.fillStyle = base;
                 ctx.fillRect(x, y, ts, ts);
@@ -154,10 +189,10 @@ const SceneRenderer = {
                 ctx.fillRect(x + ts - 2, y + ts - 2, 2, 2);
                 
                 for (let i = 0; i < 3; i++) {
-                    const gx = x + Math.random() * (ts - 2);
-                    const gy = y + Math.random() * (ts - 2);
+                    const gx = x + this.hashInt(tileX, tileY + i, 0, ts - 4, i * 100);
+                    const gy = y + this.hashInt(tileX, tileY + i, 0, ts - 4, i * 100 + 50);
                     ctx.fillStyle = grassDark;
-                    ctx.fillRect(gx, gy, 1, 2 + Math.random() * 2);
+                    ctx.fillRect(gx, gy, 1, 2 + this.hashInt(tileX, tileY, 0, 2, i * 200));
                 }
             }
         }
@@ -165,14 +200,16 @@ const SceneRenderer = {
         const pathX = w * 0.35;
         const pathW = w * 0.3;
         
-        const stoneMain = '#D4C4A8';
-        const stoneHighlight = '#E8DCC8';
-        const stoneShadow = '#B8A888';
-        const stoneDepth = '#9A8A6A';
+        const stoneMain = P.stone.main;
+        const stoneHighlight = P.stone.light;
+        const stoneShadow = P.stone.dark;
+        const stoneDepth = '#6a6a6a';
         
         for (let y = 0; y < h; y += ts) {
             const curve = Math.sin(y * 0.02) * 20;
             for (let x = pathX + curve; x < pathX + pathW + curve; x += ts) {
+                const tileX = Math.floor(x / ts);
+                const tileY = y / ts;
                 ctx.fillStyle = stoneMain;
                 ctx.fillRect(x, y, ts, ts);
                 
@@ -184,9 +221,9 @@ const SceneRenderer = {
                 ctx.fillRect(x + ts - 2, y, 2, ts);
                 ctx.fillRect(x, y + ts - 2, ts, 2);
                 
-                if (Math.random() > 0.6) {
+                if (this.hashPick(tileX, tileY, 99999) > 0.6) {
                     ctx.fillStyle = stoneDepth;
-                    ctx.fillRect(x + 4 + Math.random() * 4, y + 4 + Math.random() * 4, 3, 3);
+                    ctx.fillRect(x + 4 + this.hashInt(tileX, tileY, 0, 4, 111), y + 4 + this.hashInt(tileX, tileY, 0, 4, 222), 3, 3);
                 }
             }
         }
@@ -252,23 +289,24 @@ const SceneRenderer = {
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
         for (let i = 0; i < 20; i++) {
-            const sx = Math.random() * w;
-            const sy = Math.random() * h;
+            const sx = this.hashInt(i, 0, 0, w, 11111);
+            const sy = this.hashInt(i, 1, 0, h, 22222);
             ctx.fillRect(sx, sy, 2, 2);
         }
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.06);
+        this.drawNoise(ctx, 0, 0, w, h, 0.06, 33333);
     },
     
     drawRestaurantTiles(ctx, w, h) {
         const ts = this.tileSize;
+        const P = this.PALETTE;
         
-        const tileDark = '#1A0F0A';
-        const tileDarkHighlight = '#2A1A12';
-        const tileDarkShadow = '#0A0505';
-        const tileLight = '#3D2314';
-        const tileLightHighlight = '#4D3020';
-        const tileLightShadow = '#2D180A';
+        const tileDark = P.wood.dark;
+        const tileDarkHighlight = '#4a3a22';
+        const tileDarkShadow = '#1a0a00';
+        const tileLight = P.wood.main;
+        const tileLightHighlight = P.wood.light;
+        const tileLightShadow = '#4a3a22';
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
@@ -308,20 +346,23 @@ const SceneRenderer = {
             ctx.fillRect(cx - 60, cy - 60, 120, 120);
         });
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.1);
+        this.drawNoise(ctx, 0, 0, w, h, 0.1, 44444);
     },
     
     drawBeachTiles(ctx, w, h) {
         const ts = this.tileSize;
+        const P = this.PALETTE;
         
-        const waterMain = '#4A90D0';
-        const waterHighlight = '#5AA0E0';
-        const waterShadow = '#3A70A0';
-        const waterDeep = '#2A5080';
+        const waterMain = P.water.main;
+        const waterHighlight = P.water.light;
+        const waterShadow = P.water.dark;
+        const waterDeep = '#1a4060';
         
         for (let y = 0; y < h * 0.45; y += ts) {
             const depth = y / (h * 0.45);
             for (let x = 0; x < w; x += ts) {
+                const tileX = x / ts;
+                const tileY = y / ts;
                 const wave = Math.sin(x * 0.05 + y * 0.1) * 0.3;
                 const isLight = wave > 0;
                 
@@ -339,7 +380,7 @@ const SceneRenderer = {
                 ctx.fillRect(x + ts - 2, y, 2, ts);
                 ctx.fillRect(x, y + ts - 2, ts, 2);
                 
-                if (Math.random() > 0.85) {
+                if (this.hashPick(tileX, tileY, 55555) > 0.85) {
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
                     const waveY = y + Math.sin(x * 0.1) * 3;
                     ctx.fillRect(x, waveY, ts, 2);
@@ -349,7 +390,8 @@ const SceneRenderer = {
         
         const foamY = h * 0.43;
         for (let x = 0; x < w; x += ts) {
-            const foamHeight = 5 + Math.sin(x * 0.1) * 3 + Math.random() * 5;
+            const tileX = x / ts;
+            const foamHeight = 5 + Math.sin(x * 0.1) * 3 + this.hashInt(tileX, 0, 0, 5, 66666);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.fillRect(x, foamY + Math.sin(x * 0.2) * 3, ts, foamHeight);
         }
@@ -362,6 +404,8 @@ const SceneRenderer = {
         for (let y = h * 0.45; y < h; y += ts) {
             const sandVariation = (y - h * 0.45) / (h * 0.55);
             for (let x = 0; x < w; x += ts) {
+                const tileX = x / ts;
+                const tileY = y / ts;
                 const noise = Math.sin(x * 0.03) * Math.cos(y * 0.05) * 0.3;
                 const isLight = noise > 0;
                 
@@ -379,9 +423,10 @@ const SceneRenderer = {
                 for (let i = 0; i < 2; i++) {
                     ctx.fillStyle = sandDepth;
                     ctx.fillRect(
-                        x + Math.random() * (ts - 2),
-                        y + Math.random() * (ts - 2),
-                        1 + Math.random(), 1 + Math.random()
+                        x + this.hashInt(tileX, tileY + i, 0, ts - 2, i * 100 + 77777),
+                        y + this.hashInt(tileX, tileY + i, 0, ts - 2, i * 100 + 77778),
+                        1 + this.hashInt(tileX, tileY, 0, 1, i * 200 + 88888), 
+                        1 + this.hashInt(tileX, tileY, 0, 1, i * 200 + 88889)
                     );
                 }
             }
@@ -392,16 +437,17 @@ const SceneRenderer = {
         ctx.ellipse(w * 0.8, h * 0.1, 100, 60, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        this.drawNoise(ctx, 0, 0, w, h, 0.08);
+        this.drawNoise(ctx, 0, 0, w, h, 0.08, 99999);
     },
     
     drawLibraryTiles(ctx, w, h) {
         const ts = this.tileSize;
+        const P = this.PALETTE;
         
-        const woodMain = '#8B7355';
-        const woodHighlight = '#A0826D';
-        const woodShadow = '#6B5344';
-        const woodDepth = '#5B4334';
+        const woodMain = P.wood.main;
+        const woodHighlight = P.wood.light;
+        const woodShadow = '#4a3a22';
+        const woodDepth = P.wood.dark;
         
         for (let y = 0; y < h; y += ts) {
             for (let x = 0; x < w; x += ts) {
@@ -840,8 +886,8 @@ const SceneRenderer = {
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
         for (let i = 0; i < 5; i++) {
-            const sx = screenX + 10 + Math.random() * (screenW - 20);
-            const sy = screenY + 10 + Math.random() * (screenH - 20);
+            const sx = screenX + 10 + this.hashInt(i, 0, 0, screenW - 20, 10101);
+            const sy = screenY + 10 + this.hashInt(i, 1, 0, screenH - 20, 20202);
             ctx.fillRect(sx, sy, 20, 2);
         }
     },
@@ -1086,9 +1132,10 @@ const SceneRenderer = {
         for (let row = 0; row < 3; row++) {
             const rowY = y + 6 + row * (h / 3);
             let bookX = x + 6;
+            let bookIdx = 0;
             while (bookX < x + w - 10) {
-                const bookW = 5 + Math.random() * 6;
-                const colorIdx = Math.floor(Math.random() * bookColors.length);
+                const bookW = 5 + this.hashInt(row, bookIdx, 0, 6, 30303);
+                const colorIdx = this.hashInt(row, bookIdx, 0, bookColors.length - 1, 40404);
                 const bookColor = bookColors[colorIdx];
                 
                 ctx.fillStyle = bookColor.main;
@@ -1098,6 +1145,7 @@ const SceneRenderer = {
                 ctx.fillRect(bookX + bookW - 2, rowY, 2, h / 3 - 10);
                 
                 bookX += bookW + 2;
+                bookIdx++;
             }
         }
     },
@@ -1117,7 +1165,7 @@ const SceneRenderer = {
         const cy = y + h * 0.35;
         
         for (let i = 0; i < 5; i++) {
-            const angle = (i * Math.PI * 2) / 5 + Math.random() * 0.3;
+            const angle = (i * Math.PI * 2) / 5 + this.hashPick(i, 0, 50505) * 0.3;
             const leafX = cx + Math.cos(angle) * w * 0.25;
             const leafY = cy + Math.sin(angle) * h * 0.15;
             const leafW = w * 0.25;

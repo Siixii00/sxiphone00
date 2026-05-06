@@ -87,8 +87,50 @@ const HomeApp = {
   lastRoomOffsetX: 0,
   lastRoomOffsetY: 0,
   pinchStartDist: 0,
-  pinchStartScale: 1
+  pinchStartScale: 1,
+  animationFrame: 0,
+  lastAnimationTime: 0,
+  doorEntryFade: 0,
+  doorEntryTarget: null,
+  timeOfDay: 'day'
 };
+
+function tileHash(col, row) {
+  const seed = col * 374761393 + row * 668265263;
+  return ((seed ^ (seed >> 13)) * 1274126177) & 0x7fffffff;
+}
+
+function updateAnimations() {
+  const now = Date.now();
+  if (now - HomeApp.lastAnimationTime >= 200) {
+    HomeApp.animationFrame = (HomeApp.animationFrame + 1) % 4;
+    HomeApp.lastAnimationTime = now;
+  }
+  updateTimeOfDay();
+}
+
+function updateTimeOfDay() {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 18) {
+    HomeApp.timeOfDay = 'day';
+  } else {
+    HomeApp.timeOfDay = 'night';
+  }
+}
+
+function isNightTime() {
+  return HomeApp.timeOfDay === 'night';
+}
+
+function adjustColor(hex, amt) {
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  r = Math.max(0, Math.min(255, r + amt));
+  g = Math.max(0, Math.min(255, g + amt));
+  b = Math.max(0, Math.min(255, b + amt));
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
 
 const MAP_CONFIG = {
   tileSize: 48,
@@ -876,11 +918,7 @@ function generateLampPixels(lightColor) {
     ctx.fillStyle = adjustColor('#404040', -60);
     ctx.fillRect(10 * p, 32 * p, 2 * p, 2 * p);
     
-    const glowGradient = ctx.createRadialGradient(16 * p, 10 * p, 0, 16 * p, 10 * p, 14 * p);
-    glowGradient.addColorStop(0, adjustColor(lightColor, 60));
-    glowGradient.addColorStop(0.5, adjustColor(lightColor, 20));
-    glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glowGradient;
+    ctx.fillStyle = adjustColor(lightColor, 30);
     ctx.fillRect(4 * p, 0, 24 * p, 20 * p);
     
     ctx.fillStyle = '#404040';
@@ -987,11 +1025,7 @@ function generatePosterPixels() {
     ctx.fillStyle = '#E74C3C';
     ctx.fillRect(4 * p, 4 * p, 24 * p, 18 * p);
     
-    // 海報漸層
-    const posterGradient = ctx.createLinearGradient(4 * p, 4 * p, 28 * p, 22 * p);
-    posterGradient.addColorStop(0, '#E74C3C');
-    posterGradient.addColorStop(1, '#C0392B');
-    ctx.fillStyle = posterGradient;
+    ctx.fillStyle = '#C0392B';
     ctx.fillRect(4 * p, 4 * p, 24 * p, 18 * p);
     
     // 海報底部
@@ -1604,12 +1638,7 @@ function generateMirrorPixels() {
     ctx.fillRect(26 * p, 4 * p, 2 * p, 24 * p);
     ctx.fillRect(4 * p, 26 * p, 24 * p, 2 * p);
     
-    const mirrorGradient = ctx.createLinearGradient(4 * p, 4 * p, 28 * p, 28 * p);
-    mirrorGradient.addColorStop(0, 'rgba(255,255,255,0.3)');
-    mirrorGradient.addColorStop(0.3, 'rgba(255,255,255,0.1)');
-    mirrorGradient.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-    mirrorGradient.addColorStop(1, 'rgba(255,255,255,0.2)');
-    ctx.fillStyle = mirrorGradient;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
     ctx.fillRect(4 * p, 4 * p, 24 * p, 24 * p);
     
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -1627,11 +1656,7 @@ function generateWindowPixels() {
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fillRect(0, 0, 32 * p, 32 * p);
     
-    const skyGradient = ctx.createLinearGradient(0, 0, 0, 32 * p);
-    skyGradient.addColorStop(0, '#87CEEB');
-    skyGradient.addColorStop(0.5, '#6EB5FF');
-    skyGradient.addColorStop(1, '#4A90D0');
-    ctx.fillStyle = skyGradient;
+    ctx.fillStyle = '#6EB5FF';
     ctx.fillRect(0, 0, 32 * p, 32 * p);
     
     ctx.fillStyle = adjustColor('#87CEEB', 30);
@@ -1729,11 +1754,7 @@ function generateBathtubPixels() {
     ctx.fillRect(26 * p, 12 * p, 2 * p, 10 * p);
     ctx.fillRect(4 * p, 20 * p, 24 * p, 2 * p);
     
-    const waterGradient = ctx.createLinearGradient(4 * p, 12 * p, 28 * p, 22 * p);
-    waterGradient.addColorStop(0, '#6EB5FF');
-    waterGradient.addColorStop(0.5, '#4A90D0');
-    waterGradient.addColorStop(1, '#6EB5FF');
-    ctx.fillStyle = waterGradient;
+    ctx.fillStyle = '#4A90D0';
     ctx.fillRect(6 * p, 12 * p, 20 * p, 10 * p);
     
     ctx.fillStyle = adjustColor('#6EB5FF', 30);
@@ -2357,17 +2378,9 @@ function drawFabricTexture(ctx, x, y, w, h, color, p) {
  * @param {string} baseColor - 金屬基礎色
  */
 function drawMetallicShine(ctx, x, y, w, h, baseColor) {
-  // 漸層基底
-  const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-  gradient.addColorStop(0, adjustColor(baseColor, 40));
-  gradient.addColorStop(0.3, adjustColor(baseColor, 60));
-  gradient.addColorStop(0.5, adjustColor(baseColor, 20));
-  gradient.addColorStop(0.7, adjustColor(baseColor, -10));
-  gradient.addColorStop(1, adjustColor(baseColor, -30));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = adjustColor(baseColor, 30);
   ctx.fillRect(x, y, w, h);
   
-  // 高光條紋
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.fillRect(x + w * 0.2, y + 1, w * 0.1, h - 2);
 }
@@ -2407,28 +2420,17 @@ function drawGlassEffect(ctx, x, y, w, h, tintColor) {
  * @param {number} p - 像素單位大小
  */
 function drawScreenGlow(ctx, x, y, w, h, screenColor, p) {
-  // 螢幕基底
   ctx.fillStyle = screenColor;
   ctx.fillRect(x, y, w, h);
   
-  // 內部發光
-  const gradient = ctx.createRadialGradient(
-    x + w/2, y + h/2, 0,
-    x + w/2, y + h/2, Math.max(w, h) * 0.7
-  );
-  gradient.addColorStop(0, adjustColor(screenColor, 40));
-  gradient.addColorStop(0.5, screenColor);
-  gradient.addColorStop(1, adjustColor(screenColor, -20));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = adjustColor(screenColor, 20);
   ctx.fillRect(x, y, w, h);
   
-  // 掃描線效果
   ctx.fillStyle = 'rgba(0,0,0,0.1)';
   for (let i = 0; i < h; i += 2) {
     ctx.fillRect(x, y + i, w, 1);
   }
   
-  // 邊框高光
   ctx.fillStyle = 'rgba(255,255,255,0.2)';
   ctx.fillRect(x, y, w, 1);
   ctx.fillRect(x, y, 1, h);
@@ -2605,11 +2607,7 @@ function generateShopFurniturePixels(id, ctx, size) {
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.fillRect(2 * s, 2 * s, 28 * s, 28 * s);
       drawWoodGrain(ctx, 0, 0, 32 * s, 32 * s, '#4A3728', s);
-      // 天空
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, 14 * s);
-      skyGrad.addColorStop(0, '#87CEEB');
-      skyGrad.addColorStop(1, '#B0E0E6');
-      ctx.fillStyle = skyGrad;
+      ctx.fillStyle = '#9ACD32';
       ctx.fillRect(2 * s, 2 * s, 28 * s, 12 * s);
       // 草地
       ctx.fillStyle = '#228B22';
@@ -2786,39 +2784,24 @@ function generateShopFurniturePixels(id, ctx, size) {
       break;
       
     case 'ceiling_light':
-      // 吸頂燈
       ctx.fillStyle = '#A0A0A0';
       ctx.fillRect(0, 0, 32 * s, 8 * s);
-      // 燈罩
-      const lightGrad = ctx.createRadialGradient(16 * s, 16 * s, 0, 16 * s, 16 * s, 14 * s);
-      lightGrad.addColorStop(0, '#FFF8DC');
-      lightGrad.addColorStop(0.5, '#FFD700');
-      lightGrad.addColorStop(1, '#FFA500');
-      ctx.fillStyle = lightGrad;
+      ctx.fillStyle = '#FFD700';
       ctx.fillRect(4 * s, 8 * s, 24 * s, 20 * s);
-      // 光暈
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.fillRect(8 * s, 12 * s, 16 * s, 12 * s);
       break;
       
     case 'chandelier':
     case 'chandelier_crystal':
-      // 水晶吊燈
       ctx.fillStyle = '#C0C0C0';
       ctx.fillRect(14 * s, 0, 4 * s, 8 * s);
-      // 吊鏈
       ctx.fillStyle = '#A0A0A0';
       ctx.fillRect(15 * s, 8 * s, 2 * s, 4 * s);
-      // 水晶燈罩
       for (let i = 0; i < 4; i++) {
-        const crystalGrad = ctx.createLinearGradient((4 + i * 6) * s, 12 * s, (8 + i * 6) * s, 24 * s);
-        crystalGrad.addColorStop(0, '#FFD700');
-        crystalGrad.addColorStop(0.5, '#FFF8DC');
-        crystalGrad.addColorStop(1, '#FFD700');
-        ctx.fillStyle = crystalGrad;
+        ctx.fillStyle = '#FFD700';
         ctx.fillRect((4 + i * 6) * s, 12 * s, 4 * s, 12 * s);
       }
-      // 光點
       ctx.fillStyle = '#FFF';
       for (let i = 0; i < 4; i++) {
         ctx.fillRect((6 + i * 6) * s, 18 * s, 2 * s, 4 * s);
@@ -2826,20 +2809,12 @@ function generateShopFurniturePixels(id, ctx, size) {
       break;
       
     case 'floor_lamp':
-      // 落地燈
       ctx.fillStyle = '#505050';
       ctx.fillRect(12 * s, 20 * s, 8 * s, 12 * s);
-      // 燈桿
       drawMetallicShine(ctx, 14 * s, 4 * s, 4 * s, 16 * s, '#707070');
-      // 燈罩
-      const lampGrad = ctx.createLinearGradient(8 * s, 0, 24 * s, 16 * s);
-      lampGrad.addColorStop(0, '#FFD700');
-      lampGrad.addColorStop(0.5, '#FFF8DC');
-      lampGrad.addColorStop(1, '#FFD700');
-      ctx.fillStyle = lampGrad;
+      ctx.fillStyle = '#FFD700';
       ctx.fillRect(8 * s, 0, 16 * s, 16 * s);
       ctx.fillRect(10 * s, 0, 12 * s, 20 * s);
-      // 光暈
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
       ctx.fillRect(12 * s, 4 * s, 8 * s, 12 * s);
       break;
@@ -3012,23 +2987,15 @@ function generateShopFurniturePixels(id, ctx, size) {
       ctx.fillRect(10 * s, 24 * s, 12 * s, 8 * s);
       ctx.fillStyle = '#228B22';
       ctx.fillRect(14 * s, 4 * s, 4 * s, 20 * s);
-      ctx.beginPath();
-      ctx.arc(12 * s, 8 * s, 6 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(20 * s, 12 * s, 6 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(16 * s, 4 * s, 4 * s, 0, Math.PI * 2);
-      ctx.fill();
+      drawPixelCircle(ctx, 12 * s, 8 * s, 6 * s, '#228B22');
+      drawPixelCircle(ctx, 20 * s, 12 * s, 6 * s, '#228B22');
+      drawPixelCircle(ctx, 16 * s, 4 * s, 4 * s, '#228B22');
       break;
       
     case 'floor_statue':
       // 雕像
       drawMetallicShine(ctx, 12 * s, 16 * s, 8 * s, 16 * s, '#C0C0C0');
-      ctx.beginPath();
-      ctx.arc(16 * s, 10 * s, 6 * s, 0, Math.PI * 2);
-      ctx.fill();
+      drawPixelCircle(ctx, 16 * s, 10 * s, 6 * s, '#C0C0C0');
       ctx.fillStyle = '#808080';
       ctx.fillRect(8 * s, 28 * s, 16 * s, 4 * s);
       break;
@@ -3064,14 +3031,8 @@ function generateShopFurniturePixels(id, ctx, size) {
       drawMetallicShine(ctx, 0, 0, 32 * s, 32 * s, '#FFD700');
       ctx.fillStyle = '#FFA500';
       ctx.fillRect(4 * s, 4 * s, 24 * s, 24 * s);
-      ctx.fillStyle = '#FFD700';
-      ctx.beginPath();
-      ctx.arc(16 * s, 16 * s, 8 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#FFF';
-      ctx.beginPath();
-      ctx.arc(16 * s, 16 * s, 4 * s, 0, Math.PI * 2);
-      ctx.fill();
+      drawPixelCircle(ctx, 16 * s, 16 * s, 8 * s, '#FFD700');
+      drawPixelCircle(ctx, 16 * s, 16 * s, 4 * s, '#FFF');
       break;
       
     case 'curtain_silk':
@@ -3098,10 +3059,7 @@ function generateShopFurniturePixels(id, ctx, size) {
       ctx.fill();
       ctx.fillStyle = '#4169E1';
       ctx.fillRect(14 * s, 8 * s, 4 * s, 12 * s);
-      ctx.fillStyle = '#ADD8E6';
-      ctx.beginPath();
-      ctx.arc(16 * s, 6 * s, 4 * s, 0, Math.PI * 2);
-      ctx.fill();
+      drawPixelCircle(ctx, 16 * s, 6 * s, 4 * s, '#ADD8E6');
       break;
       
     case 'wall_aquarium':
@@ -3166,12 +3124,7 @@ function drawFloorPattern(ctx, x, y, width, height, style) {
 }
 
 function drawWoodFloor(ctx, x, y, width, height, style) {
-  // 漸層基底
-  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-  gradient.addColorStop(0, style.baseColor);
-  gradient.addColorStop(0.5, adjustColor(style.baseColor, 10));
-  gradient.addColorStop(1, style.baseColor);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
   const plankHeight = 20;
@@ -3217,15 +3170,7 @@ function drawWoodFloor(ctx, x, y, width, height, style) {
 }
 
 function drawTileFloor(ctx, x, y, width, height, style) {
-  // 漸層基底
-  const gradient = ctx.createRadialGradient(
-    x + width/2, y + height/2, 0,
-    x + width/2, y + height/2, Math.max(width, height) * 0.7
-  );
-  gradient.addColorStop(0, adjustColor(style.baseColor, 15));
-  gradient.addColorStop(0.7, style.baseColor);
-  gradient.addColorStop(1, adjustColor(style.baseColor, -10));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
   const tileSize = 32;
@@ -3263,13 +3208,7 @@ function drawTileFloor(ctx, x, y, width, height, style) {
 }
 
 function drawMarbleFloor(ctx, x, y, width, height, style) {
-  // 大理石漸層基底
-  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-  gradient.addColorStop(0, style.baseColor);
-  gradient.addColorStop(0.3, adjustColor(style.baseColor, 20));
-  gradient.addColorStop(0.6, style.baseColor);
-  gradient.addColorStop(1, adjustColor(style.baseColor, -10));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
   // 大理石紋理 - 雲狀紋路
@@ -3346,12 +3285,7 @@ function drawCarpetFloor(ctx, x, y, width, height, style) {
 }
 
 function drawConcreteFloor(ctx, x, y, width, height, style) {
-  // 混凝土漸層
-  const gradient = ctx.createLinearGradient(x, y, x, y + height);
-  gradient.addColorStop(0, adjustColor(style.baseColor, 5));
-  gradient.addColorStop(0.5, style.baseColor);
-  gradient.addColorStop(1, adjustColor(style.baseColor, -5));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
   // 混凝土裂縫和紋理
@@ -3383,11 +3317,7 @@ function drawConcreteFloor(ctx, x, y, width, height, style) {
 }
 
 function drawParquetFloor(ctx, x, y, width, height, style) {
-  // 拼花地板基底
-  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
-  gradient.addColorStop(0, style.baseColor);
-  gradient.addColorStop(1, adjustColor(style.baseColor, 10));
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = style.baseColor;
   ctx.fillRect(x, y, width, height);
   
   const blockSize = 16;
@@ -3465,12 +3395,8 @@ function drawFloralWallpaper(ctx, x, y, width, height, style) {
   ctx.fillStyle = style.accentColor;
   for (let fy = y + 10; fy < y + height; fy += 30) {
     for (let fx = x + 10; fx < x + width; fx += 30) {
-      ctx.beginPath();
-      ctx.arc(fx, fy, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(fx + 10, fy + 10, 6, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(fx - 8, fy - 8, 16, 16);
+      ctx.fillRect(fx + 4, fy + 4, 12, 12);
     }
   }
 }
@@ -3698,8 +3624,20 @@ function init() {
   renderWorldNav();
   renderFurnitureCatalog();
   updateBalance();
+  startAnimationLoop();
   
   if (window.lucide) lucide.createIcons();
+}
+
+function startAnimationLoop() {
+  const animationLoop = () => {
+    updateAnimations();
+    if (HomeApp.currentCommunity && HomeApp.mapCanvas) {
+      renderCommunityMap();
+    }
+    requestAnimationFrame(animationLoop);
+  };
+  requestAnimationFrame(animationLoop);
 }
 
 function renderWorldNav() {
@@ -4563,6 +4501,7 @@ function resizeMapCanvas() {
 }
 
 function renderCommunityMap() {
+  updateAnimations();
   const ctx = HomeApp.mapCtx;
   const canvas = HomeApp.mapCanvas;
   
@@ -4571,7 +4510,8 @@ function renderCommunityMap() {
   const community = COMMUNITIES[HomeApp.currentCommunity];
   if (!community) return;
   
-  ctx.fillStyle = community.bgColor;
+  const bgColor = isNightTime() ? adjustColor(community.bgColor, -40) : community.bgColor;
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   const tileSize = COMMUNITY_MAP_CONFIG.tileSize * HomeApp.mapScale;
@@ -4589,6 +4529,11 @@ function renderCommunityMap() {
   
   if (HomeApp.showGrid) {
     renderMapGrid(ctx, offsetX, offsetY, tileSize);
+  }
+  
+  if (HomeApp.doorEntryFade > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${HomeApp.doorEntryFade})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 }
 
@@ -4770,17 +4715,15 @@ function drawCommunityTile(ctx, px, py, size, type, community, tileX = 0, tileY 
   
   switch (type) {
     case COMMUNITY_TILE_TYPES.GRASS: {
-      // 草地基底
+      const swayOffset = (HomeApp.animationFrame + tileHash(tileX, tileY)) % 2;
       const baseColor = community.terrain === 'nature' ? '#1a4a1a' : '#7CB87C';
       ctx.fillStyle = baseColor;
       ctx.fillRect(px, py, size, size);
       
-      // 固定位置的草葉（使用 tile hash）
       ctx.fillStyle = community.terrain === 'nature' ? '#2a5a2a' : '#5A9A5A';
-      ctx.fillRect(px + h, py + h2, 2 * p, 3 * p);
-      ctx.fillRect(px + (h + size / 3) % size, py + (h2 + size / 2) % size, p, 4 * p);
+      ctx.fillRect(px + h + (swayOffset === 1 ? 1 : 0), py + h2, 2 * p, 3 * p);
+      ctx.fillRect(px + (h + size / 3) % size + (swayOffset === 0 ? 1 : 0), py + (h2 + size / 2) % size, p, 4 * p);
       
-      // 左上高光角
       ctx.fillStyle = '#8DC88D';
       ctx.fillRect(px, py, size, 2 * p);
       ctx.fillRect(px, py, 2 * p, size);
@@ -4857,15 +4800,14 @@ function drawCommunityTile(ctx, px, py, size, type, community, tileX = 0, tileY 
     }
       
     case COMMUNITY_TILE_TYPES.WATER: {
+      const animOffset = HomeApp.animationFrame;
       ctx.fillStyle = '#90C8D8';
       ctx.fillRect(px, py, size, size);
-      // 固定波紋（使用 tile hash）
-      const wh = (tileX * 5 + tileY * 9) % 4;
+      const wh = ((tileX * 5 + tileY * 9) % 4 + animOffset) % 4;
       ctx.fillStyle = '#B8E0F0';
-      ctx.fillRect(px, py + wh * p, size, 2 * p);
-      ctx.fillRect(px, py + wh * p + size / 3, size * 0.6, p);
-      ctx.fillRect(px + size * 0.4, py + wh * p + size * 2 / 3, size * 0.5, p);
-      // 右下深色（陰影感）
+      ctx.fillRect(px + animOffset % 3, py + wh * p, Math.max(1, size - animOffset % 3), 2 * p);
+      ctx.fillRect(px + animOffset % 2, py + wh * p + size / 3, Math.max(1, size * 0.6 - animOffset % 2), p);
+      ctx.fillRect(px + size * 0.4 + animOffset % 2, py + wh * p + size * 2 / 3, Math.max(1, size * 0.5 - animOffset % 2), p);
       ctx.fillStyle = '#68B0C0';
       ctx.fillRect(px + size * 0.7, py + size * 0.7, size * 0.3, size * 0.3);
       break;
@@ -5795,17 +5737,13 @@ function drawCommunityPark(ctx, x, y, width, height, tileSize) {
     ctx.fillRect(treeX - width * 0.02, treeY + height * 0.1, width * 0.04, height * 0.15);
     
     ctx.fillStyle = '#228B22';
-    ctx.beginPath();
-    ctx.arc(treeX, treeY, width * 0.08, 0, Math.PI * 2);
-    ctx.fill();
+    const treeR1 = Math.max(2, width * 0.08);
+    ctx.fillRect(treeX - treeR1, treeY - treeR1, treeR1 * 2, treeR1 * 2);
     
     ctx.fillStyle = '#2E8B57';
-    ctx.beginPath();
-    ctx.arc(treeX - width * 0.05, treeY + height * 0.03, width * 0.06, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(treeX + width * 0.05, treeY + height * 0.03, width * 0.06, 0, Math.PI * 2);
-    ctx.fill();
+    const treeR2 = Math.max(2, width * 0.06);
+    ctx.fillRect(treeX - width * 0.05 - treeR2, treeY + height * 0.03 - treeR2, treeR2 * 2, treeR2 * 2);
+    ctx.fillRect(treeX + width * 0.05 - treeR2, treeY + height * 0.03 - treeR2, treeR2 * 2, treeR2 * 2);
   });
   
   ctx.fillStyle = '#4682B4';
@@ -5859,30 +5797,20 @@ function drawLighthouse(ctx, x, y, width, height, tileSize) {
   ctx.strokeRect(x + width * 0.42, y + height * 0.15, width * 0.16, height * 0.06);
   
   ctx.fillStyle = '#CC0000';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.08, width * 0.15, 0, Math.PI * 2);
-  ctx.fill();
+  const lightR1 = Math.max(2, width * 0.15);
+  ctx.fillRect(x + width * 0.5 - lightR1, y + height * 0.08 - lightR1, lightR1 * 2, lightR1 * 2);
   
   ctx.fillStyle = '#FF0000';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.08, width * 0.1, 0, Math.PI * 2);
-  ctx.fill();
+  const lightR2 = Math.max(2, width * 0.1);
+  ctx.fillRect(x + width * 0.5 - lightR2, y + height * 0.08 - lightR2, lightR2 * 2, lightR2 * 2);
   
   ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.08, width * 0.05, 0, Math.PI * 2);
-  ctx.fill();
+  const lightR3 = Math.max(2, width * 0.05);
+  ctx.fillRect(x + width * 0.5 - lightR3, y + height * 0.08 - lightR3, lightR3 * 2, lightR3 * 2);
   
-  const gradient = ctx.createRadialGradient(
-    x + width * 0.5, y + height * 0.08, 0,
-    x + width * 0.5, y + height * 0.08, width * 0.2
-  );
-  gradient.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
-  gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.08, width * 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+  const glowR = Math.max(2, width * 0.2);
+  ctx.fillRect(x + width * 0.5 - glowR, y + height * 0.08 - glowR, glowR * 2, glowR * 2);
   
   ctx.fillStyle = '#eaeaea';
   ctx.font = `${Math.max(10, tileSize * 0.25)}px "Noto Sans TC"`;
@@ -5961,14 +5889,13 @@ function drawSportsField(ctx, x, y, width, height, tileSize) {
   ctx.lineTo(x + width * 0.5, y + height * 0.9);
   ctx.stroke();
   
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.5, width * 0.12, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x + width * 0.38, y + height * 0.38, width * 0.24, height * 0.24);
   
   ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.arc(x + width * 0.5, y + height * 0.5, width * 0.03, 0, Math.PI * 2);
-  ctx.fill();
+  const centerR = Math.max(2, width * 0.03);
+  ctx.fillRect(x + width * 0.5 - centerR, y + height * 0.5 - centerR, centerR * 2, centerR * 2);
   
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(x + width * 0.02, y + height * 0.35, width * 0.03, height * 0.3);
@@ -6528,17 +6455,13 @@ function drawPark(ctx, x, y, width, height, tileSize) {
     ctx.fillRect(treeX - width * 0.015, treeY + height * 0.08, width * 0.03, height * 0.12);
     
     ctx.fillStyle = '#228B22';
-    ctx.beginPath();
-    ctx.arc(treeX, treeY, width * 0.06, 0, Math.PI * 2);
-    ctx.fill();
+    const r1 = Math.max(2, width * 0.06);
+    ctx.fillRect(treeX - r1, treeY - r1, r1 * 2, r1 * 2);
     
     ctx.fillStyle = '#2E8B57';
-    ctx.beginPath();
-    ctx.arc(treeX - width * 0.04, treeY + height * 0.02, width * 0.045, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(treeX + width * 0.04, treeY + height * 0.02, width * 0.045, 0, Math.PI * 2);
-    ctx.fill();
+    const r2 = Math.max(2, width * 0.045);
+    ctx.fillRect(treeX - width * 0.04 - r2, treeY + height * 0.02 - r2, r2 * 2, r2 * 2);
+    ctx.fillRect(treeX + width * 0.04 - r2, treeY + height * 0.02 - r2, r2 * 2, r2 * 2);
   });
   
   ctx.fillStyle = '#4682B4';
@@ -6739,21 +6662,75 @@ function showShopInfo(building) {
 }
 
 function enterRoom(roomKey) {
-  HomeApp.currentRoom = roomKey;
-  HomeApp.currentSubRoom = 'living_room';
+  if (HomeApp.currentCommunity) {
+    startDoorEntryEffect(() => {
+      HomeApp.currentRoom = roomKey;
+      HomeApp.currentSubRoom = 'living_room';
+      
+      const titleEl = document.querySelector('#room-view .app-title');
+      if (titleEl) titleEl.textContent = '我的小屋';
+      
+      document.getElementById('map-view').classList.add('hidden');
+      document.getElementById('room-view').classList.remove('hidden');
+      
+      renderRoomTabs();
+      initRoomCanvas();
+      renderRoom();
+      renderCharacter();
+      
+      if (window.lucide) lucide.createIcons();
+    });
+  } else {
+    HomeApp.currentRoom = roomKey;
+    HomeApp.currentSubRoom = 'living_room';
+    
+    const titleEl = document.querySelector('#room-view .app-title');
+    if (titleEl) titleEl.textContent = '我的小屋';
+    
+    document.getElementById('map-view').classList.add('hidden');
+    document.getElementById('room-view').classList.remove('hidden');
+    
+    renderRoomTabs();
+    initRoomCanvas();
+    renderRoom();
+    renderCharacter();
+    
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+function startDoorEntryEffect(callback) {
+  HomeApp.doorEntryFade = 0;
+  HomeApp.doorEntryTarget = callback;
   
-  const titleEl = document.querySelector('#room-view .app-title');
-  if (titleEl) titleEl.textContent = '我的小屋';
+  const fadeStep = () => {
+    HomeApp.doorEntryFade += 0.15;
+    if (HomeApp.currentCommunity) {
+      renderCommunityMap();
+    }
+    
+    if (HomeApp.doorEntryFade < 1) {
+      requestAnimationFrame(fadeStep);
+    } else {
+      if (HomeApp.doorEntryTarget) {
+        HomeApp.doorEntryTarget();
+        HomeApp.doorEntryTarget = null;
+      }
+      
+      const fadeIn = () => {
+        HomeApp.doorEntryFade -= 0.15;
+        if (HomeApp.doorEntryFade > 0) {
+          requestAnimationFrame(fadeIn);
+        } else {
+          HomeApp.doorEntryFade = 0;
+        }
+        renderRoom();
+      };
+      requestAnimationFrame(fadeIn);
+    }
+  };
   
-  document.getElementById('map-view').classList.add('hidden');
-  document.getElementById('room-view').classList.remove('hidden');
-  
-  renderRoomTabs();
-  initRoomCanvas();
-  renderRoom();
-  renderCharacter();
-  
-  if (window.lucide) lucide.createIcons();
+  requestAnimationFrame(fadeStep);
 }
 
 function renderRoomTabs() {
@@ -6986,11 +6963,7 @@ function renderRoom() {
   const room = ROOM_TYPES[HomeApp.currentSubRoom];
   
   if (room.isOutdoor) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#87CEEB');
-    gradient.addColorStop(0.3, '#e0f0ff');
-    gradient.addColorStop(1, '#8B7355');
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     ctx.fillStyle = '#8B7355';
@@ -8771,9 +8744,7 @@ function drawMapEditItemPreview(ctx, item, size) {
     }
   } else if (item.type === 'tree') {
     ctx.fillStyle = item.treeType === 'cherry' ? '#FFB7C5' : '#228B22';
-    ctx.beginPath();
-    ctx.arc(8 * s, 6 * s, 5 * s, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(3 * s, 1 * s, 10 * s, 10 * s);
     ctx.fillStyle = '#8B4513';
     ctx.fillRect(7 * s, 10 * s, 2 * s, 4 * s);
   } else if (item.type === 'flower') {
@@ -8781,12 +8752,8 @@ function drawMapEditItemPreview(ctx, item, size) {
     ctx.fillRect(0, 10 * s, 16 * s, 6 * s);
     const flowerColor = item.flowerType === 'tulip' ? '#FF6347' : item.flowerType === 'rose' ? '#DC143C' : '#FF69B4';
     ctx.fillStyle = flowerColor;
-    ctx.beginPath();
-    ctx.arc(4 * s, 8 * s, 3 * s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(12 * s, 8 * s, 3 * s, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(1 * s, 5 * s, 6 * s, 6 * s);
+    ctx.fillRect(9 * s, 5 * s, 6 * s, 6 * s);
   } else if (item.type === 'bench') {
     ctx.fillStyle = '#8B4513';
     ctx.fillRect(0, 6 * s, 16 * s, 4 * s);
@@ -8796,9 +8763,7 @@ function drawMapEditItemPreview(ctx, item, size) {
     ctx.fillStyle = '#333';
     ctx.fillRect(7 * s, 4 * s, 2 * s, 10 * s);
     ctx.fillStyle = '#FFD700';
-    ctx.beginPath();
-    ctx.arc(8 * s, 4 * s, 3 * s, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(5 * s, 1 * s, 6 * s, 6 * s);
   } else if (item.type === 'mailbox') {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(5 * s, 6 * s, 6 * s, 8 * s);
@@ -8806,13 +8771,9 @@ function drawMapEditItemPreview(ctx, item, size) {
     ctx.fillRect(6 * s, 8 * s, 4 * s, 3 * s);
   } else if (item.type === 'rock') {
     ctx.fillStyle = '#696969';
-    ctx.beginPath();
-    ctx.arc(8 * s, 10 * s, 5 * s, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(3 * s, 5 * s, 10 * s, 10 * s);
     ctx.fillStyle = '#808080';
-    ctx.beginPath();
-    ctx.arc(6 * s, 8 * s, 3 * s, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(3 * s, 5 * s, 6 * s, 6 * s);
   } else if (item.type === 'pond') {
     ctx.fillStyle = '#4682B4';
     ctx.beginPath();

@@ -1,3 +1,49 @@
+const DP_ARCADE = {
+  floor_base: '#c0a880',
+  floor_light: '#d0b890',
+  floor_dark: '#a89070',
+  floor_grout: '#908060',
+  floor_alt: '#b8a078',
+  floor_carpet: '#803030',
+  floor_carpet_l: '#a04040',
+  wall_base: '#585878',
+  wall_light: '#686888',
+  wall_dark: '#484868',
+  wall_trim: '#d0a040',
+  wall_trim_dark: '#a08030',
+  cabinet_base: '#383848',
+  cabinet_light: '#484858',
+  cabinet_dark: '#282838',
+  cabinet_edge: '#202030',
+  cabinet_screen: '#90d8a0',
+  cabinet_screen_light: '#b0f0c0',
+  cabinet_screen_dark: '#60a070',
+  neon_yellow: '#f0d040',
+  neon_pink: '#f080a0',
+  neon_cyan: '#60c0e0',
+  neon_purple: '#a060d0',
+  neon_red: '#e05050',
+  neon_green: '#60c060',
+  stair_top: '#908880',
+  stair_front: '#787070',
+  stair_shadow: '#585050',
+  desk_top: '#c89858',
+  desk_front: '#a87840',
+  desk_shadow: '#806030',
+  coin_gold: '#f0d040',
+  coin_shadow: '#c0a030',
+  bench_seat: '#c04040',
+  bench_frame: '#a87840',
+  ui_bg: '#e8e0d0',
+  ui_border_out: '#383060',
+  ui_border_in: '#6090d0',
+  ui_text: '#282828',
+  ui_highlight: '#f0d040',
+  ui_card_bg: '#f0ece0',
+  outline: '#202020',
+  shadow_cast: 'rgba(0,0,20,0.22)'
+};
+
 const TILE_SIZE = 32;
 const MAP_WIDTH = 20;
 const MAP_HEIGHT = 15;
@@ -18,26 +64,26 @@ const TILE_TYPES = {
 const FLOOR_CONFIGS = {
   '1F': {
     name: '大廳',
-    color: '#1a1a2e',
-    accentColor: '#fbbf24',
+    color: DP_ARCADE.wall_base,
+    accentColor: DP_ARCADE.neon_yellow,
     description: '入口大廳，可兌換金幣'
   },
   '2F': {
     name: '休閒遊戲區',
-    color: '#0d2818',
-    accentColor: '#22c55e',
+    color: DP_ARCADE.cabinet_base,
+    accentColor: DP_ARCADE.neon_green,
     description: '經典街機遊戲'
   },
   '3F': {
     name: '抽卡模擬區',
-    color: '#1a0a2e',
-    accentColor: '#a855f7',
+    color: DP_ARCADE.wall_dark,
+    accentColor: DP_ARCADE.neon_purple,
     description: '各大遊戲抽卡模擬'
   },
   'B1': {
     name: '限制級遊戲區',
-    color: '#2a0a0a',
-    accentColor: '#ef4444',
+    color: DP_ARCADE.cabinet_dark,
+    accentColor: DP_ARCADE.neon_red,
     description: '僅限18歲以上',
     restricted: true
   }
@@ -86,6 +132,14 @@ const MAP_DATA = {
   'B1': generateFloorB1()
 };
 
+const FLOOR_TRANSITION_EFFECT = {
+  type: 'flash',
+  color: '#ffffff',
+  duration: 300,
+  fadeIn: 150,
+  fadeOut: 150
+};
+
 function generateFloor1F() {
   const map = [];
   for (let y = 0; y < MAP_HEIGHT; y++) {
@@ -99,32 +153,33 @@ function generateFloor1F() {
     }
   }
   
-  map[2][2] = { type: TILE_TYPES.SERVICE_DESK, name: '服務台', interaction: 'exchange' };
-  map[2][3] = { type: TILE_TYPES.DECORATION, name: '植物' };
-  map[2][16] = { type: TILE_TYPES.DECORATION, name: '植物' };
+  map[4][9] = { type: TILE_TYPES.SERVICE_DESK, name: '服務台', interaction: 'exchange' };
+  map[4][10] = { type: TILE_TYPES.SERVICE_DESK, name: '服務台', interaction: 'exchange' };
+  
+  map[2][2] = { type: TILE_TYPES.DECORATION, name: '植物' };
   map[2][17] = { type: TILE_TYPES.DECORATION, name: '植物' };
   
-  map[7][4] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
-  map[7][5] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[8][3] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
   map[8][4] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
-  map[8][5] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[9][3] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[9][4] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
   
-  map[7][14] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
-  map[7][15] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
-  map[8][14] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
   map[8][15] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[8][16] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[9][15] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
+  map[9][16] = { type: TILE_TYPES.REST_AREA, name: '休息區' };
   
-  map[MAP_HEIGHT - 2][9] = { type: TILE_TYPES.STAIR_UP, targetFloor: '2F', targetPos: { x: 9, y: 1 } };
-  map[MAP_HEIGHT - 2][10] = { type: TILE_TYPES.STAIR_UP, targetFloor: '2F', targetPos: { x: 10, y: 1 } };
+  map[MAP_HEIGHT - 2][4] = { type: TILE_TYPES.STAIR_UP, targetFloor: '2F', targetPos: { x: 4, y: 2 }, transition: FLOOR_TRANSITION_EFFECT };
+  map[MAP_HEIGHT - 2][5] = { type: TILE_TYPES.STAIR_UP, targetFloor: '2F', targetPos: { x: 5, y: 2 }, transition: FLOOR_TRANSITION_EFFECT };
   
-  map[MAP_HEIGHT - 2][16] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: 'B1', targetPos: { x: 9, y: 1 }, restricted: true };
-  map[MAP_HEIGHT - 2][17] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: 'B1', targetPos: { x: 10, y: 1 }, restricted: true };
+  map[MAP_HEIGHT - 2][14] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: 'B1', targetPos: { x: 9, y: 2 }, restricted: true, transition: FLOOR_TRANSITION_EFFECT };
+  map[MAP_HEIGHT - 2][15] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: 'B1', targetPos: { x: 10, y: 2 }, restricted: true, transition: FLOOR_TRANSITION_EFFECT };
   
-  map[MAP_HEIGHT - 3][15] = { type: TILE_TYPES.NPC, name: '守門人', dialogue: 'adult_gate', isAdultGate: true };
-  map[MAP_HEIGHT - 3][16] = { type: TILE_TYPES.DECORATION, name: '警告標誌', warning: true };
-  map[MAP_HEIGHT - 3][17] = { type: TILE_TYPES.DECORATION, name: '警告標誌', warning: true };
+  map[MAP_HEIGHT - 3][13] = { type: TILE_TYPES.NPC, name: '守門人', dialogue: 'adult_gate', isAdultGate: true };
+  map[MAP_HEIGHT - 3][14] = { type: TILE_TYPES.DECORATION, name: '警告標誌', warning: true };
+  map[MAP_HEIGHT - 3][15] = { type: TILE_TYPES.DECORATION, name: '警告標誌', warning: true };
   
-  map[5][9] = { type: TILE_TYPES.NPC, name: '導覽員', dialogue: '歡迎來到街機廳！上樓可以玩各種遊戲喔！' };
+  map[6][9] = { type: TILE_TYPES.NPC, name: '導覽員', dialogue: '歡迎來到街機廳！上樓可以玩各種遊戲喔！' };
   
   map[1][9] = { type: TILE_TYPES.EMPTY };
   map[1][10] = { type: TILE_TYPES.EMPTY };
@@ -145,44 +200,43 @@ function generateFloor2F() {
     }
   }
   
-  map[1][9] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 9, y: MAP_HEIGHT - 3 } };
-  map[1][10] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 10, y: MAP_HEIGHT - 3 } };
+  map[2][4] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 4, y: MAP_HEIGHT - 3 }, transition: FLOOR_TRANSITION_EFFECT };
+  map[2][5] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 5, y: MAP_HEIGHT - 3 }, transition: FLOOR_TRANSITION_EFFECT };
   
-  map[MAP_HEIGHT - 2][9] = { type: TILE_TYPES.STAIR_UP, targetFloor: '3F', targetPos: { x: 9, y: 1 } };
-  map[MAP_HEIGHT - 2][10] = { type: TILE_TYPES.STAIR_UP, targetFloor: '3F', targetPos: { x: 10, y: 1 } };
+  map[MAP_HEIGHT - 2][4] = { type: TILE_TYPES.STAIR_UP, targetFloor: '3F', targetPos: { x: 4, y: 2 }, transition: FLOOR_TRANSITION_EFFECT };
+  map[MAP_HEIGHT - 2][5] = { type: TILE_TYPES.STAIR_UP, targetFloor: '3F', targetPos: { x: 5, y: 2 }, transition: FLOOR_TRANSITION_EFFECT };
   
+  map[3][2] = { type: TILE_TYPES.MACHINE, machineId: 'snake' };
   map[3][3] = { type: TILE_TYPES.MACHINE, machineId: 'snake' };
-  map[3][4] = { type: TILE_TYPES.MACHINE, machineId: 'snake' };
-  map[3][7] = { type: TILE_TYPES.MACHINE, machineId: 'snake' };
-  map[3][8] = { type: TILE_TYPES.MACHINE, machineId: 'snake' };
+  map[3][6] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
+  map[3][7] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
   
-  map[6][3] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
-  map[6][4] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
-  map[6][7] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
-  map[6][8] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
+  map[6][2] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
+  map[6][3] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
+  map[6][6] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
+  map[6][7] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
   
-  map[9][3] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
-  map[9][4] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
-  map[9][7] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
-  map[9][8] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
+  map[9][2] = { type: TILE_TYPES.MACHINE, machineId: 'memory' };
+  map[9][3] = { type: TILE_TYPES.MACHINE, machineId: 'memory' };
+  map[9][6] = { type: TILE_TYPES.MACHINE, machineId: 'pinball' };
+  map[9][7] = { type: TILE_TYPES.MACHINE, machineId: 'pinball' };
   
-  map[3][12] = { type: TILE_TYPES.MACHINE, machineId: 'memory' };
-  map[3][13] = { type: TILE_TYPES.MACHINE, machineId: 'memory' };
-  map[3][16] = { type: TILE_TYPES.MACHINE, machineId: 'pinball' };
-  map[3][17] = { type: TILE_TYPES.MACHINE, machineId: 'pinball' };
+  map[3][12] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
+  map[3][13] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
+  map[3][16] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
+  map[3][17] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
   
-  map[9][16] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
-  map[9][17] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
+  map[6][12] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
+  map[6][13] = { type: TILE_TYPES.MACHINE, machineId: 'dart' };
+  map[6][16] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
+  map[6][17] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
   
-  map[12][3] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
-  map[12][4] = { type: TILE_TYPES.MACHINE, machineId: 'pachinko' };
-  map[12][7] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
-  map[12][8] = { type: TILE_TYPES.MACHINE, machineId: 'pachislot' };
+  map[9][12] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
+  map[9][13] = { type: TILE_TYPES.MACHINE, machineId: 'tetris' };
+  map[9][16] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
+  map[9][17] = { type: TILE_TYPES.MACHINE, machineId: 'whackamole' };
   
-  map[6][12] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
-  map[6][13] = { type: TILE_TYPES.MACHINE, machineId: 'slot' };
-  
-  map[5][16] = { type: TILE_TYPES.NPC, name: '遊戲達人', dialogue: '貪吃蛇和拉霸機都很經典喔！試試看吧！' };
+  map[11][9] = { type: TILE_TYPES.NPC, name: '遊戲達人', dialogue: '貪吃蛇和拉霸機都很經典喔！試試看吧！' };
   
   return map;
 }
@@ -200,29 +254,27 @@ function generateFloor3F() {
     }
   }
   
-  map[1][9] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '2F', targetPos: { x: 9, y: MAP_HEIGHT - 3 } };
-  map[1][10] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '2F', targetPos: { x: 10, y: MAP_HEIGHT - 3 } };
+  map[2][4] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '2F', targetPos: { x: 4, y: MAP_HEIGHT - 3 }, transition: FLOOR_TRANSITION_EFFECT };
+  map[2][5] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '2F', targetPos: { x: 5, y: MAP_HEIGHT - 3 }, transition: FLOOR_TRANSITION_EFFECT };
   
-  // 一般抽卡遊戲區 (左側)
+  map[3][2] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_genshin' };
   map[3][3] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_genshin' };
-  map[3][4] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_genshin' };
-  map[3][7] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_starrail' };
   map[3][8] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_starrail' };
+  map[3][9] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_starrail' };
   
+  map[6][2] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_zzz' };
   map[6][3] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_zzz' };
-  map[6][4] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_zzz' };
-  map[6][7] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_fgo' };
   map[6][8] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_fgo' };
+  map[6][9] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_fgo' };
   
+  map[9][2] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_wuwa' };
   map[9][3] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_wuwa' };
-  map[9][4] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_wuwa' };
-  map[9][7] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_es' };
   map[9][8] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_es' };
+  map[9][9] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_es' };
   
   map[3][12] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_pjsk' };
   map[3][13] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_pjsk' };
   
-  // 乙女遊戲區 (右側)
   map[6][12] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_lightandnight' };
   map[6][13] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_lightandnight' };
   map[6][16] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_lovedeepspace' };
@@ -233,13 +285,13 @@ function generateFloor3F() {
   map[9][16] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_worldoutside' };
   map[9][17] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_worldoutside' };
   
-  map[11][3] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_shiningname' };
-  map[11][4] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_shiningname' };
-  map[11][7] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_hell' };
-  map[11][8] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_hell' };
+  map[12][2] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_shiningname' };
+  map[12][3] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_shiningname' };
+  map[12][8] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_hell' };
+  map[12][9] = { type: TILE_TYPES.MACHINE, machineId: 'gacha_hell' };
   
-  map[5][16] = { type: TILE_TYPES.NPC, name: '抽卡大師', dialogue: '每個池都有不同的保底機制，祝你好運！' };
-  map[11][16] = { type: TILE_TYPES.NPC, name: '乙女攻略員', dialogue: '右下角是乙女遊戲區，歡迎來抽老公！' };
+  map[11][15] = { type: TILE_TYPES.NPC, name: '抽卡大師', dialogue: '每個池都有不同的保底機制，祝你好運！' };
+  map[12][15] = { type: TILE_TYPES.NPC, name: '乙女攻略員', dialogue: '右下角是乙女遊戲區，歡迎來抽老公！' };
   
   return map;
 }
@@ -252,28 +304,37 @@ function generateFloorB1() {
       if (x === 0 || x === MAP_WIDTH - 1 || y === 0 || y === MAP_HEIGHT - 1) {
         map[y][x] = { type: TILE_TYPES.WALL };
       } else {
-        map[y][x] = { type: TILE_TYPES.FLOOR };
+        map[y][x] = { type: TILE_TYPES.FLOOR, carpet: true };
       }
     }
   }
   
-  map[1][9] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '3F', targetPos: { x: 9, y: MAP_HEIGHT - 3 } };
-  map[1][10] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '3F', targetPos: { x: 10, y: MAP_HEIGHT - 3 } };
+  map[2][9] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 14, y: MAP_HEIGHT - 3 }, restricted: true, transition: FLOOR_TRANSITION_EFFECT };
+  map[2][10] = { type: TILE_TYPES.STAIR_DOWN, targetFloor: '1F', targetPos: { x: 15, y: MAP_HEIGHT - 3 }, restricted: true, transition: FLOOR_TRANSITION_EFFECT };
   
+  map[3][2] = { type: TILE_TYPES.MACHINE, machineId: 'yellowcard' };
   map[3][3] = { type: TILE_TYPES.MACHINE, machineId: 'yellowcard' };
-  map[3][4] = { type: TILE_TYPES.MACHINE, machineId: 'yellowcard' };
-  map[3][7] = { type: TILE_TYPES.MACHINE, machineId: 'truthdare' };
-  map[3][8] = { type: TILE_TYPES.MACHINE, machineId: 'truthdare' };
+  map[3][9] = { type: TILE_TYPES.MACHINE, machineId: 'truthdare' };
+  map[3][10] = { type: TILE_TYPES.MACHINE, machineId: 'truthdare' };
   
-  map[6][3] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
-  map[6][4] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
-  map[6][7] = { type: TILE_TYPES.MACHINE, machineId: 'kinggame' };
-  map[6][8] = { type: TILE_TYPES.MACHINE, machineId: 'kinggame' };
+  map[7][2] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
+  map[7][3] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
+  map[7][9] = { type: TILE_TYPES.MACHINE, machineId: 'kinggame' };
+  map[7][10] = { type: TILE_TYPES.MACHINE, machineId: 'kinggame' };
   
-  map[9][3] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
-  map[9][4] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
-  map[9][7] = { type: TILE_TYPES.MACHINE, machineId: 'drunkpoker' };
-  map[9][8] = { type: TILE_TYPES.MACHINE, machineId: 'drunkpoker' };
+  map[11][2] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
+  map[11][3] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
+  map[11][9] = { type: TILE_TYPES.MACHINE, machineId: 'drunkpoker' };
+  map[11][10] = { type: TILE_TYPES.MACHINE, machineId: 'drunkpoker' };
+  
+  map[3][15] = { type: TILE_TYPES.MACHINE, machineId: 'yellowcard' };
+  map[3][16] = { type: TILE_TYPES.MACHINE, machineId: 'yellowcard' };
+  
+  map[7][15] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
+  map[7][16] = { type: TILE_TYPES.MACHINE, machineId: 'roulette' };
+  
+  map[11][15] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
+  map[11][16] = { type: TILE_TYPES.MACHINE, machineId: 'oldmaid' };
   
   map[5][16] = { type: TILE_TYPES.NPC, name: '神秘服務員', dialogue: '這裡的遊戲比較...特別。請注意分寸。' };
   
@@ -283,9 +344,9 @@ function generateFloorB1() {
 function getSpawnPosition(floor) {
   switch (floor) {
     case '1F': return { x: 9, y: 12 };
-    case '2F': return { x: 9, y: 2 };
-    case '3F': return { x: 9, y: 2 };
-    case 'B1': return { x: 9, y: 2 };
+    case '2F': return { x: 5, y: 3 };
+    case '3F': return { x: 5, y: 3 };
+    case 'B1': return { x: 10, y: 3 };
     default: return { x: 9, y: 12 };
   }
 }

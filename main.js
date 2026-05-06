@@ -506,7 +506,7 @@
             chat: '聊天', settings: '設定', album: '相簿', touch: '輔助觸控', worldbook: '世界書', pomodoro: '番茄鐘',
             weather: '天氣', twitter: '推特', facebook: '臉書', chrome: 'Chrome', bilibili: 'bilibili', youtube: 'YouTube',
             'exchange-diary': '交換日記', lofter: 'lofter', 'drift-bottle': '漂流瓶', 'match-3': '消消樂', bubbles: 'bubbles',
-            weverse: 'weverse', 'daily-recipe': '每日食譜', music: '音樂', delivery: '外送', taobao: '購物', dating: '約會',
+            weverse: 'weverse', 'daily-recipe': '每日食譜', music: '音樂', delivery: '外送', taobao: '購物', dating: '約會', farm: '農場',
             'guzi-guide': '谷子圖鑒', 'smart-painter': '照相館', instagram: 'Instagram', timetree: 'timetree', pub: '酒館',
             kakaopay: 'kakaopay', widget: 'widget', twitch: 'twitch', appearance: '外觀', ao3: 'AO3', phone: '電話', passkey: 'Passkey', theater: '劇場', arcade: '街機廳', 'personal-wiki': '個人紀錄'
         },
@@ -514,7 +514,7 @@
             chat: '聊天', settings: '设置', album: '相册', touch: '辅助触控', worldbook: '世界书', pomodoro: '番茄钟',
             weather: '天气', twitter: '推特', facebook: '脸书', chrome: 'Chrome', bilibili: 'bilibili', youtube: 'YouTube',
             'exchange-diary': '交换日记', lofter: 'lofter', 'drift-bottle': '漂流瓶', 'match-3': '消消乐', bubbles: 'bubbles',
-            weverse: 'weverse', 'daily-recipe': '每日食谱', music: '音乐', delivery: '外送', taobao: '淘宝', dating: '约会',
+            weverse: 'weverse', 'daily-recipe': '每日食谱', music: '音乐', delivery: '外送', taobao: '淘宝', dating: '约会', farm: '农场',
             'guzi-guide': '谷子图鉴', 'smart-painter': '智画师', instagram: 'Instagram', timetree: 'timetree', pub: '酒馆',
             kakaopay: 'kakaopay', widget: 'widget', twitch: 'twitch', appearance: '外观', ao3: 'AO3', phone: '电话', passkey: 'Passkey', theater: '剧场', arcade: '街机厅', 'personal-wiki': '个人纪录'
         },
@@ -522,7 +522,7 @@
             chat: 'Chat', settings: 'Settings', album: 'Album', touch: 'AssistiveTouch', worldbook: 'Worldbook', pomodoro: 'Pomodoro',
             weather: 'Weather', twitter: 'Twitter', facebook: 'Facebook', chrome: 'Chrome', bilibili: 'bilibili', youtube: 'YouTube',
             'exchange-diary': 'Diary', lofter: 'lofter', 'drift-bottle': 'Drift Bottle', 'match-3': 'Match 3', bubbles: 'bubbles',
-            weverse: 'weverse', 'daily-recipe': 'Recipes', music: 'Music', delivery: 'Delivery', taobao: 'Taobao', dating: 'Dating',
+            weverse: 'weverse', 'daily-recipe': 'Recipes', music: 'Music', delivery: 'Delivery', taobao: 'Taobao', dating: 'Dating', farm: 'Farm',
             'guzi-guide': 'Guzi Guide', 'smart-painter': 'Smart Painter', instagram: 'Instagram', timetree: 'timetree', pub: 'Pub',
             kakaopay: 'kakaopay', widget: 'widget', twitch: 'twitch', appearance: 'Appearance', ao3: 'AO3', phone: 'Phone', passkey: 'Passkey', theater: 'Theater', arcade: 'Arcade', 'personal-wiki': 'Personal Wiki'
         },
@@ -530,7 +530,7 @@
             chat: 'チャット', settings: '設定', album: 'アルバム', touch: 'AssistiveTouch', worldbook: 'ワールドブック', pomodoro: 'ポモドーロ',
             weather: '天気', twitter: 'Twitter', facebook: 'Facebook', chrome: 'Chrome', bilibili: 'bilibili', youtube: 'YouTube',
             'exchange-diary': '交換日記', lofter: 'lofter', 'drift-bottle': '漂流ボトル', 'match-3': 'マッチ3', bubbles: 'bubbles',
-            weverse: 'weverse', 'daily-recipe': '毎日のレシピ', music: '音楽', delivery: 'デリバリー', taobao: 'Taobao', dating: 'デート',
+            weverse: 'weverse', 'daily-recipe': '毎日のレシピ', music: '音楽', delivery: 'デリバリー', taobao: 'Taobao', dating: 'デート', farm: '農場',
             'guzi-guide': 'グッズ図鑑', 'smart-painter': 'スマート絵師', instagram: 'Instagram', timetree: 'timetree', pub: '酒場',
             kakaopay: 'kakaopay', widget: 'widget', twitch: 'twitch', appearance: '外観', ao3: 'AO3', phone: '電話', passkey: 'Passkey', theater: '劇場', arcade: 'アーケード', 'personal-wiki': '個人記録'
         },
@@ -538,7 +538,7 @@
             chat: '채팅', settings: '설정', album: '앨범', touch: '보조 터치', worldbook: '월드북', pomodoro: '포모도로',
             weather: '날씨', twitter: '트위터', facebook: '페이스북', chrome: 'Chrome', bilibili: 'bilibili', youtube: 'YouTube',
             'exchange-diary': '교환 일기', lofter: 'lofter', 'drift-bottle': '표류병', 'match-3': '매치3', bubbles: 'bubbles',
-            weverse: 'weverse', 'daily-recipe': '오늘의 레시피', music: '음악', delivery: '배달', taobao: 'Taobao', dating: '데이트',
+            weverse: 'weverse', 'daily-recipe': '오늘의 레시피', music: '음악', delivery: '배달', taobao: 'Taobao', dating: '데이트', farm: '농장',
             'guzi-guide': '구즈 가이드', 'smart-painter': '스마트 페인터', instagram: 'Instagram', timetree: 'timetree', pub: '펍',
             kakaopay: 'kakaopay', widget: 'widget', twitch: 'twitch', appearance: '외관', ao3: 'AO3', phone: '전화', passkey: 'Passkey', theater: '극장', arcade: '오락실', 'personal-wiki': '개인 기록'
         }
@@ -754,6 +754,9 @@
         },
         theater: {
             keys: ['sx_theater_content', 'sx_theater_progress', 'sx_theater_mylist']
+        },
+        farm: {
+            keys: ['sx_farm_save', 'sx_farm_settings']
         }
     };
 

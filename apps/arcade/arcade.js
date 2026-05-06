@@ -3036,6 +3036,7 @@ function renderPinballGame() {
 function initPinball() {
   pinballCanvas = document.getElementById('pinball-canvas');
   pinballCtx = pinballCanvas.getContext('2d');
+  pinballCtx.imageSmoothingEnabled = false;
   pinballScore = 0;
   pinballBalls = 3;
   
@@ -3073,37 +3074,50 @@ function pinballPaddleUp(side) {
 function pinballGameLoop() {
   if (!pinballCtx) return;
   
-  pinballCtx.fillStyle = '#1a1a2e';
+  pinballCtx.imageSmoothingEnabled = false;
+  
+  pinballCtx.fillStyle = DP_ARCADE.cabinet_base;
   pinballCtx.fillRect(0, 0, 300, 500);
   
-  pinballCtx.strokeStyle = '#fbbf24';
-  pinballCtx.lineWidth = 3;
-  pinballCtx.strokeRect(5, 5, 290, 490);
+  pinballCtx.fillStyle = DP_ARCADE.cabinet_light;
+  pinballCtx.fillRect(4, 4, 292, 492);
   
-  pinballCtx.fillStyle = '#a855f7';
-  pinballCtx.beginPath();
-  pinballCtx.arc(100, 100, 15, 0, Math.PI * 2);
-  pinballCtx.fill();
+  pinballCtx.fillStyle = DP_ARCADE.cabinet_dark;
+  pinballCtx.fillRect(8, 8, 284, 484);
   
-  pinballCtx.beginPath();
-  pinballCtx.arc(200, 100, 15, 0, Math.PI * 2);
-  pinballCtx.fill();
+  pinballCtx.fillStyle = DP_ARCADE.ui_bg;
+  pinballCtx.fillRect(10, 10, 280, 30);
+  pinballCtx.fillStyle = DP_ARCADE.ui_border_out;
+  pinballCtx.fillRect(10, 10, 280, 2);
+  pinballCtx.fillRect(10, 38, 280, 2);
+  pinballCtx.fillRect(10, 10, 2, 28);
+  pinballCtx.fillRect(288, 10, 2, 28);
   
-  pinballCtx.beginPath();
-  pinballCtx.arc(150, 180, 15, 0, Math.PI * 2);
-  pinballCtx.fill();
+  pinballCtx.fillStyle = DP_ARCADE.ui_text;
+  pinballCtx.font = '12px monospace';
+  pinballCtx.fillText('SCORE: ' + pinballScore, 20, 28);
   
-  pinballCtx.fillStyle = '#22c55e';
+  const bumperPositions = [
+    { x: 100, y: 100, color: DP_ARCADE.neon_yellow },
+    { x: 200, y: 100, color: DP_ARCADE.neon_pink },
+    { x: 150, y: 180, color: DP_ARCADE.neon_cyan }
+  ];
+  
+  bumperPositions.forEach(b => {
+    drawPixelCircle(pinballCtx, b.x, b.y, 15, b.color);
+  });
+  
+  pinballCtx.fillStyle = DP_ARCADE.neon_green;
   pinballCtx.save();
   pinballCtx.translate(50, 420);
   pinballCtx.rotate(-pinballPaddle.left * Math.PI / 180);
-  pinballCtx.fillRect(0, -5, 40, 10);
+  pinballCtx.fillRect(0, -4, 40, 8);
   pinballCtx.restore();
   
   pinballCtx.save();
   pinballCtx.translate(250, 420);
   pinballCtx.rotate(pinballPaddle.right * Math.PI / 180);
-  pinballCtx.fillRect(-40, -5, 40, 10);
+  pinballCtx.fillRect(-40, -4, 40, 8);
   pinballCtx.restore();
   
   if (pinballBall.launched) {
@@ -3162,12 +3176,24 @@ function pinballGameLoop() {
     });
   }
   
-  pinballCtx.fillStyle = '#ef4444';
-  pinballCtx.beginPath();
-  pinballCtx.arc(pinballBall.x, pinballBall.y, pinballBall.r, 0, Math.PI * 2);
-  pinballCtx.fill();
+  pinballCtx.fillStyle = DP_ARCADE.coin_shadow;
+  pinballCtx.fillRect(pinballBall.x - 1, pinballBall.y - 1, 4, 4);
+  pinballCtx.fillStyle = DP_ARCADE.coin_gold;
+  pinballCtx.fillRect(pinballBall.x - 2, pinballBall.y - 2, 4, 4);
   
   pinballAnimationId = requestAnimationFrame(pinballGameLoop);
+}
+
+function drawPixelCircle(ctx, cx, cy, radius, color) {
+  ctx.fillStyle = color;
+  const r = Math.floor(radius);
+  for (let y = -r; y <= r; y++) {
+    for (let x = -r; x <= r; x++) {
+      if (x * x + y * y <= r * r) {
+        ctx.fillRect(cx + x, cy + y, 1, 1);
+      }
+    }
+  }
 }
 
 // ============ 柏青哥 ============
@@ -3214,6 +3240,7 @@ let pachinkoAimPos = 150;
 function initPachinko() {
   pachinkoCanvas = document.getElementById('pachinko-canvas');
   pachinkoCtx = pachinkoCanvas.getContext('2d');
+  pachinkoCtx.imageSmoothingEnabled = false;
   pachinkoScore = 0;
   pachinkoBalls = 10;
   pachinkoBallQueue = [];
@@ -3589,6 +3616,7 @@ function startDartMode(mode) {
 function initDartGame() {
   dartCanvas = document.getElementById('dart-canvas');
   dartCtx = dartCanvas.getContext('2d');
+  dartCtx.imageSmoothingEnabled = false;
   dartScore = 0;
   dartCharacterScore = 0;
   dartDartsLeft = 5;
@@ -3640,78 +3668,31 @@ function renderDartBoard() {
   dartCtx.fillStyle = '#1a1a2e';
   dartCtx.fillRect(0, 0, 300, 400);
   
-  dartCtx.fillStyle = '#0d0d15';
-  dartCtx.beginPath();
-  dartCtx.arc(cx, cy, outerRadius + 5, 0, Math.PI * 2);
-  dartCtx.fill();
+  drawPixelCircle(dartCtx, cx, cy, outerRadius + 5, '#0d0d15');
   
-  const colors = ['#1a1a1a', '#e8dcc4'];
-  for (let i = 0; i < 20; i++) {
-    const startAngle = (i * 18 - 99) * Math.PI / 180;
-    const endAngle = ((i + 1) * 18 - 99) * Math.PI / 180;
-    
-    dartCtx.fillStyle = colors[i % 2];
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.arc(cx, cy, outerRadius, startAngle, endAngle);
-    dartCtx.closePath();
-    dartCtx.fill();
-  }
+  drawPixelCircle(dartCtx, cx, cy, outerRadius, '#1a1a1a');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.9, '#22c55e');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.54, '#1a1a1a');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.48, '#22c55e');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.16, '#1a1a1a');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.07, '#22c55e');
+  drawPixelCircle(dartCtx, cx, cy, outerRadius * 0.03, '#ef4444');
   
-  for (let i = 0; i < 20; i++) {
-    const startAngle = (i * 18 - 99) * Math.PI / 180;
-    const endAngle = ((i + 1) * 18 - 99) * Math.PI / 180;
-    
-    dartCtx.fillStyle = i % 2 === 0 ? '#22c55e' : '#ef4444';
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.arc(cx, cy, outerRadius * 0.9, startAngle, endAngle);
-    dartCtx.closePath();
-    dartCtx.fill();
-    
-    dartCtx.fillStyle = colors[i % 2];
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.arc(cx, cy, outerRadius * 0.54, startAngle, endAngle);
-    dartCtx.closePath();
-    dartCtx.fill();
-    
-    dartCtx.fillStyle = i % 2 === 0 ? '#22c55e' : '#ef4444';
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.arc(cx, cy, outerRadius * 0.48, startAngle, endAngle);
-    dartCtx.closePath();
-    dartCtx.fill();
-    
-    dartCtx.fillStyle = colors[i % 2];
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.arc(cx, cy, outerRadius * 0.16, startAngle, endAngle);
-    dartCtx.closePath();
-    dartCtx.fill();
-  }
-  
-  dartCtx.fillStyle = '#22c55e';
-  dartCtx.beginPath();
-  dartCtx.arc(cx, cy, outerRadius * 0.07, 0, Math.PI * 2);
-  dartCtx.fill();
-  
-  dartCtx.fillStyle = '#ef4444';
-  dartCtx.beginPath();
-  dartCtx.arc(cx, cy, outerRadius * 0.03, 0, Math.PI * 2);
-  dartCtx.fill();
-  
-  dartCtx.strokeStyle = '#333';
-  dartCtx.lineWidth = 1;
   for (let i = 0; i < 20; i++) {
     const angle = (i * 18 - 99) * Math.PI / 180;
-    dartCtx.beginPath();
-    dartCtx.moveTo(cx, cy);
-    dartCtx.lineTo(cx + Math.cos(angle) * outerRadius, cy + Math.sin(angle) * outerRadius);
-    dartCtx.stroke();
+    const endX = cx + Math.cos(angle) * outerRadius;
+    const endY = cy + Math.sin(angle) * outerRadius;
+    
+    dartCtx.fillStyle = '#333333';
+    const steps = Math.floor(outerRadius / 2);
+    for (let s = 0; s <= steps; s++) {
+      const px = Math.floor(cx + (endX - cx) * s / steps);
+      const py = Math.floor(cy + (endY - cy) * s / steps);
+      dartCtx.fillRect(px, py, 1, 1);
+    }
   }
   
-  dartCtx.font = '10px Arial';
+  dartCtx.font = '10px monospace';
   dartCtx.fillStyle = '#fbbf24';
   dartCtx.textAlign = 'center';
   dartCtx.textBaseline = 'middle';
@@ -3723,43 +3704,33 @@ function renderDartBoard() {
   }
   
   dartThrown.forEach(dart => {
-    dartCtx.fillStyle = '#fbbf24';
-    dartCtx.beginPath();
-    dartCtx.arc(dart.x, dart.y, 4, 0, Math.PI * 2);
-    dartCtx.fill();
-    
-    dartCtx.strokeStyle = '#f59e0b';
-    dartCtx.lineWidth = 2;
-    dartCtx.beginPath();
-    dartCtx.moveTo(dart.x, dart.y);
-    dartCtx.lineTo(dart.x, dart.y - 8);
-    dartCtx.stroke();
+    drawPixelCircle(dartCtx, dart.x, dart.y, 4, '#fbbf24');
+    dartCtx.fillStyle = '#f59e0b';
+    dartCtx.fillRect(dart.x, dart.y - 8, 2, 8);
   });
   
   if (!dartAnimating && dartDartsLeft > 0) {
-    dartCtx.strokeStyle = 'rgba(251, 191, 36, 0.5)';
-    dartCtx.lineWidth = 1;
-    dartCtx.setLineDash([5, 5]);
-    dartCtx.beginPath();
-    dartCtx.arc(dartAim.x, dartAim.y, 15, 0, Math.PI * 2);
-    dartCtx.stroke();
-    dartCtx.beginPath();
-    dartCtx.moveTo(dartAim.x - 20, dartAim.y);
-    dartCtx.lineTo(dartAim.x + 20, dartAim.y);
-    dartCtx.stroke();
-    dartCtx.beginPath();
-    dartCtx.moveTo(dartAim.x, dartAim.y - 20);
-    dartCtx.lineTo(dartAim.x, dartAim.y + 20);
-    dartCtx.stroke();
-    dartCtx.setLineDash([]);
+    for (let a = 0; a < 360; a += 15) {
+      const rad = a * Math.PI / 180;
+      const x1 = dartAim.x + Math.cos(rad) * 12;
+      const y1 = dartAim.y + Math.sin(rad) * 12;
+      const x2 = dartAim.x + Math.cos(rad) * 18;
+      const y2 = dartAim.y + Math.sin(rad) * 18;
+      dartCtx.fillStyle = 'rgba(251, 191, 36, 0.5)';
+      dartCtx.fillRect(Math.floor(x1), Math.floor(y1), 1, 1);
+    }
+    
+    dartCtx.fillStyle = 'rgba(251, 191, 36, 0.5)';
+    dartCtx.fillRect(dartAim.x - 20, dartAim.y, 40, 1);
+    dartCtx.fillRect(dartAim.x, dartAim.y - 20, 1, 40);
   }
   
-  dartCtx.fillStyle = '#333';
+  dartCtx.fillStyle = '#333333';
   dartCtx.fillRect(0, 350, 300, 50);
   dartCtx.fillStyle = '#fbbf24';
-  dartCtx.font = '14px Arial';
+  dartCtx.font = '12px monospace';
   dartCtx.textAlign = 'center';
-  dartCtx.fillText('得分區域: 靶心50分 | 內圈25分 | 雙倍環/三倍環加乘', 150, 375);
+  dartCtx.fillText('靶心50 | 內圈25 | 雙倍/三倍加乘', 150, 375);
 }
 
 function throwDart() {

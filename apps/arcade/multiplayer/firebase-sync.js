@@ -19,6 +19,18 @@ class MultiplayerManager {
     this.cleanupInterval = null;
   }
   
+  drawPixelCircleLocal(ctx, cx, cy, radius, color) {
+    ctx.fillStyle = color;
+    const r = Math.floor(radius);
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y <= r * r) {
+          ctx.fillRect(cx + x, cy + y, 1, 1);
+        }
+      }
+    }
+  }
+  
   async init(firebaseConfig) {
     try {
       if (typeof firebase !== 'undefined' && firebaseConfig) {
@@ -250,25 +262,25 @@ class MultiplayerManager {
       ctx.globalAlpha = 0.7;
       
       ctx.fillStyle = '#60a5fa';
-      ctx.beginPath();
-      ctx.ellipse(
-        screenX + tileSize / 2,
-        screenY + tileSize - 4,
-        tileSize * 0.4,
-        tileSize * 0.15,
-        0, 0, Math.PI * 2
-      );
-      ctx.fill();
+      const shadowW = Math.floor(tileSize * 0.8);
+      const shadowH = Math.floor(tileSize * 0.3);
+      const shadowX = Math.floor(screenX + (tileSize - shadowW) / 2);
+      const shadowY = Math.floor(screenY + tileSize - shadowH - 2);
+      ctx.fillRect(shadowX, shadowY, shadowW, shadowH);
       
       ctx.fillStyle = '#93c5fd';
-      ctx.beginPath();
-      ctx.arc(
-        screenX + tileSize / 2,
-        screenY + tileSize / 2,
-        tileSize * 0.35,
-        0, Math.PI * 2
-      );
-      ctx.fill();
+      const bodySize = Math.floor(tileSize * 0.7);
+      const bodyX = Math.floor(screenX + (tileSize - bodySize) / 2);
+      const bodyY = Math.floor(screenY + (tileSize - bodySize) / 2);
+      this.drawPixelCircleLocal(ctx, bodyX + bodySize/2, bodyY + bodySize/2, bodySize/2, '#93c5fd');
+      
+      ctx.fillStyle = '#60a5fa';
+      ctx.fillRect(bodyX, bodyY, 2, bodySize);
+      ctx.fillRect(bodyX, bodyY, bodySize, 2);
+      
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillRect(bodyX + bodySize - 2, bodyY, 2, bodySize);
+      ctx.fillRect(bodyX, bodyY + bodySize - 2, bodySize, 2);
       
       ctx.globalAlpha = 1;
       

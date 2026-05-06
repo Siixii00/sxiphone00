@@ -1,16 +1,23 @@
 :root {
-  --app-color: #f1a6c7;
-  --bg-dark: #fff3f8;
-  --bg-light: #ffe6f0;
-  --text-primary: #6e4155;
-  --text-secondary: #b47f96;
-  --accent: #f08bb3;
-  --accent-hover: #e679a5;
-  --success: #b8dfc7;
+  --app-color: #7ec850;
+  --bg-dark: #2d1b00;
+  --bg-light: #3a2a1a;
+  --text-primary: #f4e8c1;
+  --text-secondary: #c49a5a;
+  --accent: #7ec850;
+  --accent-hover: #5ca830;
+  --success: #4a7c23;
   --top-bar-margin: 35px;
-  --pink-blue: #f7b9d0;
-  --soft-pink: #ffe0ec;
-  --soft-blue: #ffd4e5;
+  --wood-dark: #3a2a1a;
+  --wood-light: #5c4a32;
+  --dirt: #5c4033;
+  --grass: #7ec850;
+  --water: #4a90c2;
+  --roof-red: #c44a4a;
+  --stone: #7a7a7a;
+  --gold: #ffd700;
+  --pixel-border: 2px;
+  --pixel-shadow: 2px 2px 0 rgba(0,0,0,0.5);
 }
 
 * {
@@ -30,11 +37,13 @@ body::-webkit-scrollbar {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'DotGothic16', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-dark);
   color: var(--text-primary);
   overflow: hidden;
   position: relative;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
 }
 
 .dating-app {
@@ -42,7 +51,22 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--soft-pink) 0%, var(--soft-blue) 100%);
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    ),
+    linear-gradient(180deg, var(--wood-dark) 0%, var(--bg-dark) 100%);
   position: relative;
   z-index: 1;
 }
@@ -54,9 +78,8 @@ body {
   align-items: center;
   padding: 15px 20px;
   margin-top: var(--top-bar-margin);
-  background: transparent;
-  backdrop-filter: none;
-  border-bottom: none;
+  background: var(--wood-dark);
+  border-bottom: 4px solid var(--wood-light);
   z-index: 100;
   gap: 10px;
 }
@@ -69,15 +92,13 @@ body {
 }
 
 .app-title h1 {
-  font-size: 29px;
-  font-family: 'Great Vibes', cursive;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--pink-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 20px;
+  font-family: 'Press Start 2P', cursive;
+  font-weight: 400;
+  color: var(--gold);
+  text-shadow: var(--pixel-shadow);
   margin: 0;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 
@@ -90,21 +111,20 @@ body {
 .top-btn {
   width: 36px;
   height: 36px;
-  background: rgba(184, 165, 216, 0.2);
-  border: 1px solid rgba(184, 165, 216, 0.4);
-  border-radius: 8px;
-  color: var(--accent);
+  background: var(--wood-light);
+  border: 2px solid var(--bg-dark);
+  border-radius: 0;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  box-shadow: var(--pixel-shadow);
 }
 
 .top-btn:hover {
-  background: rgba(184, 165, 216, 0.4);
-  border-color: var(--accent);
-  transform: scale(1.05);
+  background: var(--accent);
+  color: var(--bg-dark);
 }
 
 .top-btn i {
@@ -587,42 +607,41 @@ body {
 }
 
 .scene-card {
-  background: #e9b2c9;
-  border: 2px solid #d78aac;
-  border-radius: 15px;
+  background: var(--wood-light);
+  border: 3px solid var(--bg-dark);
+  border-radius: 0;
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
   color: var(--text-primary);
+  box-shadow: var(--pixel-shadow);
 }
 
 .scene-card:hover {
-  background: #dd93b3;
-  border-color: #c87498;
-  transform: translateY(-5px);
+  background: var(--accent);
+  color: var(--bg-dark);
 }
 
 .scene-card i {
   font-size: 40px;
-  color: var(--accent);
+  color: var(--gold);
 }
 
 .scene-card span {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
 }
 
 .scene-card.custom-scene {
-  background: linear-gradient(135deg, #e9b2c9, #d4a5bd);
-  border-color: #c87498;
+  background: var(--wood-dark);
+  border-color: var(--gold);
 }
 
 .scene-card.custom-scene:hover {
-  background: linear-gradient(135deg, #dd93b3, #c87498);
+  background: var(--roof-red);
 }
 
 .imported-badge {
@@ -670,11 +689,12 @@ body {
 }
 
 #game-canvas {
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 4px solid var(--wood-light);
+  border-radius: 0;
+  box-shadow: var(--pixel-shadow);
   max-width: 100%;
   max-height: 100%;
+  image-rendering: pixelated;
 }
 
 /* ==================== 互動提示 ==================== */
@@ -705,13 +725,12 @@ body {
   transform: translateX(-50%);
   width: 90%;
   max-width: 600px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 2px solid rgba(233, 30, 99, 0.5);
-  border-radius: 15px;
+  background: var(--bg-dark);
+  border: 4px solid var(--text-primary);
+  border-radius: 0;
   padding: 20px;
   display: flex;
   gap: 15px;
-  animation: slideUp 0.3s ease;
   z-index: 100;
 }
 
@@ -729,8 +748,9 @@ body {
 .dialogue-avatar {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #ff6b9d);
+  border-radius: 0;
+  background: var(--wood-light);
+  border: 2px solid var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -757,9 +777,9 @@ body {
 }
 
 .dialogue-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--gold);
 }
 
 .dialogue-text {
@@ -776,21 +796,21 @@ body {
 }
 
 .dialogue-options button {
-  background: rgba(233, 30, 99, 0.2);
-  border: 1px solid rgba(233, 30, 99, 0.5);
-  color: white;
+  background: var(--wood-dark);
+  border: 2px solid var(--text-primary);
+  color: var(--text-primary);
   padding: 10px 15px;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+  font-size: 12px;
+  font-family: 'DotGothic16', sans-serif;
   text-align: left;
+  box-shadow: var(--pixel-shadow);
 }
 
 .dialogue-options button:hover {
-  background: rgba(233, 30, 99, 0.4);
-  border-color: var(--accent);
-  transform: translateX(5px);
+  background: var(--accent);
+  color: var(--bg-dark);
 }
 
 /* ==================== AI 對話框 ==================== */
@@ -801,13 +821,12 @@ body {
   transform: translateX(-50%);
   width: 85%;
   max-width: 500px;
-  background: rgba(0, 0, 0, 0.85);
-  border: 2px solid rgba(74, 144, 226, 0.6);
-  border-radius: 12px;
+  background: var(--bg-dark);
+  border: 3px solid var(--water);
+  border-radius: 0;
   padding: 15px;
   display: flex;
   gap: 12px;
-  animation: fadeInOut 4s ease;
   z-index: 90;
 }
 
@@ -831,8 +850,9 @@ body {
 .ai-dialogue-avatar {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #E91E63, #ff6b9d);
+  border-radius: 0;
+  background: var(--water);
+  border: 2px solid var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -859,9 +879,9 @@ body {
 }
 
 .ai-dialogue-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #E91E63;
+  font-size: 12px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--water);
 }
 
 .ai-dialogue-text {
@@ -883,22 +903,22 @@ body {
 }
 
 .control-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  color: white;
+  background: var(--wood-dark);
+  border: 3px solid var(--text-primary);
+  border-radius: 0;
+  color: var(--text-primary);
   font-size: 24px;
   cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
+  box-shadow: var(--pixel-shadow);
 }
 
 .control-btn:active {
-  background: rgba(233, 30, 99, 0.5);
-  transform: scale(0.95);
+  background: var(--accent);
+  color: var(--bg-dark);
 }
 
 .control-btn[data-dir="up"] {
@@ -924,8 +944,9 @@ body {
 .control-btn.interact {
   grid-column: 2;
   grid-row: 2;
-  background: rgba(233, 30, 99, 0.3);
-  border-color: var(--accent);
+  background: var(--accent);
+  border-color: var(--gold);
+  color: var(--bg-dark);
 }
 
 /* ==================== 返回按鈕 ==================== */
@@ -935,21 +956,21 @@ body {
   right: 20px;
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  color: white;
+  background: var(--roof-red);
+  border: 3px solid var(--text-primary);
+  border-radius: 0;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
   z-index: 50;
+  box-shadow: var(--pixel-shadow);
 }
 
 .back-to-menu:hover {
-  background: rgba(255, 59, 48, 0.5);
-  border-color: #ff3b30;
+  background: var(--gold);
+  color: var(--bg-dark);
 }
 
 /* ==================== 說明面板 ==================== */
@@ -961,11 +982,11 @@ body {
 }
 
 .help-panel details {
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  background: var(--bg-dark);
+  border: 3px solid var(--text-primary);
+  border-radius: 0;
   padding: 10px;
-  color: white;
+  color: var(--text-primary);
 }
 
 .help-panel summary {
@@ -1463,16 +1484,17 @@ body {
 }
 
 .custom-map-import {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px dashed rgba(233, 30, 99, 0.3);
-  border-radius: 15px;
+  background: var(--wood-dark);
+  border: 3px dashed var(--text-primary);
+  border-radius: 0;
   padding: 25px;
   text-align: center;
 }
 
 .custom-map-import h3 {
-  color: var(--accent);
-  font-size: 18px;
+  color: var(--gold);
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
   margin-bottom: 10px;
 }
 
@@ -1494,29 +1516,28 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(135deg, var(--accent), #ff6b9d);
-  border: none;
-  border-radius: 10px;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--accent);
+  border: 3px solid var(--bg-dark);
+  border-radius: 0;
+  color: var(--bg-dark);
+  font-size: 12px;
+  font-family: 'Press Start 2P', cursive;
   cursor: pointer;
-  transition: all 0.3s ease;
+  box-shadow: var(--pixel-shadow);
 }
 
 .import-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(233, 30, 99, 0.4);
+  background: var(--gold);
 }
 
 .import-btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: var(--wood-light);
+  color: var(--text-primary);
 }
 
 .import-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: var(--accent);
+  background: var(--water);
+  color: var(--text-primary);
 }
 
 .import-btn i {
@@ -1617,25 +1638,23 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
 }
 
 .import-modal-content {
   background: var(--bg-dark);
-  border: 2px solid rgba(233, 30, 99, 0.5);
-  border-radius: 15px;
+  border: 4px solid var(--text-primary);
+  border-radius: 0;
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s ease;
 }
 
 .import-modal-header {
@@ -1643,12 +1662,13 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 3px solid var(--wood-light);
 }
 
 .import-modal-header h2 {
-  color: var(--accent);
-  font-size: 20px;
+  color: var(--gold);
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
   margin: 0;
 }
 
@@ -1670,23 +1690,23 @@ body {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: var(--wood-dark);
+  border: 2px solid var(--text-primary);
+  border-radius: 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 12px;
+  font-family: 'DotGothic16', sans-serif;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .import-tab:hover {
-  border-color: var(--accent);
+  background: var(--wood-light);
 }
 
 .import-tab.active {
-  background: rgba(233, 30, 99, 0.2);
-  border-color: var(--accent);
-  color: white;
+  background: var(--accent);
+  border-color: var(--gold);
+  color: var(--bg-dark);
 }
 
 .import-tab i {
@@ -1703,63 +1723,63 @@ body {
 }
 
 .file-drop-zone {
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
+  border: 3px dashed var(--text-primary);
+  border-radius: 0;
   padding: 40px 20px;
   text-align: center;
-  transition: all 0.3s;
 }
 
 .file-drop-zone:hover,
 .file-drop-zone.drag-over {
-  border-color: var(--accent);
-  background: rgba(233, 30, 99, 0.1);
+  border-color: var(--gold);
+  background: var(--wood-dark);
 }
 
 .file-drop-zone i {
   width: 48px;
   height: 48px;
-  color: var(--accent);
+  color: var(--gold);
   margin-bottom: 15px;
 }
 
 .file-drop-zone p {
-  color: white;
-  font-size: 15px;
+  color: var(--text-primary);
+  font-size: 14px;
   margin-bottom: 8px;
 }
 
 .file-drop-zone span {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   display: block;
   margin: 10px 0;
 }
 
 .browse-btn {
   padding: 10px 20px;
-  background: rgba(233, 30, 99, 0.2);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
+  background: var(--wood-light);
+  border: 2px solid var(--text-primary);
+  border-radius: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: 'DotGothic16', sans-serif;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .browse-btn:hover {
-  background: rgba(233, 30, 99, 0.4);
+  background: var(--accent);
+  color: var(--bg-dark);
 }
 
 #map-json-input {
   width: 100%;
   min-height: 150px;
   padding: 15px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: white;
-  font-size: 13px;
+  background: var(--wood-dark);
+  border: 2px solid var(--text-primary);
+  border-radius: 0;
+  color: var(--text-primary);
+  font-size: 12px;
   font-family: 'Courier New', monospace;
   resize: vertical;
   margin-bottom: 15px;
@@ -1767,7 +1787,7 @@ body {
 
 #map-json-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--gold);
 }
 
 #map-json-input::placeholder {
@@ -1781,19 +1801,18 @@ body {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  background: linear-gradient(135deg, var(--accent), #ff6b9d);
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
+  background: var(--accent);
+  border: 3px solid var(--bg-dark);
+  border-radius: 0;
+  color: var(--bg-dark);
+  font-size: 12px;
+  font-family: 'Press Start 2P', cursive;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: var(--pixel-shadow);
 }
 
 .parse-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+  background: var(--gold);
 }
 
 .parse-btn i {

@@ -31,19 +31,19 @@ class Character {
   
   loadSpriteColors(customColors) {
     if (customColors) {
-      return { body: customColors.body, outline: customColors.outline, skin: '#fcd34d', hair: '#ec4899' };
+      return { body: customColors.body, outline: customColors.outline || '#484848', skin: '#fcd34d', hair: '#f89090' };
     }
     
     const spriteId = localStorage.getItem('sx_arcade_char_sprite') || 'default';
     
     const spriteColors = {
-      default: { body: '#a855f7', outline: '#7c3aed', skin: '#fcd34d', hair: '#ec4899' },
-      blue: { body: '#3b82f6', outline: '#1d4ed8', skin: '#fcd34d', hair: '#ec4899' },
-      purple: { body: '#a855f7', outline: '#7c3aed', skin: '#fcd34d', hair: '#ec4899' },
-      red: { body: '#ef4444', outline: '#dc2626', skin: '#fcd34d', hair: '#ec4899' },
-      yellow: { body: '#f59e0b', outline: '#d97706', skin: '#fcd34d', hair: '#ec4899' },
-      pink: { body: '#ec4899', outline: '#db2777', skin: '#fcd34d', hair: '#ec4899' },
-      cyan: { body: '#06b6d4', outline: '#0891b2', skin: '#fcd34d', hair: '#ec4899' }
+      default: { body: '#a040a0', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      blue: { body: '#4080c0', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      purple: { body: '#a040a0', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      red: { body: '#e83030', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      yellow: { body: '#f8b040', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      pink: { body: '#f89090', outline: '#484848', skin: '#fcd34d', hair: '#f89090' },
+      cyan: { body: '#40b8c0', outline: '#484848', skin: '#fcd34d', hair: '#f89090' }
     };
     
     if (spriteId === 'custom') {
@@ -51,7 +51,7 @@ class Character {
       if (savedColors) {
         try {
           const colors = JSON.parse(savedColors);
-          return { body: colors.body, outline: colors.outline, skin: '#fcd34d', hair: '#ec4899' };
+          return { body: colors.body, outline: colors.outline || '#484848', skin: '#fcd34d', hair: '#f89090' };
         } catch (e) {}
       }
     }
@@ -238,123 +238,209 @@ class Character {
   
   render(ctx, camera) {
     if (!this.visible) return;
-    
+
     const tileSize = this.mapEngine?.tileSize || TILE_SIZE;
-    
+
     let renderX = this.x;
     let renderY = this.y;
-    
+
     if (this.isMoving) {
       renderX = this.x + (this.targetX - this.x) * this.moveProgress;
       renderY = this.y + (this.targetY - this.y) * this.moveProgress;
     }
-    
+
     const screenX = renderX * tileSize - camera.x;
     const screenY = renderY * tileSize - camera.y;
-    
-    const shadowSize = tileSize * 0.35;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    ctx.beginPath();
-    ctx.ellipse(
-      screenX + tileSize / 2,
-      screenY + tileSize - 4,
-      shadowSize,
-      shadowSize * 0.4,
-      0, 0, Math.PI * 2
-    );
-    ctx.fill();
-    
-    const bodyWidth = tileSize * 0.45;
-    const bodyHeight = tileSize * 0.55;
-    const bodyX = screenX + (tileSize - bodyWidth) / 2;
-    const bodyY = screenY + tileSize - bodyHeight - 4;
-    
-    ctx.fillStyle = this.colors.body;
-    ctx.strokeStyle = this.colors.outline;
-    ctx.lineWidth = 1;
-    
-    ctx.beginPath();
-    ctx.roundRect(bodyX, bodyY, bodyWidth, bodyHeight, 4);
-    ctx.fill();
-    ctx.stroke();
-    
-    const headSize = tileSize * 0.38;
-    const headX = screenX + (tileSize - headSize) / 2;
-    const headY = bodyY - headSize + 4;
-    
-    ctx.fillStyle = this.colors.skin;
-    ctx.beginPath();
-    ctx.arc(headX + headSize / 2, headY + headSize / 2, headSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    
-    ctx.fillStyle = this.colors.hair;
-    ctx.beginPath();
-    ctx.arc(headX + headSize / 2, headY + headSize / 3, headSize / 2.2, Math.PI, 0);
-    ctx.fill();
-    
-    const eyeOffset = this.isMoving ? Math.sin(this.animationFrame * Math.PI / 2) * 1 : 0;
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(headX + headSize / 3, headY + headSize / 2 + eyeOffset, 2, 0, Math.PI * 2);
-    ctx.arc(headX + headSize * 2 / 3, headY + headSize / 2 + eyeOffset, 2, 0, Math.PI * 2);
-    ctx.fill();
-    
+
+    this.renderShadow(ctx, screenX, screenY, tileSize);
+
+    this.renderBody(ctx, screenX, screenY, tileSize);
+
+    this.renderHead(ctx, screenX, screenY, tileSize);
+
+    this.renderFace(ctx, screenX, screenY, tileSize);
+
     if (this.isMoving) {
-      const legOffset = Math.sin(this.animationFrame * Math.PI) * 3;
-      ctx.fillStyle = this.colors.outline;
-      ctx.fillRect(bodyX + 3, bodyY + bodyHeight - 2, 4, 5 + legOffset);
-      ctx.fillRect(bodyX + bodyWidth - 7, bodyY + bodyHeight - 2, 4, 5 - legOffset);
+      this.renderLegs(ctx, screenX, screenY, tileSize);
     }
-    
+
     this.renderNameTag(ctx, screenX, screenY, tileSize);
+  }
+
+  renderShadow(ctx, screenX, screenY, tileSize) {
+    const shadowWidth = Math.floor(tileSize * 0.5);
+    const shadowHeight = Math.floor(tileSize * 0.15);
+    const shadowX = screenX + (tileSize - shadowWidth) / 2;
+    const shadowY = screenY + tileSize - shadowHeight - 2;
+
+    ctx.fillStyle = DP_ARCADE.shadow_cast;
+    ctx.fillRect(Math.floor(shadowX), Math.floor(shadowY), shadowWidth, shadowHeight);
+  }
+
+  renderBody(ctx, screenX, screenY, tileSize) {
+    const bodyWidth = Math.floor(tileSize * 0.45);
+    const bodyHeight = Math.floor(tileSize * 0.5);
+    const bodyX = Math.floor(screenX + (tileSize - bodyWidth) / 2);
+    const bodyY = Math.floor(screenY + tileSize - bodyHeight - 6);
+
+    ctx.fillStyle = DP_ARCADE.outline;
+    ctx.fillRect(bodyX - 1, bodyY - 1, bodyWidth + 2, bodyHeight + 2);
+
+    ctx.fillStyle = this.colors.body;
+    ctx.fillRect(bodyX, bodyY, bodyWidth, bodyHeight);
+
+    ctx.fillStyle = this.colors.outline;
+    ctx.fillRect(bodyX, bodyY, 2, bodyHeight);
+    ctx.fillRect(bodyX + bodyWidth - 2, bodyY, 2, bodyHeight);
+  }
+
+  renderHead(ctx, screenX, screenY, tileSize) {
+    const headSize = Math.floor(tileSize * 0.35);
+    const headX = Math.floor(screenX + (tileSize - headSize) / 2);
+    const headY = Math.floor(screenY + tileSize * 0.15);
+
+    ctx.fillStyle = DP_ARCADE.outline;
+    ctx.fillRect(headX - 1, headY - 1, headSize + 2, headSize + 2);
+
+    ctx.fillStyle = this.colors.skin;
+    ctx.fillRect(headX, headY, headSize, headSize);
+
+    ctx.fillStyle = this.colors.hair;
+    ctx.fillRect(headX, headY, headSize, Math.floor(headSize * 0.4));
+
+    ctx.fillStyle = this.colors.outline;
+    ctx.fillRect(headX, headY, headSize, 1);
+    ctx.fillRect(headX, headY, 1, headSize);
+    ctx.fillRect(headX + headSize - 1, headY, 1, headSize);
+  }
+
+  renderFace(ctx, screenX, screenY, tileSize) {
+    const headSize = Math.floor(tileSize * 0.35);
+    const headX = Math.floor(screenX + (tileSize - headSize) / 2);
+    const headY = Math.floor(screenY + tileSize * 0.15);
+
+    const eyeY = headY + Math.floor(headSize * 0.55);
+    const eyeSize = 2;
+
+    let leftEyeX, rightEyeX;
+
+    switch (this.direction) {
+      case 'left':
+        leftEyeX = headX + Math.floor(headSize * 0.2);
+        rightEyeX = headX + Math.floor(headSize * 0.4);
+        break;
+      case 'right':
+        leftEyeX = headX + Math.floor(headSize * 0.6);
+        rightEyeX = headX + Math.floor(headSize * 0.8);
+        break;
+      default:
+        leftEyeX = headX + Math.floor(headSize * 0.25);
+        rightEyeX = headX + Math.floor(headSize * 0.65);
+    }
+
+    ctx.fillStyle = DP_ARCADE.outline;
+    ctx.fillRect(leftEyeX, eyeY, eyeSize, eyeSize);
+    ctx.fillRect(rightEyeX, eyeY, eyeSize, eyeSize);
+  }
+
+  renderLegs(ctx, screenX, screenY, tileSize) {
+    const bodyWidth = Math.floor(tileSize * 0.45);
+    const bodyHeight = Math.floor(tileSize * 0.5);
+    const bodyX = Math.floor(screenX + (tileSize - bodyWidth) / 2);
+    const bodyY = Math.floor(screenY + tileSize - bodyHeight - 6);
+
+    const legOffset = Math.sin(this.animationFrame * Math.PI) * 2;
+    const legWidth = 4;
+    const legHeight = 4;
+
+    ctx.fillStyle = this.colors.outline;
+    ctx.fillRect(bodyX + 3, bodyY + bodyHeight, legWidth, Math.floor(legHeight + legOffset));
+    ctx.fillRect(bodyX + bodyWidth - 7, bodyY + bodyHeight, legWidth, Math.floor(legHeight - legOffset));
   }
   
   renderNameTag(ctx, screenX, screenY, tileSize) {
-    const nameTagY = screenY - 8;
     ctx.font = 'bold 10px sans-serif';
     const textWidth = ctx.measureText(this.name).width;
-    const padding = 4;
-    const tagWidth = textWidth + padding * 2;
+    const padding = 6;
+    const tagWidth = Math.floor(textWidth + padding * 2);
     const tagHeight = 14;
-    const tagX = screenX + (tileSize - tagWidth) / 2;
-    
-    ctx.fillStyle = 'rgba(168, 85, 247, 0.9)';
-    ctx.beginPath();
-    ctx.roundRect(tagX, nameTagY - tagHeight, tagWidth, tagHeight, 4);
-    ctx.fill();
-    
-    ctx.fillStyle = '#fff';
+    const tagX = Math.floor(screenX + (tileSize - tagWidth) / 2);
+    const tagY = Math.floor(screenY - 12);
+
+    ctx.fillStyle = DP_ARCADE.ui_border_out;
+    ctx.fillRect(tagX - 2, tagY - tagHeight - 2, tagWidth + 4, tagHeight + 4);
+
+    ctx.fillStyle = DP_ARCADE.ui_border_in;
+    ctx.fillRect(tagX - 1, tagY - tagHeight - 1, tagWidth + 2, tagHeight + 2);
+
+    ctx.fillStyle = DP_ARCADE.ui_bg;
+    ctx.fillRect(tagX, tagY - tagHeight, tagWidth, tagHeight);
+
+    ctx.fillStyle = DP_ARCADE.ui_text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.name, screenX + tileSize / 2, nameTagY - tagHeight / 2);
+    ctx.fillText(this.name, screenX + tileSize / 2, tagY - tagHeight / 2);
   }
   
   showDialogue(text, duration = 3000) {
     this.hideDialogue();
-    
+
     const container = document.getElementById('map-container');
     if (!container) return;
-    
-    const tileSize = this.mapEngine?.tileSize || TILE_SIZE;
-    const camera = this.mapEngine?.camera || { x: 0, y: 0 };
-    
-    const screenX = this.x * tileSize - camera.x + tileSize / 2;
-    const screenY = this.y * tileSize - camera.y - 30;
-    
+
+    const canvas = this.mapEngine?.canvas;
+    const canvasRect = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 };
+
+    const boxWidth = Math.floor(canvasRect.width * 0.85);
+    const boxHeight = 80;
+    const boxX = Math.floor((canvasRect.width - boxWidth) / 2);
+    const boxY = Math.floor(canvasRect.height - boxHeight - 20);
+
     this.dialogueBubble = document.createElement('div');
-    this.dialogueBubble.className = 'character-dialogue-bubble';
-    this.dialogueBubble.innerHTML = `<span>${text}</span>`;
+    this.dialogueBubble.className = 'character-dialogue-nds';
+    this.dialogueBubble.innerHTML = `
+      <div class="nds-dialogue-speaker">${this.name}</div>
+      <div class="nds-dialogue-text">${text}</div>
+    `;
     this.dialogueBubble.style.cssText = `
       position: absolute;
-      left: ${screenX}px;
-      top: ${screenY}px;
-      transform: translateX(-50%);
+      left: ${boxX}px;
+      top: ${boxY}px;
+      width: ${boxWidth}px;
       z-index: 100;
+      font-family: 'Press Start 2P', monospace;
+      pointer-events: none;
     `;
-    
+
+    const style = document.createElement('style');
+    style.id = 'nds-dialogue-style';
+    style.textContent = `
+      .character-dialogue-nds {
+        background: ${DP_ARCADE.ui_card_bg};
+        border: 2px solid ${DP_ARCADE.ui_border_out};
+        padding: 8px;
+        box-sizing: border-box;
+        box-shadow: inset 0 0 0 2px ${DP_ARCADE.ui_border_in};
+      }
+      .nds-dialogue-speaker {
+        color: ${DP_ARCADE.ui_highlight};
+        font-size: 10px;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+      .nds-dialogue-text {
+        color: ${DP_ARCADE.ui_text};
+        font-size: 11px;
+        line-height: 1.5;
+      }
+    `;
+
+    if (!document.getElementById('nds-dialogue-style')) {
+      document.head.appendChild(style);
+    }
+
     container.appendChild(this.dialogueBubble);
-    
+
     setTimeout(() => {
       this.hideDialogue();
     }, duration);

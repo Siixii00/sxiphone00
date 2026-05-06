@@ -27,13 +27,13 @@ function showCharacterSelectModal() {
   const savedCharSprite = localStorage.getItem('sx_arcade_char_sprite') || 'default';
   
   const spriteOptions = [
-    { id: 'default', name: '預設', icon: 'fa-user', colors: { body: '#4ade80', outline: '#166534' } },
-    { id: 'blue', name: '藍色', icon: 'fa-user', colors: { body: '#3b82f6', outline: '#1d4ed8' } },
-    { id: 'purple', name: '紫色', icon: 'fa-user', colors: { body: '#a855f7', outline: '#7c3aed' } },
-    { id: 'red', name: '紅色', icon: 'fa-user', colors: { body: '#ef4444', outline: '#dc2626' } },
-    { id: 'yellow', name: '黃色', icon: 'fa-user', colors: { body: '#f59e0b', outline: '#d97706' } },
-    { id: 'pink', name: '粉色', icon: 'fa-user', colors: { body: '#ec4899', outline: '#db2777' } },
-    { id: 'cyan', name: '青色', icon: 'fa-user', colors: { body: '#06b6d4', outline: '#0891b2' } },
+    { id: 'default', name: '預設', icon: 'fa-user', colors: { body: '#58a828', outline: '#484848' } },
+    { id: 'blue', name: '藍色', icon: 'fa-user', colors: { body: '#4080c0', outline: '#484848' } },
+    { id: 'purple', name: '紫色', icon: 'fa-user', colors: { body: '#a040a0', outline: '#484848' } },
+    { id: 'red', name: '紅色', icon: 'fa-user', colors: { body: '#e83030', outline: '#484848' } },
+    { id: 'yellow', name: '黃色', icon: 'fa-user', colors: { body: '#f8b040', outline: '#484848' } },
+    { id: 'pink', name: '粉色', icon: 'fa-user', colors: { body: '#f89090', outline: '#484848' } },
+    { id: 'cyan', name: '青色', icon: 'fa-user', colors: { body: '#40b8c0', outline: '#484848' } },
     { id: 'custom', name: '自訂', icon: 'fa-palette', colors: null }
   ];
   
@@ -55,7 +55,7 @@ function showCharacterSelectModal() {
                    data-sprite-id="${opt.id}" 
                    onclick="selectPlayerSprite('${opt.id}')"
                    title="${opt.name}">
-                <div class="arcade-sprite-preview" style="background: ${opt.colors?.body || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}">
+                <div class="arcade-sprite-preview" style="background: ${opt.colors?.body || '#303030'}; border: 2px solid #484848; box-shadow: inset -2px -2px 0 #181818, inset 2px 2px 0 #484848;">
                   <i class="fas ${opt.icon}"></i>
                 </div>
                 <span>${opt.name}</span>
@@ -63,8 +63,8 @@ function showCharacterSelectModal() {
             `).join('')}
           </div>
           <div class="arcade-custom-color hidden" id="player-custom-color">
-            <label>身體顏色：<input type="color" id="player-body-color" value="#4ade80"></label>
-            <label>輪廓顏色：<input type="color" id="player-outline-color" value="#166534"></label>
+            <label>身體顏色：<input type="color" id="player-body-color" value="#58a828"></label>
+            <label>輪廓顏色：<input type="color" id="player-outline-color" value="#484848"></label>
           </div>
         </div>
         
@@ -87,7 +87,7 @@ function showCharacterSelectModal() {
                    data-sprite-id="${opt.id}" 
                    onclick="selectCharSprite('${opt.id}')"
                    title="${opt.name}">
-                <div class="arcade-sprite-preview" style="background: ${opt.colors?.body || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}">
+                <div class="arcade-sprite-preview" style="background: ${opt.colors?.body || '#303030'}; border: 2px solid #484848; box-shadow: inset -2px -2px 0 #181818, inset 2px 2px 0 #484848;">
                   <i class="fas ${opt.icon}"></i>
                 </div>
                 <span>${opt.name}</span>
@@ -95,8 +95,8 @@ function showCharacterSelectModal() {
             `).join('')}
           </div>
           <div class="arcade-custom-color hidden" id="char-custom-color">
-            <label>身體顏色：<input type="color" id="char-body-color" value="#a855f7"></label>
-            <label>輪廓顏色：<input type="color" id="char-outline-color" value="#7c3aed"></label>
+            <label>身體顏色：<input type="color" id="char-body-color" value="#a040a0"></label>
+            <label>輪廓顏色：<input type="color" id="char-outline-color" value="#484848"></label>
           </div>
         </div>
         
@@ -122,8 +122,8 @@ function showCharacterSelectModal() {
   if (savedPlayerColors) {
     try {
       const colors = JSON.parse(savedPlayerColors);
-      document.getElementById('player-body-color').value = colors.body || '#4ade80';
-      document.getElementById('player-outline-color').value = colors.outline || '#166534';
+      document.getElementById('player-body-color').value = colors.body || '#58a828';
+      document.getElementById('player-outline-color').value = colors.outline || '#484848';
     } catch (e) {}
   }
   
@@ -131,8 +131,8 @@ function showCharacterSelectModal() {
   if (savedCharColors) {
     try {
       const colors = JSON.parse(savedCharColors);
-      document.getElementById('char-body-color').value = colors.body || '#a855f7';
-      document.getElementById('char-outline-color').value = colors.outline || '#7c3aed';
+      document.getElementById('char-body-color').value = colors.body || '#a040a0';
+      document.getElementById('char-outline-color').value = colors.outline || '#484848';
     } catch (e) {}
   }
 }
@@ -214,13 +214,13 @@ function getPlayerSpriteColors() {
   const spriteId = localStorage.getItem('sx_arcade_player_sprite') || 'default';
   
   const spriteColors = {
-    default: { body: '#4ade80', outline: '#166534' },
-    blue: { body: '#3b82f6', outline: '#1d4ed8' },
-    purple: { body: '#a855f7', outline: '#7c3aed' },
-    red: { body: '#ef4444', outline: '#dc2626' },
-    yellow: { body: '#f59e0b', outline: '#d97706' },
-    pink: { body: '#ec4899', outline: '#db2777' },
-    cyan: { body: '#06b6d4', outline: '#0891b2' }
+    default: { body: '#58a828', outline: '#484848' },
+    blue: { body: '#4080c0', outline: '#484848' },
+    purple: { body: '#a040a0', outline: '#484848' },
+    red: { body: '#e83030', outline: '#484848' },
+    yellow: { body: '#f8b040', outline: '#484848' },
+    pink: { body: '#f89090', outline: '#484848' },
+    cyan: { body: '#40b8c0', outline: '#484848' }
   };
   
   if (spriteId === 'custom') {
@@ -230,8 +230,8 @@ function getPlayerSpriteColors() {
         return JSON.parse(savedColors);
       } catch (e) {}
     }
-    const bodyColor = document.getElementById('player-body-color')?.value || '#4ade80';
-    const outlineColor = document.getElementById('player-outline-color')?.value || '#166534';
+    const bodyColor = document.getElementById('player-body-color')?.value || '#58a828';
+    const outlineColor = document.getElementById('player-outline-color')?.value || '#484848';
     const colors = { body: bodyColor, outline: outlineColor };
     localStorage.setItem('sx_arcade_player_colors', JSON.stringify(colors));
     return colors;
@@ -244,13 +244,13 @@ function getCharSpriteColors() {
   const spriteId = localStorage.getItem('sx_arcade_char_sprite') || 'default';
   
   const spriteColors = {
-    default: { body: '#a855f7', outline: '#7c3aed' },
-    blue: { body: '#3b82f6', outline: '#1d4ed8' },
-    purple: { body: '#a855f7', outline: '#7c3aed' },
-    red: { body: '#ef4444', outline: '#dc2626' },
-    yellow: { body: '#f59e0b', outline: '#d97706' },
-    pink: { body: '#ec4899', outline: '#db2777' },
-    cyan: { body: '#06b6d4', outline: '#0891b2' }
+    default: { body: '#a040a0', outline: '#484848' },
+    blue: { body: '#4080c0', outline: '#484848' },
+    purple: { body: '#a040a0', outline: '#484848' },
+    red: { body: '#e83030', outline: '#484848' },
+    yellow: { body: '#f8b040', outline: '#484848' },
+    pink: { body: '#f89090', outline: '#484848' },
+    cyan: { body: '#40b8c0', outline: '#484848' }
   };
   
   if (spriteId === 'custom') {
@@ -260,8 +260,8 @@ function getCharSpriteColors() {
         return JSON.parse(savedColors);
       } catch (e) {}
     }
-    const bodyColor = document.getElementById('char-body-color')?.value || '#a855f7';
-    const outlineColor = document.getElementById('char-outline-color')?.value || '#7c3aed';
+    const bodyColor = document.getElementById('char-body-color')?.value || '#a040a0';
+    const outlineColor = document.getElementById('char-outline-color')?.value || '#484848';
     const colors = { body: bodyColor, outline: outlineColor };
     localStorage.setItem('sx_arcade_char_colors', JSON.stringify(colors));
     return colors;

@@ -215,83 +215,116 @@ class Player {
     const screenX = renderX * tileSize - camera.x;
     const screenY = renderY * tileSize - camera.y;
     
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    ctx.beginPath();
-    ctx.ellipse(
-      screenX + tileSize / 2,
-      screenY + tileSize - 4,
-      tileSize * 0.35,
-      tileSize * 0.15,
-      0, 0, Math.PI * 2
-    );
-    ctx.fill();
+    const pixelSize = 2;
+    const headW = 8;
+    const headH = 8;
+    const bodyW = 8;
+    const bodyH = 12;
+    const legsH = 8;
+    const totalH = headH + bodyH + legsH;
     
-    const headSize = 10;
-    const bodyWidth = 12;
-    const bodyHeight = 14;
-    const legWidth = 4;
-    const legHeight = 6;
+    const centerX = Math.floor(screenX + tileSize / 2);
+    const baseY = Math.floor(screenY + tileSize - 6);
+    const headX = centerX - (headW * pixelSize) / 2;
+    const headY = baseY - totalH * pixelSize;
+    const bodyX = centerX - (bodyW * pixelSize) / 2;
+    const bodyY = headY + headH * pixelSize;
+    const legsY = bodyY + bodyH * pixelSize;
     
-    const centerX = screenX + tileSize / 2;
-    const bodyX = centerX - bodyWidth / 2;
-    const bodyY = screenY + tileSize / 2 - 2;
-    const headX = centerX - headSize / 2;
-    const headY = bodyY - headSize + 2;
+    const hair = '#503820';
+    const skin = '#e8d0b8';
+    const skinLight = '#f0e0c8';
+    const skinShadow = '#d0c0a8';
+    const shirt = '#4070b0';
+    const shirtLight = '#5080c0';
+    const shirtShadow = '#305090';
+    const pants = '#304060';
+    const pantsShadow = '#203050';
+    const shoes = '#202020';
+    const outline = DP_ARCADE.outline;
     
-    ctx.fillStyle = this.colors.body;
-    ctx.fillRect(bodyX, bodyY, bodyWidth, bodyHeight);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(centerX - 6 * pixelSize, baseY - 2, 12 * pixelSize, 4);
     
-    ctx.fillStyle = this.colors.bodyLight;
-    ctx.fillRect(bodyX, bodyY, 3, bodyHeight);
+    const drawPixelRect = (x, y, w, h, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.floor(x), Math.floor(y), w * pixelSize, h * pixelSize);
+    };
     
-    ctx.fillStyle = this.colors.bodyShadow;
-    ctx.fillRect(bodyX + bodyWidth - 3, bodyY, 3, bodyHeight);
+    const drawOutline = (x, y, w, h) => {
+      ctx.fillStyle = outline;
+      ctx.fillRect(Math.floor(x) - pixelSize, Math.floor(y), pixelSize, h * pixelSize);
+      ctx.fillRect(Math.floor(x) + w * pixelSize, Math.floor(y), pixelSize, h * pixelSize);
+      ctx.fillRect(Math.floor(x), Math.floor(y) - pixelSize, w * pixelSize, pixelSize);
+      ctx.fillRect(Math.floor(x), Math.floor(y) + h * pixelSize, w * pixelSize, pixelSize);
+    };
     
-    ctx.fillStyle = this.colors.bodyDepth;
-    ctx.fillRect(bodyX, bodyY + bodyHeight - 2, bodyWidth, 2);
+    drawOutline(bodyX, bodyY, bodyW, bodyH);
+    drawOutline(bodyX, legsY, bodyW, legsH / 2);
+    drawOutline(headX, headY, headW, headH);
     
+    drawPixelRect(bodyX, bodyY, bodyW, bodyH, shirt);
+    drawPixelRect(bodyX, bodyY, 2, bodyH, shirtLight);
+    drawPixelRect(bodyX + (bodyW - 2) * pixelSize, bodyY, 2, bodyH, shirtShadow);
+    
+    let legOffset = 0;
     if (this.isMoving) {
-      const legOffset = Math.sin(this.animationFrame * Math.PI / 2) * 2;
-      
-      ctx.fillStyle = this.colors.bodyShadow;
-      ctx.fillRect(bodyX + 2, bodyY + bodyHeight, legWidth, legHeight + legOffset);
-      ctx.fillRect(bodyX + bodyWidth - 6, bodyY + bodyHeight, legWidth, legHeight - legOffset);
-      
-      ctx.fillStyle = this.colors.bodyDepth;
-      ctx.fillRect(bodyX + 2, bodyY + bodyHeight + legHeight + legOffset - 2, legWidth, 2);
-      ctx.fillRect(bodyX + bodyWidth - 6, bodyY + bodyHeight + legHeight - legOffset - 2, legWidth, 2);
-    } else {
-      ctx.fillStyle = this.colors.bodyShadow;
-      ctx.fillRect(bodyX + 2, bodyY + bodyHeight, legWidth, legHeight);
-      ctx.fillRect(bodyX + bodyWidth - 6, bodyY + bodyHeight, legWidth, legHeight);
-      
-      ctx.fillStyle = this.colors.bodyDepth;
-      ctx.fillRect(bodyX + 2, bodyY + bodyHeight + legHeight - 2, legWidth, 2);
-      ctx.fillRect(bodyX + bodyWidth - 6, bodyY + bodyHeight + legHeight - 2, legWidth, 2);
+      legOffset = Math.sin(this.animationFrame * Math.PI / 2) * pixelSize * 2;
     }
     
-    ctx.fillStyle = this.colors.skin;
-    ctx.fillRect(headX, headY, headSize, headSize);
+    drawPixelRect(bodyX, legsY, bodyW / 2, legsH / 2, pants);
+    drawPixelRect(bodyX + (bodyW / 2) * pixelSize, legsY + legOffset, bodyW / 2, legsH / 2, pantsShadow);
     
-    ctx.fillStyle = this.colors.skinLight;
-    ctx.fillRect(headX, headY, 3, headSize);
+    drawPixelRect(bodyX, legsY + legsH / 2 * pixelSize, bodyW / 2, 2, shoes);
+    drawPixelRect(bodyX + (bodyW / 2) * pixelSize, legsY + legsH / 2 * pixelSize + legOffset, bodyW / 2, 2, shoes);
     
-    ctx.fillStyle = this.colors.skinShadow;
-    ctx.fillRect(headX + headSize - 3, headY, 3, headSize);
+    drawPixelRect(headX, headY, headW, headH, skin);
+    drawPixelRect(headX, headY, 2, headH, skinLight);
+    drawPixelRect(headX + (headW - 2) * pixelSize, headY, 2, headH, skinShadow);
     
-    ctx.fillStyle = this.colors.hair;
-    ctx.fillRect(headX, headY, headSize, 4);
-    ctx.fillRect(headX, headY + 2, 2, 3);
-    ctx.fillRect(headX + headSize - 2, headY + 2, 2, 3);
+    const hairStyle = this.direction;
+    ctx.fillStyle = hair;
     
-    const eyeY = headY + 5;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(headX + 2, eyeY, 2, 2);
-    ctx.fillRect(headX + 6, eyeY, 2, 2);
+    switch (this.direction) {
+      case 'down':
+        ctx.fillRect(headX, headY, headW * pixelSize, 3 * pixelSize);
+        ctx.fillRect(headX, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        ctx.fillRect(headX + (headW - 2) * pixelSize, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        break;
+      case 'up':
+        ctx.fillRect(headX + pixelSize, headY, (headW - 2) * pixelSize, 4 * pixelSize);
+        ctx.fillRect(headX, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        ctx.fillRect(headX + (headW - 2) * pixelSize, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        break;
+      case 'left':
+        ctx.fillRect(headX, headY, headW * pixelSize, 3 * pixelSize);
+        ctx.fillRect(headX, headY + 2 * pixelSize, 3 * pixelSize, 3 * pixelSize);
+        ctx.fillRect(headX + (headW - 2) * pixelSize, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        break;
+      case 'right':
+        ctx.fillRect(headX, headY, headW * pixelSize, 3 * pixelSize);
+        ctx.fillRect(headX, headY + 2 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+        ctx.fillRect(headX + (headW - 3) * pixelSize, headY + 2 * pixelSize, 3 * pixelSize, 3 * pixelSize);
+        break;
+    }
     
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(headX + 2, eyeY, 1, 1);
-    ctx.fillRect(headX + 6, eyeY, 1, 1);
+    const eyeY = headY + 4 * pixelSize;
+    ctx.fillStyle = outline;
+    
+    if (this.direction === 'up') {
+      // No eyes visible from behind
+    } else if (this.direction === 'left') {
+      ctx.fillRect(headX + pixelSize, eyeY, 2 * pixelSize, 2 * pixelSize);
+    } else if (this.direction === 'right') {
+      ctx.fillRect(headX + (headW - 3) * pixelSize, eyeY, 2 * pixelSize, 2 * pixelSize);
+    } else {
+      ctx.fillRect(headX + 2 * pixelSize, eyeY, 2 * pixelSize, 2 * pixelSize);
+      ctx.fillRect(headX + (headW - 4) * pixelSize, eyeY, 2 * pixelSize, 2 * pixelSize);
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(headX + 2 * pixelSize, eyeY, pixelSize, pixelSize);
+      ctx.fillRect(headX + (headW - 4) * pixelSize, eyeY, pixelSize, pixelSize);
+    }
   }
   
   getState() {

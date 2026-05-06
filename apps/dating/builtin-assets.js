@@ -1,24 +1,41 @@
 // 內建素材庫 - 使用Canvas繪製的基礎2D素材
 
 const BuiltinAssets = {
-    // 背景素材
+    PALETTE: {
+        wood: { dark: '#3a2a1a', main: '#5c4a32', light: '#7a6a52' },
+        dirt: { dark: '#3a2a1a', main: '#5c4033', light: '#7a6053' },
+        grass: { dark: '#4a6a2a', main: '#7ec850', light: '#9ae870' },
+        water: { dark: '#2a4a6a', main: '#4a90c2', light: '#6ab0e2' },
+        stone: { dark: '#5a5a5a', main: '#7a7a7a', light: '#9a9a9a' },
+        roof: { main: '#c44a4a', light: '#e46a6a' },
+        gold: '#ffd700',
+        parchment: '#f4e8c1'
+    },
+    
+    tileHash(x, y, seed = 0) {
+        let h = seed + x * 374761393 + y * 668265263;
+        h = (h ^ (h >> 13)) * 1274126177;
+        return (h ^ (h >> 16)) & 0xff;
+    },
+    
+    hashInt(x, y, min, max, seed = 0) {
+        return min + (this.tileHash(x, y, seed) % (max - min + 1));
+    },
+    
     backgrounds: [
         {
             name: '草地',
             generate: (canvas) => {
                 const ctx = canvas.getContext('2d');
-                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, '#90EE90');
-                gradient.addColorStop(1, '#228B22');
-                ctx.fillStyle = gradient;
+                const P = BuiltinAssets.PALETTE;
+                ctx.fillStyle = P.grass.main;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 添加草地紋理
                 for (let i = 0; i < 100; i++) {
                     ctx.fillStyle = 'rgba(34, 139, 34, 0.3)';
                     ctx.fillRect(
-                        Math.random() * canvas.width,
-                        Math.random() * canvas.height,
+                        BuiltinAssets.hashInt(i, 0, 0, canvas.width, 11111),
+                        BuiltinAssets.hashInt(i, 1, 0, canvas.height, 22222),
                         2, 4
                     );
                 }
@@ -28,10 +45,10 @@ const BuiltinAssets = {
             name: '木地板',
             generate: (canvas) => {
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#8B4513';
+                const P = BuiltinAssets.PALETTE;
+                ctx.fillStyle = P.wood.main;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 木紋
                 for (let y = 0; y < canvas.height; y += 40) {
                     ctx.strokeStyle = 'rgba(139, 69, 19, 0.5)';
                     ctx.lineWidth = 2;
@@ -46,10 +63,10 @@ const BuiltinAssets = {
             name: '石磚地',
             generate: (canvas) => {
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#808080';
+                const P = BuiltinAssets.PALETTE;
+                ctx.fillStyle = P.stone.main;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 磚塊
                 const brickW = 40, brickH = 20;
                 for (let y = 0; y < canvas.height; y += brickH) {
                     for (let x = 0; x < canvas.width; x += brickW) {
@@ -64,22 +81,17 @@ const BuiltinAssets = {
             name: '天空',
             generate: (canvas) => {
                 const ctx = canvas.getContext('2d');
-                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                gradient.addColorStop(0, '#87CEEB');
-                gradient.addColorStop(1, '#4682B4');
-                ctx.fillStyle = gradient;
+                const P = BuiltinAssets.PALETTE;
+                ctx.fillStyle = P.water.light;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // 雲朵
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
                 for (let i = 0; i < 5; i++) {
-                    const x = Math.random() * canvas.width;
-                    const y = Math.random() * canvas.height * 0.5;
-                    ctx.beginPath();
-                    ctx.arc(x, y, 30, 0, Math.PI * 2);
-                    ctx.arc(x + 20, y, 25, 0, Math.PI * 2);
-                    ctx.arc(x + 40, y, 30, 0, Math.PI * 2);
-                    ctx.fill();
+                    const x = BuiltinAssets.hashInt(i, 0, 0, canvas.width, 33333);
+                    const y = BuiltinAssets.hashInt(i, 1, 0, canvas.height * 0.5, 44444);
+                    ctx.fillRect(x, y, 30, 20);
+                    ctx.fillRect(x + 20, y + 5, 25, 15);
+                    ctx.fillRect(x + 40, y, 30, 20);
                 }
             }
         }
