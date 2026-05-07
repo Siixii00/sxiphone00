@@ -1,0 +1,236 @@
+:root {
+  --pc-bg: #f5f5f7;
+  --pc-card: #ffffff;
+  --pc-text: #1a1a1a;
+  --pc-muted: #8e8e93;
+  --pc-yellow: #ffdf2f;
+  --pc-border: #e5e5e5;
+  --pc-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--pc-bg);
+  overflow: hidden;
+}
+
+.payment-code-app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--pc-card);
+  border-radius: 16px;
+  box-shadow: var(--pc-shadow);
+}
+
+.balance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balance-label {
+  font-size: 0.75rem;
+  color: var(--pc-muted);
+  font-weight: 500;
+}
+
+.balance-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--pc-text);
+}
+
+.refresh-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--pc-yellow);
+  color: var(--pc-text);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.refresh-btn:active {
+  transform: scale(0.95);
+}
+
+.code-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--pc-card);
+  border-radius: 20px;
+  box-shadow: var(--pc-shadow);
+  overflow: hidden;
+}
+
+.code-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--pc-border);
+}
+
+.code-tab {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  background: transparent;
+  color: var(--pc-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.code-tab.active {
+  color: var(--pc-text);
+  background: rgba(255, 223, 47, 0.15);
+}
+
+.code-tab i {
+  font-size: 1.1rem;
+}
+
+.code-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+}
+
+.code-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.code-panel.active {
+  display: flex;
+}
+
+.barcode-wrapper, .qrcode-wrapper {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--pc-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#barcodeSvg {
+  max-width: 100%;
+  height: auto;
+}
+
+#qrcodeCanvas {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+}
+
+.code-number {
+  font-size: 0.85rem;
+  color: var(--pc-muted);
+  font-family: 'SF Mono', 'Monaco', monospace;
+  letter-spacing: 0.5px;
+}
+
+.code-timer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--pc-border);
+}
+
+.timer-bar {
+  height: 4px;
+  background: var(--pc-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.timer-fill {
+  height: 100%;
+  background: var(--pc-yellow);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.timer-text {
+  font-size: 0.75rem;
+  color: var(--pc-muted);
+  text-align: center;
+  display: block;
+}
+
+.code-info {
+  text-align: center;
+  padding: 8px;
+}
+
+.code-info p {
+  font-size: 0.75rem;
+  color: var(--pc-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.code-info i {
+  color: var(--pc-yellow);
+}
+
+.code-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--pc-text);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.code-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

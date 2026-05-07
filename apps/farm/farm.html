@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>農場</title>
+  <link rel="stylesheet" href="farm.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="farm-loading" id="farm-loading">
+    <div class="loading-content">
+      <div class="loading-title">Loading Farm...</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <div class="loading-text" id="loading-text">Preparing fields...</div>
+    </div>
+  </div>
+
+  <div class="farm-app">
+    <div class="top-bar">
+      <button class="back-btn" onclick="closeFarmApp()">
+        <i data-lucide="chevron-left"></i>
+      </button>
+      <div class="status-bar">
+        <div class="status-item">
+          <i data-lucide="coins"></i>
+          <span id="gold-display">0</span>
+        </div>
+        <div class="status-item">
+          <i data-lucide="sun"></i>
+          <span>Day <span id="day-display">1</span></span>
+        </div>
+        <div class="status-item">
+          <i data-lucide="cloud-sun" id="weather-icon"></i>
+          <span id="weather-display">Sunny</span>
+        </div>
+        <div class="status-item">
+          <i data-lucide="star"></i>
+          <span>Lv.<span id="level-display">1</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-container">
+      <canvas id="farm-canvas"></canvas>
+    </div>
+
+    <div class="toolbar">
+      <button class="tool-btn active" data-tool="till" onclick="setTool('till')">
+        <i data-lucide="shovel"></i>
+        <span>Till</span>
+      </button>
+      <button class="tool-btn" data-tool="plant" onclick="setTool('plant')">
+        <i data-lucide="sprout"></i>
+        <span>Plant</span>
+      </button>
+      <button class="tool-btn" data-tool="water" onclick="setTool('water')">
+        <i data-lucide="droplets"></i>
+        <span>Water</span>
+      </button>
+      <button class="tool-btn" data-tool="harvest" onclick="setTool('harvest')">
+        <i data-lucide="wheat"></i>
+        <span>Harvest</span>
+      </button>
+      <button class="tool-btn" data-tool="inventory" onclick="openInventory()">
+        <i data-lucide="backpack"></i>
+        <span>Bag</span>
+      </button>
+      <button class="tool-btn" data-tool="shop" onclick="openShop()">
+        <i data-lucide="store"></i>
+        <span>Shop</span>
+      </button>
+      <button class="tool-btn" data-tool="animals" onclick="openAnimals()">
+        <i data-lucide="rabbit"></i>
+        <span>Animals</span>
+      </button>
+      <button class="tool-btn end-day" onclick="endDay()">
+        <i data-lucide="moon"></i>
+        <span>Sleep</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="modal" id="shop-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Pierre's Shop</h2>
+        <button class="close-btn" onclick="closeShop()">×</button>
+      </div>
+      <div class="modal-body" id="shop-items"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="inventory-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Backpack</h2>
+        <button class="close-btn" onclick="closeInventory()">×</button>
+      </div>
+      <div class="modal-body" id="inventory-items"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="animals-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Barn</h2>
+        <button class="close-btn" onclick="closeAnimals()">×</button>
+      </div>
+      <div class="modal-body" id="animals-list"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="crop-select-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Select Crop</h2>
+        <button class="close-btn" onclick="closeCropSelect()">×</button>
+      </div>
+      <div class="modal-body" id="crop-options"></div>
+    </div>
+  </div>
+
+  <script src="farm-data.js"></script>
+  <script src="farm.js"></script>
+</body>
+</html>

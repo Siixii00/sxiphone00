@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>推特設定中心</title>
+  <link rel="stylesheet" href="twitter.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body data-page="settings">
+  <div class="twitter-app">
+    <header class="top-bar">
+      <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="logo">
+        <i class="fab fa-twitter"></i>
+      </div>
+      <button class="icon-btn" id="menu-toggle" aria-label="選單">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="tweet-header">
+          <div>
+            <span class="tweet-author">內容設定</span>
+            <span>世界書與世界觀管理</span>
+          </div>
+        </div>
+        <div class="wb-panel">
+          <div class="wb-panel-header">
+            <span>掛載世界書</span>
+            <button class="icon-btn wb-refresh" id="wb-refresh" type="button" aria-label="重新載入">
+              <i class="fas fa-rotate"></i>
+            </button>
+          </div>
+          <div class="wb-mount-list" id="wb-mount-list"></div>
+          <button class="primary-btn wb-save" id="wb-save" type="button">儲存掛載設定</button>
+        </div>
+        <div class="wb-panel">
+          <div class="wb-panel-header">
+            <span>世界觀設定</span>
+          </div>
+          <textarea id="worldview-setting" class="settings-textarea" placeholder="描述推特世界的背景設定，例如：這是一個充滿爭議的社群平台，用戶言論自由但容易引發筆戰..."></textarea>
+          <button class="primary-btn" id="worldview-save" type="button">儲存世界觀</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="tweet-header">
+          <div>
+            <span class="tweet-author">社群氛圍設定</span>
+            <span>控制推特上的互動風格</span>
+          </div>
+        </div>
+        <div class="wb-panel">
+          <label class="settings-label">社群友善度</label>
+          <select id="community-tone" class="settings-select">
+            <option value="friendly">友善溫和 - 大多數用戶禮貌互動</option>
+            <option value="neutral">中立正常 - 混合各種態度</option>
+            <option value="hostile">充滿爭議 - 容易引發筆戰和攻擊</option>
+            <option value="toxic">惡意環境 - 會有罵人、攻擊性言論</option>
+          </select>
+        </div>
+        <div class="wb-panel">
+          <label class="settings-label">允許的內容類型</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="allow-criticism" checked>
+              <span>允許批評言論</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="allow-sarcasm" checked>
+              <span>允許諷刺嘲諷</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="allow-arguments">
+              <span>允許筆戰爭吵</span>
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="allow-trolling">
+              <span>允許釣魚引戰</span>
+            </label>
+          </div>
+        </div>
+        <div class="wb-panel">
+          <label class="settings-label">NPC 回應者個性設定</label>
+          <textarea id="npc-personality" class="settings-textarea" placeholder="描述回應者的典型個性，例如：大多數用戶喜歡雞蛋裡挑骨頭，喜歡斷章取義，但也有一部分用戶會理性討論..."></textarea>
+        </div>
+        <div class="wb-panel">
+          <div class="toggle-row">
+            <label class="settings-label">啟用負面回應者</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="enable-haters">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-hint" style="margin-top: 6px;">關閉後將不會出現罵人、攻擊性的用戶</div>
+        </div>
+        <div class="wb-panel hater-settings" id="hater-settings" style="display: none;">
+          <label class="settings-label">負面回應者設定（罵人的用戶）</label>
+          <textarea id="hater-profiles" class="settings-textarea" placeholder="描述會罵人的用戶特徵，例如：有些鍵盤俠會無腦攻擊，酸民喜歡冷嘲熱諷，黑粉會惡意批評..."></textarea>
+        </div>
+        <button class="primary-btn" id="community-save" type="button">儲存社群設定</button>
+      </section>
+
+      <section class="card">
+        <div class="tweet-header">
+          <div>
+            <span class="tweet-author">生成回覆注意事項</span>
+          </div>
+        </div>
+        <div class="tweet-body">這些提醒會儲存於本機，提供回覆時的參考。</div>
+        <div class="settings-note">
+          <textarea id="reply-guidelines" class="settings-textarea" placeholder="例如：保持角色口吻、避免劇透、使用繁中輸出..."></textarea>
+          <button class="primary-btn" id="reply-guidelines-save" type="button">儲存注意事項</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="tweet-header">
+          <div>
+            <span class="tweet-author">角色與用戶掛載</span>
+            <span>選擇要套用的角色和用戶設定</span>
+          </div>
+        </div>
+        <div class="wb-panel">
+          <label class="settings-label" for="mount-char">選擇掛載角色 (Char)</label>
+          <select id="mount-char" class="settings-select"></select>
+        </div>
+        <div class="wb-panel">
+          <label class="settings-label" for="mount-user">選擇掛載用戶 (User)</label>
+          <select id="mount-user" class="settings-select"></select>
+        </div>
+        <div class="wb-panel">
+          <div class="toggle-row">
+            <label class="settings-label">為用戶生成推文</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="generate-user-tweets">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-hint" style="margin-top: 6px;">關閉後 AI 生成推文時不會為用戶生成</div>
+        </div>
+        <div class="wb-panel">
+          <div class="wb-panel-header">
+            <span>NPC 關注設定</span>
+          </div>
+          <div class="settings-hint" style="margin-bottom: 10px;">選擇要關注的 NPC，他們的推文會出現在首頁推薦</div>
+          <div id="npc-follow-list" class="npc-follow-list"></div>
+        </div>
+        <button class="nav-item settings-action" type="button" data-open-app="settings" data-settings-anchor="npc">
+          <i class="fas fa-users"></i><span>新增 / 管理 NPC</span>
+        </button>
+      </section>
+    </main>
+  </div>
+
+  <aside class="right-drawer" id="right-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">選單</div>
+      <button class="icon-btn" id="drawer-close" aria-label="關閉">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="drawer-profile">
+      <div class="avatar"></div>
+      <div>
+        <div class="name">SXiPhone</div>
+        <div class="handle">@sxiphone</div>
+      </div>
+    </div>
+    <nav class="drawer-nav">
+      <div class="drawer-section">Twitter 導覽</div>
+      <a class="nav-item" data-section="home" href="twitter.html"><i class="fas fa-house"></i><span>首頁</span></a>
+      <a class="nav-item" data-section="explore" href="explore.html"><i class="fas fa-hashtag"></i><span>探索</span></a>
+      <a class="nav-item has-badge" data-section="notifications" href="notifications.html"><i class="far fa-bell"></i><span>通知</span><span class="notification-badge" id="notification-badge" style="display:none">0</span></a>
+      <a class="nav-item" data-section="bookmarks" href="bookmarks.html"><i class="far fa-bookmark"></i><span>書籤</span></a>
+      <a class="nav-item" data-section="profile" href="profile.html"><i class="far fa-user"></i><span>個人資料</span></a>
+      <div class="drawer-section">設定</div>
+      <a class="nav-item settings-link" href="settings.html"><i class="fas fa-gear"></i><span>推特設定中心</span></a>
+    </nav>
+  </aside>
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <script src="twitter.js"></script>
+</body>
+</html>

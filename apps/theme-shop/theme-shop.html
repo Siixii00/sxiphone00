@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>主題商店</title>
+    <link rel="stylesheet" href="theme-shop.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="theme-shop-app">
+        <main class="theme-shop-main">
+            <header class="shop-header">
+                <div class="shop-title">主題商店</div>
+                <div class="shop-subtitle">創造專屬聊天風格</div>
+            </header>
+
+            <section class="shop-section">
+                <div class="section-head">
+                    <h3>全部主題</h3>
+                </div>
+                <div class="chip-row" id="category-tabs">
+                    <button class="chip-btn active" data-category="all">全部</button>
+                    <button class="chip-btn" data-category="dark">深色</button>
+                    <button class="chip-btn" data-category="light">淺色</button>
+                    <button class="chip-btn" data-category="custom">自訂</button>
+                </div>
+                <div class="theme-grid" id="theme-grid"></div>
+            </section>
+
+            <section class="shop-section">
+                <div class="create-card">
+                    <div class="section-title">
+                        <i class="fas fa-magic"></i>
+                        創建新的主題
+                    </div>
+                    <div class="create-form">
+                        <div class="form-group">
+                            <label for="theme-name">主題名稱</label>
+                            <input type="text" id="theme-name" placeholder="輸入主題名稱">
+                        </div>
+
+                        <div class="form-group">
+                            <label>主題類型</label>
+                            <div class="type-selector">
+                                <button class="type-option active" data-type="dark">
+                                    <i class="fas fa-moon"></i>
+                                    <span>深色</span>
+                                </button>
+                                <button class="type-option" data-type="light">
+                                    <i class="fas fa-sun"></i>
+                                    <span>淺色</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>聊天室背景</label>
+                            <div class="upload-area" id="bg-upload-area">
+                                <input type="file" id="bg-file" accept="image/*" hidden>
+                                <div class="upload-preview" id="bg-preview">
+                                    <i class="fas fa-image"></i>
+                                    <span>點擊上傳背景圖片</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Q版頭像（選填）</label>
+                            <div class="upload-area" id="avatar-upload-area">
+                                <input type="file" id="avatar-file" accept="image/*" hidden>
+                                <div class="upload-preview" id="avatar-preview">
+                                    <i class="fas fa-user-circle"></i>
+                                    <span>點擊上傳Q版頭像</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>對話氣泡顏色</label>
+                            <div class="color-picker-group">
+                                <div class="color-item">
+                                    <span class="color-label">我的氣泡</span>
+                                    <input type="color" id="my-bubble-color" value="#f3d94b">
+                                </div>
+                                <div class="color-item">
+                                    <span class="color-label">對方氣泡</span>
+                                    <input type="color" id="other-bubble-color" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>文字顏色</label>
+                            <div class="color-picker-group">
+                                <div class="color-item">
+                                    <span class="color-label">我的文字</span>
+                                    <input type="color" id="my-text-color" value="#333333">
+                                </div>
+                                <div class="color-item">
+                                    <span class="color-label">對方文字</span>
+                                    <input type="color" id="other-text-color" value="#333333">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>頂部標題列</label>
+                            <div class="color-picker-group">
+                                <div class="color-item">
+                                    <span class="color-label">背景色</span>
+                                    <input type="color" id="header-bg-color" value="#f3d94b">
+                                </div>
+                                <div class="color-item">
+                                    <span class="color-label">文字色</span>
+                                    <input type="color" id="header-text-color" value="#343434">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="preview-section">
+                            <label>主題預覽</label>
+                            <div class="theme-preview-box" id="theme-preview-box">
+                                <div class="preview-header">
+                                    <i class="fas fa-chevron-left"></i>
+                                    <span class="preview-title">聊天預覽</span>
+                                    <i class="fas fa-bars"></i>
+                                </div>
+                                <div class="preview-chat-area">
+                                    <div class="preview-msg other">
+                                        <div class="preview-avatar"></div>
+                                        <div class="preview-bubble-text">你好！這是主題預覽</div>
+                                    </div>
+                                    <div class="preview-msg mine">
+                                        <div class="preview-bubble-text">看起來很不錯呢！</div>
+                                        <div class="preview-avatar"></div>
+                                    </div>
+                                </div>
+                                <div class="preview-input-area">
+                                    <input type="text" placeholder="輸入訊息..." disabled>
+                                    <button>發送</button>
+                                </div>
+                            </div>
+                        </div>
+
+<div class="form-actions">
+                            <button class="btn-secondary" id="reset-form">
+                                <i class="fas fa-undo"></i>
+                                重置
+                            </button>
+                            <button class="btn-primary" id="save-theme">
+                                <i class="fas fa-save"></i>
+                                儲存主題
+                            </button>
+                        </div>
+                        <div class="form-actions" style="margin-top:10px;">
+                            <button class="btn-secondary" id="save-as-light" style="background:#34C759;color:#fff;border-color:#34C759;">
+                                <i class="fas fa-sun"></i>
+                                儲存為自訂淺色
+                            </button>
+                            <button class="btn-secondary" id="save-as-dark" style="background:#5856D6;color:#fff;border-color:#5856D6;">
+                                <i class="fas fa-moon"></i>
+                                儲存為自訂深色
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="shop-section">
+                <div class="section-head">
+                    <h3>我的主題</h3>
+                </div>
+                <div class="my-themes-grid" id="my-themes-grid">
+                    <div class="empty-hint" id="empty-hint">尚未建立任何主題</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="theme-detail-modal" id="theme-detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="modal-cancel">取消</button>
+                <button class="btn-primary" id="modal-apply">套用主題</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="theme-shop.js"></script>
+  <script src="../scripts/shared-settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+{
+  "description": "劇場專用內容 - 包含HTML/CSS/JS結構，由theater.js讀取 | 作者：@电波系",
+  "version": "1.0.0",
+  "author": "@电波系",
+  "sx_worldbook_theater": [
+    {
+      "id": "theater_001",
+      "title": "🎪極光交互小劇場",
+      "type": "html_interactive",
+      "triggers": ["小劇場", "交互"],
+      "content": "[小剧场要求]\n通用核心规范：\n你会根据故事或上下文嵌入一个 HTML+CSS+JavaScript 深度交互界面。这不仅是文本的载体，更是一个迷你的、可玩的互动装置或伪应用程序。\n\n遵循以下进阶设计规范：\n1. 布局与样式 (高性能/高兼容)\n-   设计必须是响应式的，UI需无缝适配手机、平板与桌面端\n    -   使用 @media 查询、百分比宽度和 max-width（推荐值: 500px-800px）来实现\n-   body 标签禁止使用 vh 单位。确保 body 设置 overflow: auto; height: auto\n-   body 背景必须设为 transparent，不要设置颜色，以便融入聊天窗口。所有的视觉背景（颜色/纹理/渐变）必须应用在内部的 .container 容器上\n-   必须定制沉浸式滚动条样式 (::-webkit-scrollbar)，使其与UI风格统一；或者在无需滚动提示时直接隐藏滚动条 (scrollbar-width: none) 以保持界面整洁\n-   严禁使用 transition 属性，所有动态效果必须通过 @keyframes 动画或 JS 切换 class 实现\n-   模块必须是单个居中的容器，内部可包含复杂的嵌套结构\n-   样式:\n    -   标题强制使用 <p class=\"title-custom\">，严禁使用 h1-h4 标签\n    -   使用清晰易读的无衬线字体（古风除外），并明确设置 color\n    -   主容器投影大小统一为0 4px 6px\n    -   视觉风格锚定: 根据内容类型选择最佳 UI 范式\n        -   社交/应用类: 采用 Card Layout (卡片式)、Sticky Header (粘性头部)、Bottom Nav (底部导航)\n        -   剧情/物品类: 采用拟物化\n        -   通用库: Flat UI, Cyber/Terminal, Paper/Handwritten, Pixel Art\n\n2. 动态交互与逻辑模式\n-   根据剧场类型，从以下两种交互逻辑中选择一种，严禁生搬硬套：\n    -   模式A：聚合应用流 -> 适用于论坛/朋友圈/系统/手机\n        -   特征: 单屏展示，多点交互。无需封面和结算页\n        -   必须包含: 状态切换、内容切换、或列表追加\n        -   细节: 模拟真实APP的反馈，如按钮点击的缩放、红点提示、Toast弹窗\n    -   模式B：线性叙事流  -> 适用于拆礼物/小游戏/解谜\n        -   特征: 分阶段推进 (封面 -> 互动 -> 结果)\n        -   必须包含: 完整的状态机逻辑，用户操作后界面发生不可逆变化\n-   防偷懒禁令:\n    -   不能用下面的图像指令覆盖所有元素，加入充分的emoji交互效果\n    -   严禁"点击即结束"的伪交互\n    -   对于论坛/社交类：必须模拟真实的互动数据\n-   触感反馈: 所有可点击元素必须有 :active 伪类缩放效果 (transform: scale(0.95))；允许各种有趣的交互弹窗\n\n3. 内容与资源 \n-   禁止引用外部CSS、JS文件或API。所有资源必须按规定生成或声明\n-   角色与叙事:\n    -   头像: 用文本、符号、下列生图规则在绝对圆形的框内表示角色头像\n    -   相关性: 内容必须与char和{{user}}高度相关\n    -   NPC客串: 可包含第三方NPC（如<文末吐槽>）的客串\n-   语言与语调:\n    -   主要语言: 简体中文\n    -   用户名: 在论坛式交互中，创建诙谐的匿名用户名，绝不透露真实角色名\n-   资源:\n    -   图标：可以从外部网站引入svg图标加强真实性，如Font awesome\n    -   视觉表现策略:\n        -   每次生成前，必须随机决定视觉重心，严禁单一依赖 AI 生图：\n        -   CSS/SVG 绘图: 适用于物品、食物、像素风、UI组件。\n            -   利用 `border-radius`, `box-shadow` (像素画/投影), `linear-gradient`, `clip-path` 绘制图形。\n            -   优势: 可交互、可动画化。\n        -   AI 生图: 适用于复杂场景、人物肖像、氛围图。\n            -   格式: `https://gen.pollinations.ai/image/[提示词]?width=[宽]&height=[高]&model=zimage&key=sk_J4QOO1aRAS3avP9yr0YbaA6z9mgMjtpM`\n            -   提示词规则: 英文，禁止出现人物/身体部位相关词汇\n\n4. 输出格式\n<!-- 导演手记：\n     [场景类型] {当前触发可视化的情境}\n     [视觉策略] 风格：{...} | 配色：{...}\n     [绝对中文语言] 确保界面内文案均为地道简体中文，无翻译腔\n-->\n<ice>\n<style>\n/* ...CSS代码... */\n</style>\n<div class=\"...\">\n<!-- ...HTML代码... -->\n</div>\n</ice>",
+      "enabled": false
+    },
+    {
+      "id": "theater_002",
+      "title": "🎪簡約文字小劇場",
+      "type": "text_theater",
+      "triggers": ["小劇場", "文字"],
+      "content": "<小剧场要求>\n通用核心规范：\n- 若触发N个剧场任务，必须输出N个完整的 `<snow>...</snow>` 闭环结构。即使类型相同（如两个均为论坛体），也必须拆分为两个独立的XML块，严禁合并或混写\n- 每个剧场均为独立于主线之外的纯文本番外（>3000字），必须确保题材互不重复，支持<文末吐槽>客串。自由运用特殊字符、Emoji与Markdown（含`>`及`||`）构建差异化的视觉布局\n- 禁用反引号、html/css代码、ASCII 表格、制表符\n- 本规则不受[文中随机可视化]影响\n\n输出规范：\n<snow>\n<!-- SYSTEM_LOG::构思校验（此模块为强制输出的系统日志，不可跳过任何一个步骤）\n1. 扫描`剧场锚定`的剧场输出队列\n2. 当前正在处理第 {i} 个剧场（共 {total} 个），类型为 {类型}\n3. 语言={{getvar::核心语言}}\n4. 强制输出禁用代码写作誓言，必须思考如何用md文字格式输出剧场 -->\n<details><summary>˖ ᜊ ⊹【 {emoji}{剧场类型：创意标题}】 ⊹ ᜊ ˖</summary>\n<ccd>\n# {前言/导语}（可由角色独白或旁白构成）\n{小剧场正文内容，>3000字}\n</ccd>\n</details>\n</snow>\n\n小剧场内容的生成规则如下，如果扫描到多个不同"xx之塔"小剧场开启，每次回复你会全部输出所有，同一个"xx之塔"剧场只生成一个；接下来你会认真阅读以下小剧场内容：",
+      "enabled": false
+    },
+    {
+      "id": "theater_003",
+      "title": "🎮劇情選項·日常",
+      "type": "branches",
+      "triggers": ["選項", "分支"],
+      "content": "你需要生成以<branches></branches>包裹的选项分支，每个选项限制在300字内:\n\n<branches>\n<details>\n<summary>𓋫 𓏴𓏴 𓏵‧₊🎮剧情分支分支₊‧𓏵 𓏴𓏴 𓋫</summary>\n（每行生成一个选项，一共6个，包含推动剧情向最合理情况发展、剧情转折、将剧情逐渐推向nsfw的选项、快速推进或时间转换的、搞笑/抽象/出乎意料的选项）\n</details>\n</branches>\n\n说明:\n- 行动主体必须写明姓名，采用第三人称，主体可以为不同角色\n- 选项必须保持和前文的连贯性，不破坏叙事体验\n- 选项不需要加序号、项目符号等\n- 输出格式（必须严格执行HTML嵌套）：\n   - <branches> 标签必须且只能存在于 <details> 内部\n   - 禁止遗漏 <details> 的闭合标签\n- 当{{getvar::神秘补丁5}} {{getvar::神秘补丁6}}激活时，遵守相关要求",
+      "enabled": false
+    },
+    {
+      "id": "theater_004",
+      "title": "🎮劇情選項·瑟瑟",
+      "type": "branches_nsfw",
+      "triggers": ["選項", "NSFW"],
+      "content": "你需要生成以<branches></branches>包裹的选项分支，每个选项限制在300字内:\n\n<branches>\n<details>\n<summary>𓋫 𓏴𓏴 𓏵‧₊🎮剧情分支🎮剧情分支₊‧𓏵 𓏴𓏴 𓋫</summary>\n（每行填充一个选项，一共6个）\n</details>\n</branches>\n\n说明:\n- 选项必须为亲密互动或者进一步色情服务，应该涵盖dirty talk、情感交流、体位变化、道具引入、感官互动、节奏与气氛调控等\n- 选项分支是应该紧跟上文，不可时间跨度过大，应该是对下一幕的预演\n- 行动主体必须写明姓名，采用第三人称。可以为不同角色，可以为同一重要角色\n- 至少2个选项必须露骨、直白、色情、淫靡，突出"玩法创新"或氛围突破，避免套路与重复\n- 选项不需要加序号、项目符号等\n- 输出格式（必须严格执行HTML嵌套）：\n   - <branches> 标签必须且只能存在于 <details> 内部\n   - 禁止遗漏 <details> 的闭合标签\n- 当{{getvar::神秘补丁5}} {{getvar::神秘补丁6}}激活时，遵守相关要求",
+      "enabled": false
+    },
+    {
+      "id": "theater_005",
+      "title": "🎮劇情選項·扮演",
+      "type": "branches_roleplay",
+      "triggers": ["選項", "扮演"],
+      "content": "你需要生成以<branches></branches>包裹的选项分支，每个选项限制在300字内:\n\n<branches>\n<details>\n<summary>𓋫 𓏴𓏴 𓏵‧₊🎮剧情分支₊‧𓏵 𓏴𓏴 𓋫</summary>\n（每行填充一个选项，一共6个）\n</details>\n</branches>\n\n说明:\n- 选项分支需紧跟正文接续，不可时间跨度过大，尽可能地完整以方便剧情衔接\n- 选项要包含完整的user视角的对话+动作指导\n- 行动和说话的主体必须是<user>，采用第一人称"我"（不受`user人称`影响）\n- 选项各涵盖推进故事、切换场景、跳转时间、发展亲密、突然转折、恶搞抽象等不同方面，互不干扰\n- 选项不需要加序号、项目符号等\n- 当`双语对话`开启，选项内对话需符合格式\n- 输出格式（必须严格执行HTML嵌套）：\n   - <branches> 标签必须且只能存在于 <details> 内部\n   - 禁止遗漏 <details> 的闭合标签\n- 当{{getvar::神秘补丁5}} {{getvar::神秘补丁6}}激活时，遵守相关要求",
+      "enabled": false
+    },
+    {
+      "id": "theater_006",
+      "title": "🎥角色彈幕直播間",
+      "type": "live_stream",
+      "triggers": ["直播", "彈幕"],
+      "content": "你会生成以下live直播间：\n\n<live>\n<details>\n<summary>✩˚₊ ‧ ₊·❄️弹幕直播间·₊ .⋆ ｡</summary>\n直播标题：{生成的直播标题}\n直播内容：{生成的直播内容摘要}\n直播背景图：{生成的背景图URL}\n<bullet>\n{用户名1}: {弹幕内容1}\n{用户名2}: {弹幕内容2}\n...\n{用户名N}: {弹幕内容N}\n</bullet>\n</details>\n</live>\n\n格式填充规则：\n1.  以上 `<live>...</live>` 结构必须完整输出，任何字段都不能省略。这是固定格式，不能混合其他任何文本\n2.  直播标题：根据当前对话的氛围、主题或核心事件，动态生成一个吸引人的直播标题\n3.  直播内容：将你本次正文回复的核心内容，提炼成1-3句夸张、恶搞、幽默的描述\n4.  直播背景图：\n    -   必须使用以下API格式生成背景图URL：`https://gen.pollinations.ai/image/这里是提示词?width=1920&height=1080&model=zimage&key=sk_J4QOO1aRAS3avP9yr0YbaA6z9mgMjtpM`\n    -   提示词生成规则：根据"直播内容"摘要，提炼出2-5个核心场景关键词，组合成高质量的英文提示词\n    -   绝对禁令：提示词中严禁包含任何描述人类、类人生物（如精灵、兽人）或任何身体部位的词汇\n5.  弹幕 (<bullet>...</bullet>)：每次生成10到20条弹幕，来源可以是原创路人或故事中的NPC客串\n6.  禁止遗漏 <details>标签",
+      "enabled": false
+    },
+    {
+      "id": "theater_007",
+      "title": "🎪隨機視覺組件",
+      "type": "visual_component",
+      "triggers": ["視覺", "組件"],
+      "content": "[文中随机可视化]\n随机在正文1/2处插入1个独立于[小剧场]的视觉组件，采用 <style>+HTML 结构。\n\nA. 风格库 (随机抽取或融合)\n- 经典构成：瑞士国际主义 | 现代编辑设计 | 包豪斯 | 几何立体主义\n- 复古质感：独立杂志 | 孔版印刷 | 粗野主义 | 复古剪贴簿 | 像素艺术\n- 现代潮流：克莱因蓝 | 新丑风 | 孟菲斯 | 酸性设计 | 毛玻璃\n- 特殊模拟：水粉插画 | 工程蓝图 | 热成像/故障风\n\nB. 技术规范:\n1.  必须为 `<style>...</style>` 紧接 `<div>...</div>`，严禁内联 style\n2.  CSS 类名须添加随机前缀/后缀确保唯一，防止污染全局\n3.  仅限 div/span/p/ul/li/table。禁用 h1-h4 (用 font-weight)，禁用 <br>\n4.  必须显式定义 color 和 background，确保深/浅色模式下均可见。\n5.  容器 max-width (~600px) + margin:auto 居中，自适应移动端。\n\nC. 设计原则\n1.  视觉：利用 CSS (border/shadow/gradient/clip-path/mix-blend) 将物品、情绪或氛围具象化\n2.  排版：拒绝平庸卡片。尝试异形布局、留白、图层叠加或强烈的字体层级\n\nD. 输出格式\n<!-- 导演手记：\n     [场景类型] {当前触发可视化的情境}\n     [视觉策略] 风格：{...} | 配色：{...}\n     [绝对中文语言] 确保界面内文案均为地道简体中文，无翻译腔\n-->\n<ice>\n<style>\n/* ...CSS代码... */\n</style>\n<div class=\"...\">\n<!-- ...HTML代码... -->\n</div>\n</ice>",
+      "enabled": false
+    },
+    {
+      "id": "theater_008",
+      "title": "🎪文字美化組件",
+      "type": "text_beautify",
+      "triggers": ["美化", "排版"],
+      "content": "[文字美化组件]\n你将化身为顶级杂志的艺术总监。在正文中，捕捉1-2处最具张力的短句（关键词、潜台词、拟声词或独白），将其转化为视觉化的排版插图\n\n核心原则：\n1.  利用留白、字体字重对比、几何分割、纹理叠加来构建视觉张力\n2.  强制核心字体为 `font-family: \"Source Han Serif SC\", \"Noto Serif SC\", serif;`（思源宋体）\n3.  使用 `<style>` + HTML 结构，确保 CSS 类名添加随机后缀，防止样式冲突\n\n风格指引 (随机抽取)：\n瑞士国际主义、孔版印刷、新丑/酸性设计、东方极简\n\n技术规范：\n-   容器：`max-width: 90%`，居中，自适应宽度，去除默认边距\n-   内容：仅选取 5-15 个字的短句，不使用引号\n-   动画：禁用transition",
+      "enabled": false
+    },
+    {
+      "id": "theater_009",
+      "title": "📌摘要開關",
+      "type": "summary",
+      "triggers": ["摘要", "記錄"],
+      "content": "生成以下摘要格式：\n\n<meow_FM>\n<details>\n<summary>𐙚₊˚┈˖˚⊹  🔮课堂摘要摘要˚˖ ┈ ⋆𐙚₊˚</summary>\nserial:🪶高塔箴言-{序号（强制001开始，逐次+1）}\ntime:yyyy-MM-dd 星期 | HH:mm 天气（古风背景自动调整为古风时间）\nNSFW：{当前回合}/20\nscene:\n{主场景} - {次级场景}（停留回合：{N}）\n【课题】：{小剧场标题}\nplot:\n{客观事实记录故事骨架，保留核心细节，150-300字左右，不换行}\n<!-- 象牙塔分析：[逐个输出以下填充内容需要进行的分析思考] -->\n{{getvar::角色关系}}\n{{getvar::enigma}}\n{{getvar::seeds}}\n</details>\n</meow_FM>\n\n说明:\n- "课题"仅在生成小剧场时记录，否则该行留空，且本行内容与剧情无关\n- NSFW仅在进入NSFW情节时记录，否则记录0；必须让NSFW维持5回合起步；达到20回合上限后，必须结束NSFW情节；禁止把暧昧桥段计入NSFW\n- 禁止遗漏 <details> 的闭合标签",
+      "enabled": false
+    },
+    {
+      "id": "theater_010",
+      "title": "📟有求必應狀態欄",
+      "type": "status_bar",
+      "triggers": ["狀態", "信息"],
+      "content": "你会生成以下角色信息栏，禁止遗漏任何格式：\n\n输出模板（严守XML标签，多角色时复制<char>块）：\n<details>\n<summary>✩˚₊ ‧ 🌷 有求必应屋 .⋆ ｡</summary>\n<通用状态>\n<char（序号，从1开始，如char1）>\n角色名称：{char全名/昵称}\n好感指数：{仅数值, -100~100。数值同Ecot`好感指南`}（[增减幅度]，[简述状态]）\n情绪气泡：{Tag1}；{Tag2}；{Tag3}\n隐秘心声：{简中，200字内，揭示潜意识想法}\n性欲指数：{仅数值, 0~100}\n器官状态：\n{换行，写2-3个器官，格式：【器官名】：拟人化骚话吐槽（必含性器官状态，男【阴茎】/女【小穴】）}\n事务备忘：\n{换行，分点列出，承接上文逻辑，已完成的加<s>删除线</s>}\n随性涂鸦：\n{必须是纯文本字符画（ASCII Art），严禁使用Markdown代码块（即禁止出现反引号 ```），严禁使用Emoji凑数}\n涂鸦解析：{一句话解释}\n</char（序号）>\n</通用状态>\n</details>（必须输出本行）",
+      "enabled": false
+    },
+    {
+      "id": "theater_011",
+      "title": "📟浮生繪卷狀態欄",
+      "type": "status_bar_antique",
+      "triggers": ["狀態", "古風"],
+      "content": "你会生成以下角色状态栏，禁止遗漏任何格式：\n\n输出模板（严守XML结构，多角色时复制`<char>`块）：\n<details>\n<summary>✩˚₊ ‧ 🎋 浮生绘卷  .⋆ ｡ </summary>\n<古风状态>\n<char（序号，从1开始，如char1）>\n人物名讳：{char全名/字号}\n世俗尘缘：{Num, -100~100。执行[地狱难度算法]：\n1. 回溯上一回数值，严禁大幅跳涨。\n2. 上升锁：单次增幅严格限制在 +0.5~0.8 之间（必须保留一位小数）\n3. 下降惩罚：若发生冲突，允许大幅扣分（-2~10）\n4. 逻辑：体现极难攻略的疏离感与高防御。}\n当前心境：{四字词语1}；{四字词语2}；{四字词语3}\n灵台暗语：{简中，200字内，揭示潜意识想法}\n心之欲念：{仅数值, 0~100}\n肉身反馈：\n{换行，写2-3个器官，格式：【器官名】：拟人化古风吐槽（必含性器官状态，男【阴茎】/女【小穴】）}\n红尘俗务：\n{换行，分点列出计划/因果，已了结的因果加<s>删除线</s>}\n笔墨丹青：\n{必须是纯文本字符画（ASCII Art），严禁使用Markdown代码块，严禁使用Emoji凑数，需有写意感}\n笔墨题跋：{一句话解释画中意，维持古风}\n</char>\n</古风状态>\n</details>",
+      "enabled": false
+    },
+    {
+      "id": "theater_012",
+      "title": "🔮獨立伏筆",
+      "type": "seeds",
+      "triggers": ["伏筆"],
+      "content": "生成以下伏笔格式：\n\n<seeds>\n<details>\n<summary>🍥∗ ํ伏笔之花･ ˖˚🤍</summary>\n<!-- 象牙塔低语：(以象牙塔口吻在此处详细思考伏笔安排，如"根据接下来的剧情，伏笔安排应该为...") -->\n\n[伏笔分类 - 伏笔命名][花期]\n- 客观点明此伏笔制造的核心"悬念"或"戏剧性问题"\n- 此伏笔将如何触动角色的"内在罗盘"或考验关系的"核心张力"？\n- 如何保持善意，避免阴谋论？\n</details>\n</seeds>\n\n要求：\n- 伏笔分为[灵魂伏笔]（触及角色内在，最多3条）和[世界伏笔]（影响外部事件，最多3条）。\n- "花期"共5个等级，以(n/5)表示\n- 你必须根据当前剧情对此伏笔的"浇灌"程度，来更新其"花期"等级\n- 如果一个伏笔的花期连续3轮停滞或降低，则视为"枯萎"，必须在下一次记录时将其移除\n- 当一个伏笔的花期达到(5/5)并"盛放"为当前主线剧情后，也必须在下一次记录时将其移除\n- 不要复述问题，直接回答并不少于200字；伏笔内容禁止省略，必须接续伏笔内容\n- 禁止在此记录小剧场/文末吐槽内容",
+      "enabled": false
+    },
+    {
+      "id": "theater_013",
+      "title": "🪶心緒回響·現代",
+      "type": "echo_modern",
+      "triggers": ["回響", "現代"],
+      "content": "[心绪回响]\n输出规范：\n<echo>\n(此处填充选中的模式括号内内容，严格保持行数结构，除第一行外禁止加"xx："前缀)\n</echo>\n\n内容模板（严格执行换行）：\n{{random::\n模式：excerpt\n(摘抄的正文内容)\n(出处/来源)\n(char对此的感触，<30字)\n::\n模式：postcard\n(明信片画面的一句话速写)\n(时间) · (地点)\n(char的手写问候与思念，富有生活气息)\n(署名)\n::\n模式：recommendation\n(推荐人姓名)\n(推荐物名称) by (来源/品牌)\n(第一人称推荐理由，<50字)\n::\n模式：fortune\n(占卜类型) - (结果/吉凶)\n(核心关键词)\n(简短解析)\n(char对结果的吐槽)\n::\n模式：memory\n(时间)， (地点)\n(第一人称感官闪回，关于过去或<user>的细节，~200字)\n(char对这段回忆的当下看法)\n}}",
+      "enabled": false
+    },
+    {
+      "id": "theater_014",
+      "title": "🪶心緒回響·古風",
+      "type": "echo_antique",
+      "triggers": ["回響", "古風"],
+      "content": "[心绪回响]\n输出规范：\n<echo>\n(此处填充选中的模式括号内内容，严格保持行数结构，除第一行外禁止加"xx："前缀；填充完内容后无需保留括号)\n</echo>\n\n内容模板（严格执行换行）：\n{{random::\n模式：excerpt\n(古籍经卷或诗词名句，可原创或引用)\n(出处)\n(char的眉批或随感，<30字)\n::\n模式：postcard\n(信笺画面的一句话速写)\n(干支纪年/节气) · (游历地点)\n(char亲笔手书的羁旅思念或见闻，富有生活气息)\n(署名)\n::\n模式：recommendation\n(赠礼人姓名)\n(雅物名称) 出自 (产地/名匠/门派)\n(第一人称赠礼寄语，含蓄的关怀，<50字)\n::\n模式：fortune\n【(问卜方式：测字/灵签/龟甲/算命)】 - (卦象/签文等级)\n(结果+空格+卦辞核心)\n(解卦人批语)\n(char对此天命的吐槽)\n::\n模式：memory\n(时间)， (地点)\n(第一人称感官闪回，关于过去或<user>的细节，~200字)\n(char对这段回忆的当下看法)\n}}",
+      "enabled": false
+    },
+    {
+      "id": "theater_015",
+      "title": "⏰現代文字頂部欄",
+      "type": "podcast_modern",
+      "triggers": ["頂部欄", "現代"],
+      "content": "你会生成以下唯一一个podcast，禁止遗漏任何格式：\n\n<podcast>\n{年-月-日 | {星期 时间}     {主地点}，{次地点} | {细腻的天气环境描写 (10字内)}\nVol. {序号，同高塔箴言}\n「标题」\n{当前时间} {根据时间比例动态生成：━━●──} {下个时间}\n⇆ ◁  ❚❚  ▷ ↻\n</podcast>\n\n动态进度条构建指令：\n1. 随机生成一个总时长（3:00-6:00）和一个当前播放时间。\n2. 根据当前时间百分比，动态调整圆点位置。\n   例如：进度20%时为 ━━●──────── ；进度80%时为 ━━━━━━━━●──",
+      "enabled": false
+    },
+    {
+      "id": "theater_016",
+      "title": "⏰古風文字頂部欄",
+      "type": "podcast_antique",
+      "triggers": ["頂部欄", "古風"],
+      "content": "你会生成以下唯一一个podcast，禁止遗漏任何格式；每次都要生成不同的风格标题，禁止抄袭上文：\n\n<podcast>\n{朝代} · {节气} | {日期-时辰（必须写明具体日期）}    {主地点} | {细腻的天气环境描写 (10字内)}\n第 {中文数字} 折\n『 {折子戏风标题，每次都要生成不同的风格、结构的标题，禁止抄袭上文} 』\n{当前时刻}·····🛶················{下个时刻}\n—— {随机诗词} ——\n</podcast>\n\n动态进度条构建指令：\n- 图标根据场景选择 🍶(酒壶) / 🛶(孤舟) / 🌙(残月) / 🗡️(剑锋) / 🐎(骏马)\n- 根据当前事件进度，移动图标位置",
+      "enabled": false
+    },
+    {
+      "id": "theater_017",
+      "title": "📝文字轉互動劇場",
+      "type": "text_to_html",
+      "triggers": ["文字劇場", "互動", "轉換"],
+      "content": "[文字轉互動劇場]\n當用戶輸入「假設user和char進入了一個xxx...」或類似描述時，自動生成互動式HTML劇場內容。\n\n輸入格式識別：\n- 「假設 user 和 char 進入了...」\n- 「user 決定向 char...」\n- 「char 和 user 在...相遇」\n- 「場景：xxx，角色：xxx，事件：xxx」\n\n生成規範：\n1. 場景描述（.scene-box）\n   - 使用漸層背景營造氛圍\n   - 包含環境描寫和感官細節\n   - 設定時間、地點、天氣等要素\n\n2. 角色對話（.dialogue-box）\n   - 不同角色使用不同強調色\n   - 包含角色名稱（.speaker）和對話內容（.line）\n   - 可添加情緒標籤或動作描述\n\n3. 互動選項（.choice-box）\n   - 2-4個選項按鈕（.choice-btn）\n   - 每個選項有 onclick 事件\n   - 點擊後顯示不同結果或推進劇情\n\n4. 視覺效果\n   - 響應式設計（max-width: 500px-800px）\n   - 使用 @keyframes 動畫\n   - 所有可點擊元素有 :active 縮放效果\n   - 主題色可使用 #e50914\n\n5. 輸出格式\n   - 完整的 HTML+CSS 代碼\n   - 內聯 <style> 標籤\n   - 禁用 h1-h4，使用 <p class=\"title-custom\">\n   - 簡體中文\n\n範例輸入：\n「假設 user 和 char 進入了一個神秘的咖啡廳，窗外下著雨，店裡只有他們兩人...」\n\n範例輸出結構：\n<style>\n.container { max-width: 600px; margin: auto; background: linear-gradient(...); }\n.scene-box { padding: 20px; border-radius: 12px; ... }\n.dialogue-box { border-left: 3px solid #e50914; ... }\n.choice-btn { background: rgba(255,255,255,0.1); ... }\n.choice-btn:active { transform: scale(0.95); }\n@keyframes fadeIn { ... }\n</style>\n<div class=\"container\">\n  <p class=\"title-custom\">雨夜咖啡廳</p>\n  <div class=\"scene-box\">...</div>\n  <div class=\"dialogue-box\">...</div>\n  <div class=\"choice-box\">...</div>\n</div>",
+      "enabled": true
+    },
+    {
+      "id": "theater_018",
+      "title": "🎭簡易互動模板",
+      "type": "simple_interactive_template",
+      "triggers": ["模板", "簡易"],
+      "content": "[簡易互動模板]\n提供快速生成互動劇場的模板結構。\n\n模板A - 場景+對話+選項：\n<div class=\"container\" style=\"max-width:600px;margin:auto;padding:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px;\">\n  <p class=\"title-custom\" style=\"font-size:20px;font-weight:700;color:#fff;margin-bottom:16px;\">{標題}</p>\n  <div class=\"scene-box\" style=\"padding:16px;background:rgba(255,255,255,0.05);border-radius:8px;margin-bottom:16px;\">\n    <p style=\"color:#b3b3b3;line-height:1.6;\">{場景描述}</p>\n  </div>\n  <div class=\"dialogue-box\" style=\"padding:12px;border-left:3px solid #e50914;background:rgba(255,255,255,0.05);border-radius:0 8px 8px 0;margin-bottom:12px;\">\n    <span class=\"speaker\" style=\"font-weight:600;color:#e50914;\">{角色名}</span>\n    <p class=\"line\" style=\"color:#e5e5e5;\">{對話內容}</p>\n  </div>\n  <div class=\"choice-box\" style=\"display:flex;flex-direction:column;gap:8px;\">\n    <button class=\"choice-btn\" style=\"padding:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;cursor:pointer;\" onclick=\"this.parentElement.innerHTML='<p style=\\'color:#4ade80\\'>{結果1}</p>'\">{選項1}</button>\n    <button class=\"choice-btn\" style=\"padding:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;cursor:pointer;\" onclick=\"this.parentElement.innerHTML='<p style=\\'color:#f87171\\'>{結果2}</p>'\">{選項2}</button>\n  </div>\n</div>\n\n模板B - 多角色對話：\n<div class=\"container\" style=\"max-width:600px;margin:auto;padding:20px;background:linear-gradient(135deg,#0f0f1a,#1a1a3a);border-radius:12px;\">\n  {重複 dialogue-box 區塊，每個角色使用不同顏色}\n</div>\n\n模板C - 遊戲式互動：\n<div class=\"container\" style=\"max-width:600px;margin:auto;padding:20px;background:#1a1a2e;border-radius:12px;\">\n  <div id=\"game-area\" style=\"text-align:center;\">\n    <p style=\"font-size:24px;margin-bottom:20px;\">🎮 {遊戲標題}</p>\n    <div id=\"score\" style=\"font-size:14px;color:#888;margin-bottom:16px;\">分數: 0</div>\n    <div id=\"game-content\">{遊戲內容}</div>\n  </div>\n</div>",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,573 @@
+/* 1. 全域變數與重設 */
+:root {
+    --ios-bg: #000000;
+    --ios-secondary-bg: #1C1C1E;
+    --ios-card-bg: #2C2C2E;
+    --ios-blue: #0A84FF;
+    --ios-gray: #8E8E93;
+    --ios-text: #FFFFFF;
+    --ios-border: #38383A;
+}
+
+/* 2. 全域隱藏捲動欄 (Scrollbar) */
+* {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.app-container {
+    padding-top: 44px; 
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+body {
+    background-color: var(--ios-bg);
+    color: var(--ios-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    overflow-x: hidden;
+}
+
+/* 3. 主容器：往下移動避開 iOS 狀態欄 */
+.app-container {
+    width: 100%;
+    max-width: 500px;
+    min-height: 100vh;
+    padding-top: 44px;
+    padding-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+}
+.nav-header {
+    position: sticky;
+    top: 0;
+    background: var(--ios-bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 44px; /* iOS 標準導覽列高度 */
+    z-index: 100;
+}
+.nav-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ios-text);
+    pointer-events: none;
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    color: var(--ios-blue);
+    font-size: 17px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+    justify-content: flex-start;
+}
+
+.btn-back:active {
+    opacity: 0.5;
+}
+
+.ios-header-btn.settings-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: var(--ios-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.ios-header-btn.settings-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.ios-header-btn.settings-btn i {
+    font-size: 16px;
+}
+
+.nav-placeholder {
+    flex: 1; /* 佔位平衡左邊的返回鍵 */
+}
+/* 4. 標籤導航區 (Tab Bar) - 復刻索引標籤外觀 */
+.tab-bar {
+    display: flex;
+    padding: 20px 10px 0 10px;
+    gap: 4px;
+    border-bottom: 1px solid var(--ios-border);
+    position: sticky;
+    top: 0;
+    background: var(--ios-bg);
+    z-index: 10;
+}
+
+.tab-item {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ios-gray);
+    background: #333; /* 模擬圖中深色質感 */
+    border: none;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.tab-item.active {
+    background: var(--ios-secondary-bg);
+    color: var(--ios-blue);
+    border: 1px solid var(--ios-border);
+    border-bottom: 2px solid var(--ios-secondary-bg); /* 消除底線感 */
+    margin-bottom: -1px;
+    z-index: 11;
+}
+
+/* 5. 內容顯示區 */
+.content-viewport {
+    padding: 20px 16px;
+    flex: 1;
+}
+
+.page-content {
+    display: none;
+}
+
+.page-content.active {
+    display: block;
+}
+
+.list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 6. iOS 抽屜式單元格 (Drawer Item) */
+.drawer-item {
+    background: var(--ios-secondary-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: background 0.3s;
+}
+
+.drawer-header {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.drawer-header:active {
+    background: var(--ios-card-bg);
+}
+
+.world-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.trigger-hint {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: var(--ios-gray);
+}
+
+/* 箭頭指示器 */
+.chevron::after {
+    content: '〉';
+    display: inline-block;
+    color: var(--ios-gray);
+    transition: transform 0.3s;
+}
+
+.drawer-item.open .chevron::after {
+    transform: rotate(90deg);
+}
+
+/* 7. 抽屜內部內容 */
+.drawer-body {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 16px;
+    transition: all 0.3s ease-in-out;
+}
+
+.drawer-item.open .drawer-body {
+    max-height: 800px; /* 增加最大高度以容納長文本 */
+    padding-bottom: 16px;
+    border-top: 0.5px solid var(--ios-border);
+}
+
+.ios-textarea {
+    width: 100%;
+    min-height: 150px;
+    background: var(--ios-card-bg);
+    border: 1px solid var(--ios-border);
+    border-radius: 10px;
+    color: white;
+    padding: 12px;
+    font-size: 15px;
+    margin-top: 10px;
+    box-sizing: border-box;
+    resize: none;
+}
+
+.btn-save {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    background: var(--ios-blue);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+/* 8. 懸浮按鈕 (FAB) */
+.fab-add {
+    position: fixed;
+    right: 20px;
+    bottom: 60px;
+    width: 60px;
+    height: 60px;
+    border-radius: 30px;
+    background: var(--ios-blue);
+    color: white;
+    border: none;
+    font-size: 30px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 100;
+}
+
+.plus-icon {
+    line-height: 0;
+    margin-top: -2px;
+}
+
+/* 9. 模型選擇器 */
+.model-selector-container {
+    padding: 16px;
+    background: var(--ios-secondary-bg);
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.model-selector-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ios-gray);
+    margin-bottom: 8px;
+}
+
+.model-selector {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--ios-card-bg);
+    border: 1px solid var(--ios-border);
+    border-radius: 10px;
+    color: var(--ios-text);
+    font-size: 16px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238E8E93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.model-selector:focus {
+    outline: none;
+    border-color: var(--ios-blue);
+}
+
+.model-selector optgroup {
+    background: var(--ios-secondary-bg);
+    color: var(--ios-gray);
+    font-weight: 600;
+}
+
+.model-selector option {
+    background: var(--ios-card-bg);
+    color: var(--ios-text);
+    padding: 8px;
+}
+
+/* 10. 導入按鈕 */
+.fab-import {
+    position: fixed;
+    right: 20px;
+    bottom: 130px;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    background: #30D158;
+    color: white;
+    border: none;
+    font-size: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 100;
+}
+
+.fab-import:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+/* 11. 條目啟用/禁用狀態 */
+.drawer-item.enabled {
+    border-left: 3px solid #30D158;
+}
+
+.drawer-item.disabled {
+    border-left: 3px solid var(--ios-gray);
+    opacity: 0.6;
+}
+
+.drawer-item.disabled .world-title {
+    color: var(--ios-gray);
+}
+
+.btn-toggle {
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    margin-right: 8px;
+}
+
+.btn-toggle i.fa-toggle-on {
+    color: #30D158;
+}
+
+.btn-toggle i.fa-toggle-off {
+    color: var(--ios-gray);
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-delete {
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    color: #FF453A;
+}
+
+.btn-delete:active {
+    opacity: 0.7;
+}
+
+/* 12. 導入預設選擇 Modal */
+.import-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.import-modal.hidden {
+    display: none;
+}
+
+.import-modal-content {
+    background: var(--ios-secondary-bg);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.import-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ios-border);
+}
+
+.import-modal-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ios-text);
+}
+
+.import-modal-close {
+    background: none;
+    border: none;
+    color: var(--ios-gray);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.import-modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.builtin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.builtin-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--ios-card-bg);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.builtin-item:hover {
+    background: #3C3C3E;
+}
+
+.builtin-item.selected {
+    border-color: var(--ios-blue);
+    background: rgba(10, 132, 255, 0.1);
+}
+
+.builtin-item-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--ios-gray);
+    border-radius: 6px;
+    margin-right: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.builtin-item.selected .builtin-item-checkbox {
+    background: var(--ios-blue);
+    border-color: var(--ios-blue);
+}
+
+.builtin-item.selected .builtin-item-checkbox::after {
+    content: '✓';
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.builtin-item-info {
+    flex: 1;
+}
+
+.builtin-item-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ios-text);
+    margin-bottom: 2px;
+}
+
+.builtin-item-desc {
+    font-size: 12px;
+    color: var(--ios-gray);
+}
+
+.builtin-item-badge {
+    padding: 4px 8px;
+    background: rgba(48, 209, 88, 0.2);
+    color: #30D158;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.import-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ios-border);
+}
+
+.btn-import-cancel,
+.btn-import-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-import-cancel {
+    background: var(--ios-card-bg);
+    color: var(--ios-text);
+}
+
+.btn-import-confirm {
+    background: var(--ios-blue);
+    color: white;
+}
+
+.btn-import-confirm:disabled {
+    background: var(--ios-gray);
+    cursor: not-allowed;
+}
+
+.btn-import-cancel:active,
+.btn-import-confirm:active {
+    opacity: 0.7;
+}

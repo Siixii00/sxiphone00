@@ -1,0 +1,10 @@
+name = "card-sender-api"
+main = "worker/index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "CARD_KV"
+id = "your-kv-namespace-id"
+
+[vars]
+ENVIRONMENT = "production"

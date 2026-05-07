@@ -1,0 +1,344 @@
+:root {
+  --wood-dark: #3a2a1a;
+  --wood-main: #5c4a32;
+  --wood-light: #7a6a52;
+  --dirt: #5c4033;
+  --grass: #7ec850;
+  --grass-dark: #4a6a2a;
+  --water: #4a90c2;
+  --roof-red: #c44a4a;
+  --stone: #7a7a7a;
+  --gold: #ffd700;
+  --parchment: #f4e8c1;
+  --pixel-border: 2px;
+  --pixel-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: 'DotGothic16', -apple-system, sans-serif;
+  background: #1a2a1a;
+  color: var(--parchment);
+  overflow: hidden;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
+}
+
+.farm-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #1a2a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.farm-loading.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.farm-loading .loading-content {
+  text-align: center;
+}
+
+.farm-loading .loading-title {
+  font-size: 16px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--gold);
+  margin-bottom: 30px;
+  text-shadow: var(--pixel-shadow);
+}
+
+.farm-loading .loading-bar-container {
+  width: 280px;
+  height: 20px;
+  background: var(--wood-dark);
+  border: 3px solid var(--parchment);
+}
+
+.farm-loading .loading-bar {
+  height: 100%;
+  background: var(--grass);
+  width: 0%;
+}
+
+.farm-loading .loading-text {
+  margin-top: 15px;
+  color: var(--wood-light);
+  font-size: 12px;
+}
+
+.farm-app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    ),
+    linear-gradient(180deg, #1a2a1a 0%, #0a1a0a 100%);
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: var(--wood-dark);
+  border-bottom: 4px solid var(--wood-main);
+  gap: 10px;
+}
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--roof-red);
+  border: 3px solid var(--parchment);
+  border-radius: 0;
+  color: var(--parchment);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--pixel-shadow);
+}
+
+.back-btn:hover {
+  background: var(--gold);
+  color: var(--wood-dark);
+}
+
+.status-bar {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--parchment);
+}
+
+.status-item i {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+.game-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 10px;
+}
+
+#farm-canvas {
+  border: 4px solid var(--wood-main);
+  box-shadow: var(--pixel-shadow);
+  image-rendering: pixelated;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  background: var(--wood-dark);
+  border-top: 4px solid var(--wood-main);
+}
+
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--wood-main);
+  border: 3px solid var(--parchment);
+  border-radius: 0;
+  color: var(--parchment);
+  font-size: 10px;
+  font-family: 'Press Start 2P', cursive;
+  cursor: pointer;
+  box-shadow: var(--pixel-shadow);
+  min-width: 60px;
+}
+
+.tool-btn:hover {
+  background: var(--grass);
+  color: var(--wood-dark);
+}
+
+.tool-btn.active {
+  background: var(--gold);
+  color: var(--wood-dark);
+  border-color: var(--wood-dark);
+}
+
+.tool-btn.end-day {
+  background: var(--roof-red);
+}
+
+.tool-btn.end-day:hover {
+  background: #e46a6a;
+}
+
+.tool-btn i {
+  width: 20px;
+  height: 20px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--wood-dark);
+  border: 4px solid var(--parchment);
+  width: 90%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 3px solid var(--wood-main);
+}
+
+.modal-header h2 {
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--gold);
+}
+
+.close-btn {
+  width: 30px;
+  height: 30px;
+  background: var(--roof-red);
+  border: 2px solid var(--parchment);
+  border-radius: 0;
+  color: var(--parchment);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: var(--gold);
+  color: var(--wood-dark);
+}
+
+.modal-body {
+  padding: 15px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.shop-item, .inventory-item, .animal-item, .crop-option {
+  background: var(--wood-main);
+  border: 2px solid var(--parchment);
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.shop-item:hover, .inventory-item:hover, .animal-item:hover, .crop-option:hover {
+  background: var(--grass);
+  color: var(--wood-dark);
+}
+
+.shop-item h3, .inventory-item h3, .animal-item h3, .crop-option h3 {
+  font-size: 10px;
+  font-family: 'Press Start 2P', cursive;
+  margin-bottom: 5px;
+}
+
+.shop-item p, .inventory-item p, .animal-item p, .crop-option p {
+  font-size: 11px;
+  color: var(--gold);
+}
+
+.locked {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.locked::after {
+  content: '🔒';
+  display: block;
+  margin-top: 5px;
+}
+
+@media (max-width: 400px) {
+  .tool-btn {
+    min-width: 50px;
+    padding: 6px 8px;
+    font-size: 8px;
+  }
+  
+  .tool-btn i {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .status-item {
+    font-size: 10px;
+  }
+}

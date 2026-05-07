@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶系統測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        h1, h2 { color: #4facfe; }
+        .section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .status-dot.ok { background: #4ade80; }
+        .status-dot.warn { background: #fbbf24; }
+        .status-dot.error { background: #ef4444; }
+        button {
+            background: #4facfe;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover { background: #00f2fe; }
+        .log {
+            background: #0f0f23;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            background: #0f0f23;
+            color: #eee;
+            margin: 8px 0;
+        }
+        .memory-item {
+            background: #1a1a3e;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #4facfe;
+        }
+        .memory-item .meta {
+            font-size: 11px;
+            color: #888;
+        }
+        .memory-item .embedding-status {
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .embedding-status.has-embedding { color: #4ade80; }
+        .embedding-status.no-embedding { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>記憶系統診斷工具</h1>
+    
+    <div class="section">
+        <h2>系統狀態</h2>
+        <div id="system-status">載入中...</div>
+        <button onclick="checkStatus()">重新檢查</button>
+        <button onclick="initMemorySystem()">初始化記憶系統</button>
+        <button onclick="initEmbedding()">初始化向量化引擎</button>
+    </div>
+    
+    <div class="section">
+        <h2>每日喚醒（晨間回溯）</h2>
+        <div id="awakening-status">載入中...</div>
+        <button onclick="checkAwakeningStatus()">檢查狀態</button>
+        <button onclick="triggerDailyAwakening()">執行每日喚醒</button>
+        <div id="awakening-result" style="margin-top:12px;"></div>
+    </div>
+    
+    <div class="section">
+        <h2>關鍵詞觸發記憶</h2>
+        <input type="text" id="keyword-input" placeholder="輸入關鍵詞...">
+        <button onclick="triggerKeywordRecall()">觸發回憶</button>
+        <div id="keyword-result" style="margin-top:12px;"></div>
+    </div>
+    
+    <div class="section">
+        <h2>短期記憶</h2>
+        <div id="short-term-stats">載入中...</div>
+        <button onclick="refreshShortTermStats()">重新整理</button>
+        <button onclick="triggerSleep()">觸發睡眠（短期→長期）</button>
+        <button onclick="testWriteToSTM()">寫入測試到短期記憶</button>
+        <div id="short-term-list" style="margin-top:12px;"></div>
+    </div>
+    
+    <div class="section">
+        <h2>寫入測試</h2>
+        <textarea id="test-content" rows="3" placeholder="輸入測試內容...">這是一條測試記憶，用於驗證記憶系統是否正常運作。</textarea>
+        <button onclick="testWrite()">寫入記憶</button>
+        <button onclick="testWriteWithEmbedding()">寫入並向量化</button>
+    </div>
+    
+    <div class="section">
+        <h2>讀取測試</h2>
+        <input type="text" id="search-query" placeholder="搜尋關鍵字...">
+        <button onclick="testRead()">讀取所有記憶</button>
+        <button onclick="testSearch()">搜尋</button>
+        <button onclick="testVectorSearch()">向量搜尋</button>
+        <div id="memory-list"></div>
+    </div>
+    
+    <div class="section">
+        <h2>向量化現有記憶</h2>
+        <div id="vectorization-stats">載入中...</div>
+        <button onclick="refreshVectorizationStats()">重新整理統計</button>
+        <button onclick="vectorizeAllMemories()">向量化所有未處理的記憶</button>
+        <div id="vectorization-progress" style="margin-top:8px;color:#888;"></div>
+    </div>
+    
+    <div class="section">
+        <h2>執行日誌</h2>
+        <div id="log" class="log"></div>
+        <button onclick="clearLog()">清除日誌</button>
+    </div>
+
+    <script src="apps/scripts/memory-store.js"></script>
+    <script src="apps/scripts/embedding-engine.js"></script>
+    <script src="apps/scripts/search-engine.js"></script>
+    <script src="apps/scripts/decay-engine.js"></script>
+    <script src="apps/scripts/emotion-tagger.js"></script>
+    <script src="apps/scripts/memory-classifier.js"></script>
+    <script src="apps/scripts/dimension-encoder.js"></script>
+    <script src="apps/scripts/sleep-engine.js"></script>
+    <script src="apps/scripts/memory-standardizer.js"></script>
+    <script src="apps/scripts/memory-manager.js"></script>
+    <script src="apps/scripts/short-term-memory.js"></script>
+    <script src="apps/scripts/awakening-engine.js"></script>
+    
+    <script>
+        let memoryManager = null;
+        let memoryStore = null;
+        let embeddingEngine = null;
+        let shortTermMemory = null;
+        let sleepEngine = null;
+        let awakeningEngine = null;
+        
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌ ' : type === 'warn' ? '⚠️ ' : type === 'ok' ? '✅ ' : 'ℹ️ ';
+            logEl.textContent += `[${time}] ${prefix}${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+        
+        function renderStatus(id, label, ok, detail = '') {
+            return `
+                <div class="status">
+                    <div class="status-dot ${ok ? 'ok' : 'error'}"></div>
+                    <span>${label}: ${ok ? '正常' : '未初始化'}</span>
+                    ${detail ? `<span style="color:#888;margin-left:8px;">${detail}</span>` : ''}
+                </div>
+            `;
+        }
+        
+        async function checkStatus() {
+            const statusEl = document.getElementById('system-status');
+            let html = '';
+            
+            const hasMemoryStore = typeof MemoryStore !== 'undefined';
+            html += renderStatus('memorystore-def', 'MemoryStore 類別', hasMemoryStore);
+            
+            const hasEmbeddingEngine = typeof EmbeddingEngine !== 'undefined';
+            html += renderStatus('embedding-def', 'EmbeddingEngine 類別', hasEmbeddingEngine);
+            
+            const hasMemoryManager = typeof MemoryManager !== 'undefined';
+            html += renderStatus('manager-def', 'MemoryManager 類別', hasMemoryManager);
+            
+            const hasShortTermMemory = typeof ShortTermMemory !== 'undefined';
+            html += renderStatus('stm-def', 'ShortTermMemory 類別', hasShortTermMemory);
+            
+            const hasSleepEngine = typeof SleepEngine !== 'undefined';
+            html += renderStatus('sleep-def', 'SleepEngine 類別', hasSleepEngine);
+            
+            if (memoryManager && memoryManager.isInitialized) {
+                html += renderStatus('manager-inst', 'MemoryManager 實例', true);
+                const stats = memoryManager.getStats();
+                html += renderStatus('embedding-inst', 'EmbeddingEngine 已初始化', stats.embedding?.isInitialized || false);
+                html += `<div style="margin:8px 0;color:#888;">緩存大小: ${stats.embedding?.cacheSize || 0}</div>`;
+            } else {
+                html += renderStatus('manager-inst', 'MemoryManager 實例', false);
+            }
+            
+            const stm = shortTermMemory || window.shortTermMemory;
+            if (stm && stm.isInitialized) {
+                const stmStats = stm.getStats();
+                html += renderStatus('stm-inst', 'ShortTermMemory 實例', true, `${stmStats.count}/${stmStats.maxCapacity}`);
+            } else {
+                html += renderStatus('stm-inst', 'ShortTermMemory 實例', false);
+            }
+            
+            if (memoryStore) {
+                try {
+                    const count = await memoryStore.count();
+                    html += renderStatus('memorystore-data', '記憶數量', true, `${count} 條`);
+                    
+                    const all = await memoryStore.getAll({ limit: 5 });
+                    const withEmbedding = all.filter(m => m.embedding && Array.isArray(m.embedding)).length;
+                    html += renderStatus('embedding-data', '已向量化記憶', withEmbedding > 0, `${withEmbedding}/${all.length} 條`);
+                } catch (e) {
+                    html += renderStatus('memorystore-data', '記憶數量', false, e.message);
+                }
+            }
+            
+            statusEl.innerHTML = html;
+            log('狀態檢查完成');
+        }
+        
+        async function initMemorySystem() {
+            log('開始初始化記憶系統...');
+            try {
+                if (typeof ShortTermMemory !== 'undefined') {
+                    shortTermMemory = new ShortTermMemory({
+                        maxCapacity: 100,
+                        decayMinutes: 30,
+                        importanceThreshold: 6
+                    });
+                    shortTermMemory.initialize();
+                    window.shortTermMemory = shortTermMemory;
+                    log('短期記憶系統已初始化', 'ok');
+                }
+                
+                memoryManager = new MemoryManager({
+                    shortTermMemory: shortTermMemory
+                });
+                await memoryManager.initialize((progress) => {
+                    log(`初始化進度: ${progress.stage} ${progress.progress}%`);
+                });
+                memoryStore = memoryManager.memoryStore;
+                embeddingEngine = memoryManager.embeddingEngine;
+                sleepEngine = memoryManager.sleepEngine;
+                awakeningEngine = memoryManager.awakeningEngine;
+                log('記憶系統初始化完成', 'ok');
+                checkStatus();
+            } catch (e) {
+                log(`初始化失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function initEmbedding() {
+            if (!embeddingEngine) {
+                log('EmbeddingEngine 未創建，請先初始化記憶系統', 'error');
+                return;
+            }
+            
+            log('開始初始化向量化引擎（可能需要下載模型）...');
+            try {
+                await embeddingEngine.initialize((progress) => {
+                    log(`向量化進度: ${progress.stage} ${progress.progress}%${progress.file ? ' - ' + progress.file : ''}`);
+                });
+                log('向量化引擎初始化完成', 'ok');
+                checkStatus();
+            } catch (e) {
+                log(`向量化初始化失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function testWrite() {
+            const content = document.getElementById('test-content').value.trim();
+            if (!content) {
+                log('請輸入測試內容', 'warn');
+                return;
+            }
+            
+            if (!memoryManager || !memoryManager.isInitialized) {
+                log('記憶系統未初始化', 'error');
+                return;
+            }
+            
+            try {
+                const stm = shortTermMemory || window.shortTermMemory;
+                if (stm && stm.isInitialized) {
+                    stm.push(content, {
+                        role: 'user',
+                        source: 'test',
+                        importance: 5
+                    });
+                    log('已寫入短期記憶', 'ok');
+                }
+                
+                const result = await memoryManager.hold(content, {
+                    importance: 5,
+                    source: 'test'
+                });
+                log(`記憶已寫入長期記憶: ${result.id}`, 'ok');
+                log(`向量化: ${result.embedding ? '是 (' + result.embedding.length + ' 維)' : '否'}`);
+            } catch (e) {
+                log(`寫入失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function refreshShortTermStats() {
+            const statsEl = document.getElementById('short-term-stats');
+            const listEl = document.getElementById('short-term-list');
+            
+            const stm = shortTermMemory || window.shortTermMemory;
+            if (!stm || !stm.isInitialized) {
+                statsEl.innerHTML = '<span style="color:#ef4444;">ShortTermMemory 未初始化</span>';
+                listEl.innerHTML = '';
+                return;
+            }
+            
+            const stats = stm.getStats();
+            const ready = stm.getReadyForConsolidation();
+            
+            statsEl.innerHTML = `
+                <div class="status">
+                    <span>總數: <strong>${stats.count}</strong></span>
+                    <span style="margin-left:16px;">容量: <strong>${stats.maxCapacity}</strong></span>
+                    <span style="margin-left:16px;">平均年齡: <strong>${stats.avgAgeMinutes} 分鐘</strong></span>
+                    <span style="margin-left:16px;">高重要性: <strong>${stats.highImportanceCount}</strong></span>
+                    <span style="margin-left:16px;">待鞏固: <strong style="color:#fbbf24;">${ready.length}</strong></span>
+                </div>
+            `;
+            
+            const recent = stm.getRecent(10);
+            if (recent.length === 0) {
+                listEl.innerHTML = '<div style="color:#888;">尚無短期記憶</div>';
+                return;
+            }
+            
+            listEl.innerHTML = recent.map(m => `
+                <div class="memory-item" style="border-left-color: ${m.importance >= 6 ? '#fbbf24' : '#4facfe'};">
+                    <div>${m.content?.substring(0, 100)}${m.content?.length > 100 ? '...' : ''}</div>
+                    <div class="meta">
+                        ID: ${m.id} | 
+                        重要性: ${m.importance} | 
+                        來源: ${m.source} |
+                        角色: ${m.role}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function triggerSleep() {
+            const engine = sleepEngine || memoryManager?.sleepEngine;
+            if (!engine) {
+                log('SleepEngine 未初始化', 'error');
+                return;
+            }
+            
+            log('開始執行睡眠（短期→長期記憶轉換）...');
+            
+            try {
+                const report = await engine.sleep('manual');
+                log(`睡眠完成！耗時 ${report.duration}ms`, 'ok');
+                
+                const shortToLong = report.phases?.shortToLong || {};
+                log(`短期→長期: ${shortToLong.stored || 0} 新建, ${shortToLong.reinforced || 0} 強化, ${shortToLong.vectorized || 0} 向量化`);
+                
+                const crystallize = report.phases?.crystallize || {};
+                log(`結晶化: ${crystallize.crystallized || 0} 條, 鞏固 ${crystallize.markedConsolidated || 0} 條`);
+                
+                const decay = report.phases?.decay || {};
+                log(`衰變: ${decay.archived || 0} 歸檔, ${decay.boosted || 0} 強化`);
+                
+                const recall = report.phases?.recall || {};
+                log(`聯想: ${recall.associationsFound || 0} 個新關聯`);
+                
+                refreshShortTermStats();
+                refreshVectorizationStats();
+            } catch (e) {
+                log(`睡眠失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function testWriteWithEmbedding() {
+            const content = document.getElementById('test-content').value.trim();
+            if (!content) {
+                log('請輸入測試內容', 'warn');
+                return;
+            }
+            
+            if (!memoryManager || !memoryManager.isInitialized) {
+                log('記憶系統未初始化', 'error');
+                return;
+            }
+            
+            if (!embeddingEngine || !embeddingEngine.isInitialized) {
+                log('向量化引擎未初始化，請先點擊「初始化向量化引擎」', 'warn');
+                return;
+            }
+            
+            try {
+                log('正在生成向量...');
+                const embedding = await embeddingEngine.embed(content);
+                log(`向量生成完成: ${embedding.length} 維`, 'ok');
+                
+                const result = await memoryManager.hold(content, {
+                    importance: 5,
+                    source: 'test-vectorized'
+                });
+                log(`記憶已寫入: ${result.id}`, 'ok');
+                log(`確認向量化: ${result.embedding ? '成功' : '失敗'}`);
+            } catch (e) {
+                log(`寫入失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function testRead() {
+            if (!memoryStore) {
+                log('MemoryStore 未初始化', 'error');
+                return;
+            }
+            
+            try {
+                const memories = await memoryStore.getAll({ limit: 20 });
+                const listEl = document.getElementById('memory-list');
+                
+                if (memories.length === 0) {
+                    listEl.innerHTML = '<div style="color:#888;">尚無記憶</div>';
+                    log('沒有找到任何記憶', 'warn');
+                    return;
+                }
+                
+                listEl.innerHTML = memories.map(m => `
+                    <div class="memory-item">
+                        <div>${m.content?.substring(0, 200)}${m.content?.length > 200 ? '...' : ''}</div>
+                        <div class="meta">
+                            ID: ${m.id} | 
+                            重要性: ${m.metadata?.importance || 5} | 
+                            來源: ${m.metadata?.source || 'unknown'} |
+                            時間: ${m.metadata?.created || 'unknown'}
+                        </div>
+                        <div class="meta" style="margin-top:4px;">
+                            強度: <strong style="color:${(m.metadata?.memoryStrength || 0.5) > 0.7 ? '#4ade80' : '#fbbf24'}">${((m.metadata?.memoryStrength || 0.5) * 100).toFixed(0)}%</strong> |
+                            強化次數: <strong style="color:${(m.metadata?.reinforcementCount || 0) > 0 ? '#4ade80' : '#888'}">${m.metadata?.reinforcementCount || 0}</strong> |
+                            激活次數: ${m.metadata?.activationCount || 1}
+                        </div>
+                        <div class="embedding-status ${m.embedding ? 'has-embedding' : 'no-embedding'}">
+                            ${m.embedding ? `✓ 已向量化 (${m.embedding.length} 維)` : '✗ 未向量化'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                const withEmbedding = memories.filter(m => m.embedding).length;
+                log(`讀取 ${memories.length} 條記憶，${withEmbedding} 條已向量化`, 'ok');
+            } catch (e) {
+                log(`讀取失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function testSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            if (!query) {
+                log('請輸入搜尋關鍵字', 'warn');
+                return;
+            }
+            
+            if (!memoryManager || !memoryManager.isInitialized) {
+                log('記憶系統未初始化', 'error');
+                return;
+            }
+            
+            try {
+                const results = await memoryManager.search(query, { limit: 10 });
+                const listEl = document.getElementById('memory-list');
+                
+                if (results.length === 0) {
+                    listEl.innerHTML = '<div style="color:#888;">沒有找到匹配的記憶</div>';
+                    log('搜尋無結果', 'warn');
+                    return;
+                }
+                
+                listEl.innerHTML = results.map(m => `
+                    <div class="memory-item">
+                        <div>${m.content?.substring(0, 200)}${m.content?.length > 200 ? '...' : ''}</div>
+                        <div class="meta">
+                            分數: ${m.finalScore?.toFixed(2) || m.surfaceScore?.toFixed(2) || 'N/A'} |
+                            來源: ${m.metadata?.source || 'unknown'}
+                        </div>
+                        <div class="embedding-status ${m.embedding ? 'has-embedding' : 'no-embedding'}">
+                            ${m.embedding ? `✓ 已向量化` : '✗ 未向量化'}
+                            ${m.vectorScore ? ` | 向量相似度: ${m.vectorScore.toFixed(3)}` : ''}
+                            ${m.keywordScore ? ` | 關鍵字分數: ${m.keywordScore.toFixed(3)}` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+                log(`搜尋找到 ${results.length} 條記憶`, 'ok');
+            } catch (e) {
+                log(`搜尋失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function testVectorSearch() {
+            const query = document.getElementById('search-query').value.trim();
+            if (!query) {
+                log('請輸入搜尋關鍵字', 'warn');
+                return;
+            }
+            
+            if (!embeddingEngine || !embeddingEngine.isInitialized) {
+                log('向量化引擎未初始化', 'error');
+                return;
+            }
+            
+            if (!memoryStore) {
+                log('MemoryStore 未初始化', 'error');
+                return;
+            }
+            
+            try {
+                log('正在生成查詢向量...');
+                const queryEmbedding = await embeddingEngine.embed(query);
+                log(`查詢向量生成完成: ${queryEmbedding.length} 維`);
+                
+                const results = await memoryStore.searchByEmbedding(queryEmbedding, 10);
+                const listEl = document.getElementById('memory-list');
+                
+                if (results.length === 0) {
+                    listEl.innerHTML = '<div style="color:#888;">沒有找到匹配的記憶</div>';
+                    log('向量搜尋無結果（可能沒有已向量化的記憶）', 'warn');
+                    return;
+                }
+                
+                listEl.innerHTML = results.map(m => `
+                    <div class="memory-item">
+                        <div>${m.content?.substring(0, 200)}${m.content?.length > 200 ? '...' : ''}</div>
+                        <div class="meta">
+                            相似度: ${m.similarity?.toFixed(3)} |
+                            來源: ${m.metadata?.source || 'unknown'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                log(`向量搜尋找到 ${results.length} 條記憶`, 'ok');
+            } catch (e) {
+                log(`向量搜尋失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function refreshVectorizationStats() {
+            const statsEl = document.getElementById('vectorization-stats');
+            
+            if (!memoryStore) {
+                statsEl.innerHTML = '<span style="color:#ef4444;">MemoryStore 未初始化</span>';
+                return;
+            }
+            
+            try {
+                const allMemories = await memoryStore.getAll();
+                const withEmbedding = allMemories.filter(m => m.embedding && Array.isArray(m.embedding));
+                const percentage = allMemories.length > 0 ? Math.round((withEmbedding.length / allMemories.length) * 100) : 0;
+                
+                statsEl.innerHTML = `
+                    <div class="status">
+                        <span>總記憶數: <strong>${allMemories.length}</strong></span>
+                        <span style="margin-left:16px;">已向量化: <strong style="color:#4ade80;">${withEmbedding.length}</strong></span>
+                        <span style="margin-left:16px;">未向量化: <strong style="color:#ef4444;">${allMemories.length - withEmbedding.length}</strong></span>
+                        <span style="margin-left:16px;">完成率: <strong>${percentage}%</strong></span>
+                    </div>
+                `;
+            } catch (e) {
+                statsEl.innerHTML = `<span style="color:#ef4444;">讀取失敗: ${e.message}</span>`;
+            }
+        }
+        
+        async function vectorizeAllMemories() {
+            if (!memoryManager && !window.globalMemorySystem) {
+                log('記憶系統未初始化', 'error');
+                return;
+            }
+            
+            const system = memoryManager || window.globalMemorySystem;
+            
+            if (!system.embeddingEngine || !system.embeddingEngine.isInitialized) {
+                log('向量化引擎未初始化，請先點擊「初始化向量化引擎」', 'error');
+                return;
+            }
+            
+            const progressEl = document.getElementById('vectorization-progress');
+            progressEl.textContent = '準備開始向量化...';
+            
+            try {
+                const result = await system.vectorizeExistingMemories({
+                    batchSize: 3,
+                    delayBetweenBatches: 100,
+                    progressCallback: (p) => {
+                        progressEl.textContent = `正在處理: ${p.current}/${p.total} (${Math.round(p.current/p.total*100)}%)`;
+                    }
+                });
+                
+                progressEl.innerHTML = `<span style="color:#4ade80;">完成！成功: ${result.vectorized}, 失敗: ${result.failed}, 跳過: ${result.skipped}</span>`;
+                log(`向量化完成: ${result.vectorized} 成功, ${result.failed} 失敗`, 'ok');
+                refreshVectorizationStats();
+            } catch (e) {
+                progressEl.innerHTML = `<span style="color:#ef4444;">錯誤: ${e.message}</span>`;
+                log(`向量化失敗: ${e.message}`, 'error');
+            }
+        }
+        
+        async function testWriteToSTM() {
+            const content = document.getElementById('test-content').value.trim();
+            if (!content) {
+                log('請輸入測試內容', 'warn');
+                return;
+            }
+            
+            const stm = shortTermMemory || window.shortTermMemory;
+            if (!stm || !stm.isInitialized) {
+                log('短期記憶系統未初始化', 'error');
+                return;
+            }
+            
+            for (let i = 0; i < 3; i++) {
+                stm.push(`${content} (第${i + 1}次)`, {
+                    role: 'user',
+                    source: 'test_reinforce',
+                    importance: 6 + i
+                });
+            }
+            
+            log(`已寫入 3 條相似記憶到短期記憶（測試強化機制）`, 'ok');
+            refreshShortTermStats();
+        }
+        
+        async function checkAwakeningStatus() {
+            const statusEl = document.getElementById('awakening-status');
+            const engine = awakeningEngine || memoryManager?.awakeningEngine;
+            
+            if (!engine) {
+                statusEl.innerHTML = '<span style="color:#ef4444;">AwakeningEngine 未初始化</span>';
+                return;
+            }
+            
+            const status = engine.getAwakeningStatus();
+            statusEl.innerHTML = `
+                <div class="status">
+                    <span>上次喚醒: <strong>${status.lastAwakening ? new Date(status.lastAwakening).toLocaleString() : '尚未執行'}</strong></span>
+                </div>
+                <div class="status">
+                    <span>喚醒日期: <strong>${status.lastDate || '無'}</strong></span>
+                </div>
+                <div class="status">
+                    <span>今日日期: <strong>${status.todayDate}</strong></span>
+                </div>
+                <div class="status">
+                    <span>需要喚醒: <strong style="color:${status.needsAwakening ? '#fbbf24' : '#4ade80'}">${status.needsAwakening ? '是' : '否'}</strong></span>
+                </div>
+                <div class="status">
+                    <span>關鍵詞索引: <strong>${status.keywordIndexSize}</strong> 個</span>
+                </div>
+                <div class="status">
+                    <span>記憶上下文: <strong style="color:${status.contextReady ? '#4ade80' : '#ef4444'}">${status.contextReady ? '已就緒' : '未建立'}</strong></span>
+                </div>
+            `;
+        }
+        
+        async function triggerDailyAwakening() {
+            const engine = awakeningEngine || memoryManager?.awakeningEngine;
+            if (!engine) {
+                log('AwakeningEngine 未初始化', 'error');
+                return;
+            }
+            
+            log('開始執行每日喚醒...');
+            
+            try {
+                const result = await engine.dailyAwakening();
+                
+                const resultEl = document.getElementById('awakening-result');
+                
+                if (result.type === 'cached') {
+                    resultEl.innerHTML = `<div style="color:#fbbf24;">今日已喚醒（使用快取）</div>`;
+                    log('今日已喚醒，返回快取結果', 'warn');
+                } else {
+                    resultEl.innerHTML = `
+                        <div class="memory-item" style="border-left-color:#4ade80;">
+                            <div><strong>晨間回溯完成</strong></div>
+                            <div class="meta">昨日記憶: ${result.yesterdayMemories?.length || 0} 條</div>
+                            <div class="meta">近期重要: ${result.recentImportant?.length || 0} 條</div>
+                            <div class="meta">情感亮點: ${result.emotionalHighlights?.length || 0} 條</div>
+                            <div style="margin-top:8px;color:#888;">${result.summary?.text || ''}</div>
+                        </div>
+                    `;
+                    log(`每日喚醒完成：昨日 ${result.yesterdayMemories?.length || 0} 條，近期 ${result.recentImportant?.length || 0} 條`, 'ok');
+                }
+                
+                checkAwakeningStatus();
+            } catch (e) {
+                log(`每日喚醒失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        async function triggerKeywordRecall() {
+            const keyword = document.getElementById('keyword-input').value.trim();
+            if (!keyword) {
+                log('請輸入關鍵詞', 'warn');
+                return;
+            }
+            
+            const engine = awakeningEngine || memoryManager?.awakeningEngine;
+            if (!engine) {
+                log('AwakeningEngine 未初始化', 'error');
+                return;
+            }
+            
+            log(`關鍵詞「${keyword}」觸發回憶...`);
+            
+            try {
+                const results = await engine.triggerRecallByKeyword(keyword, { limit: 10 });
+                
+                const resultEl = document.getElementById('keyword-result');
+                
+                if (results.length === 0) {
+                    resultEl.innerHTML = '<div style="color:#888;">沒有找到相關記憶</div>';
+                    log('關鍵詞未觸發任何記憶', 'warn');
+                    return;
+                }
+                
+                resultEl.innerHTML = results.map(r => `
+                    <div class="memory-item" style="border-left-color:${r.matchType === 'exact_keyword' ? '#4ade80' : r.matchType === 'semantic' ? '#4facfe' : '#fbbf24'};">
+                        <div>${r.memory.content?.substring(0, 150)}${r.memory.content?.length > 150 ? '...' : ''}</div>
+                        <div class="meta">
+                            匹配類型: <strong>${r.matchType}</strong> |
+                            分數: ${r.score.toFixed(2)} |
+                            重要性: ${r.memory.metadata?.importance || 5}
+                        </div>
+                    </div>
+                `).join('');
+                
+                log(`關鍵詞「${keyword}」觸發 ${results.length} 條記憶`, 'ok');
+            } catch (e) {
+                log(`關鍵詞觸發失敗: ${e.message}`, 'error');
+                console.error(e);
+            }
+        }
+        
+        // 自動檢查狀態
+        setTimeout(() => {
+            checkStatus();
+            refreshVectorizationStats();
+            refreshShortTermStats();
+            checkAwakeningStatus();
+        }, 500);
+    </script>
+</body>
+</html>

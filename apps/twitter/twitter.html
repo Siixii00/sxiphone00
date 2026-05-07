@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Twitter</title>
+  <link rel="stylesheet" href="twitter.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body data-page="home">
+  <div class="twitter-app">
+    <header class="top-bar">
+      <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="logo">
+        <i class="fab fa-twitter"></i>
+      </div>
+      <button class="icon-btn" id="menu-toggle" aria-label="選單">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
+
+    <main class="content">
+      <section class="tabs card">
+        <button class="tab active" data-tab="forYou">為你推薦</button>
+        <button class="tab" data-tab="following">正在追蹤</button>
+      </section>
+
+      <section class="feed" id="feed"></section>
+    </main>
+  </div>
+
+  <div class="fab-menu" id="fab-menu">
+    <button class="fab-menu-item" id="fab-ai-generate">
+      <i class="fas fa-wand-magic-sparkles"></i>
+      <span>AI 生成推文</span>
+    </button>
+    <button class="fab-menu-item" id="fab-compose">
+      <i class="fas fa-pen"></i>
+      <span>撰寫推文</span>
+    </button>
+  </div>
+  <button class="fab-btn" id="fab-tweet" aria-label="發推">
+    <i class="fas fa-plus"></i>
+  </button>
+
+  <aside class="right-drawer" id="right-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">選單</div>
+      <button class="icon-btn" id="drawer-close" aria-label="關閉">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="drawer-profile">
+      <div class="avatar"></div>
+      <div>
+        <div class="name">SXiPhone</div>
+        <div class="handle">@sxiphone</div>
+      </div>
+    </div>
+    <nav class="drawer-nav">
+      <div class="drawer-section">Twitter 導覽</div>
+      <a class="nav-item" data-section="home" href="twitter.html"><i class="fas fa-house"></i><span>首頁</span></a>
+      <a class="nav-item" data-section="explore" href="explore.html"><i class="fas fa-hashtag"></i><span>探索</span></a>
+      <a class="nav-item has-badge" data-section="notifications" href="notifications.html"><i class="far fa-bell"></i><span>通知</span><span class="notification-badge" id="notification-badge" style="display:none">0</span></a>
+      <a class="nav-item" data-section="bookmarks" href="bookmarks.html"><i class="far fa-bookmark"></i><span>書籤</span></a>
+      <a class="nav-item" data-section="profile" href="profile.html"><i class="far fa-user"></i><span>個人資料</span></a>
+      <div class="drawer-section">設定</div>
+      <a class="nav-item settings-link" href="settings.html">
+        <i class="fas fa-gear"></i><span>推特設定中心</span>
+      </a>
+      <button class="nav-item" id="appearance-settings-btn" type="button">
+        <i class="fas fa-palette"></i><span>外觀設定</span>
+      </button>
+    </nav>
+  </aside>
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="twitter.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('twitter');
+          var appearanceBtn = document.getElementById('appearance-settings-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  var drawer = document.getElementById('right-drawer');
+                  if (drawer) drawer.classList.remove('open');
+                  var backdrop = document.getElementById('drawer-backdrop');
+                  if (backdrop) backdrop.classList.remove('open');
+                  SxAppAppearance.openAppearancePanel('twitter', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

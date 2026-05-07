@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>宅家</title>
+  <link rel="stylesheet" href="home.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+  <link rel="stylesheet" href="../scripts/nds-pixel-theme.css">
+  <script src="../scripts/nds-pixel-theme.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap');
+    
+    .arcade-intro {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: #f5f0e6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .arcade-intro.hidden { display: none; }
+    .arcade-intro.fade-out { animation: introFadeOut 0.8s ease forwards; }
+    
+    .door-container {
+      position: relative;
+      width: 280px;
+      height: 380px;
+      perspective: 1000px;
+    }
+    
+    .door {
+      position: absolute;
+      width: 50%;
+      height: 100%;
+      background: #6b5344;
+      border: 3px solid #4a3626;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.3);
+      transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .door-left {
+      left: 0;
+      border-radius: 8px 0 0 8px;
+      transform-origin: left center;
+      transform: perspective(1000px) rotateY(0deg);
+    }
+    
+    .door-right {
+      right: 0;
+      border-radius: 0 8px 8px 0;
+      transform-origin: right center;
+      transform: perspective(1000px) rotateY(0deg);
+    }
+    
+    .arcade-intro.opening .door-left {
+      transform: perspective(1000px) rotateY(-110deg);
+    }
+    
+    .arcade-intro.opening .door-right {
+      transform: perspective(1000px) rotateY(110deg);
+    }
+    
+    .door-handle {
+      position: absolute;
+      width: 12px;
+      height: 30px;
+      background: #d4a574;
+      border-radius: 6px;
+      top: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .door-left .door-handle { right: 15px; }
+    .door-right .door-handle { left: 15px; }
+    
+    .door-frame {
+      position: absolute;
+      inset: -10px;
+      border: 8px solid #4a3626;
+      border-radius: 16px;
+      pointer-events: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    .welcome-text-container {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.8s ease 0.6s;
+      z-index: -1;
+    }
+    
+    .arcade-intro.opening .welcome-text-container {
+      opacity: 1;
+      z-index: 1;
+    }
+    
+    .welcome-text {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 48px;
+      color: #5a4636;
+      text-align: center;
+      line-height: 1.2;
+      text-shadow: none;
+      animation: textFloat 3s ease-in-out infinite;
+    }
+    
+    .welcome-text span {
+      display: inline-block;
+      opacity: 0;
+      animation: charReveal 0.5s ease forwards;
+    }
+    
+    .wind-chime {
+      position: absolute;
+      top: -20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+    }
+    
+    .wind-chime.left { left: 20px; }
+    .wind-chime.right { right: 20px; }
+    
+    .chime-string {
+      width: 1px;
+      height: 40px;
+      background: #8b7355;
+    }
+    
+    .chime-bell {
+      width: 20px;
+      height: 24px;
+      background: #d4c4b0;
+      border-radius: 0 0 50% 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      animation: chimeSwing 2s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .wind-chime.right .chime-bell {
+      animation-delay: 0.3s;
+    }
+    
+    .chime-clapper {
+      width: 6px;
+      height: 6px;
+      background: #8b7355;
+      border-radius: 50%;
+      margin-top: 2px;
+      animation: clapperSwing 2s ease-in-out infinite;
+    }
+    
+    .wind-chime.right .chime-clapper {
+      animation-delay: 0.3s;
+    }
+    
+    .furin-glass {
+      position: absolute;
+      top: -60px;
+      width: 35px;
+      height: 40px;
+      background: rgba(180, 200, 240, 0.6);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      box-shadow: 0 4px 15px rgba(100, 150, 200, 0.3), inset 0 -10px 20px rgba(255,255,255,0.3);
+      animation: furinSwing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .furin-string {
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 25px;
+      background: #8b7355;
+    }
+    
+    .furin-tongue {
+      position: absolute;
+      bottom: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 20px;
+      background: #5a4636;
+      border-radius: 0 0 2px 2px;
+    }
+    
+    .furin-strip {
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 60px;
+      background: #f5e6d3;
+      border: 1px solid #d4c4b0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      animation: stripSwing 3s ease-in-out infinite;
+      transform-origin: top center;
+    }
+    
+    .arcade-intro.opening .furin-glass,
+    .arcade-intro.opening .furin-strip {
+      animation: furinSwingStrong 1s ease-out;
+    }
+    
+    .skip-btn {
+      position: absolute;
+      bottom: 40px;
+      right: 40px;
+      padding: 10px 20px;
+      background: rgba(255, 248, 240, 0.9);
+      border: 2px solid #b8956a;
+      border-radius: 20px;
+      color: #5a4636;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10001;
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+    .skip-btn:hover {
+      background: #b8956a;
+      color: white;
+      transform: scale(1.05);
+    }
+    
+    .particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(180, 160, 140, 0.4);
+      border-radius: 50%;
+      animation: particleFloat 4s ease-in-out infinite;
+    }
+    
+    @keyframes introFadeOut { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes chimeSwing { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+    @keyframes clapperSwing { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
+    @keyframes furinSwing { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    @keyframes stripSwing { 0%, 100% { transform: rotate(-2deg) translateX(-50%); } 50% { transform: rotate(2deg) translateX(-50%); } }
+    @keyframes furinSwingStrong { 0% { transform: rotate(-15deg); } 20% { transform: rotate(20deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } 100% { transform: rotate(0deg); } }
+    @keyframes textFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    @keyframes charReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes particleFloat { 0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-100px) rotate(180deg); opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="arcade-intro" id="arcade-intro">
+    <div class="particles" id="particles"></div>
+    
+    <div class="wind-chime left">
+      <div class="furin-string"></div>
+      <div class="furin-glass">
+        <div class="furin-tongue"></div>
+      </div>
+      <div class="furin-strip"></div>
+    </div>
+    
+    <div class="wind-chime right">
+      <div class="furin-string"></div>
+      <div class="furin-glass">
+        <div class="furin-tongue"></div>
+      </div>
+      <div class="furin-strip"></div>
+    </div>
+    
+    <div class="door-container">
+      <div class="door-frame"></div>
+      <div class="door door-left">
+        <div class="door-handle"></div>
+      </div>
+      <div class="door door-right">
+        <div class="door-handle"></div>
+      </div>
+      <div class="welcome-text-container">
+        <div class="welcome-text" id="welcome-text"></div>
+      </div>
+    </div>
+    
+    <button class="skip-btn" onclick="skipIntro()">跳過</button>
+  </div>
+  <script>
+    function createParticles() {
+      const container = document.getElementById('particles');
+      if (!container) return;
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 4 + 's';
+        particle.style.animationDuration = (3 + Math.random() * 2) + 's';
+        container.appendChild(particle);
+      }
+    }
+    
+    function animateWelcomeText() {
+      const text = document.getElementById('welcome-text');
+      if (!text) return;
+      const message = 'Welcome Home';
+      text.innerHTML = '';
+      message.split('').forEach((char, i) => {
+        const span = document.createElement('span');
+        span.textContent = char === ' ' ? '\u00A0' : char;
+        span.style.animationDelay = (0.8 + i * 0.08) + 's';
+        text.appendChild(span);
+      });
+    }
+    
+    function skipIntro() {
+      const intro = document.getElementById('arcade-intro');
+      if (intro) {
+        intro.classList.add('fade-out');
+        setTimeout(() => intro.classList.add('hidden'), 800);
+      }
+    }
+    
+    function startDoorAnimation() {
+      const intro = document.getElementById('arcade-intro');
+      if (intro) {
+        setTimeout(() => {
+          intro.classList.add('opening');
+        }, 800);
+      }
+    }
+    
+    createParticles();
+    animateWelcomeText();
+    startDoorAnimation();
+    setTimeout(skipIntro, 3500);
+  </script>
+  <div class="home-app">
+    <div id="world-nav-view" class="world-nav-view">
+      <div class="top-bar">
+        <button class="back-btn" onclick="handleBack()">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="app-title">世界導覽</h1>
+        <div class="top-actions">
+          <div class="money-display">
+            <i data-lucide="wallet"></i>
+            <span id="current-balance-nav">0</span>
+          </div>
+        </div>
+      </div>
+      <div class="world-nav-content">
+        <p class="world-nav-subtitle">選擇一個社區開始探索</p>
+        <div class="community-grid" id="community-grid"></div>
+      </div>
+    </div>
+
+    <div id="map-view" class="map-view hidden">
+      <div class="top-bar">
+        <button class="back-btn" onclick="handleBack()">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="app-title">我的家園</h1>
+        <div class="top-actions">
+          <button class="top-btn" onclick="toggleMapEditMode()" id="map-edit-btn">
+            <i data-lucide="layout-grid"></i>
+          </button>
+          <div class="money-display">
+            <i data-lucide="wallet"></i>
+            <span id="current-balance">0</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-container">
+        <canvas id="map-canvas"></canvas>
+        <div id="map-overlay" class="map-overlay"></div>
+      </div>
+      
+      <div class="map-toolbar">
+        <button class="tool-btn" onclick="zoomIn()">
+          <i data-lucide="zoom-in"></i>
+        </button>
+        <button class="tool-btn" onclick="zoomOut()">
+          <i data-lucide="zoom-out"></i>
+        </button>
+        <button class="tool-btn" onclick="centerMap()">
+          <i data-lucide="locate"></i>
+        </button>
+        <button class="tool-btn" id="grid-toggle-btn" onclick="toggleGridDisplay()">
+          <i data-lucide="grid-3x3"></i>
+        </button>
+      </div>
+
+      <div id="map-edit-panel" class="map-edit-panel hidden">
+        <div class="panel-header">
+          <h3>放置物品</h3>
+          <button class="close-panel-btn" onclick="toggleMapEditPanel()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="map-edit-categories">
+          <button class="category-btn active" data-category="terrain" onclick="selectMapEditCategory('terrain')">地形</button>
+          <button class="category-btn" data-category="buildings" onclick="selectMapEditCategory('buildings')">建築</button>
+          <button class="category-btn" data-category="decorations" onclick="selectMapEditCategory('decorations')">裝飾</button>
+          <button class="category-btn" data-category="roads" onclick="selectMapEditCategory('roads')">道路</button>
+        </div>
+        <div class="map-edit-tools">
+          <div class="brush-size-control">
+            <span>筆刷大小:</span>
+            <button class="brush-btn" onclick="setBrushSize(1)">1x1</button>
+            <button class="brush-btn active" onclick="setBrushSize(2)">2x2</button>
+            <button class="brush-btn" onclick="setBrushSize(3)">3x3</button>
+          </div>
+          <div class="grid-toggle">
+            <label>
+              <input type="checkbox" id="show-grid-checkbox" checked onchange="toggleGridDisplay()">
+              顯示格線
+            </label>
+          </div>
+        </div>
+        <div class="map-edit-grid" id="map-edit-grid"></div>
+      </div>
+
+      <div id="map-edit-hint" class="edit-mode-hint hidden">
+        <span>編排模式：點擊放置物品，長按可移動</span>
+        <button class="exit-edit-btn" onclick="exitMapEditMode()">完成</button>
+      </div>
+    </div>
+
+    <div id="room-view" class="room-view hidden">
+      <div class="top-bar">
+        <button class="back-btn" onclick="exitRoom()">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <h1 class="app-title">我的小屋</h1>
+        <div class="top-actions">
+          <button class="top-btn" onclick="openRoomExpand()" title="擴建房間">
+            <i data-lucide="maximize-2"></i>
+          </button>
+          <button class="top-btn" onclick="openSettings()">
+            <i data-lucide="settings"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="room-tabs" class="room-tabs"></div>
+
+      <div class="main-content">
+        <div id="room-container" class="room-container">
+          <canvas id="room-canvas"></canvas>
+          <div id="character-layer" class="character-layer"></div>
+        </div>
+
+        <div id="furniture-panel" class="furniture-panel">
+          <div class="panel-header">
+            <h3>家具</h3>
+            <button class="close-panel-btn" onclick="toggleFurniturePanel()">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+          <div class="furniture-categories">
+            <button class="category-btn active" data-category="all" onclick="selectCategory('all')">全部</button>
+            <button class="category-btn" data-category="bed" onclick="selectCategory('bed')">床鋪</button>
+            <button class="category-btn" data-category="desk" onclick="selectCategory('desk')">桌椅</button>
+            <button class="category-btn" data-category="decor" onclick="selectCategory('decor')">裝飾</button>
+            <button class="category-btn" data-category="plant" onclick="selectCategory('plant')">植物</button>
+            <button class="category-btn" data-category="electronic" onclick="selectCategory('electronic')">電器</button>
+            <button class="category-btn" data-category="bath" onclick="selectCategory('bath')">衛浴</button>
+            <button class="category-btn" data-category="kitchen" onclick="selectCategory('kitchen')">廚房</button>
+          </div>
+          <div class="furniture-grid" id="furniture-grid"></div>
+        </div>
+
+        <div id="edit-mode-hint" class="edit-mode-hint hidden">
+          <span>編輯模式：點擊家具移動或刪除</span>
+          <button class="exit-edit-btn" onclick="exitEditMode()">完成</button>
+        </div>
+      </div>
+
+      <div class="bottom-toolbar">
+        <button class="tool-btn" onclick="toggleFurniturePanel()">
+          <i data-lucide="sofa"></i>
+          <span>家具</span>
+        </button>
+        <button class="tool-btn" onclick="openFurnitureShop()">
+          <i data-lucide="shopping-bag"></i>
+          <span>商店</span>
+        </button>
+        <button class="tool-btn" onclick="enterEditMode()">
+          <i data-lucide="move"></i>
+          <span>編輯</span>
+        </button>
+        <button class="tool-btn" onclick="saveRoom()">
+          <i data-lucide="save"></i>
+          <span>儲存</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="furniture-shop-modal" class="modal hidden">
+      <div class="modal-content shop-modal-content">
+        <div class="modal-header">
+          <h2>家具商店</h2>
+          <button class="close-btn" onclick="closeFurnitureShop()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="shop-event-banner" class="shop-event-banner hidden"></div>
+        <div class="shop-categories">
+          <button class="shop-category-btn active" data-category="all">全部</button>
+          <button class="shop-category-btn" data-category="wall_decor">牆面裝飾</button>
+          <button class="shop-category-btn" data-category="curtain">窗簾</button>
+          <button class="shop-category-btn" data-category="lighting">照明</button>
+          <button class="shop-category-btn" data-category="textile">布藝</button>
+          <button class="shop-category-btn" data-category="floor_decor">地面裝飾</button>
+        </div>
+        <div class="shop-grid" id="shop-grid"></div>
+        <div class="shop-footer">
+          <div class="shop-balance">
+            <i data-lucide="wallet"></i>
+            <span id="shop-balance">NT$ 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="item-detail-modal" class="modal hidden">
+      <div class="modal-content item-detail-content">
+        <div class="modal-header">
+          <h2 id="item-detail-title">商品詳情</h2>
+          <button class="close-btn" onclick="closeItemDetail()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="item-detail-body">
+          <div class="item-preview">
+            <canvas id="item-preview-canvas" width="96" height="96"></canvas>
+          </div>
+          <div class="item-info">
+            <h3 id="item-name"></h3>
+            <p id="item-description"></p>
+            <div class="item-meta">
+              <span class="item-size" id="item-size"></span>
+              <span class="item-rarity" id="item-rarity"></span>
+            </div>
+            <div class="item-price-row">
+              <span class="item-price" id="item-price"></span>
+              <span class="item-original-price" id="item-original-price"></span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" id="buy-item-btn" onclick="buyShopItem()">購買</button>
+            <button class="modal-btn" onclick="closeItemDetail()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="payment-pin-modal" class="modal hidden">
+      <div class="modal-content payment-modal-content">
+        <div class="modal-header">
+          <h2>確認付款</h2>
+          <button class="close-btn" onclick="closePaymentPinModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="payment-body">
+          <div class="payment-amount" id="payment-amount-display">NT$ 0</div>
+          <div class="payment-details" id="payment-details-display"></div>
+          <div class="pin-input-container">
+            <input type="password" class="pin-input" maxlength="1" data-pin-index="0">
+            <input type="password" class="pin-input" maxlength="1" data-pin-index="1">
+            <input type="password" class="pin-input" maxlength="1" data-pin-index="2">
+            <input type="password" class="pin-input" maxlength="1" data-pin-index="3">
+          </div>
+          <p class="pin-hint">請輸入 4 位數密碼</p>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn primary" onclick="confirmPaymentPin()">確認付款</button>
+          <button class="modal-btn" onclick="closePaymentPinModal()">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="interactive-menu-modal" class="modal hidden">
+      <div class="modal-content interactive-menu-content">
+        <div class="interactive-menu-header">
+          <span id="interactive-item-name"></span>
+        </div>
+        <div class="interactive-menu-options" id="interactive-menu-options"></div>
+      </div>
+    </div>
+
+    <div id="buy-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="buy-modal-title">購買房產</h2>
+          <button class="close-btn" onclick="closeBuyModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="buy-preview" class="buy-preview"></div>
+          <div class="buy-info">
+            <div class="buy-price">
+              <i data-lucide="coins"></i>
+              <span id="buy-price-amount">0</span>
+            </div>
+            <p id="buy-description"></p>
+          </div>
+          <div class="buy-options" id="buy-options"></div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" id="buy-confirm-btn" onclick="confirmBuy()">確認購買</button>
+            <button class="modal-btn" onclick="closeBuyModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="char-select-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>選擇角色</h2>
+          <button class="close-btn" onclick="closeCharSelectModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="char-list" class="char-list"></div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" onclick="confirmCharSelect()">確認</button>
+            <button class="modal-btn" onclick="closeCharSelectModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="invite-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>發送邀請</h2>
+          <button class="close-btn" onclick="closeInviteModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="invite-preview">
+            <div class="invite-message" id="invite-message-preview"></div>
+          </div>
+          <div class="invite-input-section">
+            <label>自訂訊息（選填）</label>
+            <textarea id="invite-custom-message" placeholder="可以加入想說的話..."></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn primary" onclick="sendInvite()">發送邀請</button>
+            <button class="modal-btn" onclick="closeInviteModal()">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>設定</h2>
+          <button class="close-btn" onclick="closeSettings()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-item">
+            <label>房間風格</label>
+            <div class="style-options">
+              <button class="style-btn active" data-style="modern" onclick="setRoomStyle('modern')">現代</button>
+              <button class="style-btn" data-style="cozy" onclick="setRoomStyle('cozy')">溫馨</button>
+              <button class="style-btn" data-style="minimal" onclick="setRoomStyle('minimal')">極簡</button>
+              <button class="style-btn" data-style="gaming" onclick="setRoomStyle('gaming')">電競</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>地板樣式</label>
+            <div class="style-picker" id="floor-style-picker"></div>
+          </div>
+          <div class="setting-item">
+            <label>牆壁樣式</label>
+            <div class="style-picker" id="wall-style-picker"></div>
+          </div>
+          <div class="setting-item">
+            <label>地板顏色</label>
+            <div class="color-picker" id="floor-color-picker"></div>
+          </div>
+          <div class="setting-item">
+            <label>牆壁顏色</label>
+            <div class="color-picker" id="wall-color-picker"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="furniture-context-menu" class="context-menu hidden">
+      <button class="context-btn" onclick="rotateFurniture()">
+        <i data-lucide="rotate-cw"></i> 旋轉
+      </button>
+      <button class="context-btn" onclick="deleteFurniture()">
+        <i data-lucide="trash-2"></i> 刪除
+      </button>
+      <button class="context-btn cancel" onclick="hideContextMenu()">
+        <i data-lucide="x"></i> 取消
+      </button>
+    </div>
+
+    <div id="room-expand-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>擴建房間</h2>
+          <button class="close-btn" onclick="closeRoomExpand()">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="room-size-display">
+            <div class="size-info">
+              <span class="size-label">目前大小</span>
+              <span class="size-value" id="current-room-size">12 x 10</span>
+            </div>
+            <i data-lucide="arrow-right" class="size-arrow"></i>
+            <div class="size-info">
+              <span class="size-label">擴建後</span>
+              <span class="size-value" id="expanded-room-size">14 x 12</span>
+            </div>
+          </div>
+          <div class="expand-options">
+            <div class="expand-option" onclick="expandRoom('width')">
+              <div class="expand-icon">
+                <i data-lucide="move-horizontal"></i>
+              </div>
+              <div class="expand-info">
+                <h4>擴寬</h4>
+                <p>增加 2 格寬度</p>
+              </div>
+              <div class="expand-price">
+                <i data-lucide="coins"></i>
+                <span id="expand-width-price">5000</span>
+              </div>
+            </div>
+            <div class="expand-option" onclick="expandRoom('height')">
+              <div class="expand-icon">
+                <i data-lucide="move-vertical"></i>
+              </div>
+              <div class="expand-info">
+                <h4>擴高</h4>
+                <p>增加 2 格高度</p>
+              </div>
+              <div class="expand-price">
+                <i data-lucide="coins"></i>
+                <span id="expand-height-price">5000</span>
+              </div>
+            </div>
+            <div class="expand-option" onclick="expandRoom('both')">
+              <div class="expand-icon">
+                <i data-lucide="maximize-2"></i>
+              </div>
+              <div class="expand-info">
+                <h4>全面擴建</h4>
+                <p>寬高各增加 2 格</p>
+              </div>
+              <div class="expand-price discount">
+                <i data-lucide="coins"></i>
+                <span id="expand-both-price">8000</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map-item-context-menu" class="context-menu hidden">
+      <button class="context-btn" onclick="moveMapItem()">
+        <i data-lucide="move"></i> 移動
+      </button>
+      <button class="context-btn" onclick="deleteMapItem()">
+        <i data-lucide="trash-2"></i> 移除
+      </button>
+      <button class="context-btn cancel" onclick="hideMapContextMenu()">
+        <i data-lucide="x"></i> 取消
+      </button>
+    </div>
+  </div>
+
+<script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="home.js"></script>
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+    if (typeof SxAppAppearance !== 'undefined') {
+      SxAppAppearance.initAppearanceForApp('home');
+    }
+  </script>
+</body>
+</html>

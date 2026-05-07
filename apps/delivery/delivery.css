@@ -1,0 +1,1025 @@
+:root {
+  --delivery-bg: #f7f7f8;
+  --delivery-surface: #ffffff;
+  --delivery-text: #121212;
+  --delivery-muted: #65676b;
+  --delivery-border: #e8e8ea;
+  --delivery-accent: #06c167;
+}
+
+[data-theme="dark"] {
+  --delivery-bg: #1c1c1e;
+  --delivery-surface: #2c2c2e;
+  --delivery-text: #ffffff;
+  --delivery-muted: #8e8e93;
+  --delivery-border: #3a3a3c;
+  --delivery-accent: #06c167;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: "Helvetica Neue", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--delivery-bg);
+  color: var(--delivery-text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.delivery-app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  position: relative;
+}
+
+.delivery-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  gap: 10px;
+  align-items: center;
+  padding: 35px 14px 12px;
+  background: var(--delivery-surface);
+  border-bottom: 1px solid var(--delivery-border);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  color: var(--delivery-text);
+  position: relative;
+}
+
+.address-wrap p {
+  font-size: 11px;
+  color: var(--delivery-muted);
+}
+
+.address-wrap h1 {
+  font-size: 15px;
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--delivery-accent);
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.delivery-main {
+  overflow-y: auto;
+  padding: 12px 14px calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.delivery-main::-webkit-scrollbar {
+  display: none;
+}
+
+.search-card {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  border-radius: 14px;
+  padding: 11px 12px;
+  color: #787b80;
+}
+
+.search-card input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: var(--delivery-text);
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-btn {
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  color: var(--delivery-text);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chip-btn.active {
+  background: var(--delivery-text);
+  border-color: var(--delivery-text);
+  color: var(--delivery-surface);
+}
+
+.promo-card {
+  border-radius: 18px;
+  padding: 14px;
+  background: linear-gradient(145deg, #d9ffe6, #b4ffd0);
+  color: #0f2e1f;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+[data-theme="dark"] .promo-card {
+  background: linear-gradient(145deg, #1a3d2a, #0f2e1f);
+  color: #b4ffd0;
+}
+
+.promo-label {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.72;
+}
+
+.promo-card h2 {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.promo-card p {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.promo-card i {
+  font-size: 30px;
+  opacity: 0.7;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.section-head h3 {
+  font-size: 18px;
+}
+
+.section-head button {
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.restaurant-list {
+  display: grid;
+  gap: 10px;
+}
+
+.restaurant-card {
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.cover {
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.eta-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: var(--delivery-surface);
+  color: var(--delivery-text);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.restaurant-body {
+  padding: 10px;
+}
+
+.restaurant-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.restaurant-head h4 {
+  font-size: 15px;
+}
+
+.restaurant-meta {
+  margin-top: 3px;
+  color: var(--delivery-muted);
+  font-size: 12px;
+}
+
+.restaurant-hint {
+  margin-top: 6px;
+  color: var(--delivery-accent);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dish-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.dish-row::-webkit-scrollbar {
+  display: none;
+}
+
+.dish-pill {
+  border: 1px solid var(--delivery-border);
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 140px;
+  background: var(--delivery-surface);
+}
+
+.dish-pill h5 {
+  font-size: 12px;
+}
+
+.dish-pill p {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--delivery-muted);
+}
+
+.dish-pill button {
+  margin-top: 6px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: var(--delivery-text);
+  color: var(--delivery-surface);
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.cart-sheet {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background: var(--delivery-surface);
+  border: 1px solid var(--delivery-border);
+  border-radius: 18px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+  max-height: 65vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.cart-sheet.hidden {
+  display: none;
+}
+
+.cart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--delivery-border);
+  padding: 12px;
+}
+
+.cart-head button {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+}
+
+.cart-items {
+  padding: 10px 12px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.cart-item {
+  border: 1px solid var(--delivery-border);
+  border-radius: 12px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.cart-item p {
+  font-size: 11px;
+  color: var(--delivery-muted);
+  margin-top: 2px;
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qty-control button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--delivery-border);
+  background: var(--delivery-surface);
+  color: var(--delivery-text);
+}
+
+.cart-foot {
+  border-top: 1px solid var(--delivery-border);
+  padding: 12px;
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.checkout-btn {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  height: 42px;
+  background: var(--delivery-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 地址輸入面板 */
+.address-wrap {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.address-wrap:hover {
+  opacity: 0.8;
+}
+
+.address-wrap h1 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.address-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--delivery-bg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.address-panel.hidden {
+  display: none;
+}
+
+.address-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 35px 14px 12px;
+  background: var(--delivery-surface);
+  border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.address-panel-header h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.address-panel-body {
+  flex: 1;
+  padding: 16px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.address-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.address-input-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--delivery-muted);
+}
+
+.address-input-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--delivery-border);
+  border-radius: 12px;
+  background: var(--delivery-surface);
+  color: var(--delivery-text);
+  font-size: 15px;
+  transition: border-color 0.2s ease;
+}
+
+.address-input-group input:focus {
+  outline: none;
+  border-color: var(--delivery-accent);
+}
+
+.address-input-group input::placeholder {
+  color: var(--delivery-muted);
+  opacity: 0.6;
+}
+
+.address-save-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--delivery-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: auto;
+  transition: opacity 0.2s ease;
+}
+
+.address-save-btn:active {
+  opacity: 0.9;
+}
+
+.address-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(6, 193, 103, 0.1);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--delivery-accent);
+  margin-bottom: 16px;
+}
+
+.address-hint i {
+  font-size: 16px;
+}
+
+/* 餐廳詳情頁面 */
+.restaurant-detail-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--delivery-bg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.restaurant-detail-panel.hidden {
+  display: none;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 35px 14px 12px;
+  background: var(--delivery-surface);
+  border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.detail-header h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.detail-cover {
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+}
+
+.detail-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.detail-rating {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.detail-meta {
+  font-size: 13px;
+  color: var(--delivery-muted);
+}
+
+.detail-section h4 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.detail-dishes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-dish-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  background: var(--delivery-surface);
+  border: 1px solid var(--delivery-border);
+  border-radius: 14px;
+  gap: 12px;
+}
+
+.detail-dish-info {
+  flex: 1;
+}
+
+.detail-dish-info h5 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.detail-dish-info .dish-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--delivery-accent);
+  margin-bottom: 2px;
+}
+
+.detail-dish-info .dish-desc {
+  font-size: 12px;
+  color: var(--delivery-muted);
+}
+
+.detail-dish-info p {
+  font-size: 13px;
+  color: var(--delivery-muted);
+}
+
+.detail-dish-add {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--delivery-accent);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 10;
+  position: relative;
+}
+
+.detail-dish-add:active {
+  transform: scale(0.9);
+  opacity: 0.8;
+}
+
+.detail-dish-add i {
+  pointer-events: none;
+}
+
+/* 結帳確認頁面 */
+.checkout-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--delivery-bg);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.checkout-panel.hidden {
+  display: none;
+}
+
+.checkout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 35px 14px 12px;
+  background: var(--delivery-surface);
+  border-bottom: 1px solid var(--delivery-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.checkout-header h3 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.checkout-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+}
+
+.checkout-address-section,
+.checkout-items-section,
+.checkout-note-section {
+  background: var(--delivery-surface);
+  border: 1px solid var(--delivery-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.checkout-address-section h4,
+.checkout-items-section h4,
+.checkout-note-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checkout-address-section p {
+  font-size: 14px;
+  color: var(--delivery-text);
+}
+
+.checkout-items-section .checkout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--delivery-border);
+}
+
+.checkout-items-section .checkout-item:last-child {
+  border-bottom: none;
+}
+
+.checkout-item-info {
+  flex: 1;
+}
+
+.checkout-item-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.checkout-item-store {
+  font-size: 12px;
+  color: var(--delivery-muted);
+}
+
+.checkout-item-qty {
+  font-size: 13px;
+  color: var(--delivery-muted);
+  margin: 0 12px;
+}
+
+.checkout-item-price {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.checkout-summary {
+  background: var(--delivery-surface);
+  border: 1px solid var(--delivery-border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.summary-row.total {
+  border-top: 1px solid var(--delivery-border);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 16px;
+}
+
+.summary-row.total strong {
+  color: var(--delivery-accent);
+}
+
+.checkout-note-section textarea {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid var(--delivery-border);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  background: var(--delivery-bg);
+  color: var(--delivery-text);
+  resize: none;
+}
+
+.checkout-note-section textarea:focus {
+  outline: none;
+  border-color: var(--delivery-accent);
+}
+
+.checkout-footer {
+  padding: 12px 14px;
+  background: var(--delivery-surface);
+  border-top: 1px solid var(--delivery-border);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.checkout-confirm-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--delivery-accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.checkout-confirm-btn:active {
+  opacity: 0.9;
+}
+
+/* 付款成功頁面 */
+.payment-success-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.payment-success-panel.hidden {
+  display: none;
+}
+
+.success-content {
+  background: var(--delivery-surface);
+  border-radius: 20px;
+  padding: 30px 20px;
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+}
+
+.success-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: var(--delivery-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.success-icon i {
+  font-size: 36px;
+  color: #fff;
+}
+
+.success-content h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.success-message {
+  font-size: 14px;
+  color: var(--delivery-muted);
+  margin-bottom: 20px;
+}
+
+.success-details {
+  background: var(--delivery-bg);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 20px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.success-details p {
+  margin-bottom: 6px;
+}
+
+.success-details p:last-child {
+  margin-bottom: 0;
+}
+
+.success-close-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--delivery-text);
+  color: var(--delivery-surface);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 響應式設計 - 小屏幕適配 */
+@media (max-width: 768px) {
+  .delivery-header,
+  .address-panel-header,
+  .detail-header,
+  .checkout-header {
+    padding-top: 30px;
+  }
+  
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .delivery-header {
+    grid-template-columns: 32px 1fr 32px;
+  }
+}
+
+@media (max-width: 380px) {
+  .delivery-header,
+  .address-panel-header,
+  .detail-header,
+  .checkout-header {
+    padding: 25px 10px 10px;
+  }
+  
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .delivery-header {
+    grid-template-columns: 28px 1fr 28px;
+    gap: 6px;
+  }
+  
+  .address-wrap h1 {
+    font-size: 13px;
+  }
+  
+  .address-wrap p {
+    font-size: 10px;
+  }
+  
+  .cart-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+  
+  .search-card {
+    padding: 8px 10px;
+  }
+  
+  .search-card input {
+    font-size: 13px;
+  }
+  
+  .promo-card {
+    padding: 10px;
+  }
+  
+  .promo-card h2 {
+    font-size: 15px;
+  }
+  
+  .promo-card p {
+    font-size: 11px;
+  }
+  
+  .restaurant-card .cover {
+    height: 100px;
+  }
+  
+  .restaurant-body {
+    padding: 8px;
+  }
+  
+  .restaurant-head h4 {
+    font-size: 13px;
+  }
+  
+  .restaurant-meta {
+    font-size: 11px;
+  }
+  
+  .detail-cover {
+    height: 140px;
+  }
+  
+  .detail-dish-item {
+    padding: 10px;
+  }
+  
+  .detail-dish-add {
+    width: 30px;
+    height: 30px;
+  }
+}
+

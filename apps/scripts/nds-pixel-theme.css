@@ -1,0 +1,762 @@
+/* =====================================================================
+ * NDS Pixel Theme
+ * ---------------------------------------------------------------------
+ * Shared retro / Nintendo DS pixel-art visual skin for selected apps.
+ * Targets: apps/home, apps/arcade, apps/dating
+ *
+ * Activation: load this stylesheet AFTER the app's own stylesheet, then
+ * add `data-theme="nds-pixel"` to the <html> element (or `<body>`).
+ *
+ * Design principles (per user spec - "only pixel visual style"):
+ *   - Keep existing layout / DOM structure intact.
+ *   - Override colors, fonts, borders, shadows, and image rendering.
+ *   - Pixelate existing PNG assets via image-rendering + posterize-ish
+ *     contrast/saturation filters (no asset replacement needed).
+ *   - Use a small palette inspired by the original Nintendo DS UI.
+ *   - All overrides scoped under [data-theme="nds-pixel"] so the theme
+ *     is opt-in and easy to remove.
+ * =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap');
+
+:root[data-theme="nds-pixel"],
+[data-theme="nds-pixel"] {
+  --nds-bg:           #d8e4f0;
+  --nds-bg-deep:      #5a78a8;
+  --nds-panel:        #f4f0d8;
+  --nds-panel-alt:    #fffbe6;
+  --nds-ink:          #1a1a2e;
+  --nds-ink-soft:     #2c2c44;
+  --nds-border:       #1a1a2e;
+  --nds-border-soft:  #6b6b88;
+  --nds-accent:       #e63946;
+  --nds-accent-2:     #2a9d8f;
+  --nds-accent-3:     #f4a261;
+  --nds-accent-4:     #4361ee;
+  --nds-shadow:       2px 2px 0 #1a1a2e;
+  --nds-shadow-lg:    4px 4px 0 #1a1a2e;
+  --nds-font-pixel:   'Press Start 2P', 'DotGothic16', 'Noto Sans TC', monospace;
+  --nds-font-text:    'DotGothic16', 'Noto Sans TC', monospace;
+  --top-bar-margin:   30px;
+}
+
+/* ---------- Global typography & background ---------- */
+[data-theme="nds-pixel"] body,
+[data-theme="nds-pixel"] .home-app,
+[data-theme="nds-pixel"] .arcade-app,
+[data-theme="nds-pixel"] .dating-app {
+  font-family: var(--nds-font-text) !important;
+  color: var(--nds-ink) !important;
+  background:
+    repeating-linear-gradient(0deg,  rgba(0,0,0,0.04) 0 2px, transparent 2px 4px),
+    var(--nds-bg) !important;
+  letter-spacing: 0.5px;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+[data-theme="nds-pixel"] h1,
+[data-theme="nds-pixel"] h2,
+[data-theme="nds-pixel"] h3,
+[data-theme="nds-pixel"] .app-title,
+[data-theme="nds-pixel"] .logo {
+  font-family: var(--nds-font-pixel) !important;
+  letter-spacing: 1px;
+  text-shadow: var(--nds-shadow);
+  color: var(--nds-ink) !important;
+}
+
+/* ---------- Pixelate ALL raster images / canvases ---------- */
+[data-theme="nds-pixel"] img,
+[data-theme="nds-pixel"] canvas {
+  image-rendering: pixelated !important;
+  image-rendering: -moz-crisp-edges !important;
+  image-rendering: crisp-edges !important;
+}
+
+/* Posterize-ish look on raster <img> via filters.
+   contrast + saturate brings the limited-palette "DS cartridge" look. */
+[data-theme="nds-pixel"] img {
+  filter:
+    contrast(1.15)
+    saturate(1.35)
+    brightness(0.98)
+    drop-shadow(1px 1px 0 rgba(0,0,0,0.35));
+}
+
+/* App icon-ish small images: stronger pixelation effect */
+[data-theme="nds-pixel"] .app-icon img,
+[data-theme="nds-pixel"] .icon img,
+[data-theme="nds-pixel"] .app img,
+[data-theme="nds-pixel"] .game-card img,
+[data-theme="nds-pixel"] .furniture-grid img,
+[data-theme="nds-pixel"] .shop-grid img {
+  filter:
+    contrast(1.25)
+    saturate(1.45)
+    drop-shadow(2px 2px 0 rgba(0,0,0,0.4));
+}
+
+/* ---------- Generic boxy pixel borders ---------- */
+[data-theme="nds-pixel"] button,
+[data-theme="nds-pixel"] .btn,
+[data-theme="nds-pixel"] .top-btn,
+[data-theme="nds-pixel"] .tool-btn,
+[data-theme="nds-pixel"] .icon-btn,
+[data-theme="nds-pixel"] .modal-btn,
+[data-theme="nds-pixel"] .category-btn,
+[data-theme="nds-pixel"] .style-btn,
+[data-theme="nds-pixel"] .brush-btn,
+[data-theme="nds-pixel"] .shop-category-btn,
+[data-theme="nds-pixel"] .skip-btn,
+[data-theme="nds-pixel"] .back-btn {
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 10px !important;
+  letter-spacing: 1px;
+  background: var(--nds-panel) !important;
+  color: var(--nds-ink) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  padding: 6px 10px;
+  transition: none !important;
+  text-transform: uppercase;
+}
+
+[data-theme="nds-pixel"] button:hover,
+[data-theme="nds-pixel"] .btn:hover,
+[data-theme="nds-pixel"] .modal-btn:hover {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+
+[data-theme="nds-pixel"] button:active,
+[data-theme="nds-pixel"] .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+[data-theme="nds-pixel"] .modal-btn.primary,
+[data-theme="nds-pixel"] button.primary {
+  background: var(--nds-accent) !important;
+  color: #fff !important;
+}
+
+[data-theme="nds-pixel"] .category-btn.active,
+[data-theme="nds-pixel"] .shop-category-btn.active,
+[data-theme="nds-pixel"] .style-btn.active,
+[data-theme="nds-pixel"] .brush-btn.active {
+  background: var(--nds-accent-4) !important;
+  color: #fff !important;
+}
+
+/* ---------- Cards / panels / modals ---------- */
+[data-theme="nds-pixel"] .modal-content,
+[data-theme="nds-pixel"] .panel,
+[data-theme="nds-pixel"] .furniture-panel,
+[data-theme="nds-pixel"] .map-edit-panel,
+[data-theme="nds-pixel"] .game-modal-content,
+[data-theme="nds-pixel"] .community-card,
+[data-theme="nds-pixel"] .game-card,
+[data-theme="nds-pixel"] .context-menu,
+[data-theme="nds-pixel"] .interactive-menu-content,
+[data-theme="nds-pixel"] .top-info,
+[data-theme="nds-pixel"] .top-bar,
+[data-theme="nds-pixel"] header.top-bar,
+[data-theme="nds-pixel"] .bottom-toolbar,
+[data-theme="nds-pixel"] .map-toolbar,
+[data-theme="nds-pixel"] .floor-indicator {
+  background: var(--nds-panel) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow-lg) !important;
+  backdrop-filter: none !important;
+}
+
+[data-theme="nds-pixel"] .modal-header,
+[data-theme="nds-pixel"] .panel-header {
+  background: var(--nds-accent-4) !important;
+  color: #fff !important;
+  border-bottom: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+}
+[data-theme="nds-pixel"] .modal-header h2,
+[data-theme="nds-pixel"] .panel-header h3 {
+  color: #fff !important;
+  text-shadow: var(--nds-shadow);
+}
+
+/* Inputs */
+[data-theme="nds-pixel"] input[type="text"],
+[data-theme="nds-pixel"] input[type="password"],
+[data-theme="nds-pixel"] input[type="number"],
+[data-theme="nds-pixel"] textarea,
+[data-theme="nds-pixel"] select,
+[data-theme="nds-pixel"] .pin-input {
+  font-family: var(--nds-font-pixel) !important;
+  background: var(--nds-panel-alt) !important;
+  color: var(--nds-ink) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.1) !important;
+  padding: 6px 8px;
+}
+
+/* Money / counter chips */
+[data-theme="nds-pixel"] .money-display,
+[data-theme="nds-pixel"] .shop-balance {
+  font-family: var(--nds-font-pixel) !important;
+  background: var(--nds-accent-3) !important;
+  color: var(--nds-ink) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  padding: 4px 8px;
+}
+
+/* ============================ HOME APP =============================== */
+[data-theme="nds-pixel"] .world-nav-view,
+[data-theme="nds-pixel"] .map-view,
+[data-theme="nds-pixel"] .room-view {
+  background:
+    repeating-linear-gradient(0deg,  rgba(0,0,0,0.05) 0 2px, transparent 2px 4px),
+    var(--nds-bg) !important;
+}
+
+[data-theme="nds-pixel"] .community-grid {
+  gap: 12px !important;
+}
+[data-theme="nds-pixel"] .community-card {
+  background: var(--nds-panel) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow-lg) !important;
+}
+
+[data-theme="nds-pixel"] .furniture-grid .furniture-item,
+[data-theme="nds-pixel"] .shop-grid .shop-item {
+  background: var(--nds-panel-alt) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+}
+
+/* Intro animations (home door, arcade neon, dating loading) are
+ * intentionally left untouched - the original animations look great. */
+
+/* ============================ ARCADE APP ============================= */
+[data-theme="nds-pixel"] .arcade-app {
+  background:
+    repeating-linear-gradient(0deg,  rgba(0,0,0,0.06) 0 2px, transparent 2px 4px),
+    #2c2c44 !important;
+  color: #fffbe6 !important;
+}
+[data-theme="nds-pixel"] .arcade-app .top-bar {
+  background: var(--nds-ink) !important;
+  color: #fffbe6 !important;
+  border-bottom: 2px solid var(--nds-accent) !important;
+}
+[data-theme="nds-pixel"] .arcade-app .top-bar .logo,
+[data-theme="nds-pixel"] .arcade-app .top-bar .logo span {
+  color: #fffbe6 !important;
+  text-shadow: 2px 2px 0 var(--nds-accent) !important;
+}
+[data-theme="nds-pixel"] .arcade-app .icon-btn {
+  background: var(--nds-accent) !important;
+  color: #fff !important;
+  border: 2px solid #fffbe6 !important;
+  box-shadow: 2px 2px 0 #fffbe6 !important;
+}
+
+/* Neon arcade intro is intentionally left untouched to preserve
+ * the original animation feel. */
+
+[data-theme="nds-pixel"] .games-grid .game-card {
+  background: var(--nds-panel) !important;
+  color: var(--nds-ink) !important;
+  border: 2px solid var(--nds-border) !important;
+  box-shadow: var(--nds-shadow-lg) !important;
+  border-radius: 0 !important;
+}
+
+[data-theme="nds-pixel"] .floor-indicator {
+  background: var(--nds-accent) !important;
+  color: #fff !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 10px !important;
+}
+
+/* Virtual joystick / action button: keep functional but boxy */
+[data-theme="nds-pixel"] .virtual-joystick {
+  background: rgba(26, 26, 46, 0.6) !important;
+  border: 2px solid #fffbe6 !important;
+  border-radius: 50% !important; /* keep round for usability */
+}
+[data-theme="nds-pixel"] .joystick-knob {
+  background: var(--nds-accent-4) !important;
+  border: 2px solid #fffbe6 !important;
+}
+[data-theme="nds-pixel"] .action-button {
+  background: var(--nds-accent) !important;
+  color: #fff !important;
+  border: 2px solid #fffbe6 !important;
+  font-family: var(--nds-font-pixel) !important;
+  box-shadow: 3px 3px 0 var(--nds-ink) !important;
+}
+
+/* ============================ DATING APP ============================= */
+[data-theme="nds-pixel"] .dating-app {
+  background:
+    repeating-linear-gradient(0deg,  rgba(0,0,0,0.05) 0 2px, transparent 2px 4px),
+    #f7d6c5 !important;
+}
+[data-theme="nds-pixel"] .dating-app .top-info {
+  background: var(--nds-panel) !important;
+  border-bottom: 2px solid var(--nds-border) !important;
+  box-shadow: 0 2px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .dating-app .app-title h1 {
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 14px !important;
+  color: var(--nds-accent) !important;
+  text-shadow: 2px 2px 0 var(--nds-ink) !important;
+}
+[data-theme="nds-pixel"] .dating-app .char-avatar {
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  background: var(--nds-accent-3) !important;
+}
+
+/* Dating loading screen is intentionally left untouched to preserve
+ * the original RPG loading animation. */
+
+/* Scene canvas / images */
+[data-theme="nds-pixel"] .dating-app canvas,
+[data-theme="nds-pixel"] .dating-app img {
+  image-rendering: pixelated !important;
+}
+
+/* Dialogue box */
+[data-theme="nds-pixel"] .dialogue-box,
+[data-theme="nds-pixel"] .dating-dialogue,
+[data-theme="nds-pixel"] .scene-dialog {
+  background: var(--nds-panel) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow-lg) !important;
+  font-family: var(--nds-font-text) !important;
+  color: var(--nds-ink) !important;
+}
+
+/* Disable heavy blur / glassmorphism that fights pixel aesthetic */
+[data-theme="nds-pixel"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Disable smooth gradients on common decorative elements */
+[data-theme="nds-pixel"] .top-bar,
+[data-theme="nds-pixel"] .bottom-toolbar,
+[data-theme="nds-pixel"] .modal-header {
+  background-image: none !important;
+}
+
+/* Scrollbars - blocky */
+[data-theme="nds-pixel"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-theme="nds-pixel"] ::-webkit-scrollbar-track {
+  background: var(--nds-panel);
+  border: 2px solid var(--nds-border);
+}
+[data-theme="nds-pixel"] ::-webkit-scrollbar-thumb {
+  background: var(--nds-accent-4);
+  border: 2px solid var(--nds-border);
+}
+
+/* =====================================================================
+ * EXTRA: stronger NDS pixel feel for HOME app components
+ * (rooms, houses, furniture, map, shop, community cards)
+ * =================================================================== */
+
+/* ---- Posterize-ish stronger filter for ALL home raster art ---- */
+[data-theme="nds-pixel"] .home-app img,
+[data-theme="nds-pixel"] .home-app canvas,
+[data-theme="nds-pixel"] .room-container canvas,
+[data-theme="nds-pixel"] .map-container canvas,
+[data-theme="nds-pixel"] .community-preview canvas,
+[data-theme="nds-pixel"] .furniture-item canvas,
+[data-theme="nds-pixel"] .shop-item canvas,
+[data-theme="nds-pixel"] #item-preview-canvas,
+[data-theme="nds-pixel"] #buy-preview canvas,
+[data-theme="nds-pixel"] #buy-preview img {
+  image-rendering: pixelated !important;
+  image-rendering: -moz-crisp-edges !important;
+  image-rendering: crisp-edges !important;
+  filter:
+    contrast(1.35)
+    saturate(1.6)
+    brightness(0.96)
+    drop-shadow(2px 2px 0 rgba(0,0,0,0.55)) !important;
+}
+
+/* ---- Community cards (the "house tiles" in world nav) ---- */
+[data-theme="nds-pixel"] .community-card {
+  background: var(--nds-panel) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    var(--nds-shadow-lg),
+    inset 0 0 0 2px var(--nds-panel-alt),
+    inset 0 0 0 4px var(--nds-border) !important;
+  padding: 10px !important;
+  transition: none !important;
+  animation: none !important;
+}
+[data-theme="nds-pixel"] .community-card::before,
+[data-theme="nds-pixel"] .community-card::after {
+  display: none !important;
+}
+[data-theme="nds-pixel"] .community-card:hover {
+  transform: translate(1px, 1px) !important;
+  box-shadow:
+    2px 2px 0 var(--nds-border),
+    inset 0 0 0 2px var(--nds-panel-alt),
+    inset 0 0 0 4px var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .community-card:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: inset 0 0 0 2px var(--nds-panel-alt), inset 0 0 0 4px var(--nds-border) !important;
+}
+
+/* House type accent strips - flatten to single-color pixel stripe */
+[data-theme="nds-pixel"] .community-card.residential { border-top: 8px solid var(--nds-accent-2) !important; }
+[data-theme="nds-pixel"] .community-card.commercial  { border-top: 8px solid var(--nds-accent-3) !important; }
+[data-theme="nds-pixel"] .community-card.leisure     { border-top: 8px solid var(--nds-accent)   !important; }
+[data-theme="nds-pixel"] .community-card.nature      { border-top: 8px solid #8bc34a            !important; }
+[data-theme="nds-pixel"] .community-card.seaside     { border-top: 8px solid var(--nds-accent-4) !important; }
+[data-theme="nds-pixel"] .community-card.cultural    { border-top: 8px solid #b06ab3            !important; }
+
+[data-theme="nds-pixel"] .community-icon {
+  background: var(--nds-accent-3) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset -3px -3px 0 rgba(0,0,0,0.3),
+    inset 3px 3px 0 rgba(255,255,255,0.6),
+    var(--nds-shadow) !important;
+  animation: none !important;
+}
+[data-theme="nds-pixel"] .community-icon svg {
+  color: var(--nds-ink) !important;
+  filter: drop-shadow(1px 1px 0 rgba(255,255,255,0.5));
+}
+
+[data-theme="nds-pixel"] .community-name {
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 11px !important;
+  color: var(--nds-ink) !important;
+  text-shadow: 1px 1px 0 var(--nds-panel-alt) !important;
+  letter-spacing: 1px !important;
+}
+[data-theme="nds-pixel"] .community-desc {
+  font-family: var(--nds-font-text) !important;
+  font-size: 11px !important;
+  color: var(--nds-ink-soft) !important;
+}
+[data-theme="nds-pixel"] .community-badge {
+  background: var(--nds-accent) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 8px !important;
+  box-shadow: 2px 2px 0 var(--nds-border) !important;
+  color: #fff !important;
+}
+[data-theme="nds-pixel"] .community-preview {
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  background: var(--nds-ink) !important;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.5) !important;
+}
+
+/* ---- House icon in buy modal ---- */
+[data-theme="nds-pixel"] .house-icon {
+  background: var(--nds-accent-3) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset -3px -3px 0 rgba(0,0,0,0.3),
+    inset 3px 3px 0 rgba(255,255,255,0.6),
+    var(--nds-shadow-lg) !important;
+}
+[data-theme="nds-pixel"] .buy-preview,
+[data-theme="nds-pixel"] .buy-preview-house {
+  background: var(--nds-panel-alt) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.15) !important;
+}
+[data-theme="nds-pixel"] .buy-option {
+  background: var(--nds-panel) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+}
+[data-theme="nds-pixel"] .buy-option:hover {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .buy-option-icon,
+[data-theme="nds-pixel"] .expand-icon {
+  background: var(--nds-accent-4) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  color: #fff !important;
+  box-shadow: 2px 2px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .buy-price,
+[data-theme="nds-pixel"] .buy-option-price,
+[data-theme="nds-pixel"] .expand-price {
+  font-family: var(--nds-font-pixel) !important;
+  background: var(--nds-accent-3) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  color: var(--nds-ink) !important;
+  padding: 4px 8px !important;
+}
+
+/* ---- Furniture grid items ---- */
+[data-theme="nds-pixel"] .furniture-item,
+[data-theme="nds-pixel"] .shop-item {
+  background: var(--nds-panel-alt) !important;
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    var(--nds-shadow),
+    inset -2px -2px 0 rgba(0,0,0,0.15),
+    inset 2px 2px 0 rgba(255,255,255,0.7) !important;
+  transition: none !important;
+}
+[data-theme="nds-pixel"] .furniture-item::before,
+[data-theme="nds-pixel"] .furniture-item::after {
+  display: none !important;
+}
+[data-theme="nds-pixel"] .furniture-item:hover,
+[data-theme="nds-pixel"] .shop-item:hover {
+  transform: translate(1px, 1px);
+  box-shadow:
+    1px 1px 0 var(--nds-border),
+    inset -2px -2px 0 rgba(0,0,0,0.15),
+    inset 2px 2px 0 rgba(255,255,255,0.7) !important;
+}
+[data-theme="nds-pixel"] .furniture-item.selected {
+  background: var(--nds-accent-3) !important;
+  border-color: var(--nds-accent) !important;
+}
+[data-theme="nds-pixel"] .furniture-item span,
+[data-theme="nds-pixel"] .shop-item-name {
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 9px !important;
+  color: var(--nds-ink) !important;
+  letter-spacing: 0.5px !important;
+}
+[data-theme="nds-pixel"] .shop-item-price {
+  font-family: var(--nds-font-pixel) !important;
+  color: var(--nds-accent) !important;
+  font-size: 10px !important;
+}
+
+/* ---- Map / room canvas containers: pixel frame ---- */
+[data-theme="nds-pixel"] .map-container,
+[data-theme="nds-pixel"] .room-container {
+  border: 4px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow:
+    inset 0 0 0 2px var(--nds-panel-alt),
+    var(--nds-shadow-lg) !important;
+  background:
+    repeating-conic-gradient(
+      var(--nds-bg) 0% 25%,
+      var(--nds-panel) 0% 50%
+    ) !important;
+  background-size: 16px 16px !important;
+}
+
+/* Map edit grid cells - chunky pixel buttons */
+[data-theme="nds-pixel"] .map-edit-item {
+  background: var(--nds-panel) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 9px !important;
+}
+[data-theme="nds-pixel"] .map-edit-item:hover {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+
+/* ---- Room tabs ---- */
+[data-theme="nds-pixel"] .room-tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  padding: 8px !important;
+  background: var(--nds-panel) !important;
+  border-bottom: 3px solid var(--nds-border) !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+[data-theme="nds-pixel"] .room-tab {
+  background: var(--nds-panel-alt) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 10px !important;
+  color: var(--nds-ink) !important;
+  padding: 8px 12px !important;
+  min-height: auto !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  transition: none !important;
+}
+[data-theme="nds-pixel"] .room-tab svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+[data-theme="nds-pixel"] .room-tab.active {
+  background: var(--nds-accent-4) !important;
+  color: #fff !important;
+  border-color: var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .room-tab:hover:not(.active) {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .room-tab:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+/* ---- Room view layout fix ---- */
+[data-theme="nds-pixel"] .room-view {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+[data-theme="nds-pixel"] .room-view .main-content {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+[data-theme="nds-pixel"] .room-view .bottom-toolbar {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+}
+
+/* ---- Bottom toolbar ---- */
+[data-theme="nds-pixel"] .bottom-toolbar {
+  background: var(--nds-panel) !important;
+  border-top: 3px solid var(--nds-border) !important;
+  box-shadow: 0 -3px 0 var(--nds-border) !important;
+  padding: 10px 8px !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar::before {
+  display: none !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn {
+  background: var(--nds-panel-alt) !important;
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  font-family: var(--nds-font-pixel) !important;
+  font-size: 9px !important;
+  color: var(--nds-ink) !important;
+  padding: 8px 12px !important;
+  transition: none !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn:hover {
+  background: var(--nds-accent-3) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .bottom-toolbar .tool-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+/* ---- Character avatar in char select ---- */
+[data-theme="nds-pixel"] .char-item .char-avatar,
+[data-theme="nds-pixel"] .char-list .char-avatar {
+  border: 3px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+  background: var(--nds-accent-3) !important;
+}
+[data-theme="nds-pixel"] .char-item {
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  background: var(--nds-panel) !important;
+  box-shadow: var(--nds-shadow) !important;
+}
+
+/* ---- Settings style picker swatches ---- */
+[data-theme="nds-pixel"] .style-picker > *,
+[data-theme="nds-pixel"] .color-picker > * {
+  border: 2px solid var(--nds-border) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--nds-shadow) !important;
+}
+
+/* ---- Top bar / toolbar tighter pixel skin ---- */
+[data-theme="nds-pixel"] .home-app .top-bar {
+  background: var(--nds-accent-4) !important;
+  border-bottom: 3px solid var(--nds-border) !important;
+  box-shadow: 0 3px 0 var(--nds-border) !important;
+}
+[data-theme="nds-pixel"] .home-app .top-bar .app-title {
+  color: #fff !important;
+  text-shadow: 2px 2px 0 var(--nds-ink) !important;
+}
+[data-theme="nds-pixel"] .home-app .top-bar i,
+[data-theme="nds-pixel"] .home-app .top-bar svg {
+  color: #fff !important;
+}
+[data-theme="nds-pixel"] .home-app .bottom-toolbar {
+  background: var(--nds-panel) !important;
+  border-top: 3px solid var(--nds-border) !important;
+  box-shadow: 0 -3px 0 var(--nds-border) !important;
+}
+
+/* ---- Disable subtle home animations that fight pixel style ---- */
+[data-theme="nds-pixel"] .community-card,
+[data-theme="nds-pixel"] .community-icon,
+[data-theme="nds-pixel"] .furniture-item,
+[data-theme="nds-pixel"] .shop-item {
+  animation: none !important;
+}
+
+/* ---- Pin input row in payment modal ---- */
+[data-theme="nds-pixel"] .pin-input {
+  width: 36px !important;
+  height: 44px !important;
+  font-size: 18px !important;
+  text-align: center;
+}
+
