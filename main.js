@@ -105,6 +105,15 @@
         requestFullscreen(element = document.documentElement) {
             const browser = this.detect();
             
+            if (browser.isAndroid && browser.isChrome) {
+                const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                              window.matchMedia('(display-mode: fullscreen)').matches;
+                if (!isPWA) {
+                    this.showAndroidFullscreenTip();
+                    return Promise.reject(new Error('Android Chrome 需要安裝 PWA'));
+                }
+            }
+            
             let requestMethod = null;
             if (element.requestFullscreen) {
                 requestMethod = element.requestFullscreen.bind(element);
@@ -126,12 +135,18 @@
                     if (browser.isIOS && browser.isSafari) {
                         this.showIOSFullscreenTip();
                     }
+                    if (browser.isAndroid && browser.isChrome) {
+                        this.showAndroidFullscreenTip();
+                    }
                     return Promise.reject(err);
                 });
             }
 
             if (browser.isIOS) {
                 this.showIOSFullscreenTip();
+            }
+            if (browser.isAndroid && browser.isChrome) {
+                this.showAndroidFullscreenTip();
             }
             return Promise.reject(new Error('不支援全螢幕 API'));
         },
@@ -196,6 +211,60 @@
                 text-align: left;
             `;
             const closeBtn = tip.querySelector('.ios-fullscreen-close');
+            closeBtn.style.cssText = `
+                margin-top: 16px;
+                padding: 10px 24px;
+                background: #0a84ff;
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+                width: 100%;
+            `;
+            closeBtn.onclick = () => tip.remove();
+            document.body.appendChild(tip);
+        },
+
+        showAndroidFullscreenTip() {
+            const tip = document.createElement('div');
+            tip.className = 'android-fullscreen-tip';
+            tip.innerHTML = `
+                <div class="android-fullscreen-content">
+                    <h3>📱 Android 全螢幕提示</h3>
+                    <p>Android Chrome 不支援網頁全螢幕 API，請安裝 PWA 以獲得最佳體驗：</p>
+                    <ol>
+                        <li>點擊 Chrome 右上角的「⋮」選單</li>
+                        <li>選擇「安裝應用」或「添加到主屏幕」</li>
+                        <li>從主屏幕開啟此 App</li>
+                    </ol>
+                    <p style="margin-top:12px;font-size:13px;opacity:0.8;">💡 安裝後將自動以全螢幕模式運行</p>
+                    <button class="android-fullscreen-close">知道了</button>
+                </div>
+            `;
+            tip.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.85);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 999999;
+                padding: 20px;
+            `;
+            const content = tip.querySelector('.android-fullscreen-content');
+            content.style.cssText = `
+                background: #1c1c1e;
+                border-radius: 16px;
+                padding: 24px;
+                max-width: 340px;
+                color: white;
+                text-align: left;
+            `;
+            const closeBtn = tip.querySelector('.android-fullscreen-close');
             closeBtn.style.cssText = `
                 margin-top: 16px;
                 padding: 10px 24px;

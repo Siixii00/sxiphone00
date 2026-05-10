@@ -5,7 +5,7 @@
   "start_url": "/index.html?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "display_override": ["fullscreen", "window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#0b0c12",
   "theme_color": "#0b0c12",
