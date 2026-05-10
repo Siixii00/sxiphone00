@@ -1303,11 +1303,17 @@ function updateActiveMask(field, value) {
     masks[0][field] = value;
     localStorage.setItem('sx_masks', JSON.stringify(masks));
     
+    const currentCharName = localStorage.getItem('sx_char_name');
     let characters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
     if (characters.length === 0) {
-        characters.push({ name: "AI 助理", avatar: "", personality: "", background: "", worldBook: "" });
+        characters.push({ name: currentCharName || "AI 助理", avatar: "", personality: "", background: "", worldBook: "" });
     }
-    characters[0][field] = value;
+    const charIdx = characters.findIndex(c => c.name === currentCharName);
+    if (charIdx >= 0) {
+        characters[charIdx][field] = value;
+    } else {
+        characters[0][field] = value;
+    }
     localStorage.setItem('sx_characters', JSON.stringify(characters));
     
     if (field === 'name') {
@@ -1718,6 +1724,7 @@ function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userN
 function saveCharSettings(newName) {
     if (!newName) return;
 
+    const oldCharName = localStorage.getItem('sx_char_name');
     localStorage.setItem('sx_char_name', newName);
     
     let masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
@@ -1732,7 +1739,12 @@ function saveCharSettings(newName) {
     if (characters.length === 0) {
         characters.push({ name: newName, avatar: "", personality: "", background: "", worldBook: "" });
     } else {
-        characters[0].name = newName;
+        const charIdx = oldCharName ? characters.findIndex(c => c.name === oldCharName) : -1;
+        if (charIdx >= 0) {
+            characters[charIdx].name = newName;
+        } else {
+            characters[0].name = newName;
+        }
     }
     localStorage.setItem('sx_characters', JSON.stringify(characters));
 

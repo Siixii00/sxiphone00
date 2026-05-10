@@ -388,6 +388,9 @@ async function saveAll() {
         window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
         window.parent.postMessage({ type: 'LANGUAGE_CHANGED', lang }, '*');
     }
+    // 4. 本地 UI 更新
+    applyLanguageToUI();
+    window.dispatchEvent(new CustomEvent('sx-language-changed', { detail: { lang } }));
 }
 /* =========================================================
    2. 面具管理邏輯 (對應 HTML 與 CSS)
@@ -546,7 +549,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newLang = e.target.value;
             localStorage.setItem('sxiphone_lang', newLang);
             document.documentElement.lang = newLang;
+            applyLanguageToUI();
             window.parent?.postMessage({ type: 'LANGUAGE_CHANGED', lang: newLang }, '*');
+            window.dispatchEvent(new CustomEvent('sx-language-changed', { detail: { lang: newLang } }));
             console.log('[Settings] 語言已變更為:', newLang);
         });
     }
@@ -2971,6 +2976,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         renderNpcList();
     };
 
+    const charAddBtn = document.getElementById('char-add-btn');
     const charSaveBtn = document.getElementById('char-save-btn');
     const charCancelBtn = document.getElementById('char-cancel-btn');
     const userAddBtn = document.getElementById('user-add-btn');
@@ -2979,6 +2985,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     const npcAddBtn = document.getElementById('npc-add-btn');
     const npcSaveBtn = document.getElementById('npc-save-btn');
     const npcCancelBtn = document.getElementById('npc-cancel-btn');
+
+    charAddBtn?.addEventListener('click', () => {
+        applySelectedChar({ name: '', avatar: '', personality: '', background: '', worldBook: '', examples: '', sleepStart: '', sleepEnd: '', memoryApi: '' });
+    });
 
     charSaveBtn?.addEventListener('click', async () => {
         const name = document.getElementById('char-name-input')?.value.trim() || '';

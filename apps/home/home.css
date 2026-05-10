@@ -774,8 +774,8 @@ html, body {
 
 .room-tabs {
   display: flex;
-  gap: 0px;
-  padding: 0px 0px;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--home-surface);
   border-bottom: 2px solid var(--home-border);
   overflow-x: auto;
@@ -789,14 +789,14 @@ html, body {
 .room-tab {
   display: flex;
   align-items: center;
-  gap: 0px;
-  padding: 0px 1px;
+  gap: 6px;
+  padding: 6px 10px;
   background: transparent;
   border: 2px solid var(--home-border);
   border-radius: 8px;
   color: var(--home-text-secondary);
   cursor: pointer;
-  font-size: 8px;
+  font-size: 12px;
   white-space: nowrap;
   transition: all 0.15s ease;
 }
@@ -814,8 +814,8 @@ html, body {
 }
 
 .room-tab svg {
-  width: 4px;
-  height: 4px;
+  width: 16px;
+  height: 16px;
 }
 
 .modal {
