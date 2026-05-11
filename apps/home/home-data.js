@@ -44,7 +44,23 @@
 
     // ── Sand ──
     sand_base:      '#d8c878',
-    sand_light:     '#e8d890'
+    sand_light:     '#e8d890',
+
+    // ── Grass detail (NDS cluster texture) ──
+    grass_detail_1: '#88c468',
+    grass_detail_2: '#68a850',
+    grass_cluster:  '#50a038',
+
+    // ── Building detail ──
+    brick_line:     '#c8b8a0',
+    roof_tile:      '#305090',
+    window_shine:   '#ffffff',
+    door_frame:     '#604820',
+
+    // ── Shadow ──
+    shadow_soft:    'rgba(0,0,20,0.12)',
+    shadow_hard:    'rgba(0,0,20,0.25)',
+    ao_dark:        'rgba(0,0,20,0.18)'
   };
 
   // ══════════════════════════════════════════════════════════════
