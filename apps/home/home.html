@@ -110,6 +110,24 @@
         <div class="modal-actions"><button id="btn-settings-close" class="hud-btn">CLOSE</button></div>
       </div>
     </div>
+
+    <div id="mirror-modal" class="overlay hidden">
+      <div class="modal-card wide">
+        <div class="modal-title">穿衣鏡 - 更換外觀</div>
+        <div class="mirror-preview">
+          <canvas id="mirror-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div id="mirror-presets" class="mirror-presets"></div>
+        <div class="mirror-upload">
+          <label for="mirror-file-input" class="hud-btn">上傳自訂圖片</label>
+          <input type="file" id="mirror-file-input" accept="image/*" class="hidden">
+        </div>
+        <div class="modal-actions">
+          <button id="btn-mirror-apply" class="hud-btn">APPLY</button>
+          <button id="btn-mirror-close" class="hud-btn">CLOSE</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="../scripts/shared-settings.js"></script>

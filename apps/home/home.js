@@ -19,6 +19,13 @@
     discoveredRegions: new Set(['residential']),
     currentRegion: 'residential',
     pendingPurchase: null,
+    roomEditMode: false,
+    selectedFurniture: null,
+    editCursorX: 5,
+    editCursorY: 5,
+    selectedSpriteId: 'default',
+    selectedSpriteColors: null,
+    customSpriteImage: null,
 
     init() {
       if (this.isInitialized) return;
@@ -42,7 +49,8 @@
         dialogue: this.dialogue,
         onEnterBuilding: (buildingId) => this.switchToRoom(buildingId),
         onNeedPurchase: (building) => this.openBuyModal(building),
-        onOpenShop: () => this.openShopModal()
+        onOpenShop: () => this.openShopModal(),
+        onOpenMirror: () => this.openMirrorModal()
       });
       this.player.setBuildingFootprints(this.building.getBuildingFootprints());
 
@@ -93,6 +101,7 @@
       const btnCloseTeleport = document.getElementById('btn-close-teleport');
       const btnRoomBack = document.getElementById('btn-room-back');
       const btnMenu = document.getElementById('btn-menu');
+      const btnRoomEdit = document.getElementById('btn-room-edit');
 
       btnMap?.addEventListener('click', () => this.teleport.open({ x: this.player.x, y: this.player.y }));
       btnCloseTeleport?.addEventListener('click', () => this.teleport.close());
@@ -106,10 +115,14 @@
 
       btnAction?.addEventListener('click', () => this.building.interact(this.player));
 
+      btnRoomEdit?.addEventListener('click', () => this._toggleRoomEditMode());
+
       this._bindJoystick();
       this._bindKeyboard();
       this._bindPurchaseModal();
       this._bindShopModal();
+      this._bindMirrorModal();
+      this._bindRoomCanvas();
 
       miniCanvas.addEventListener('click', () => this.teleport.open({ x: this.player.x, y: this.player.y }));
 
@@ -118,6 +131,86 @@
         this.dialogue.show('系統', '室內配置已儲存。');
       });
       document.getElementById('btn-room-store')?.addEventListener('click', () => this.openShopModal());
+    },
+
+    _bindRoomCanvas() {
+      const canvas = document.getElementById('room-canvas');
+      if (!canvas) return;
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const ts = 48;
+        const x = Math.floor((e.clientX - rect.left) / ts);
+        const y = Math.floor((e.clientY - rect.top) / ts);
+        
+        if (this.roomEditMode) {
+          this._placeFurnitureAt(x, y);
+        } else {
+          this._interactWithFurnitureAt(x, y);
+        }
+      });
+    },
+
+    _interactWithFurnitureAt(x, y) {
+      const roomKey = this.building.roomState.currentRoom;
+      const items = this.building.roomState.furnitureByRoom[roomKey] || [];
+      for (const item of items) {
+        if (item.x === x && item.y === y && item.id === 'mirror') {
+          this.openMirrorModal();
+          return;
+        }
+      }
+    },
+
+    _toggleRoomEditMode() {
+      this.roomEditMode = !this.roomEditMode;
+      const btn = document.getElementById('btn-room-edit');
+      if (this.roomEditMode) {
+        btn.textContent = 'DONE';
+        btn.classList.add('active');
+        this._showFurnitureSelector();
+      } else {
+        btn.textContent = 'EDIT';
+        btn.classList.remove('active');
+        this.selectedFurniture = null;
+        this._renderRoom();
+      }
+    },
+
+    _showFurnitureSelector() {
+      const owned = this.building.roomState.ownedFurniture || {};
+      const available = Object.entries(owned).filter(([id, count]) => count > 0);
+      if (available.length === 0) {
+        this.dialogue.show('系統', '沒有可放置的家具，請先購買。');
+        this._toggleRoomEditMode();
+        return;
+      }
+      const item = available[0][0];
+      this.selectedFurniture = item;
+      this.editCursorX = 5;
+      this.editCursorY = 5;
+      this.dialogue.show('系統', '點擊格子放置家具，再按 EDIT 結束。');
+      this._renderRoom();
+    },
+
+    _placeFurnitureAt(x, y) {
+      if (!this.selectedFurniture) return;
+      const roomKey = this.building.roomState.currentRoom;
+      if (!this.building.roomState.furnitureByRoom[roomKey]) {
+        this.building.roomState.furnitureByRoom[roomKey] = [];
+      }
+      const owned = this.building.roomState.ownedFurniture || {};
+      if ((owned[this.selectedFurniture] || 0) <= 0) {
+        this.dialogue.show('系統', '庫存不足！');
+        return;
+      }
+      this.building.roomState.furnitureByRoom[roomKey].push({
+        id: this.selectedFurniture,
+        x: x,
+        y: y
+      });
+      this.building.roomState.ownedFurniture[this.selectedFurniture]--;
+      this._renderRoom();
+      this.saveGame();
     },
 
     gameLoop(timestamp) {
@@ -200,7 +293,39 @@
             if (point) point.unlocked = !!savedPoint.unlocked;
           }
         }
-        if (data?.roomState) this.building.roomState = data.roomState;
+        if (data?.roomState) {
+        const saved = data.roomState;
+        if (saved.ownedFurniture) {
+          this.building.roomState.ownedFurniture = { ...this.building.roomState.ownedFurniture, ...saved.ownedFurniture };
+        }
+        if (saved.furnitureByRoom) {
+          Object.keys(saved.furnitureByRoom).forEach((key) => {
+            if (!this.building.roomState.furnitureByRoom[key]) {
+              this.building.roomState.furnitureByRoom[key] = [];
+            }
+            const savedItems = saved.furnitureByRoom[key] || [];
+            const existingIds = new Set(this.building.roomState.furnitureByRoom[key].map(i => `${i.id}-${i.x}-${i.y}`));
+            savedItems.forEach((item) => {
+              if (!existingIds.has(`${item.id}-${item.x}-${item.y}`)) {
+                this.building.roomState.furnitureByRoom[key].push(item);
+              }
+            });
+          });
+        }
+        this.building.roomState.currentBuildingId = saved.currentBuildingId || null;
+        this.building.roomState.currentRoom = saved.currentRoom || 'living_room';
+        if (saved.playerSpriteColors) {
+          this.player.setSpriteColors(saved.playerSpriteColors);
+          this.selectedSpriteId = saved.playerSpriteId || 'default';
+          this.selectedSpriteColors = saved.playerSpriteColors;
+        }
+      }
+      
+      const bedroomItems = this.building.roomState.furnitureByRoom['bedroom'] || [];
+      const hasMirror = bedroomItems.some(item => item.id === 'mirror');
+      if (!hasMirror) {
+        this.building.roomState.furnitureByRoom['bedroom'].push({ id: 'mirror', x: 2, y: 3 });
+      }
       } catch (e) {}
     },
 
@@ -234,16 +359,47 @@
       const modal = document.getElementById('shop-modal');
       const list = document.getElementById('shop-list');
       list.innerHTML = '';
+      const ownedFurniture = this.building.roomState.ownedFurniture || {};
       HomeData.FURNITURE_CATALOG.forEach((item) => {
+        const owned = ownedFurniture[item.id] || 0;
         const row = document.createElement('div');
         row.className = 'shop-item';
-        row.innerHTML = `<span>${item.name}</span><span>G ${item.price}</span>`;
-        row.addEventListener('click', () => {
-          this.dialogue.show('店員', `${item.name} 可購買，室內編輯模式可擺放。`);
-        });
+        row.innerHTML = `<span>${item.name}</span><span>庫存: ${owned}</span><span>G ${item.price}</span>`;
+        row.addEventListener('click', () => this._buyFurniture(item));
         list.appendChild(row);
       });
       modal.classList.remove('hidden');
+    },
+
+    _buyFurniture(item) {
+      const balance = this.getBalance();
+      if (balance < item.price) {
+        this.dialogue.show('店員', '餘額不足！');
+        return;
+      }
+      if (!this.building.roomState.ownedFurniture) {
+        this.building.roomState.ownedFurniture = {};
+      }
+      this.building.roomState.ownedFurniture[item.id] = (this.building.roomState.ownedFurniture[item.id] || 0) + 1;
+      this._deductMoney(item.price);
+      this.dialogue.show('店員', `已購買 ${item.name}！可在房間內放置。`);
+      this.openShopModal();
+      this.saveGame();
+    },
+
+    _deductMoney(amount) {
+      try {
+        const raw = localStorage.getItem('sxiphone.kakaopay.ledger.v1');
+        let ledger = raw ? JSON.parse(raw) : { transactions: [], balance: 0 };
+        if (Array.isArray(ledger)) {
+          ledger = { transactions: ledger, balance: ledger.reduce((s, t) => s + Number(t.amount || 0), 0) };
+        }
+        ledger.transactions = ledger.transactions || [];
+        ledger.transactions.push({ type: 'expense', amount: -amount, desc: '家具購買', date: new Date().toISOString() });
+        ledger.balance = (ledger.balance || 0) - amount;
+        localStorage.setItem('sxiphone.kakaopay.ledger.v1', JSON.stringify(ledger));
+      } catch (e) {}
+      this.updateBalance();
     },
 
     _bindPurchaseModal() {
@@ -274,6 +430,90 @@
       document.getElementById('btn-shop-close')?.addEventListener('click', () => {
         document.getElementById('shop-modal').classList.add('hidden');
       });
+    },
+
+    _bindMirrorModal() {
+      document.getElementById('btn-mirror-close')?.addEventListener('click', () => {
+        document.getElementById('mirror-modal').classList.add('hidden');
+      });
+      document.getElementById('btn-mirror-apply')?.addEventListener('click', () => {
+        this._applyMirrorSelection();
+      });
+      document.getElementById('mirror-file-input')?.addEventListener('change', (e) => {
+        this._handleMirrorFileUpload(e);
+      });
+    },
+
+    openMirrorModal() {
+      const modal = document.getElementById('mirror-modal');
+      const presetsContainer = document.getElementById('mirror-presets');
+      presetsContainer.innerHTML = '';
+      
+      HomeData.PRESET_SPRITES.forEach((preset) => {
+        const btn = document.createElement('button');
+        btn.className = 'mirror-preset-btn' + (this.selectedSpriteId === preset.id ? ' selected' : '');
+        btn.textContent = preset.name;
+        btn.addEventListener('click', () => this._selectPreset(preset));
+        presetsContainer.appendChild(btn);
+      });
+      
+      this._renderMirrorPreview();
+      modal.classList.remove('hidden');
+    },
+
+    _selectPreset(preset) {
+      this.selectedSpriteId = preset.id;
+      this.selectedSpriteColors = preset.colors || null;
+      document.querySelectorAll('.mirror-preset-btn').forEach((btn) => {
+        btn.classList.toggle('selected', btn.textContent === preset.name);
+      });
+      this._renderMirrorPreview();
+    },
+
+    _renderMirrorPreview() {
+      const canvas = document.getElementById('mirror-preview-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#78b858';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const tempPlayer = new WorldPlayer({});
+      if (this.selectedSpriteColors) {
+        tempPlayer.setSpriteColors(this.selectedSpriteColors);
+      }
+      tempPlayer.direction = 'down';
+      tempPlayer.render(ctx, { x: 0, y: 0 }, 32);
+    },
+
+    _handleMirrorFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          this.selectedSpriteId = 'custom';
+          this.selectedSpriteColors = null;
+          this.customSpriteImage = img;
+          this._renderMirrorPreview();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    },
+
+    _applyMirrorSelection() {
+      if (this.selectedSpriteId === 'default') {
+        this.player.resetToDefault();
+      } else if (this.selectedSpriteColors) {
+        this.player.setSpriteColors(this.selectedSpriteColors);
+      }
+      this.building.roomState.playerSpriteId = this.selectedSpriteId;
+      this.building.roomState.playerSpriteColors = this.selectedSpriteColors;
+      document.getElementById('mirror-modal').classList.add('hidden');
+      this.dialogue.show('系統', '外觀已更新！');
+      this.saveGame();
     },
 
     _completePurchase() {
@@ -481,6 +721,22 @@
 
       const items = this.building.roomState.furnitureByRoom[roomKey] || [];
       items.forEach((item) => this._drawFurniture(ctx, item, ts));
+
+      if (this.roomEditMode && this.selectedFurniture) {
+        ctx.strokeStyle = '#f8d878';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(this.editCursorX * ts, this.editCursorY * ts, ts * 2, ts);
+        this._drawFurniturePreview(ctx, this.selectedFurniture, this.editCursorX * ts, this.editCursorY * ts, ts);
+      }
+    },
+
+    _drawFurniturePreview(ctx, itemId, x, y, ts) {
+      ctx.globalAlpha = 0.6;
+      const item = HomeData.FURNITURE_CATALOG.find(f => f.id === itemId);
+      if (item) {
+        this._drawFurniture(ctx, { id: itemId, x: Math.floor(x / ts), y: Math.floor(y / ts) }, ts);
+      }
+      ctx.globalAlpha = 1;
     },
 
     _drawFurniture(ctx, item, ts) {
@@ -488,46 +744,124 @@
       const y = item.y * ts;
       switch (item.id) {
         case 'sofa_basic':
-          ctx.fillStyle = '#7a4a32';
+          ctx.fillStyle = '#5a3a28';
           ctx.fillRect(x, y, ts * 2, ts * 0.7);
+          ctx.fillStyle = '#7a4a32';
+          ctx.fillRect(x + 2, y + 2, ts * 2 - 4, ts * 0.7 - 4);
+          ctx.fillStyle = '#9a6a52';
+          ctx.fillRect(x + 4, y + 4, ts * 2 - 8, ts * 0.3);
+          ctx.fillStyle = '#4a2a18';
+          ctx.fillRect(x, y + ts * 0.7 - 2, ts * 2, 2);
           break;
         case 'tv_basic':
-          ctx.fillStyle = '#333';
+          ctx.fillStyle = '#222';
           ctx.fillRect(x, y, ts * 1.4, ts * 0.9);
+          ctx.fillStyle = '#333';
+          ctx.fillRect(x + 2, y + 2, ts * 1.4 - 4, ts * 0.9 - 4);
+          ctx.fillStyle = '#4888d8';
+          ctx.fillRect(x + 4, y + 4, ts * 1.4 - 8, ts * 0.9 - 10);
+          ctx.fillStyle = '#60a0f8';
+          ctx.fillRect(x + 6, y + 6, 8, 6);
           break;
         case 'table_tea':
+          ctx.fillStyle = '#6a4a30';
+          ctx.fillRect(x + 4, y + 4, ts * 1.1 - 8, ts * 0.7 - 8);
           ctx.fillStyle = '#8e6a45';
-          ctx.fillRect(x, y, ts * 1.1, ts * 0.7);
+          ctx.fillRect(x + 6, y + 6, ts * 1.1 - 12, ts * 0.7 - 12);
+          ctx.fillStyle = '#5a3a20';
+          ctx.fillRect(x + 8, y + ts * 0.7 - 6, 4, 6);
+          ctx.fillRect(x + ts * 1.1 - 12, y + ts * 0.7 - 6, 4, 6);
           break;
         case 'bed_double':
-          ctx.fillStyle = '#7c5a48';
+          ctx.fillStyle = '#5c3a38';
           ctx.fillRect(x, y, ts * 2.2, ts * 1.4);
+          ctx.fillStyle = '#7c5a48';
+          ctx.fillRect(x + 2, y + 2, ts * 2.2 - 4, ts * 1.4 - 4);
+          ctx.fillStyle = '#f8f8f8';
+          ctx.fillRect(x + 4, y + 4, ts * 2.2 - 8, ts * 0.6);
+          ctx.fillStyle = '#d8d8d8';
+          ctx.fillRect(x + 6, y + 6, ts * 2.2 - 12, ts * 0.5);
           break;
         case 'wardrobe':
-          ctx.fillStyle = '#8a694e';
+          ctx.fillStyle = '#6a4930';
           ctx.fillRect(x, y, ts * 1.2, ts * 1.6);
+          ctx.fillStyle = '#8a694e';
+          ctx.fillRect(x + 2, y + 2, ts * 1.2 - 4, ts * 1.6 - 4);
+          ctx.fillStyle = '#6a4930';
+          ctx.fillRect(x + ts * 0.6 - 1, y + 2, 2, ts * 1.6 - 4);
+          ctx.fillStyle = '#a08060';
+          ctx.fillRect(x + ts * 0.3, y + ts * 0.8, 4, 4);
+          ctx.fillRect(x + ts * 0.9, y + ts * 0.8, 4, 4);
           break;
         case 'desk_set':
-          ctx.fillStyle = '#836548';
+          ctx.fillStyle = '#634530';
           ctx.fillRect(x, y, ts * 1.6, ts * 0.8);
+          ctx.fillStyle = '#836548';
+          ctx.fillRect(x + 2, y + 2, ts * 1.6 - 4, ts * 0.8 - 4);
+          ctx.fillStyle = '#534028';
+          ctx.fillRect(x + 4, y + ts * 0.8 - 6, 4, 6);
+          ctx.fillRect(x + ts * 1.6 - 8, y + ts * 0.8 - 6, 4, 6);
           break;
         case 'bookshelf':
-          ctx.fillStyle = '#6d5238';
+          ctx.fillStyle = '#5d4230';
           ctx.fillRect(x, y, ts * 1.2, ts * 1.5);
+          ctx.fillStyle = '#6d5238';
+          ctx.fillRect(x + 2, y + 2, ts * 1.2 - 4, ts * 1.5 - 4);
+          ctx.fillStyle = '#8a6050';
+          ctx.fillRect(x + 4, y + 4, ts * 1.2 - 8, 12);
+          ctx.fillStyle = '#5080a0';
+          ctx.fillRect(x + 4, y + 20, ts * 1.2 - 8, 10);
+          ctx.fillStyle = '#70a080';
+          ctx.fillRect(x + 4, y + 34, ts * 1.2 - 8, 8);
           break;
         case 'fridge':
-          ctx.fillStyle = '#aab3bc';
+          ctx.fillStyle = '#8090a0';
           ctx.fillRect(x, y, ts * 1.1, ts * 1.6);
+          ctx.fillStyle = '#aab3bc';
+          ctx.fillRect(x + 2, y + 2, ts * 1.1 - 4, ts * 1.6 - 4);
+          ctx.fillStyle = '#c0c8d0';
+          ctx.fillRect(x + 4, y + 4, ts * 1.1 - 8, ts * 0.5);
+          ctx.fillStyle = '#606870';
+          ctx.fillRect(x + ts * 1.1 - 8, y + ts * 0.6, 4, 8);
           break;
         case 'dining_table':
+          ctx.fillStyle = '#6c4730';
+          ctx.fillRect(x + 4, y + 4, ts * 1.8 - 8, ts * 1 - 8);
           ctx.fillStyle = '#8c6748';
-          ctx.fillRect(x, y, ts * 1.8, ts * 1);
+          ctx.fillRect(x + 6, y + 6, ts * 1.8 - 12, ts * 1 - 12);
+          ctx.fillStyle = '#5c3720';
+          ctx.fillRect(x + 8, y + ts * 1 - 6, 4, 6);
+          ctx.fillRect(x + ts * 1.8 - 12, y + ts * 1 - 6, 4, 6);
           break;
         case 'plant_large':
+          ctx.fillStyle = '#5f4f2e';
+          ctx.fillRect(x + 14, y + 28, 20, 18);
           ctx.fillStyle = '#6f4f2e';
-          ctx.fillRect(x + 14, y + 22, 18, 16);
+          ctx.fillRect(x + 12, y + 26, 24, 16);
+          ctx.fillStyle = '#3a7a3a';
+          ctx.fillRect(x + 8, y + 8, 32, 20);
           ctx.fillStyle = '#4b8f42';
-          ctx.fillRect(x + 8, y + 6, 30, 20);
+          ctx.fillRect(x + 10, y + 6, 28, 18);
+          ctx.fillStyle = '#5aa050';
+          ctx.fillRect(x + 14, y + 8, 20, 12);
+          break;
+        case 'mirror':
+          ctx.fillStyle = '#5a4030';
+          ctx.fillRect(x + 4, y + 4, ts * 0.8, ts * 1.4);
+          ctx.fillStyle = '#7a6050';
+          ctx.fillRect(x + 6, y + 6, ts * 0.8 - 4, ts * 1.4 - 8);
+          ctx.fillStyle = '#c8e0f8';
+          ctx.fillRect(x + 8, y + 8, ts * 0.8 - 8, ts * 1.4 - 12);
+          ctx.fillStyle = '#e8f4ff';
+          ctx.fillRect(x + 10, y + 10, 8, 12);
+          ctx.fillStyle = '#a0c0e0';
+          ctx.fillRect(x + 8, y + ts * 1.4 - 16, ts * 0.8 - 8, 4);
+          break;
+        default:
+          ctx.fillStyle = '#888';
+          ctx.fillRect(x + 4, y + 4, ts - 8, ts - 8);
+          ctx.fillStyle = '#aaa';
+          ctx.fillRect(x + 6, y + 6, ts - 12, ts - 12);
           break;
       }
     },

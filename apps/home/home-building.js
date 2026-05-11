@@ -12,15 +12,29 @@
       this.roomState = {
         currentBuildingId: null,
         currentRoom: 'living_room',
+        ownedFurniture: {
+          sofa_basic: 1,
+          tv_basic: 1,
+          table_tea: 1,
+          bed_double: 1,
+          wardrobe: 1,
+          mirror: 1,
+          desk_set: 1,
+          bookshelf: 1,
+          fridge: 1,
+          dining_table: 1,
+          plant_large: 1
+        },
         furnitureByRoom: {
-          living_room: [{ id: 'sofa_basic', x: 3, y: 6 }, { id: 'tv_basic', x: 7, y: 4 }, { id: 'table_tea', x: 5, y: 6 }],
-          bedroom: [{ id: 'bed_double', x: 4, y: 5 }, { id: 'wardrobe', x: 8, y: 4 }],
-          study: [{ id: 'desk_set', x: 4, y: 5 }, { id: 'bookshelf', x: 8, y: 3 }],
-          kitchen: [{ id: 'fridge', x: 3, y: 4 }, { id: 'dining_table', x: 6, y: 6 }],
-          balcony: [{ id: 'plant_large', x: 5, y: 5 }],
+          living_room: [],
+          bedroom: [{ id: 'mirror', x: 2, y: 3 }],
+          study: [],
+          kitchen: [],
+          balcony: [],
           bathroom: []
         }
       };
+      this.onOpenMirror = options.onOpenMirror || null;
     }
 
     getBuildingFootprints() {

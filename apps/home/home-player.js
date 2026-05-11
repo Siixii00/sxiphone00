@@ -4,9 +4,6 @@
   var IMPASSABLE = [HomeData.TILE_TYPES.WATER, HomeData.TILE_TYPES.FOREST, HomeData.TILE_TYPES.FENCE];
 
   // Pokemon Diamond protagonist palette (Sinnoh trainer, Gen IV NDS)
-  // Colors from guide sections 3-4 and the building palette.
-  // Outline is #202020 (NOT pure black #000000).
-  // Light source: top-left. Left side = lighter, right side = shadow.
   var P = {
     hair:        '#503820',
     skin:        '#e8d0b8',
@@ -40,6 +37,21 @@
       this.animFrame = 0;
       this.mapData = options.mapData || [];
       this.buildingFootprints = options.buildingFootprints || new Set();
+      this.customSprite = null;
+      this.spriteColors = null;
+    }
+
+    setCustomSprite(spriteData) {
+      this.customSprite = spriteData;
+    }
+
+    setSpriteColors(colors) {
+      this.spriteColors = colors;
+    }
+
+    resetToDefault() {
+      this.customSprite = null;
+      this.spriteColors = null;
     }
 
     setMapData(mapData) { this.mapData = mapData; }
@@ -94,8 +106,6 @@
       var cx = Math.floor(pos.x * tileSize - camera.x + tileSize / 2);
       var by = Math.floor(pos.y * tileSize - camera.y + tileSize - 2);
 
-      // Walk animation: 3 frames (0=stand, 1=step_left, 2=step_right)
-      // When isMoving, cycle via animFrame. When standing, frame 0.
       var wf = 0;
       if (this.isMoving) {
         var cycle = this.animFrame % 24;
@@ -104,127 +114,139 @@
         else wf = 2;
       }
 
-      // Shadow ellipse under feet (3 rows of fillRect)
+      var palette = this.spriteColors ? this._mergePalette(this.spriteColors) : P;
+
       ctx.fillStyle = P.shadow;
       ctx.fillRect(cx - 7, by + 1, 14, 1);
       ctx.fillRect(cx - 8, by + 2, 16, 2);
       ctx.fillRect(cx - 7, by + 4, 14, 1);
 
-      // Direction dispatch
       var dir = this.direction;
       if (dir === 'down') {
-        this._drawFront(ctx, cx, by, wf);
+        this._drawFront(ctx, cx, by, wf, palette);
       } else if (dir === 'up') {
-        this._drawBack(ctx, cx, by, wf);
+        this._drawBack(ctx, cx, by, wf, palette);
       } else if (dir === 'left') {
-        this._drawSide(ctx, cx, by, wf, false);
+        this._drawSide(ctx, cx, by, wf, false, palette);
       } else {
-        this._drawSide(ctx, cx, by, wf, true);
+        this._drawSide(ctx, cx, by, wf, true, palette);
       }
     }
 
-    // ================================================================
-    //  DOWN / FRONT VIEW  (face visible)
-    //  Light from top-left: left = lighter, right = shadow
-    // ================================================================
-    _drawFront(ctx, cx, by, wf) {
-      // -- Hat crown --
+    _mergePalette(colors) {
+      return {
+        hair:        colors.hair || P.hair,
+        skin:        colors.skin || P.skin,
+        skinLight:   this._lighten(colors.skin || P.skin),
+        skinShadow:  this._darken(colors.skin || P.skin),
+        shirt:       colors.shirt || P.shirt,
+        shirtLight:  this._lighten(colors.shirt || P.shirt),
+        shirtShadow: this._darken(colors.shirt || P.shirt),
+        pants:       colors.pants || P.pants,
+        pantsShadow: this._darken(colors.pants || P.pants),
+        shoes:       P.shoes,
+        outline:     P.outline,
+        hat:         P.hat,
+        hatLight:    P.hatLight,
+        shadow:      P.shadow
+      };
+    }
+
+    _lighten(hex) {
+      return this._adjustBrightness(hex, 30);
+    }
+
+    _darken(hex) {
+      return this._adjustBrightness(hex, -30);
+    }
+
+    _adjustBrightness(hex, amount) {
+      var num = parseInt(hex.replace('#', ''), 16);
+      var r = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + amount));
+      var g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+      var b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    _drawFront(ctx, cx, by, wf, palette) {
+      var P = palette;
       ctx.fillStyle = P.hatLight;
       ctx.fillRect(cx - 7, by - 31, 7, 3);
       ctx.fillStyle = P.hat;
       ctx.fillRect(cx, by - 31, 7, 3);
-      // Hat brim (wider)
       ctx.fillStyle = P.hatLight;
       ctx.fillRect(cx - 8, by - 28, 8, 2);
       ctx.fillStyle = P.hat;
       ctx.fillRect(cx, by - 28, 8, 2);
-      // Hat outline (1px exterior)
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 7, by - 32, 14, 1);
       ctx.fillRect(cx - 8, by - 31, 1, 5);
       ctx.fillRect(cx + 7, by - 31, 1, 5);
       ctx.fillRect(cx - 8, by - 26, 16, 1);
 
-      // -- Hair (sideburns below hat) --
       ctx.fillStyle = P.hair;
       ctx.fillRect(cx - 6, by - 25, 2, 4);
       ctx.fillRect(cx + 4, by - 25, 2, 4);
 
-      // -- Head / Face --
       ctx.fillStyle = P.skinLight;
       ctx.fillRect(cx - 4, by - 25, 4, 7);
       ctx.fillStyle = P.skin;
       ctx.fillRect(cx, by - 25, 4, 7);
-      // Eyes
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 3, by - 22, 2, 2);
       ctx.fillRect(cx + 1, by - 22, 2, 2);
-      // Mouth shadow
       ctx.fillStyle = P.skinShadow;
       ctx.fillRect(cx - 1, by - 19, 2, 1);
-      // Head outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 6, by - 25, 1, 7);
       ctx.fillRect(cx + 5, by - 25, 1, 7);
       ctx.fillRect(cx - 5, by - 18, 10, 1);
 
-      // -- Neck --
       ctx.fillStyle = P.skin;
       ctx.fillRect(cx - 2, by - 18, 4, 1);
 
-      // -- Shirt / Torso --
       ctx.fillStyle = P.shirtLight;
       ctx.fillRect(cx - 6, by - 17, 6, 8);
       ctx.fillStyle = P.shirt;
       ctx.fillRect(cx, by - 17, 6, 8);
       ctx.fillStyle = P.shirtShadow;
       ctx.fillRect(cx + 4, by - 17, 2, 8);
-      // Collar shadow
       ctx.fillStyle = P.shirtShadow;
       ctx.fillRect(cx - 2, by - 17, 4, 1);
-      // Torso outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 7, by - 17, 1, 8);
       ctx.fillRect(cx + 6, by - 17, 1, 8);
 
-      // -- Arms --
       ctx.fillStyle = P.shirtLight;
       ctx.fillRect(cx - 8, by - 16, 2, 6);
       ctx.fillStyle = P.shirtShadow;
       ctx.fillRect(cx + 6, by - 16, 2, 6);
-      // Hands
       ctx.fillStyle = P.skinLight;
       ctx.fillRect(cx - 8, by - 10, 2, 2);
       ctx.fillStyle = P.skinShadow;
       ctx.fillRect(cx + 6, by - 10, 2, 2);
-      // Arm outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 9, by - 16, 1, 8);
       ctx.fillRect(cx + 8, by - 16, 1, 8);
       ctx.fillRect(cx - 8, by - 8, 2, 1);
       ctx.fillRect(cx + 6, by - 8, 2, 1);
 
-      // -- Pants / Legs --
       var oL = 0, oR = 0;
       if (wf === 1) { oL = 1; oR = -1; }
       if (wf === 2) { oL = -1; oR = 1; }
-      // Left leg
       ctx.fillStyle = P.pants;
       ctx.fillRect(cx - 5, by - 9, 4, 6 + oL);
       ctx.fillStyle = P.pantsShadow;
       ctx.fillRect(cx - 5, by - 5, 4, 2 + oL);
-      // Right leg
       ctx.fillStyle = P.pants;
       ctx.fillRect(cx + 1, by - 9, 4, 6 + oR);
       ctx.fillStyle = P.pantsShadow;
       ctx.fillRect(cx + 1, by - 5, 4, 2 + oR);
-      // Leg outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 6, by - 9, 1, 6 + oL);
       ctx.fillRect(cx - 1, by - 9, 2, 1);
       ctx.fillRect(cx + 5, by - 9, 1, 6 + oR);
 
-      // -- Shoes --
       var syL = by - 3 + oL;
       var syR = by - 3 + oR;
       ctx.fillStyle = P.shoes;
@@ -235,11 +257,8 @@
       ctx.fillRect(cx + 1, syR + 3, 5, 1);
     }
 
-    // ================================================================
-    //  UP / BACK VIEW  (no face details, just hair)
-    // ================================================================
-    _drawBack(ctx, cx, by, wf) {
-      // -- Hat --
+    _drawBack(ctx, cx, by, wf, palette) {
+      var P = palette;
       ctx.fillStyle = P.hatLight;
       ctx.fillRect(cx - 7, by - 31, 7, 3);
       ctx.fillStyle = P.hat;
@@ -254,7 +273,6 @@
       ctx.fillRect(cx + 7, by - 31, 1, 5);
       ctx.fillRect(cx - 8, by - 26, 16, 1);
 
-      // -- Hair (back of head, fully visible, no face) --
       ctx.fillStyle = P.hair;
       ctx.fillRect(cx - 5, by - 25, 10, 7);
       ctx.fillStyle = P.outline;
@@ -262,21 +280,18 @@
       ctx.fillRect(cx + 5, by - 25, 1, 7);
       ctx.fillRect(cx - 5, by - 18, 10, 1);
 
-      // -- Shirt / Torso (back) --
       ctx.fillStyle = P.shirtLight;
       ctx.fillRect(cx - 6, by - 17, 6, 8);
       ctx.fillStyle = P.shirt;
       ctx.fillRect(cx, by - 17, 6, 8);
       ctx.fillStyle = P.shirtShadow;
       ctx.fillRect(cx + 4, by - 17, 2, 8);
-      // Backpack stripe hint
       ctx.fillStyle = P.shirtShadow;
       ctx.fillRect(cx - 1, by - 16, 2, 6);
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 7, by - 17, 1, 8);
       ctx.fillRect(cx + 6, by - 17, 1, 8);
 
-      // -- Arms --
       ctx.fillStyle = P.shirtLight;
       ctx.fillRect(cx - 8, by - 16, 2, 6);
       ctx.fillStyle = P.shirtShadow;
@@ -291,7 +306,6 @@
       ctx.fillRect(cx - 8, by - 8, 2, 1);
       ctx.fillRect(cx + 6, by - 8, 2, 1);
 
-      // -- Pants / Legs --
       var oL = 0, oR = 0;
       if (wf === 1) { oL = 1; oR = -1; }
       if (wf === 2) { oL = -1; oR = 1; }
@@ -308,7 +322,6 @@
       ctx.fillRect(cx - 1, by - 9, 2, 1);
       ctx.fillRect(cx + 5, by - 9, 1, 6 + oR);
 
-      // -- Shoes --
       var syL = by - 3 + oL;
       var syR = by - 3 + oR;
       ctx.fillStyle = P.shoes;
@@ -319,12 +332,8 @@
       ctx.fillRect(cx + 1, syR + 3, 5, 1);
     }
 
-    // ================================================================
-    //  LEFT / RIGHT SIDE VIEW
-    //  facingRight=false => facing left (front toward left = lit side)
-    //  facingRight=true  => facing right (front toward right = shadow)
-    // ================================================================
-    _drawSide(ctx, cx, by, wf, facingRight) {
+    _drawSide(ctx, cx, by, wf, facingRight, palette) {
+      var P = palette;
       var hatF  = facingRight ? P.hat       : P.hatLight;
       var hatB  = facingRight ? P.hatLight   : P.hat;
       var skinF = facingRight ? P.skin       : P.skinLight;
@@ -332,7 +341,6 @@
       var bodyF = facingRight ? P.shirt      : P.shirtLight;
       var bodyB = facingRight ? P.shirtShadow : P.shirt;
 
-      // -- Hat crown --
       ctx.fillStyle = hatF;
       ctx.fillRect(cx - 6, by - 31, 12, 3);
       ctx.fillStyle = hatB;
@@ -341,24 +349,20 @@
       } else {
         ctx.fillRect(cx + 1, by - 31, 5, 3);
       }
-      // Hat brim
       ctx.fillStyle = hatF;
       ctx.fillRect(cx - 8, by - 28, 16, 2);
-      // Visor extends in facing direction
       ctx.fillStyle = P.outline;
       if (facingRight) {
         ctx.fillRect(cx + 8, by - 29, 2, 2);
       } else {
         ctx.fillRect(cx - 10, by - 29, 2, 2);
       }
-      // Hat outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 6, by - 32, 12, 1);
       ctx.fillRect(cx - 7, by - 31, 1, 5);
       ctx.fillRect(cx + 6, by - 31, 1, 5);
       ctx.fillRect(cx - 8, by - 26, 16, 1);
 
-      // -- Hair (behind head on back side) --
       ctx.fillStyle = P.hair;
       if (facingRight) {
         ctx.fillRect(cx - 5, by - 25, 3, 6);
@@ -366,7 +370,6 @@
         ctx.fillRect(cx + 2, by - 25, 3, 6);
       }
 
-      // -- Head (side profile) --
       ctx.fillStyle = skinF;
       ctx.fillRect(cx - 4, by - 25, 8, 7);
       ctx.fillStyle = skinB;
@@ -375,27 +378,23 @@
       } else {
         ctx.fillRect(cx, by - 25, 4, 7);
       }
-      // Single eye on visible side
       ctx.fillStyle = P.outline;
       if (facingRight) {
         ctx.fillRect(cx + 2, by - 23, 2, 2);
       } else {
         ctx.fillRect(cx - 4, by - 23, 2, 2);
       }
-      // Nose bump
       ctx.fillStyle = P.skinShadow;
       if (facingRight) {
         ctx.fillRect(cx + 4, by - 22, 1, 2);
       } else {
         ctx.fillRect(cx - 5, by - 22, 1, 2);
       }
-      // Head outline
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 5, by - 25, 1, 7);
       ctx.fillRect(cx + 4, by - 25, 1, 7);
       ctx.fillRect(cx - 4, by - 18, 8, 1);
 
-      // -- Shirt / Torso --
       ctx.fillStyle = bodyF;
       ctx.fillRect(cx - 5, by - 17, 10, 8);
       ctx.fillStyle = bodyB;
@@ -408,7 +407,6 @@
       ctx.fillRect(cx - 6, by - 17, 1, 8);
       ctx.fillRect(cx + 5, by - 17, 1, 8);
 
-      // -- Arm (single visible, front side) --
       var armSwing = 0;
       if (wf === 1) armSwing = -1;
       if (wf === 2) armSwing = 1;
@@ -432,11 +430,9 @@
         ctx.fillRect(cx - 6, armY + 8, 2, 1);
       }
 
-      // -- Pants / Legs --
       var oF = 0, oB = 0;
       if (wf === 1) { oF = 1; oB = -1; }
       if (wf === 2) { oF = -1; oB = 1; }
-      // Front leg
       ctx.fillStyle = P.pants;
       ctx.fillRect(cx - 3, by - 9, 6, 6 + oF);
       ctx.fillStyle = P.pantsShadow;
@@ -444,7 +440,6 @@
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 4, by - 9, 1, 6 + oF);
       ctx.fillRect(cx + 3, by - 9, 1, 6 + oF);
-      // Back leg (partially visible, thinner)
       if (facingRight) {
         ctx.fillStyle = P.pantsShadow;
         ctx.fillRect(cx - 5, by - 9, 2, 6 + oB);
@@ -457,15 +452,12 @@
         ctx.fillRect(cx + 5, by - 9, 1, 6 + oB);
       }
 
-      // -- Shoes --
       var syF = by - 3 + oF;
       var syB = by - 3 + oB;
-      // Front shoe
       ctx.fillStyle = P.shoes;
       ctx.fillRect(cx - 4, syF, 7, 3);
       ctx.fillStyle = P.outline;
       ctx.fillRect(cx - 4, syF + 3, 7, 1);
-      // Back shoe
       ctx.fillStyle = P.shoes;
       if (facingRight) {
         ctx.fillRect(cx - 6, syB, 3, 3);

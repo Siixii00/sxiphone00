@@ -309,6 +309,17 @@ html, body, .home-app {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+}
+.shop-item:hover {
+  background: #d8d8d8;
+}
+.shop-item:active {
+  transform: translate(1px, 1px);
+}
+.hud-btn.active {
+  background: #f8d878;
+  color: #183060;
 }
 .pin-input {
   width: 100%;
@@ -398,4 +409,59 @@ html, body, .home-app {
   .hud-money,
   .hud-region { font-size: 8px; padding: 6px; }
   .minimap { width: 110px; height: 76px; }
+}
+
+.modal-card.wide {
+  min-width: 280px;
+  max-width: 340px;
+}
+
+.mirror-preview {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+#mirror-preview-canvas {
+  border: 3px solid #183060;
+  background: #78b858;
+  image-rendering: pixelated;
+  width: 64px;
+  height: 64px;
+}
+
+.mirror-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 8px 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.mirror-preset-btn {
+  border: 2px solid #183060;
+  background: #f0f0f0;
+  padding: 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  cursor: pointer;
+}
+
+.mirror-preset-btn:hover {
+  background: #d8d8d8;
+}
+
+.mirror-preset-btn.selected {
+  background: #f8d878;
+  border-color: #e84040;
+}
+
+.mirror-upload {
+  margin: 8px 0;
+  text-align: center;
+}
+
+.mirror-upload label {
+  display: inline-block;
 }

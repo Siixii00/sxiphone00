@@ -243,11 +243,24 @@
     { id: 'table_tea', name: '茶几', category: 'living', price: 800 },
     { id: 'bed_double', name: '雙人床', category: 'bedroom', price: 2400 },
     { id: 'wardrobe', name: '衣櫃', category: 'bedroom', price: 1600 },
+    { id: 'mirror', name: '穿衣鏡', category: 'bedroom', price: 500, interactable: true },
     { id: 'desk_set', name: '書桌組', category: 'study', price: 1900 },
     { id: 'bookshelf', name: '書架', category: 'study', price: 1500 },
     { id: 'fridge', name: '冰箱', category: 'kitchen', price: 1700 },
     { id: 'dining_table', name: '餐桌', category: 'kitchen', price: 1400 },
     { id: 'plant_large', name: '大盆栽', category: 'balcony', price: 600 }
+  ];
+
+  // ══════════════════════════════════════════════════════════════
+  //  Preset Player Sprites (16x16 pixel art)
+  // ══════════════════════════════════════════════════════════════
+  var PRESET_SPRITES = [
+    { id: 'default', name: '預設', data: null },
+    { id: 'boy_dark', name: '男孩-深髮', colors: { hair: '#3a2818', skin: '#e8d0b8', shirt: '#4080c0', pants: '#304060' } },
+    { id: 'boy_light', name: '男孩-金髮', colors: { hair: '#f8d878', skin: '#f8e8d8', shirt: '#e04040', pants: '#505050' } },
+    { id: 'girl_long', name: '女孩-長髮', colors: { hair: '#583020', skin: '#f0d8c0', shirt: '#e860a0', pants: '#604080' } },
+    { id: 'girl_short', name: '女孩-短髮', colors: { hair: '#202020', skin: '#d8c0a8', shirt: '#60c080', pants: '#404040' } },
+    { id: 'cool_black', name: '酷酷-黑髮', colors: { hair: '#181818', skin: '#c8a888', shirt: '#181818', pants: '#181818' } }
   ];
 
   // ══════════════════════════════════════════════════════════════
@@ -431,6 +444,7 @@
     TELEPORT_POINTS: TELEPORT_POINTS,
     NPC_LIST: NPC_LIST,
     FURNITURE_CATALOG: FURNITURE_CATALOG,
+    PRESET_SPRITES: PRESET_SPRITES,
     ROOM_TYPES: ROOM_TYPES,
     regionFor: regionFor,
     generateWorldMap: generateWorldMap
