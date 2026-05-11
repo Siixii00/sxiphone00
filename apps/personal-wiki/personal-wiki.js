@@ -810,7 +810,11 @@ async function loadChars() {
         settingsChars.forEach((char, idx) => {
             const option = document.createElement('option');
             option.value = `settings_${idx}`;
-            option.textContent = `${char.name} (設定)`;
+            const sourceLabel = char.source === 'users' ? '(用戶)' : 
+                               char.source === 'npcs' ? '(NPC)' : 
+                               char.type === 'user' ? '(用戶)' :
+                               char.type === 'npc' ? '(NPC)' : '';
+            option.textContent = `${char.name} ${sourceLabel}`;
             option.dataset.settingsChar = 'true';
             option.dataset.charIndex = idx;
             settingsGroup.appendChild(option);
@@ -828,15 +832,61 @@ async function loadChars() {
 }
 
 function getCharsFromSettings() {
+    const allChars = [];
+    
+    // 從 sx_characters 讀取角色
     try {
         const raw = localStorage.getItem('sx_characters');
-        if (!raw) return [];
-        const chars = JSON.parse(raw);
-        return Array.isArray(chars) ? chars : [];
+        if (raw) {
+            const chars = JSON.parse(raw);
+            if (Array.isArray(chars)) {
+                chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
+            }
+        }
     } catch (e) {
-        console.error('[PersonalWiki] 讀取設定角色失敗:', e);
-        return [];
+        console.error('[PersonalWiki] 讀取 sx_characters 失敗:', e);
     }
+    
+    // 從 sx_users 讀取用戶角色
+    try {
+        const raw = localStorage.getItem('sx_users');
+        if (raw) {
+            const users = JSON.parse(raw);
+            if (Array.isArray(users)) {
+                users.forEach(u => allChars.push({ ...u, source: 'users' }));
+            }
+        }
+    } catch (e) {
+        console.error('[PersonalWiki] 讀取 sx_users 失敗:', e);
+    }
+    
+    // 從 sx_npcs 讀取 NPC 角色
+    try {
+        const raw = localStorage.getItem('sx_npcs');
+        if (raw) {
+            const npcs = JSON.parse(raw);
+            if (Array.isArray(npcs)) {
+                npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
+            }
+        }
+    } catch (e) {
+        console.error('[PersonalWiki] 讀取 sx_npcs 失敗:', e);
+    }
+    
+    // 如果有 SxSettings，使用它的 getAllPersonas 作為補充
+    if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
+        try {
+            const personas = SxSettings.getAllPersonas();
+            if (Array.isArray(personas) && personas.length > allChars.length) {
+                // SxSettings 可能包含更完整的資料，優先使用
+                return personas;
+            }
+        } catch (e) {
+            console.error('[PersonalWiki] 從 SxSettings 讀取失敗:', e);
+        }
+    }
+    
+    return allChars;
 }
 
 function getUserFromSettings() {
@@ -893,6 +943,7 @@ async function importCharFromSettings(charIndex) {
     }
     
     const settingsChar = settingsChars[charIndex];
+    const sourceType = settingsChar.source || settingsChar.type || 'characters';
     
     const char = {
         id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -902,7 +953,7 @@ async function importCharFromSettings(charIndex) {
         personality: settingsChar.personality || '',
         background: settingsChar.background || settingsChar.backstory || '',
         createdAt: new Date().toISOString(),
-        source: 'settings'
+        source: sourceType
     };
     
     await wikiDB.addChar(char);
@@ -938,7 +989,7 @@ async function importCharFromSettings(charIndex) {
     await wikiDB.addLog({
         type: 'char',
         action: 'import_from_settings',
-        detail: `從設定導入角色: ${char.name}`
+        detail: `從設定導入角色: ${char.name} (來源: ${sourceType})`
     });
     
     await loadChars();
@@ -2553,7 +2604,12 @@ function showImportCharModal() {
     if (settingsChars.length === 0) {
         list.innerHTML = `<div class="empty-list"><span>${t('noCharsInSettings')}</span></div>`;
     } else {
-        list.innerHTML = settingsChars.map((char, idx) => `
+        list.innerHTML = settingsChars.map((char, idx) => {
+            const sourceLabel = char.source === 'users' ? '(用戶)' : 
+                               char.source === 'npcs' ? '(NPC)' : 
+                               char.type === 'user' ? '(用戶)' :
+                               char.type === 'npc' ? '(NPC)' : '';
+            return `
             <div class="import-char-item" onclick="importCharFromSettingsAndClose(${idx})">
                 <div class="import-char-avatar">
                     ${char.avatar || char.avatar_url 
@@ -2561,14 +2617,14 @@ function showImportCharModal() {
                         : '<i class="fas fa-user-circle"></i>'}
                 </div>
                 <div class="import-char-info">
-                    <h4>${char.name || char.char_name || '未命名角色'}</h4>
+                    <h4>${char.name || char.char_name || '未命名角色'} ${sourceLabel}</h4>
                     <p>${(char.personality || char.description || '').substring(0, 100)}...</p>
                 </div>
                 <button class="btn-import">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
-        `).join('');
+        `}).join('');
     }
     
     document.getElementById('importCharModal').classList.remove('hidden');
