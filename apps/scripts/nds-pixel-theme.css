@@ -760,3 +760,26 @@
   text-align: center;
 }
 
+/* ===== HOME WORLD MAP DP STYLE ===== */
+[data-theme="nds-pixel"] #world-view {
+  background: var(--nds-bg-deep);
+}
+
+[data-theme="nds-pixel"] .world-hud-top {
+  background: var(--nds-panel);
+  border-bottom: 3px solid var(--nds-border);
+  box-shadow: 0 3px 0 var(--nds-border);
+}
+
+[data-theme="nds-pixel"] .dialogue-box {
+  background: var(--nds-panel);
+  border: 3px solid var(--nds-border);
+  box-shadow: var(--nds-shadow-lg);
+  font-family: var(--nds-font-text);
+}
+
+[data-theme="nds-pixel"] .teleport-map-container {
+  background: var(--nds-panel);
+  border: 3px solid var(--nds-border);
+  box-shadow: var(--nds-shadow-lg);
+}

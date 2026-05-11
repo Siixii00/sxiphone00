@@ -31,6 +31,16 @@ const SETTINGS_FOCUS_CLASS = 'settings-open';
 
 const STYLE_PRESETS = [
   {
+    id: 'pokemon-diamond-nds',
+    name: '鑽石版 NDS',
+    category: '風景',
+    gradient: 'linear-gradient(135deg,#7f93b7,#4c5f86)',
+    colors: ['#7f93b7', '#4c5f86'],
+    desc: '低彩度冷色、低多邊形場景與像素精靈疊合',
+    prompt: 'Nintendo DS era, low-poly background, pixel sprite overlay, matte cool palette, foggy sinnoh atmosphere, 2006 handheld game look',
+    negative: 'photorealistic, modern PBR, high gloss, ultra sharp 4k, chibi remake style',
+  },
+  {
     id: 'anime-bokeh',
     name: '劇場版動畫',
     category: '角色',
@@ -168,6 +178,10 @@ function setActiveStyle(styleId) {
       promptInput.value = activeStyle.prompt;
       updateCharCount(promptInput, promptCount, promptInput.maxLength);
     }
+    if (!negativeInput.value.trim() && activeStyle.negative) {
+      negativeInput.value = activeStyle.negative;
+      updateCharCount(negativeInput, negativeCount, negativeInput.maxLength);
+    }
   }
 }
 
@@ -237,16 +251,24 @@ function renderHistory() {
 function fakePreviewImage(styleId) {
   const base = STYLE_PRESETS.find(item => item.id === styleId);
   const [start, end] = base?.colors || ['#434c7a', '#151925'];
+  const title = base?.id === 'pokemon-diamond-nds' ? 'NDS Diamond' : 'NovaAI';
   const svg = `data:image/svg+xml;utf8,${encodeURIComponent(`
-    <svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'>
+    <svg xmlns='http://www.w3.org/2000/svg' width='512' height='384' viewBox='0 0 512 384'>
       <defs>
         <linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'>
           <stop offset='0%' stop-color='${start}' />
           <stop offset='100%' stop-color='${end}' />
         </linearGradient>
       </defs>
-      <rect width='600' height='600' fill='url(#g)' rx='40'/>
-      <text x='50%' y='50%' font-size='32' fill='rgba(255,255,255,0.85)' dominant-baseline='middle' text-anchor='middle'>NovaAI</text>
+      <rect width='512' height='384' fill='url(#g)'/>
+      <rect x='0' y='0' width='512' height='384' fill='rgba(70,88,130,0.14)'/>
+      <g opacity='0.28'>
+        <rect y='0' width='512' height='1' fill='#fff'/>
+        <rect y='4' width='512' height='1' fill='#fff'/>
+        <rect y='8' width='512' height='1' fill='#fff'/>
+        <rect y='12' width='512' height='1' fill='#fff'/>
+      </g>
+      <text x='50%' y='50%' font-size='30' fill='rgba(236,242,255,0.9)' dominant-baseline='middle' text-anchor='middle'>${title}</text>
     </svg>
   `)}`;
   return svg;
@@ -339,6 +361,8 @@ function init() {
   renderHistory();
   updateCharCount(promptInput, promptCount, promptInput.maxLength);
   updateCharCount(negativeInput, negativeCount, negativeInput.maxLength);
+  setSize('512x384');
+  setActiveStyle('pokemon-diamond-nds');
 
   styleGrid.addEventListener('click', event => {
     const card = event.target.closest('[data-style]');
@@ -400,4 +424,3 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-

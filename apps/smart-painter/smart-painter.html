@@ -79,17 +79,17 @@
               <label>
                 模型
                 <select id="model-select">
+                  <option value="diamond-nds">Diamond NDS</option>
                   <option value="turbo">NovaAI Turbo</option>
                   <option value="balanced">NovaAI Balanced</option>
-                  <option value="photoreal">NovaAI Photoreal</option>
                 </select>
               </label>
               <label>
                 尺寸
                 <div class="chip-group" id="size-group">
-                  <button type="button" data-size="1024x1024" class="chip active">1:1</button>
-                  <button type="button" data-size="1152x768" class="chip">橫幅</button>
-                  <button type="button" data-size="768x1152" class="chip">直幅</button>
+                  <button type="button" data-size="512x384" class="chip active">4:3</button>
+                  <button type="button" data-size="1024x768" class="chip">放大</button>
+                  <button type="button" data-size="640x480" class="chip">預覽+</button>
                 </div>
               </label>
               <label>
@@ -168,4 +168,3 @@
   </script>
 </body>
 </html>
-

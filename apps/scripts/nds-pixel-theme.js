@@ -36,12 +36,12 @@
   }
 
   function applyHomeOverrides() {
-    if (typeof HomeApp !== 'undefined' && HomeApp.ctx) {
-      HomeApp.gridSize = 48;
-      HomeApp.roomScale = 1.8;
-      HomeApp.roomOffset = { x: 0, y: 0 };
-      if (typeof renderRoom === 'function') {
-        renderRoom();
+    if (typeof HomeApp !== 'undefined') {
+      if (HomeApp.mapEngine) {
+        HomeApp.mapEngine.tileSize = 32;
+      }
+      if (HomeApp.player) {
+        HomeApp.player.moveSpeed = 0.08;
       }
     }
   }
