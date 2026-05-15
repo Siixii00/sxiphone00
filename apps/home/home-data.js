@@ -267,13 +267,56 @@
   //  Room Types
   // ══════════════════════════════════════════════════════════════
   var ROOM_TYPES = {
-    living_room: { name: '客廳', baseSize: { w: 12, h: 10 } },
-    bedroom:     { name: '臥室', baseSize: { w: 12, h: 10 } },
-    bathroom:    { name: '衛浴', baseSize: { w: 12, h: 10 } },
-    study:       { name: '書房', baseSize: { w: 12, h: 10 } },
-    kitchen:     { name: '廚房', baseSize: { w: 12, h: 10 } },
-    balcony:     { name: '陽台', baseSize: { w: 12, h: 10 } }
+    living_room: { name: '客廳', baseSize: { w: 16, h: 14 } },
+    bedroom:     { name: '臥室', baseSize: { w: 14, h: 12 } },
+    bathroom:    { name: '衛浴', baseSize: { w: 10, h: 10 } },
+    study:       { name: '書房', baseSize: { w: 12, h: 12 } },
+    kitchen:     { name: '廚房', baseSize: { w: 14, h: 12 } },
+    balcony:     { name: '陽台', baseSize: { w: 12, h: 8 } }
   };
+
+  // ══════════════════════════════════════════════════════════════
+  //  Indoor Tile Types
+  // ══════════════════════════════════════════════════════════════
+  var INDOOR_TILES = {
+    FLOOR: 0,
+    WALL: 1,
+    DOOR: 2,
+    CARPET: 3,
+    KITCHEN_TILE: 4,
+    BATH_TILE: 5
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  //  Generate Indoor Map
+  // ══════════════════════════════════════════════════════════════
+  function generateIndoorMap(roomType, width, height) {
+    var map = new Array(height);
+    var T = INDOOR_TILES;
+    
+    for (var y = 0; y < height; y++) {
+      var row = new Array(width);
+      for (var x = 0; x < width; x++) {
+        if (y === 0 || y === height - 1 || x === 0 || x === width - 1) {
+          row[x] = T.WALL;
+        } else if (roomType === 'kitchen' && x > width / 2) {
+          row[x] = T.KITCHEN_TILE;
+        } else if (roomType === 'bathroom') {
+          row[x] = T.BATH_TILE;
+        } else if (roomType === 'living_room' && x >= 3 && x <= 8 && y >= 3 && y <= 6) {
+          row[x] = T.CARPET;
+        } else {
+          row[x] = T.FLOOR;
+        }
+      }
+      map[y] = row;
+    }
+    
+    map[height - 1][Math.floor(width / 2)] = T.DOOR;
+    map[height - 1][Math.floor(width / 2) + 1] = T.DOOR;
+    
+    return map;
+  }
 
   // ══════════════════════════════════════════════════════════════
   //  regionFor()
@@ -446,8 +489,10 @@
     FURNITURE_CATALOG: FURNITURE_CATALOG,
     PRESET_SPRITES: PRESET_SPRITES,
     ROOM_TYPES: ROOM_TYPES,
+    INDOOR_TILES: INDOOR_TILES,
     regionFor: regionFor,
-    generateWorldMap: generateWorldMap
+    generateWorldMap: generateWorldMap,
+    generateIndoorMap: generateIndoorMap
   };
 
 })(window);

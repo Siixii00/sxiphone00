@@ -27,7 +27,7 @@
         },
         furnitureByRoom: {
           living_room: [],
-          bedroom: [{ id: 'mirror', x: 2, y: 3 }],
+          bedroom: [{ id: 'mirror', x: 5, y: 4 }],
           study: [],
           kitchen: [],
           balcony: [],

@@ -241,15 +241,50 @@ const CHARACTERS_KEY = 'sx_characters';
 const USERS_KEY = 'sx_users';
 const NPCS_KEY = 'sx_npcs';
 
-const loadCharList = () => {
+// 改為 async 函式，支援從 IndexedDB 讀取
+const loadCharList = async () => {
     try {
+        // 1. 先從 localStorage 讀取
         const raw = localStorage.getItem(CHARACTERS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(parsed)) {
-            console.log('[Settings] loadCharList: 載入', parsed.length, '個角色');
-            return parsed;
+        console.log('[Settings] loadCharList: localStorage raw =', raw ? raw.substring(0, 200) + '...' : 'null');
+        
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                console.log('[Settings] loadCharList: 從 localStorage 載入', parsed.length, '個角色');
+                return parsed;
+            }
         }
-        console.warn('[Settings] loadCharList: 資料不是陣列');
+        
+        // 2. localStorage 沒有或為空，嘗試從 IndexedDB (localforage) 讀取
+        if (typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem(CHARACTERS_KEY);
+            console.log('[Settings] loadCharList: IndexedDB data =', idbData ? JSON.stringify(idbData).substring(0, 200) + '...' : 'null');
+            
+            if (idbData) {
+                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    console.log('[Settings] loadCharList: 從 IndexedDB 載入', parsed.length, '個角色');
+                    // 同時回寫到 localStorage 以確保一致性
+                    localStorage.setItem(CHARACTERS_KEY, JSON.stringify(parsed));
+                    return parsed;
+                }
+            }
+            
+            // 3. 也檢查是否有標記表示資料在 IndexedDB
+            const inIdbFlag = localStorage.getItem('sx_characters_in_idb');
+            if (inIdbFlag === 'true') {
+                // 可能資料在其他 key，嘗試搜尋
+                await localforage.iterate((value, key) => {
+                    if (key === CHARACTERS_KEY || key.startsWith('sx_char')) {
+                        console.log('[Settings] loadCharList: 找到相關 key:', key);
+                    }
+                });
+            }
+        }
+        
+        // 4. 都沒有，返回空陣列
+        console.log('[Settings] loadCharList: 未找到角色資料，返回空陣列');
         return [];
     } catch (e) {
         console.error('[Settings] loadCharList 解析失敗:', e);
@@ -257,14 +292,41 @@ const loadCharList = () => {
     }
 };
 
-const saveCharList = (list) => {
+// 同步版本，供不需要 async 的地方使用
+const loadCharListSync = () => {
+    try {
+        const raw = localStorage.getItem(CHARACTERS_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+        return [];
+    } catch (e) {
+        console.error('[Settings] loadCharListSync 解析失敗:', e);
+        return [];
+    }
+};
+
+const saveCharList = async (list) => {
     try {
         const serialized = JSON.stringify(list);
+        
+        // 1. 儲存到 localStorage
         localStorage.setItem(CHARACTERS_KEY, serialized);
         
+        // 2. 同時儲存到 IndexedDB (localforage)
+        if (typeof localforage !== 'undefined') {
+            await localforage.setItem(CHARACTERS_KEY, list);
+            // 標記資料也在 IndexedDB
+            localStorage.setItem('sx_characters_in_idb', 'true');
+        }
+        
+        // 3. 驗證
         const verify = localStorage.getItem(CHARACTERS_KEY);
         if (verify === serialized) {
-            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色');
+            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色到 localStorage 和 IndexedDB');
         } else {
             console.error('[Settings] saveCharList: 驗證失敗，資料不一致');
         }
@@ -2890,22 +2952,28 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         if (notesInput) notesInput.value = npc.notes || '';
     };
 
-    const renderCharList = () => {
+    const renderCharList = async () => {
         const listEl = document.getElementById('char-list');
-        if (!listEl) return;
-        const chars = loadCharList();
+        console.log('[Settings] renderCharList: listEl found =', !!listEl);
+        if (!listEl) {
+            console.error('[Settings] renderCharList: 找不到 #char-list 元素！');
+            return;
+        }
+        const chars = await loadCharList();
         console.log('[Settings] renderCharList: 共', chars.length, '個角色', chars.map(c => c.name));
+        console.log('[Settings] renderCharList: chars data =', JSON.stringify(chars).substring(0, 500));
         if (!chars.length) {
             listEl.innerHTML = '<div class="empty-tip">尚未新增角色</div>';
+            console.log('[Settings] renderCharList: 顯示「尚未新增角色」提示');
             return;
         }
         listEl.innerHTML = chars.map((char, idx) => `
             <button class="ios-pill" type="button" data-char-index="${idx}">${char.name || '未命名角色'}</button>
         `).join('');
         listEl.querySelectorAll('[data-char-index]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const index = Number(btn.dataset.charIndex);
-                const chars = loadCharList();
+                const chars = await loadCharList();
                 const selected = chars[index];
                 console.log('[Settings] 點擊角色按鈕，索引:', index, '角色:', selected?.name);
                 if (selected) {
@@ -2962,8 +3030,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         });
     };
 
-    const updateCharListUI = () => {
-        renderCharList();
+    const updateCharListUI = async () => {
+        await renderCharList();
         renderUserList();
         renderNpcList();
     };
@@ -3008,7 +3076,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             return;
         }
         
-        const list = loadCharList();
+        const list = await loadCharList();
         const existingIdx = list.findIndex(item => item.name === name && name);
         const payload = { name, avatar, personality, background, worldBook, examples, sleepStart, sleepEnd, memoryApi };
         
@@ -3020,7 +3088,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             console.log('[Settings] 新增角色到列表開頭');
         }
         
-        saveCharList(list);
+        await saveCharList(list);
         console.log('[Settings] 已儲存到 sx_characters，共', list.length, '個角色');
         
         try {
@@ -3057,7 +3125,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         localStorage.setItem('sx_masks', JSON.stringify(currentMasks));
         masks = currentMasks;
         
-        updateCharListUI();
+        await updateCharListUI();
         
         window.parent?.postMessage({ 
             type: 'CHARACTER_UPDATED', 
@@ -3139,6 +3207,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         applySelectedNpc({ name: '', avatar: '', role: '', notes: '' });
     });
 
+    // 初始化時載入角色清單
     updateCharListUI();
 
     const scrollToAnchor = (anchor) => {
@@ -6142,7 +6211,7 @@ async function handleExternalImport(file) {
     reader.readAsText(file);
 }
 
-function confirmImport() {
+async function confirmImport() {
     if (!pendingImportData) return;
     
     const includeChat = document.getElementById('import-include-chat')?.checked !== false;
@@ -6153,7 +6222,7 @@ function confirmImport() {
     const { messages, charName, char, worldbook, user, userName, source } = pendingImportData;
     
     if (includeChar && char) {
-        const charList = loadCharList();
+        const charList = await loadCharList();
         const existingIndex = charList.findIndex(c => c.name === char.name);
         
         const newChar = {
@@ -6173,7 +6242,7 @@ function confirmImport() {
         } else {
             charList.push(newChar);
         }
-        saveCharList(charList);
+        await saveCharList(charList);
     }
     
     if (includeWorldbook && worldbook) {

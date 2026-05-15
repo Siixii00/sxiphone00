@@ -202,19 +202,17 @@ html, body, .home-app {
 
 #room-view {
   background: linear-gradient(180deg, #d8c890, #b8a870);
+  display: flex;
+  flex-direction: column;
 }
-.room-top-bar,
-.room-toolbar {
+.room-top-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px;
   background: #f0f0f0;
   border-bottom: 3px solid #183060;
-}
-.room-toolbar {
-  border-top: 3px solid #183060;
-  border-bottom: none;
+  flex-shrink: 0;
 }
 .room-title {
   font-family: 'Press Start 2P', monospace;
@@ -222,18 +220,54 @@ html, body, .home-app {
   margin-left: auto;
   margin-right: auto;
 }
+.room-game-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  min-height: 0;
+  gap: 8px;
+}
 .room-canvas-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 8px;
+  height: 100%;
+  width: 80vw;
+  max-width: 80vw;
 }
 #room-canvas {
-  width: min(100vw, 576px);
-  height: auto;
+  width: 80vw !important;
+  height: auto !important;
   image-rendering: pixelated;
   border: 3px solid #183060;
   background: #ddd;
+}
+.room-controls-left,
+.room-controls-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  flex-shrink: 0;
+}
+.room-controls-left {
+  width: 90px;
+}
+.room-controls-right {
+  width: 70px;
+}
+#room-joystick {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+#btn-room-action {
+  width: 50px;
+  height: 50px;
+  font-size: 14px;
 }
 .room-tabs {
   display: flex;
@@ -241,6 +275,17 @@ html, body, .home-app {
   padding: 6px 8px;
   overflow: auto;
   background: rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+.room-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: #f0f0f0;
+  border-top: 3px solid #183060;
+  flex-shrink: 0;
 }
 .room-tab {
   border: 2px solid #183060;

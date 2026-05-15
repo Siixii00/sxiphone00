@@ -1629,6 +1629,18 @@ class UnifiedStorageManager {
       }
     }
 
+    // 特別檢查 sx_characters
+    console.log('[UnifiedStorageManager] collectAllStorageData: localStorage keys =', 
+      Object.keys(data.localStorage).slice(0, 30));
+    if (data.localStorage['sx_characters']) {
+      console.log('[UnifiedStorageManager] collectAllStorageData: sx_characters 存在，長度 =', 
+        data.localStorage['sx_characters'].length);
+      console.log('[UnifiedStorageManager] collectAllStorageData: sx_characters 內容預覽 =', 
+        data.localStorage['sx_characters'].substring(0, 300));
+    } else {
+      console.warn('[UnifiedStorageManager] collectAllStorageData: sx_characters 不存在！');
+    }
+
     if (typeof localforage !== 'undefined') {
       try {
         await localforage.iterate((value, key) => {
@@ -1985,6 +1997,19 @@ class UnifiedStorageManager {
     const data = payload.data || payload;
     let count = 0;
 
+    console.log('[UnifiedStorageManager] _restoreData: 開始還原資料...');
+    console.log('[UnifiedStorageManager] _restoreData: data keys =', Object.keys(data.localStorage || {}).slice(0, 20));
+    
+    // 特別檢查 sx_characters
+    if (data.localStorage && data.localStorage['sx_characters']) {
+      console.log('[UnifiedStorageManager] _restoreData: sx_characters 存在，長度 =', 
+        data.localStorage['sx_characters'].length);
+      console.log('[UnifiedStorageManager] _restoreData: sx_characters 內容預覽 =', 
+        data.localStorage['sx_characters'].substring(0, 300));
+    } else {
+      console.warn('[UnifiedStorageManager] _restoreData: sx_characters 不存在於備份資料中！');
+    }
+
     if (data.localStorage) {
       for (const [key, value] of Object.entries(data.localStorage)) {
         try {
@@ -1995,6 +2020,11 @@ class UnifiedStorageManager {
         }
       }
     }
+
+    // 驗證還原結果
+    const restoredChars = localStorage.getItem('sx_characters');
+    console.log('[UnifiedStorageManager] _restoreData: 還原後 sx_characters =', 
+      restoredChars ? restoredChars.substring(0, 200) + '...' : 'null');
 
     if (data.localforage && typeof localforage !== 'undefined') {
       for (const [key, value] of Object.entries(data.localforage)) {

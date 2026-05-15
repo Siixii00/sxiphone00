@@ -52,7 +52,18 @@
         <button id="btn-room-edit" class="hud-btn">EDIT</button>
       </div>
       <div id="room-tabs" class="room-tabs"></div>
-      <div class="room-canvas-wrapper"><canvas id="room-canvas" width="576" height="480"></canvas></div>
+      <div class="room-game-area">
+        <div class="room-controls-left">
+          <div id="room-joystick" class="joystick">
+            <div class="joystick-ring"></div>
+            <div id="room-joystick-knob" class="joystick-knob"></div>
+          </div>
+        </div>
+        <div class="room-canvas-wrapper"><canvas id="room-canvas" width="480" height="400"></canvas></div>
+        <div class="room-controls-right">
+          <button id="btn-room-action" class="game-btn btn-a hidden">A</button>
+        </div>
+      </div>
       <div class="room-toolbar">
         <button id="btn-room-store" class="hud-btn">SHOP</button>
         <button id="btn-room-save" class="hud-btn">SAVE</button>
@@ -136,6 +147,7 @@
   <script src="home-data.js"></script>
   <script src="home-dialogue.js"></script>
   <script src="home-map-engine.js"></script>
+  <script src="home-indoor.js"></script>
   <script src="home-player.js"></script>
   <script src="home-building.js"></script>
   <script src="home-teleport.js"></script>

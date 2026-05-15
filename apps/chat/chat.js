@@ -319,6 +319,26 @@ function getActiveConfig() {
         }
     }
     
+    // 如果 sx_characters 為空，嘗試從獨立 key 組合角色資料
+    if (!activeChar) {
+        const charName = localStorage.getItem('sx_char_name');
+        const charAvatar = localStorage.getItem('sx_char_avatar');
+        const charPersonality = localStorage.getItem('sx_char_personality');
+        const charBackground = localStorage.getItem('sx_char_background');
+        const charExamples = localStorage.getItem('sx_char_examples');
+        
+        if (charName && charName !== '預設用戶') {
+            activeChar = {
+                name: charName,
+                avatar: charAvatar || '',
+                personality: charPersonality || '',
+                background: charBackground || '',
+                examples: charExamples || ''
+            };
+            console.log('[getActiveConfig] 從獨立 key 組合角色:', activeChar.name);
+        }
+    }
+    
     if (!activeChar) {
         const masksRaw = localStorage.getItem('sx_masks');
         if (masksRaw) {
