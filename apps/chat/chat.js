@@ -2242,6 +2242,17 @@ document.addEventListener('DOMContentLoaded', () => {
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
+    // 恢復世界書掛載設定（修復 PWA 重啟後設定消失的問題）
+    const activeSession = getActiveSession();
+    if (activeSession && activeSession.worldbookMounts !== undefined) {
+        applySessionWorldbookMounts(activeSession.worldbookMounts);
+    }
+    
+    // 渲染世界書選項
+    if (typeof renderWorldbookOptions === 'function') {
+        renderWorldbookOptions();
+    }
+    
     // A. 抓取必要的 DOM 元素
     const nameEl = document.getElementById('display-name');
     const chatTitleEl = document.getElementById('chat-detail-title');
