@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>書籤</title>
+  <link rel="stylesheet" href="twitter.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body data-page="bookmarks">
+  <div class="twitter-app">
+    <header class="top-bar">
+      <button class="icon-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="logo">
+        <i class="fab fa-twitter"></i>
+      </div>
+      <button class="icon-btn" id="menu-toggle" aria-label="選單">
+        <i class="fas fa-bars"></i>
+      </button>
+    </header>
+
+    <main class="content">
+      <section class="card">
+        <div class="tweet-header">
+          <div>
+            <span class="tweet-author">書籤</span>
+          </div>
+        </div>
+      </section>
+      <div id="bookmarks-list"></div>
+    </main>
+  </div>
+
+  <aside class="right-drawer" id="right-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">選單</div>
+      <button class="icon-btn" id="drawer-close" aria-label="關閉">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="drawer-profile">
+      <div class="avatar"></div>
+      <div>
+        <div class="name">SXiPhone</div>
+        <div class="handle">@sxiphone</div>
+      </div>
+    </div>
+    <nav class="drawer-nav">
+      <div class="drawer-section">Twitter 導覽</div>
+      <a class="nav-item" data-section="home" href="twitter.html"><i class="fas fa-house"></i><span>首頁</span></a>
+      <a class="nav-item" data-section="explore" href="explore.html"><i class="fas fa-hashtag"></i><span>探索</span></a>
+      <a class="nav-item has-badge" data-section="notifications" href="notifications.html"><i class="far fa-bell"></i><span>通知</span><span class="notification-badge" id="notification-badge" style="display:none">0</span></a>
+      <a class="nav-item" data-section="bookmarks" href="bookmarks.html"><i class="far fa-bookmark"></i><span>書籤</span></a>
+      <a class="nav-item" data-section="profile" href="profile.html"><i class="far fa-user"></i><span>個人資料</span></a>
+      <div class="drawer-section">設定</div>
+      <a class="nav-item settings-link" href="settings.html">
+        <i class="fas fa-gear"></i><span>推特設定中心</span>
+      </a>
+    </nav>
+  </aside>
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+  <script src="twitter.js"></script>
+  <script src="bookmarks.js"></script>
+</body>
+</html>

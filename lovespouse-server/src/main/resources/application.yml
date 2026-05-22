@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: lovespouse-server
+
+logging:
+  level:
+    com.lovespouse: INFO
+    root: INFO

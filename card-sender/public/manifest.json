@@ -1,0 +1,16 @@
+{
+    "name": "角色卡發送系統",
+    "short_name": "CardSender",
+    "description": "加密角色卡發送與分享平台",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1c1c1e",
+    "theme_color": "#1c1c1e",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a84ff' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>卡</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

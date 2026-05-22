@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>照相館</title>
+  <link rel="stylesheet" href="smart-painter.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="sp-app">
+    <header class="sp-header">
+      <button class="circle-btn" aria-label="返回" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="brand">
+        <h1>照相館</h1>
+      </div>
+      <div class="header-actions">
+        <button class="circle-btn" id="appearance-btn" aria-label="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="ghost-btn profile-btn" id="settings-btn">
+          <i class="fas fa-user-gear"></i>
+          個人設定
+        </button>
+      </div>
+    </header>
+
+    <div class="settings-drawer hidden" id="settings-drawer">
+      <div class="settings-sheet">
+        <div class="drawer-header">
+          <h2>個人設定</h2>
+          <button class="circle-btn ghost" id="close-settings" aria-label="關閉">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="drawer-scroll">
+          <article class="panel prompt-panel">
+            <div class="panel-head">
+              <h2>提示詞控制</h2>
+              <div class="panel-actions">
+                <button type="button" data-action="clear" class="link-btn">清空</button>
+              </div>
+            </div>
+            <label for="prompt-input">正向提示詞</label>
+            <div class="textarea-wrap">
+              <textarea id="prompt-input" maxlength="400" placeholder="描述你想要的場景、光線、情緒…"></textarea>
+              <span class="char-count" id="prompt-count">0 / 400</span>
+            </div>
+            <label for="negative-input">反向提示詞</label>
+            <div class="textarea-wrap">
+              <textarea id="negative-input" maxlength="400" placeholder="輸入想排除的元素，例如：low quality, watermark"></textarea>
+              <span class="char-count" id="negative-count">0 / 400</span>
+            </div>
+          </article>
+
+          <article class="panel lora-panel">
+            <div class="panel-head">
+              <h2>LoRA 管理</h2>
+              <div class="panel-actions">
+                <button class="mini-btn" id="import-lora"><i class="fas fa-upload"></i> 導入</button>
+                <input type="file" id="lora-input" accept=".safetensors,.ckpt,.pt" multiple hidden>
+              </div>
+            </div>
+            <div class="lora-hint">支援本機 LoRA，會於瀏覽器記憶，僅作為 novaAI 推理設定。</div>
+            <div id="lora-list" class="lora-list"></div>
+          </article>
+
+          <article class="panel settings-panel">
+            <div class="panel-head">
+              <h2>合成設定</h2>
+              <div class="panel-actions">
+                <span id="model-status">NovaAI Turbo</span>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label>
+                模型
+                <select id="model-select">
+                  <option value="diamond-nds">Diamond NDS</option>
+                  <option value="turbo">NovaAI Turbo</option>
+                  <option value="balanced">NovaAI Balanced</option>
+                </select>
+              </label>
+              <label>
+                尺寸
+                <div class="chip-group" id="size-group">
+                  <button type="button" data-size="512x384" class="chip active">4:3</button>
+                  <button type="button" data-size="1024x768" class="chip">放大</button>
+                  <button type="button" data-size="640x480" class="chip">預覽+</button>
+                </div>
+              </label>
+              <label>
+                迭代步數 <span id="steps-label">28 steps</span>
+                <input type="range" min="10" max="50" value="28" id="steps-range">
+              </label>
+              <label>
+                CFG 強度 <span id="cfg-label">7.5</span>
+                <input type="range" min="2" max="14" step="0.5" value="7.5" id="cfg-range">
+              </label>
+              <label>
+                隨機種子
+                <div class="seed-row">
+                  <input type="number" id="seed-input" placeholder="自動">
+                  <button type="button" id="dice-btn"><i class="fas fa-dice"></i></button>
+                </div>
+              </label>
+              <label class="toggle-row">
+                <input type="checkbox" id="hires-checkbox" checked>
+                <span>高解析修補 (Nova Refit)</span>
+              </label>
+            </div>
+            <button class="primary-btn" id="generate-btn"><i class="fas fa-wand-magic-sparkles"></i> 合成圖片</button>
+          </article>
+
+          <article class="panel history-panel">
+            <div class="panel-head">
+              <h2>生成紀錄</h2>
+              <button class="mini-btn ghost" id="clear-history">清除</button>
+            </div>
+            <div class="history-grid" id="history-grid"></div>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <main class="sp-layout">
+      <section class="style-gallery">
+        <div class="gallery-head">
+          <div>
+            <p class="gallery-label">NovaAI 櫥窗</p>
+            <h2>精挑細選風格</h2>
+          </div>
+          <div class="gallery-tabs" id="gallery-tabs">
+            <button class="tab-chip active" data-filter="all">全部</button>
+            <button class="tab-chip" data-filter="角色">角色</button>
+            <button class="tab-chip" data-filter="風景">風景</button>
+            <button class="tab-chip" data-filter="時尚">時尚</button>
+            <button class="tab-chip" data-filter="設計">設計</button>
+          </div>
+        </div>
+        <div class="style-gallery-grid" id="style-grid"></div>
+      </section>
+
+    </main>
+  </div>
+  <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="smart-painter.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('smart-painter');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('smart-painter', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>

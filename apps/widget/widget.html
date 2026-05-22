@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Widget 編輯器 | SXI Phone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="widget.css">
+  <link rel="stylesheet" href="ios-styles.css">
+</head>
+<body>
+  <div class="widget-app">
+
+    <!-- 頂部導航 -->
+    <header class="app-header">
+      <button class="back-btn" id="backBtn" aria-label="返回">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1 class="header-title">小工具</h1>
+      <button class="edit-btn" id="editBtn">
+        <span id="editBtnText">編輯</span>
+      </button>
+    </header>
+
+    <!-- 預覽 / 編輯區 -->
+    <main class="preview-area">
+      <div class="preview-phone" id="previewPhone">
+        <div class="phone-wallpaper" id="phoneWallpaper"></div>
+        
+        <!-- 桌面應用程式預覽區 -->
+        <div class="desktop-preview" id="desktopPreview">
+          <div class="desktop-preview-header">
+            <span class="preview-label">桌面預覽</span>
+            <span class="preview-hint" id="previewHint">點擊進入編輯模式</span>
+          </div>
+          <div class="desktop-pages-scroll" id="desktopPagesScroll">
+            <div class="desktop-pages-container" id="desktopPagesContainer">
+              <!-- 動態生成桌面頁面 -->
+            </div>
+          </div>
+          <div class="desktop-page-dots" id="desktopPageDots"></div>
+        </div>
+        
+      </div>
+      
+      <!-- 小工具元件庫（可拖曳） -->
+      <div class="widget-source-panel" id="widgetSourcePanel">
+        <div class="widget-source-header">
+          <h2 class="widget-source-title"><i class="fas fa-grip"></i> 小工具庫</h2>
+          <span class="widget-source-hint">拖曳小工具到上方預覽區</span>
+        </div>
+        <div class="widget-source-categories" id="sourceCategories"></div>
+        <div class="widget-source-grid" id="sourceGrid"></div>
+      </div>
+      
+      <!-- 桌面設定面板 -->
+      <div class="desktop-settings-panel" id="desktopSettingsPanel">
+        <h2 class="settings-panel-title"><i class="fas fa-sliders"></i> 桌面設定</h2>
+        
+        <!-- 外觀設定 -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">📐 外觀</h3>
+          <div class="settings-row">
+            <label>每頁應用數</label>
+            <select id="pageSizeSelect">
+              <option value="8">8 個 (4×2)</option>
+              <option value="12">12 個 (4×3)</option>
+              <option value="16">16 個 (4×4)</option>
+              <option value="20">20 個 (4×5)</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- 快捷方式管理 -->
+        <div class="settings-section">
+          <h3 class="settings-section-title">⚡快捷方式</h3>
+          <p class="settings-hint">點擊切換顯示/隱藏</p>
+          <div class="shortcuts-grid" id="shortcutsGrid"></div>
+        </div>
+      </div>
+      
+      <!-- 小工具放置區 -->
+      <div class="widget-catalog" id="widgetCatalog">
+        <section class="widget-section">
+          <h2 class="section-title">小工具<span style="font-weight:400;color:var(--text-tertiary);font-size:10px">從這裡開始添加</span></h2>
+          <div class="widget-row" data-size-row="main"></div>
+        </section>
+        <section class="widget-section">
+          <h2 class="section-title">鎖屏小工具</h2>
+          <div class="widget-row" data-size-row="lock-1x"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- 編輯模式工具列 -->
+    <div class="edit-toolbar" id="editToolbar">
+      <button class="toolbar-btn primary-action" id="addWidgetBtn">
+        <i class="fas fa-plus"></i>
+        <span>新增小工具</span>
+      </button>
+      <button class="toolbar-btn primary-action" id="addAppBtn">
+        <i class="fas fa-mobile-screen"></i>
+        <span>新增應用</span>
+      </button>
+      <button class="toolbar-btn" id="resetLayoutBtn">
+        <i class="fas fa-rotate-left"></i>
+        <span>重置</span>
+      </button>
+      <button class="toolbar-btn" id="saveLayoutBtn">
+        <i class="fas fa-check"></i>
+        <span>完成</span>
+      </button>
+    </div>
+
+    <!-- 應用程式選擇面板 -->
+    <div class="app-picker-panel" id="appPickerPanel">
+      <div class="app-picker-header">
+        <h2>選擇應用程式</h2>
+        <button class="close-picker-btn" id="closeAppPickerBtn">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="app-picker-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="appPickerSearch" placeholder="搜尋應用程式...">
+      </div>
+      <div class="app-picker-categories" id="appPickerCategories">
+        <button class="app-cat-btn active" data-cat="all">全部</button>
+        <button class="app-cat-btn" data-cat="social">社群</button>
+        <button class="app-cat-btn" data-cat="media">影音</button>
+        <button class="app-cat-btn" data-cat="tools">工具</button>
+        <button class="app-cat-btn" data-cat="life">生活</button>
+        <button class="app-cat-btn" data-cat="hidden">已隱藏</button>
+      </div>
+      <div class="app-picker-grid" id="appPickerGrid"></div>
+    </div>
+
+    <!-- 組件庫面板（由 JS 動態生成） -->
+    <div class="widget-library" id="widgetLibrary">
+      <div class="library-header">
+        <div class="library-title-row">
+          <h2>選入小工具</h2>
+          <span class="library-subtitle" id="libraryWidgetType">選擇類型</span>
+        </div>
+        <button class="close-library-btn" id="closeLibraryBtn">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- 類別標籤 -->
+      <div class="library-category-scroll">
+        <div class="library-categories" id="libraryCategories">
+          <button class="cat-btn active" data-cat="clock"><i class="fas fa-clock"></i>時鐘</button>
+          <button class="cat-btn" data-cat="calendar"><i class="fas fa-calendar-day"></i>日曆</button>
+          <button class="cat-btn" data-cat="weather"><i class="fas fa-cloud-sun"></i>天氣</button>
+          <button class="cat-btn" data-cat="activity"><i class="fas fa-heart-pulse"></i>健康</button>
+          <button class="cat-btn" data-cat="photo"><i class="fas fa-image"></i>相片</button>
+          <button class="cat-btn" data-cat="music"><i class="fas fa-music"></i>音樂</button>
+          <button class="cat-btn" data-cat="notes"><i class="fas fa-note-sticky"></i>筆記</button>
+          <button class="cat-btn" data-cat="tools"><i class="fas fa-wrench"></i>工具</button>
+          <button class="cat-btn" data-cat="info"><i class="fas fa-circle-info"></i>資訊</button>
+          <button class="cat-btn" data-cat="shortcut"><i class="fas fa-bolt"></i>捷徑</button>
+        </div>
+      </div>
+
+      <!-- 組件網格 -->
+      <div class="library-grid" id="libraryGrid"></div>
+    </div>
+
+    <!-- 組件編輯面板 -->
+    <div class="widget-editor" id="widgetEditor">
+      <div class="editor-header">
+        <h2>編輯小工具</h2>
+        <button class="close-editor-btn" id="closeEditorBtn">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="editor-content" id="editorContent">
+
+        <!-- 即時預覽 -->
+        <div class="editor-preview" id="editorPreview"></div>
+
+        <!-- 分頁導航 -->
+        <div class="editor-tabs">
+          <button class="editor-tab-btn active" data-tab="appearance" id="tabAppearanceBtn">
+            <i class="fas fa-palette"></i>外觀
+          </button>
+          <button class="editor-tab-btn" data-tab="content" id="tabContentBtn">
+            <i class="fas fa-sliders"></i>內容
+          </button>
+          <button class="editor-tab-btn" data-tab="behavior" id="tabBehaviorBtn">
+            <i class="fas fa-gear"></i>行為
+          </button>
+        </div>
+
+        <!-- 外觀面板 -->
+        <div class="editor-panel active" id="panelAppearance">
+          <div class="editor-section">
+            <h3 class="editor-section-title">尺寸</h3>
+            <div class="size-chip-row" id="sizeChipRow">
+              <button class="size-chip" data-size="1x1">1×1</button>
+              <button class="size-chip" data-size="2x1">2×1</button>
+              <button class="size-chip" data-size="2x2">2×2</button>
+              <button class="size-chip" data-size="4x1">4×1</button>
+              <button class="size-chip" data-size="4x2">4×2</button>
+              <button class="size-chip" data-size="lock-1x">鎖屏1×1</button>
+            </div>
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">背景</h3>
+            <div class="bg-type-toggle" id="bgTypeToggle">
+              <button class="bg-type-btn active" data-bg="solid"><i class="fas fa-square"></i>純色</button>
+              <button class="bg-type-btn" data-bg="gradient"><i class="fas fa-gradient"></i>漸層</button>
+              <button class="bg-type-btn" data-bg="image"><i class="fas fa-image"></i>圖片</button>
+            </div>
+            <div class="color-swatches" id="colorSwatches"></div>
+            <div class="gradient-picker hidden" id="gradientPicker"></div>
+            <div class="image-picker hidden" id="imagePicker">
+              <input type="file" id="widgetBgImageInput" accept="image/*" hidden>
+              <button class="upload-btn" onclick="document.getElementById('widgetBgImageInput').click()">
+                <i class="fas fa-upload"></i> 上傳背景圖
+              </button>
+              <button class="clear-btn" id="clearBgImageBtn">移除圖片</button>
+            </div>
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">透明度 <span id="opacityVal">80%</span></h3>
+            <input type="range" class="range-input" id="opacitySlider" min="10" max="100" value="80">
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">圓角 <span id="radiusVal">20px</span></h3>
+            <input type="range" class="range-input" id="radiusSlider" min="0" max="40" value="20">
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">樣式</h3>
+            <div class="style-chips" id="styleChips">
+              <button class="style-chip active" data-style="glass"><i class="fas fa-blur"></i>毛玻璃</button>
+              <button class="style-chip" data-style="solid"><i class="fas fa-square"></i>實色</button>
+              <button class="style-chip" data-style="minimal"><i class="fas fa-minus"></i>極簡</button>
+              <button class="style-chip" data-style="vintage"><i class="fas fa-camera"></i>復古</button>
+              <button class="style-chip" data-style="neon"><i class="fas fa-bolt"></i>霓虹</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 內容面板 -->
+        <div class="editor-panel" id="panelContent">
+          <div class="editor-section">
+            <h3 class="editor-section-title">小工具標題</h3>
+            <input type="text" class="editor-input" id="editorTitleInput" placeholder="輸入標題（可留空）">
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">副標題 / 描述</h3>
+            <input type="text" class="editor-input" id="editorSubtitleInput" placeholder="輸入副標題">
+          </div>
+          <div class="editor-section" id="contentSpecificSection">
+            <!-- 依內容類型動態生成 widget type -->
+          </div>
+        </div>
+
+        <!-- 行為面板 -->
+        <div class="editor-panel" id="panelBehavior">
+          <div class="editor-section">
+            <h3 class="editor-section-title">點擊動作</h3>
+            <div class="app-grid" id="appGrid"></div>
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">鎖屏小工具</h3>
+            <label class="toggle-row">
+              <span>啟用鎖定畫面顯示</span>
+              <input type="checkbox" id="lockScreenToggle">
+            </label>
+          </div>
+          <div class="editor-section">
+            <h3 class="editor-section-title">互動</h3>
+            <label class="toggle-row">
+              <span>啟用深度互動</span>
+              <input type="checkbox" id="deepInteractToggle" checked>
+            </label>
+          </div>
+          <div class="editor-section danger">
+            <button class="danger-btn" id="deleteWidgetBtn">
+              <i class="fas fa-trash"></i> 刪除小工具
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="widget.js"></script>
+  <script src="../scripts/shared-settings.js"></script>
+</body>
+</html>

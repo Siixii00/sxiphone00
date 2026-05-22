@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>農場</title>
+  <link rel="stylesheet" href="farm.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&family=Space+Grotesk:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body>
+  <div class="farm-loading" id="farm-loading">
+    <div class="loading-content">
+      <div class="loading-title">Loading Farm...</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <div class="loading-text" id="loading-text">Preparing fields...</div>
+    </div>
+  </div>
+
+  <div class="farm-app">
+    <nav class="top-bar" style="justify-content: space-between;">
+      <button class="back-btn" onclick="closeFarmApp()">
+        <i data-lucide="chevron-left"></i>
+      </button>
+      <div class="status-bar" style="flex: 1; justify-content: center; gap: 12px;">
+        <div class="status-item">
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--gold);">wb_sunny</span>
+          <span id="season-time-display" style="font-family: 'Space Grotesk', sans-serif; font-weight: 700;">Spring 14, 10:00</span>
+        </div>
+      </div>
+      <div class="status-item" style="background: var(--secondary-container); border: 2px solid var(--on-secondary-fixed-variant); border-radius: 8px; padding: 4px 12px; box-shadow: 2px 2px 0px var(--wood-dark);">
+        <span class="material-symbols-outlined" style="font-size: 16px;">database</span>
+        <span id="gold-display" style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">500g</span>
+      </div>
+    </nav>
+
+    <div class="game-container" id="game-container">
+      <canvas id="farm-canvas"></canvas>
+      
+      <div id="farm-overlay-ui" style="position: absolute; top: 0; left: 0; right: 0; padding: 8px; pointer-events: none;">
+        <section class="wooden-panel" style="padding: 12px; border-radius: 8px; pointer-events: auto;">
+          <div class="parchment-card" style="padding: 8px; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--primary);">Season: Spring</span>
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em;">Day <span id="day-display">14</span> / 28</span>
+            </div>
+            <div class="season-progress-bar">
+              <div class="season-progress-fill" id="season-progress" style="width: 50%;"></div>
+              <div class="season-progress-text">Halfway to Summer!</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="toolbar" id="main-toolbar">
+      <button class="tool-btn active" data-tool="till" onclick="setTool('till')">
+        <span class="material-symbols-outlined">handyman</span>
+        <span>Till</span>
+      </button>
+      <button class="tool-btn" data-tool="plant" onclick="setTool('plant')">
+        <span class="material-symbols-outlined">psychiatry</span>
+        <span>Plant</span>
+      </button>
+      <button class="tool-btn" data-tool="water" onclick="setTool('water')">
+        <span class="material-symbols-outlined">water_drop</span>
+        <span>Water</span>
+      </button>
+      <button class="tool-btn" data-tool="harvest" onclick="setTool('harvest')">
+        <span class="material-symbols-outlined">content_cut</span>
+        <span>Harvest</span>
+      </button>
+      <button class="tool-btn" data-tool="inventory" onclick="openInventory()">
+        <span class="material-symbols-outlined">inventory_2</span>
+        <span>Bag</span>
+      </button>
+      <button class="tool-btn" data-tool="shop" onclick="openShop()">
+        <span class="material-symbols-outlined">store</span>
+        <span>Shop</span>
+      </button>
+      <button class="tool-btn" data-tool="animals" onclick="openAnimals()">
+        <span class="material-symbols-outlined">pets</span>
+        <span>Animals</span>
+      </button>
+      <button class="tool-btn end-day" onclick="endDay()">
+        <span class="material-symbols-outlined">bedtime</span>
+        <span>Sleep</span>
+      </button>
+    </div>
+
+    <nav class="bottom-nav" id="bottom-nav">
+      <div class="nav-item" onclick="switchTab('home')">
+        <span class="material-symbols-outlined">home</span>
+        <span>Home</span>
+      </div>
+      <div class="nav-item active" onclick="switchTab('farm')">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">agriculture</span>
+        <span>Farm</span>
+      </div>
+      <div class="nav-item" onclick="openInventory()">
+        <span class="material-symbols-outlined">backpack</span>
+        <span>Inventory</span>
+      </div>
+      <div class="nav-item" onclick="openSocial()">
+        <span class="material-symbols-outlined">group</span>
+        <span>Social</span>
+      </div>
+    </nav>
+  </div>
+
+  <div class="modal" id="shop-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">store</span>Pierre's Shop</h2>
+        <button class="close-btn" onclick="closeShop()">×</button>
+      </div>
+      <div class="modal-body" id="shop-items"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="inventory-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">backpack</span>Backpack</h2>
+        <button class="close-btn" onclick="closeInventory()">×</button>
+      </div>
+      <div class="modal-body" id="inventory-items"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="animals-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">pets</span>Barn</h2>
+        <button class="close-btn" onclick="closeAnimals()">×</button>
+      </div>
+      <div class="modal-body" id="animals-list"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="crop-select-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">psychiatry</span>Select Crop</h2>
+        <button class="close-btn" onclick="closeCropSelect()">×</button>
+      </div>
+      <div class="modal-body" id="crop-options"></div>
+    </div>
+  </div>
+
+  <style>
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 16px;
+      background: var(--secondary);
+      border-top: 4px solid var(--on-secondary-fixed-variant);
+      box-shadow: 0px -4px 0px var(--wood-dark);
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      color: var(--on-secondary-fixed-variant);
+      cursor: pointer;
+      transition: all 0.1s ease;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    
+    .nav-item:hover {
+      background: var(--secondary-container);
+      border-radius: 8px;
+    }
+    
+    .nav-item.active {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border: 2px solid var(--on-primary-container);
+      border-radius: 8px;
+      box-shadow: 2px 2px 0px #215100;
+    }
+    
+    .nav-item .material-symbols-outlined {
+      font-size: 24px;
+    }
+  </style>
+
+  <script src="farm-data.js"></script>
+  <script src="farm.js"></script>
+</body>
+</html>

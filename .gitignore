@@ -1,0 +1,7 @@
+node_modules/
+backend/
+vendor/
+.tmp/
+plans/
+.ruff_cache/
+package-lock.json

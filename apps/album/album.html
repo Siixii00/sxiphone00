@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>相簿</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="album.css">
+    <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body class="dark-mode">
+    <header class="ios-header">
+        <button class="ios-back-btn" onclick="handleBack()">
+            <i class="fas fa-chevron-left"></i> 返回
+        </button>
+        <h1 class="menu-title">相簿</h1>
+        <div class="header-actions">
+            <button class="header-action" id="appearance-btn" title="外觀設定">
+                <i class="fas fa-palette"></i>
+            </button>
+            <button class="header-action" onclick="openImagePicker()" title="新增照片">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">全部</button>
+        <button class="tab-btn" data-tab="uploaded" onclick="switchTab('uploaded')">上傳</button>
+        <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">聊天</button>
+        <button class="tab-btn" data-tab="painter" onclick="switchTab('painter')">照相館</button>
+    </div>
+
+    <div class="gallery-wrapper">
+        <div class="gallery-grid" id="gallery-grid"></div>
+        <div class="empty-state hidden" id="empty-state">
+            <i class="fas fa-images"></i>
+            <p>尚無照片</p>
+            <p class="empty-hint">點擊右上角 + 從裝置上傳，或在聊天及照相館中生成圖片</p>
+        </div>
+    </div>
+
+    <input type="file" id="device-upload" hidden accept="image/*" multiple onchange="handleDeviceUpload(event)">
+
+    <div class="image-viewer hidden" id="image-viewer" onclick="closeViewer()">
+        <div class="viewer-backdrop"></div>
+        <img id="viewer-img" src="" alt="">
+        <div class="viewer-actions">
+            <button class="viewer-btn" onclick="event.stopPropagation(); setAsWallpaper()" title="設為桌布">
+                <i class="fas fa-image"></i><span>桌布</span>
+            </button>
+            <button class="viewer-btn" onclick="event.stopPropagation(); setAsLockscreen()" title="設為鎖屏">
+                <i class="fas fa-lock"></i><span>鎖屏</span>
+            </button>
+            <button class="viewer-btn viewer-btn-danger" onclick="event.stopPropagation(); deleteCurrentImage()" title="刪除">
+                <i class="fas fa-trash"></i><span>刪除</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="album.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof SxAppAppearance !== 'undefined') {
+            SxAppAppearance.initAppearanceForApp('album');
+            var appearanceBtn = document.getElementById('appearance-btn');
+            if (appearanceBtn) {
+                appearanceBtn.addEventListener('click', function() {
+                    SxAppAppearance.openAppearancePanel('album', document.body, function() {
+                        var panel = document.getElementById('sx-app-appearance-panel');
+                        if (panel) panel.remove();
+                    });
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

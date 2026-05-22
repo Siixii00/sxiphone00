@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LOFTER</title>
+  <link rel="stylesheet" href="lofter.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+</head>
+<body>
+  <div class="lofter-app">
+    <header class="lofter-topbar">
+      <button class="icon-btn" aria-label="返回首頁" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <div class="brand" aria-label="LOFTER">
+        <span class="logo-mark">L</span>
+        <span class="logo-text">LOFTER</span>
+      </div>
+      <button class="publish-btn" type="button">
+        <i class="fas fa-pen-nib"></i>
+        <span>發佈</span>
+      </button>
+    </header>
+
+    <main class="lofter-content">
+      <section class="page page-home is-active" data-page="home" aria-label="首頁內容">
+        <section class="feed" id="lofter-feed" aria-live="polite"></section>
+      </section>
+
+      <section class="page page-discover" data-page="discover" aria-label="靈感專區">
+        <section class="discover-grid">
+          <article class="discover-card">
+            <h3>世界書管理</h3>
+            <p>分類主題與時間線，集中管理角色、地點與事件條目。</p>
+            <div class="worldbook-list" id="lofter-worldbook-list" aria-live="polite"></div>
+            <button class="discover-action" type="button">開啟世界書</button>
+          </article>
+          <article class="discover-card collapsible-card">
+            <div class="collapsible-header" onclick="toggleCollapsible(this)">
+              <h3>選擇世界書</h3>
+              <p>選擇本次同人創作要使用的世界書</p>
+              <span class="collapsible-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="collapsible-content collapsed">
+              <div class="cp-form">
+                <label class="cp-field">
+                  <span>選擇世界書（可多選）</span>
+                  <div class="worldbook-checkbox-list" id="lofter-worldbook-checkbox-list"></div>
+                </label>
+              </div>
+            </div>
+          </article>
+          <article class="discover-card">
+            <h3>梗集便利貼</h3>
+            <p>快速收錄「如果…」的靈感，支援標籤與優先度排序。</p>
+            <button class="discover-action" type="button" data-page-target="idea">進入梗集</button>
+          </article>
+          <article class="discover-card">
+            <h3>正在關注的CP</h3>
+            <p>設定想看的 CP 向創作，支援使用者面具與角色資料。</p>
+            <div class="cp-form">
+              <label class="cp-field">
+                <span>攻方角色</span>
+                <select id="lofter-cp-top"></select>
+              </label>
+              <label class="cp-field">
+                <span>攻方性別</span>
+                <select id="lofter-discover-top-gender">
+                  <option value="">未指定</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="非二元">非二元性別</option>
+                  <option value="其他">其他</option>
+                </select>
+              </label>
+              <label class="cp-field">
+                <span>攻方體型</span>
+                <select id="lofter-discover-top-bodytype">
+                  <option value="">默認（勻稱有肉）</option>
+                  <option value="肌肉結實">肌肉結實</option>
+                  <option value="健壯魁梧">健壯魁梧</option>
+                  <option value="精實勻稱">精實勻稱</option>
+                  <option value="豐滿厚實">豐滿厚實</option>
+                  <option value="高大壯碩">高大壯碩</option>
+                  <option value="嬌小玲瓏">嬌小玲瓏</option>
+                  <option value="修長勻稱">修長勻稱</option>
+                  <option value="圓潤柔軟">圓潤柔軟</option>
+                  <option value="骨感纖細">骨感纖細（較瘦）</option>
+                  <option value="瘦削單薄">瘦削單薄（較瘦）</option>
+                </select>
+              </label>
+              <label class="cp-field">
+                <span>受方角色</span>
+                <select id="lofter-cp-bottom"></select>
+              </label>
+              <label class="cp-field">
+                <span>受方性別</span>
+                <select id="lofter-discover-bottom-gender">
+                  <option value="">未指定</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="非二元">非二元性別</option>
+                  <option value="其他">其他</option>
+                </select>
+              </label>
+              <label class="cp-field">
+                <span>受方體型</span>
+                <select id="lofter-discover-bottom-bodytype">
+                  <option value="">默認（勻稱有肉）</option>
+                  <option value="肌肉結實">肌肉結實</option>
+                  <option value="健壯魁梧">健壯魁梧</option>
+                  <option value="精實勻稱">精實勻稱</option>
+                  <option value="豐滿厚實">豐滿厚實</option>
+                  <option value="高大壯碩">高大壯碩</option>
+                  <option value="嬌小玲瓏">嬌小玲瓏</option>
+                  <option value="修長勻稱">修長勻稱</option>
+                  <option value="圓潤柔軟">圓潤柔軟</option>
+                  <option value="骨感纖細">骨感纖細（較瘦）</option>
+                  <option value="瘦削單薄">瘦削單薄（較瘦）</option>
+                </select>
+              </label>
+              <label class="cp-field">
+                <span>體型備註</span>
+                <input type="text" id="lofter-discover-bodytype-note" placeholder="例如：攻方有明顯腹肌、受方大腿較粗...">
+              </label>
+              <button class="discover-action" type="button" id="lofter-cp-add">加入關注</button>
+            </div>
+            <div class="cp-list" id="lofter-cp-list" aria-live="polite"></div>
+          </article>
+          
+        </section>
+      </section>
+
+      <section class="page page-idea" data-page="idea" aria-label="梗集便利貼">
+        <header class="discover-header">
+          <div>
+            <p class="hero-subtitle">挑選想要的梗，建立你的同人文靈感清單</p>
+            <h2>梗集便利貼</h2>
+          </div>
+          <button class="hero-action" type="button" data-page-target="discover">返回發現</button>
+        </header>
+
+        <section class="idea-toolbar">
+          <button class="idea-btn" type="button" id="idea-select-all">全選</button>
+          <button class="idea-btn" type="button" id="idea-clear">清空</button>
+          <button class="idea-primary" type="button" id="idea-generate">生成同人文</button>
+        </section>
+
+        <section class="idea-grid" id="idea-grid" aria-live="polite"></section>
+      </section>
+
+      <section class="page page-likes" data-page="likes" aria-label="喜歡的同人文">
+        <section class="likes-panel">
+          <label class="cp-field">
+            <span>選擇 CP（可多選）</span>
+            <div class="cp-checkbox-list" id="lofter-cp-checkbox-list"></div>
+          </label>
+          <label class="cp-field">
+            <span>添加 NPC（可多選，默認為好友）</span>
+            <div class="cp-checkbox-list" id="lofter-npc-checkbox-list"></div>
+          </label>
+          <label class="cp-field">
+            <span>角色體型設定（可覆蓋 CP 原有設定）</span>
+            <div class="bodytype-section">
+              <div class="bodytype-row">
+                <span class="bodytype-label">攻方性別</span>
+                <select id="lofter-top-gender">
+                  <option value="">未指定</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="非二元">非二元性別</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="bodytype-row">
+                <span class="bodytype-label">攻方體型</span>
+                <select id="lofter-top-bodytype">
+                  <option value="">默認（勻稱有肉）</option>
+                  <option value="肌肉結實">肌肉結實</option>
+                  <option value="健壯魁梧">健壯魁梧</option>
+                  <option value="精實勻稱">精實勻稱</option>
+                  <option value="豐滿厚實">豐滿厚實</option>
+                  <option value="高大壯碩">高大壯碩</option>
+                  <option value="嬌小玲玲瓏">嬌小玲瓏</option>
+                  <option value="修長勻稱">修長勻稱</option>
+                  <option value="圓潤柔軟">圓潤柔軟</option>
+                  <option value="骨感纖細">骨感纖細（較瘦）</option>
+                  <option value="瘦削單薄">瘦削單薄（較瘦）</option>
+                </select>
+              </div>
+              <div class="bodytype-row">
+                <span class="bodytype-label">受方性別</span>
+                <select id="lofter-bottom-gender">
+                  <option value="">未指定</option>
+                  <option value="男性">男性</option>
+                  <option value="女性">女性</option>
+                  <option value="非二元">非二元性別</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="bodytype-row">
+                <span class="bodytype-label">受方體型</span>
+                <select id="lofter-bottom-bodytype">
+                  <option value="">默認（勻稱有肉）</option>
+                  <option value="肌肉結實">肌肉結實</option>
+                  <option value="健壯魁梧">健壯魁梧</option>
+                  <option value="精實勻稱">精實勻稱</option>
+                  <option value="豐滿厚實">豐滿厚實</option>
+                  <option value="高大壯碩">高大壯碩</option>
+                  <option value="嬌小玲瓏">嬌小玲瓏</option>
+                  <option value="修長勻稱">修長勻稱</option>
+                  <option value="圓潤柔軟">圓潤柔軟</option>
+                  <option value="骨感纖細">骨感纖細（較瘦）</option>
+                  <option value="瘦削單薄">瘦削單薄（較瘦）</option>
+                </select>
+              </div>
+              <div class="bodytype-row">
+                <span class="bodytype-label">體型備註</span>
+                <input type="text" id="lofter-bodytype-note" placeholder="例如：攻方有明顯腹肌、受方大腿較粗...">
+              </div>
+            </div>
+          </label>
+          <label class="cp-field">
+            <span>每個梗生成篇數（最多 5）</span>
+            <select id="lofter-likes-count">
+              <option value="1">1 篇</option>
+              <option value="2">2 篇</option>
+              <option value="3">3 篇</option>
+              <option value="4">4 篇</option>
+              <option value="5">5 篇</option>
+            </select>
+          </label>
+          <label class="cp-field">
+            <span>內容分級</span>
+            <div class="rating-buttons">
+              <button type="button" class="rating-btn active" data-rating="general">一般向</button>
+              <button type="button" class="rating-btn" data-rating="r18">R18 成人向</button>
+            </div>
+          </label>
+          <label class="cp-field">
+            <span>文章長度</span>
+            <div class="length-buttons">
+              <button type="button" class="length-btn" data-length="short">短篇（約1000字）</button>
+              <button type="button" class="length-btn active" data-length="medium">長篇（2000-5000字）</button>
+              <button type="button" class="length-btn" data-length="series">連載（10篇以上）</button>
+            </div>
+          </label>
+          <label class="cp-field">
+            <span>文筆偏好</span>
+            <select id="lofter-style-tone">
+              <option value="細膩">細膩</option>
+              <option value="犀利">犀利</option>
+              <option value="溫柔">溫柔</option>
+              <option value="熱血">熱血</option>
+              <option value="custom-worldbook">從世界書選擇...</option>
+            </select>
+          </label>
+          <label class="cp-field" id="worldbook-style-container" style="display: none;">
+            <span>選擇世界書風格</span>
+            <select id="lofter-worldbook-style"></select>
+          </label>
+          <label class="cp-field">
+            <span>文風參考（選填）</span>
+            <textarea id="lofter-style-ref" rows="3" placeholder="貼上範例段落或描述想要的語氣"></textarea>
+          </label>
+          <div class="likes-actions">
+            <button class="idea-btn" type="button" id="likes-select-all">全選梗</button>
+            <button class="idea-btn" type="button" id="likes-clear">清空</button>
+            <button class="idea-primary" type="button" id="likes-generate">生成同人文</button>
+          </div>
+        </section>
+
+        <section class="trope-section">
+          <h3 class="trope-section-title">世界觀設定</h3>
+          <section class="idea-grid" id="worldsetting-grid" aria-live="polite"></section>
+        </section>
+
+        <section class="trope-section">
+          <h3 class="trope-section-title">互動梗</h3>
+          <section class="idea-grid" id="interaction-grid" aria-live="polite"></section>
+        </section>
+
+        <section class="feed" id="likes-feed" aria-live="polite"></section>
+      </section>
+
+      <section class="page page-follow" data-page="notice" aria-label="追蹤清單">
+        <header class="discover-header">
+          <div>
+            <p class="hero-subtitle">追蹤喜歡的同人文，讓 AI 續寫連載或延伸短篇</p>
+            <h2>追蹤</h2>
+          </div>
+        </header>
+        <section class="feed" id="follow-feed" aria-live="polite"></section>
+      </section>
+
+      <section class="page page-profile" data-page="profile" aria-label="我的">
+        <section class="feed" aria-live="polite">
+          <article class="post-card" aria-label="使用者資訊">
+            <header class="post-head">
+              <div class="avatar" aria-hidden="true"></div>
+              <div>
+                <div class="author">霧夜寫手</div>
+                <div class="meta">ID：sx-0413</div>
+              </div>
+              <button class="more-btn" type="button" aria-label="個人設定">
+                <i class="fas fa-ellipsis"></i>
+              </button>
+            </header>
+            <p class="post-text">偏好：長篇連載 · 角色獨白 · AU</p>
+          </article>
+          <article class="post-card" aria-label="個人資料填寫">
+            <div class="cp-form">
+              <label class="cp-field">
+                <span>暱稱</span>
+                <input type="text" placeholder="輸入暱稱">
+              </label>
+              <label class="cp-field">
+                <span>使用者 ID</span>
+                <input type="text" placeholder="輸入 ID">
+              </label>
+              <label class="cp-field">
+                <span>自我介紹</span>
+                <textarea rows="3" placeholder="簡短介紹你的創作偏好"></textarea>
+              </label>
+              <button class="idea-primary" type="button">儲存</button>
+            </div>
+          </article>
+          <article class="post-card appearance-card" aria-label="外觀設定">
+            <header class="post-head">
+              <div class="avatar appearance-avatar" aria-hidden="true">
+                <i class="fas fa-palette"></i>
+              </div>
+              <div>
+                <div class="author">外觀設定</div>
+                <div class="meta">調整應用程式外觀樣式</div>
+              </div>
+            </header>
+            <button class="idea-primary appearance-btn" type="button" id="appearance-btn">開啟設定</button>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="底部導覽">
+      <button class="nav-item active" type="button" data-page="home"><i class="fas fa-house"></i><span>首頁</span></button>
+      <button class="nav-item" type="button" data-page="discover"><i class="far fa-compass"></i><span>發現</span></button>
+      <button class="nav-item" type="button" data-page="likes"><i class="far fa-heart"></i><span>喜歡</span></button>
+      <button class="nav-item" type="button" data-page="notice"><i class="far fa-star"></i><span>追蹤</span></button>
+      <button class="nav-item" type="button" data-page="profile"><i class="far fa-user"></i><span>我的</span></button>
+    </nav>
+  </div>
+
+  <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="lofter.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('lofter');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('lofter', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+

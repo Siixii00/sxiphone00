@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>谷子圖鑒</title>
+  <link rel="stylesheet" href="guzi-guide.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+</head>
+<body>
+  <div class="guzi-app">
+    <header class="topbar">
+      <button class="icon-btn" type="button" onclick="window.parent?.postMessage({type:'closeApp'}, '*')">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h1>谷子圖鑒</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="appearance-btn" type="button" title="外觀設定">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="icon-btn" id="add-item-btn" type="button" title="新增谷子">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="panel search-panel">
+      <label class="search-box">
+        <i class="fas fa-search"></i>
+        <input id="search-input" type="text" placeholder="搜尋 user / 周邊名稱 / 系列">
+      </label>
+      <div class="filter-row">
+        <label>
+          User
+          <select id="user-filter"></select>
+        </label>
+        <label>
+          種類
+          <select id="type-filter"></select>
+        </label>
+      </div>
+      <div class="toolbar-row">
+        <button class="toolbar-btn" id="clear-filter-btn" type="button"><i class="fas fa-rotate-left"></i>清除篩選</button>
+      </div>
+    </section>
+
+    <section class="panel stat-panel" id="stat-panel"></section>
+
+    <section class="panel user-panel">
+      <h2>User 索引</h2>
+      <div id="user-chips" class="chip-wrap"></div>
+    </section>
+
+    <section class="panel catalog-panel">
+      <div class="catalog-head">
+        <h2>圖鑑列表</h2>
+        <div class="catalog-head-actions">
+          <button class="toolbar-btn" id="open-design-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i>新增設計</button>
+          <span id="result-count">0 筆</span>
+        </div>
+      </div>
+      <div id="catalog-list" class="catalog-list"></div>
+      <p id="empty-tip" class="empty-tip is-hidden">沒有符合條件的谷子，請調整篩選。</p>
+    </section>
+
+    <aside id="detail-sheet" class="detail-sheet is-hidden" aria-hidden="true">
+      <div class="detail-mask" data-close-detail="true"></div>
+      <div class="detail-card">
+        <header>
+          <h3 id="detail-title">周邊詳情</h3>
+          <button class="icon-btn" type="button" data-close-detail="true"><i class="fas fa-xmark"></i></button>
+        </header>
+        <div id="detail-content" class="detail-content"></div>
+      </div>
+    </aside>
+
+    <aside id="editor-sheet" class="detail-sheet is-hidden" aria-hidden="true">
+      <div class="detail-mask" data-close-editor="true"></div>
+      <div class="detail-card editor-card">
+        <header>
+          <h3 id="editor-title">新增谷子</h3>
+          <button class="icon-btn" type="button" data-close-editor="true"><i class="fas fa-xmark"></i></button>
+        </header>
+        <form id="editor-form" class="editor-form">
+          <div class="editor-grid">
+            <label>User
+              <input id="editor-user" type="text" placeholder="從 Settings 選擇 user" list="settings-user-list" required>
+            </label>
+            <datalist id="settings-user-list"></datalist>
+            <label>種類<input id="editor-type" type="text" placeholder="例如 立牌" required></label>
+            <label>周邊名稱<input id="editor-item-name" type="text" placeholder="例如 壓克力立牌" required></label>
+            <label>系列<input id="editor-series" type="text" placeholder="例如 星海祭典"></label>
+            <label>角色<input id="editor-character" type="text" placeholder="例如 夜櫻"></label>
+            <label>材質<input id="editor-material" type="text" placeholder="例如 壓克力"></label>
+            <label>稀有度<input id="editor-rarity" type="text" placeholder="例如 常規 / 隱藏"></label>
+            <label>來源<input id="editor-source" type="text" placeholder="例如 盲抽 / 通販"></label>
+            <label>持有數量<input id="editor-count" type="number" min="0" step="1" value="0"></label>
+            <label>願望清單
+              <select id="editor-wish">
+                <option value="false">否</option>
+                <option value="true">是</option>
+              </select>
+            </label>
+          </div>
+          <label>標籤（用逗號分隔）<input id="editor-tags" type="text" placeholder="例如 隱藏款,雙層印刷"></label>
+          <label>備註<textarea id="editor-notes" rows="3" placeholder="補充紀錄..." ></textarea></label>
+
+          <div class="image-tools">
+            <label>圖片網址<input id="editor-image-url" type="url" placeholder="貼上圖片 URL"></label>
+            <div class="file-row">
+              <button class="toolbar-btn" id="editor-pick-image" type="button"><i class="fas fa-image"></i>上傳圖片</button>
+              <input id="editor-image-file" type="file" accept="image/*" class="is-hidden">
+            </div>
+            <img id="editor-image-preview" class="editor-preview is-hidden" alt="周邊圖片預覽">
+          </div>
+
+          <div class="editor-actions">
+            <button class="toolbar-btn primary" id="editor-save-btn" type="submit"><i class="fas fa-floppy-disk"></i>儲存</button>
+            <button class="toolbar-btn" type="button" data-close-editor="true">取消</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <aside id="design-sheet" class="detail-sheet is-hidden" aria-hidden="true">
+      <div class="detail-mask" data-close-design="true"></div>
+      <div class="detail-card design-card">
+        <header>
+          <h3>產品設計模擬器</h3>
+          <button class="icon-btn" type="button" data-close-design="true"><i class="fas fa-xmark"></i></button>
+        </header>
+        <div class="design-tools">
+          <div class="product-type-selector">
+            <h4 class="design-subtitle">選擇產品類型</h4>
+            <div class="product-types">
+              <button class="product-type-btn active" data-product-type="badge" type="button">
+                <i class="fas fa-certificate"></i>
+                <span>徽章</span>
+              </button>
+              <button class="product-type-btn" data-product-type="standee" type="button">
+                <i class="fas fa-cubes"></i>
+                <span>立牌</span>
+              </button>
+              <button class="product-type-btn" data-product-type="mahjong" type="button">
+                <i class="fas fa-gem"></i>
+                <span>流沙麻將</span>
+              </button>
+              <button class="product-type-btn" data-product-type="charm" type="button">
+                <i class="fas fa-key"></i>
+                <span>吊飾</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="design-toolbar">
+            <button class="toolbar-btn" id="design-pick-btn" type="button"><i class="fas fa-upload"></i>上傳圖片</button>
+            <input id="design-upload-input" type="file" accept="image/*" class="is-hidden">
+            <button class="toolbar-btn" id="design-reset-btn" type="button"><i class="fas fa-rotate-left"></i>重置</button>
+            <button class="toolbar-btn primary" id="design-export-btn" type="button"><i class="fas fa-download"></i>匯出設計</button>
+          </div>
+
+          <div class="product-preview-container">
+            <div id="product-preview" class="product-preview">
+              <div class="preview-badge" id="preview-badge">
+                <div class="badge-front">
+                  <div class="badge-content">
+                    <img id="badge-image" class="product-image" alt="徽章圖片">
+                  </div>
+                </div>
+              </div>
+              <div class="preview-standee is-hidden" id="preview-standee">
+                <div class="standee-card">
+                  <img id="standee-image" class="product-image" alt="立牌圖片">
+                </div>
+                <div class="standee-base"></div>
+              </div>
+              <div class="preview-mahjong is-hidden" id="preview-mahjong">
+                <div class="mahjong-tile">
+                  <div class="mahjong-front">
+                    <img id="mahjong-image" class="product-image" alt="麻將圖片">
+                    <div class="glitter-effect"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="preview-charm is-hidden" id="preview-charm">
+                <div class="charm-ring"></div>
+                <div class="charm-body">
+                  <img id="charm-image" class="product-image" alt="吊飾圖片">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-specs">
+            <h4 class="design-subtitle">產品規格</h4>
+            <div id="product-specs-content" class="specs-content">
+              <div class="spec-item">
+                <span class="spec-label">尺寸</span>
+                <span class="spec-value" id="spec-size">直徑 5.8cm</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">材質</span>
+                <span class="spec-value" id="spec-material">金屬徽章</span>
+              </div>
+              <div class="spec-item">
+                <span class="spec-label">工藝</span>
+                <span class="spec-value" id="spec-craft">印刷 + 滴膠</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="result-note">上傳圖片後可預覽 3D 效果，點擊匯出可儲存設計圖。</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <script src="../scripts/shared-settings.js"></script>
+<script src="../scripts/app-appearance-settings.js"></script>
+<script src="../scripts/app-appearance-configs.js"></script>
+<script src="guzi-guide.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      if (typeof SxAppAppearance !== 'undefined') {
+          SxAppAppearance.initAppearanceForApp('guzi-guide');
+          var appearanceBtn = document.getElementById('appearance-btn');
+          if (appearanceBtn) {
+              appearanceBtn.addEventListener('click', function() {
+                  SxAppAppearance.openAppearancePanel('guzi-guide', document.body, function() {
+                      var panel = document.getElementById('sx-app-appearance-panel');
+                      if (panel) panel.remove();
+                  });
+              });
+          }
+      }
+  });
+  </script>
+</body>
+</html>
+
