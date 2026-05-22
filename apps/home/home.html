@@ -139,137 +139,8 @@
         </div>
       </div>
     </div>
-
-    <div id="expansion-modal" class="overlay hidden">
-      <div class="modal-card wide" style="max-width: 420px;">
-        <div class="modal-title">
-          <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">home_work</span>
-          家園擴展
-        </div>
-        <div class="home-expansion-panel">
-          <div class="home-floorplan-preview">
-            <canvas id="expansion-preview-canvas" width="320" height="180" style="width: 100%; height: auto; image-rendering: pixelated;"></canvas>
-            <div class="home-floorplan-badge" id="expansion-current-level">LEVEL 1</div>
-          </div>
-          <div class="home-expansion-header" style="margin-top: 16px;">
-            <span class="home-expansion-title" id="expansion-title">升級至 Level 2</span>
-            <span class="home-expansion-level" id="expansion-desc">增加寬敞的第二臥室</span>
-          </div>
-          <div class="home-expansion-requirements">
-            <div class="home-requirement-row">
-              <span><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">forest</span> 木材</span>
-              <span id="expansion-wood-req">312 / 450</span>
-            </div>
-            <div class="home-requirement-row">
-              <span><span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px;">payments</span> 金幣</span>
-              <span id="expansion-gold-req">1,250 / 10,000</span>
-            </div>
-          </div>
-          <button class="home-expansion-btn" id="btn-expansion-confirm" disabled>材料不足</button>
-        </div>
-        <div class="modal-actions">
-          <button id="btn-expansion-close" class="hud-btn">關閉</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="room-sharing-modal" class="overlay hidden">
-      <div class="modal-card wide">
-        <div class="modal-title">房間共享設定</div>
-        <div class="room-sharing-panel">
-          <div class="room-sharing-info">
-            <div class="room-sharing-avatar">
-              <canvas id="sharing-avatar-canvas" width="56" height="56" style="width: 100%; height: 100%; image-rendering: pixelated;"></canvas>
-              <div class="room-sharing-avatar-badge">CHAR</div>
-            </div>
-            <div>
-              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px;">房間共享</div>
-              <div style="font-size: 14px; color: var(--sx-on-surface);">允許 Char 使用第二臥室</div>
-            </div>
-          </div>
-          <div class="room-sharing-toggle" id="room-sharing-toggle">
-            <div class="room-sharing-toggle-knob"></div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button id="btn-sharing-close" class="hud-btn">關閉</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="renovation-modal" class="overlay hidden">
-      <div class="modal-card wide" style="max-width: 460px;">
-        <div class="modal-title">
-          <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 8px;">format_paint</span>
-          房屋裝修
-        </div>
-        <div class="renovation-tabs">
-          <div class="renovation-tab">
-            <div class="renovation-tab-title">
-              <span class="material-symbols-outlined">format_paint</span> 室內裝修
-            </div>
-            <div class="renovation-item" data-item="wallpaper-living">
-              <span>客廳壁紙</span>
-              <span class="material-symbols-outlined" style="color: var(--sx-secondary);">chevron_right</span>
-            </div>
-            <div class="renovation-item" data-item="flooring" style="margin-top: 8px;">
-              <span>硬木地板</span>
-              <span class="material-symbols-outlined" style="color: var(--sx-secondary);">chevron_right</span>
-            </div>
-            <div class="renovation-item" data-item="kitchen" style="margin-top: 8px;">
-              <span>廚房櫥櫃</span>
-              <span class="material-symbols-outlined" style="color: var(--sx-secondary);">chevron_right</span>
-            </div>
-          </div>
-          <div class="renovation-tab">
-            <div class="renovation-tab-title">
-              <span class="material-symbols-outlined">foundation</span> 室外裝修
-            </div>
-            <div class="renovation-item" data-item="roof">
-              <div>
-                <div>雪松屋頂</div>
-                <div class="renovation-item-installed">已安裝</div>
-              </div>
-              <span class="material-symbols-outlined" style="color: var(--sx-primary);">check_circle</span>
-            </div>
-            <div class="renovation-item" data-item="foundation" style="margin-top: 8px;">
-              <span>石材地基</span>
-              <span class="material-symbols-outlined" style="color: var(--sx-secondary);">lock</span>
-            </div>
-            <div class="renovation-item" data-item="porch" style="margin-top: 8px;">
-              <span>門廊遮陽</span>
-              <span class="material-symbols-outlined" style="color: var(--sx-secondary);">chevron_right</span>
-            </div>
-          </div>
-        </div>
-        <div class="construction-inventory" style="margin-top: 16px;">
-          <div class="construction-inventory-title">建築材料</div>
-          <div class="construction-inventory-grid">
-            <div class="construction-item">
-              <span class="material-symbols-outlined" style="font-size: 32px; color: var(--sx-secondary);">forest</span>
-              <span class="construction-item-count" id="inv-wood">312</span>
-            </div>
-            <div class="construction-item">
-              <span class="material-symbols-outlined" style="font-size: 32px; color: var(--sx-on-surface);">rounded_corner</span>
-              <span class="construction-item-count" id="inv-stone">144</span>
-            </div>
-            <div class="construction-item">
-              <span class="material-symbols-outlined" style="font-size: 32px; color: var(--sx-secondary-container);">hardware</span>
-              <span class="construction-item-count" id="inv-iron">12</span>
-            </div>
-            <div class="construction-item" style="border-style: dashed; opacity: 0.4;">
-              <span class="material-symbols-outlined">add</span>
-            </div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button id="btn-renovation-close" class="hud-btn">關閉</button>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <script src="../scripts/shared-settings.js"></script>
   <script src="../scripts/app-appearance-settings.js"></script>
   <script src="../scripts/app-appearance-configs.js"></script>
@@ -280,7 +151,6 @@
   <script src="home-player.js"></script>
   <script src="home-building.js"></script>
   <script src="home-teleport.js"></script>
-  <script src="home-expansion.js"></script>
   <script src="home.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
