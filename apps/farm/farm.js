@@ -371,13 +371,24 @@ const FarmGame = {
     },
     
     updateUI() {
-        document.getElementById('gold-display').textContent = this.state.gold;
+        document.getElementById('gold-display').textContent = this.state.gold + 'g';
         document.getElementById('day-display').textContent = this.state.day;
-        document.getElementById('level-display').textContent = this.state.level;
         
-        const weatherData = FARM_DATA.WEATHER_TYPES[this.state.weather];
-        document.getElementById('weather-display').textContent = weatherData.name;
-        document.getElementById('weather-icon').setAttribute('data-lucide', weatherData.icon);
+        const dayInSeason = ((this.state.day - 1) % 28) + 1;
+        const progressPercent = Math.round((dayInSeason / 28) * 100);
+        const progressEl = document.getElementById('season-progress');
+        if (progressEl) {
+            progressEl.style.width = progressPercent + '%';
+        }
+        
+        const seasonNames = ['Spring', 'Summer', 'Fall', 'Winter'];
+        const currentSeason = seasonNames[Math.floor((this.state.day - 1) / 28) % 4];
+        const seasonTimeEl = document.getElementById('season-time-display');
+        if (seasonTimeEl) {
+            const hour = 6 + Math.floor((this.state.day * 17) % 12);
+            const timeStr = `${currentSeason} ${dayInSeason}, ${hour.toString().padStart(2, '0')}:00`;
+            seasonTimeEl.textContent = timeStr;
+        }
         
         if (window.lucide) lucide.createIcons();
     }
@@ -504,3 +515,17 @@ window.addEventListener('DOMContentLoaded', () => {
     FarmGame.init();
     if (window.lucide) lucide.createIcons();
 });
+
+function switchTab(tab) {
+    if (tab === 'home') {
+        if (window.parent) {
+            window.parent.postMessage({ type: 'launchApp', app: 'home' }, '*');
+        }
+    }
+}
+
+function openSocial() {
+    if (window.parent) {
+        window.parent.postMessage({ type: 'launchApp', app: 'chat' }, '*');
+    }
+}

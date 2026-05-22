@@ -13,6 +13,26 @@
   --dp-ui-blue: #4070b0;
   --dp-ui-green: #78b858;
   --dp-shadow: #183060;
+  --sx-primary: #2e6c00;
+  --sx-primary-container: #7ec850;
+  --sx-primary-fixed: #a9f778;
+  --sx-secondary: #8e4e14;
+  --sx-secondary-container: #ffab69;
+  --sx-secondary-fixed: #ffdcc4;
+  --sx-tertiary: #096493;
+  --sx-tertiary-container: #79bcf0;
+  --sx-surface: #fff8f4;
+  --sx-surface-dim: #f0d6b6;
+  --sx-surface-container: #ffebd4;
+  --sx-surface-container-high: #ffe4c4;
+  --sx-surface-container-highest: #f9debe;
+  --sx-on-surface: #261906;
+  --sx-on-primary: #ffffff;
+  --sx-on-secondary: #ffffff;
+  --sx-on-secondary-fixed: #2f1400;
+  --sx-wood-dark: #2f1400;
+  --sx-wood-main: #8e4e14;
+  --sx-parchment: #f4e8c1;
 }
 
 * { box-sizing: border-box; }
@@ -509,4 +529,168 @@ html, body, .home-app {
 
 .mirror-upload label {
   display: inline-block;
+}
+
+.home-expansion-panel {
+  background: var(--sx-surface-container);
+  border: 4px solid var(--sx-on-surface);
+  padding: 16px;
+  box-shadow: 4px 4px 0px var(--sx-wood-dark);
+  border-radius: 8px;
+}
+
+.home-expansion-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--sx-secondary);
+}
+
+.season-progress-bar {
+  height: 24px;
+  width: 100%;
+  background: var(--sx-surface-container-highest);
+  border: 2px solid var(--sx-on-surface);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.season-progress-fill {
+  height: 100%;
+  background: var(--sx-primary-container);
+  border-right: 2px solid var(--sx-on-surface);
+  transition: width 0.3s ease;
+}
+
+.season-progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sx-on-surface);
+}
+
+.room-sharing-panel {
+  background: var(--sx-secondary-fixed);
+  border: 4px solid var(--sx-on-surface);
+  padding: 16px;
+  box-shadow: 4px 4px 0px var(--sx-wood-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+}
+
+.room-sharing-toggle {
+  width: 56px;
+  height: 32px;
+  background: var(--sx-surface-container-highest);
+  border: 2px solid var(--sx-on-surface);
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.room-sharing-toggle.active {
+  background: var(--sx-primary-container);
+}
+
+.room-sharing-toggle-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: var(--sx-surface);
+  border: 2px solid var(--sx-on-surface);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.room-sharing-toggle.active .room-sharing-toggle-knob {
+  transform: translateX(24px);
+}
+
+.renovation-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.renovation-tab {
+  background: var(--sx-surface-container);
+  border: 4px solid var(--sx-on-surface);
+  padding: 16px;
+  box-shadow: 4px 4px 0px var(--sx-wood-dark);
+  border-radius: 8px;
+}
+
+.renovation-tab-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--sx-secondary);
+  border-bottom: 2px solid var(--sx-on-surface);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.renovation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: var(--sx-surface);
+  border: 2px solid var(--sx-on-surface);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.renovation-item:hover {
+  background: var(--sx-surface-container);
+}
+
+.construction-inventory {
+  background: var(--sx-surface-container-highest);
+  border: 4px solid var(--sx-on-surface);
+  padding: 16px;
+  box-shadow: 4px 4px 0px var(--sx-wood-dark);
+  border-radius: 8px;
+}
+
+.construction-inventory-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.construction-item {
+  width: 64px;
+  height: 64px;
+  background: var(--sx-surface);
+  border: 2px solid var(--sx-on-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 2px 2px 0px var(--sx-wood-dark);
+}
+
+.construction-item-count {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--sx-on-surface);
+  color: var(--sx-surface);
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
 }
