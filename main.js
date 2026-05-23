@@ -5207,10 +5207,16 @@ const handleEnd = (y) => {
         homeScreen?.classList.add('app-open');
         lockScreen?.classList.add('app-open');
         
-        const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
-        if (themeConfig.hideTopbar) {
-            const statusBar = document.querySelector('.status-bar');
+        const statusBar = document.querySelector('.status-bar');
+        if (currentAppId === 'home') {
             if (statusBar) statusBar.style.display = 'none';
+        } else {
+            const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
+            if (themeConfig.hideTopbar) {
+                if (statusBar) statusBar.style.display = 'none';
+            } else {
+                if (statusBar) statusBar.style.display = '';
+            }
         }
     };
 
@@ -5286,10 +5292,14 @@ const handleEnd = (y) => {
         }
         currentAppId = '';
         
+        const statusBar = document.querySelector('.status-bar');
         const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
-        if (themeConfig.hideTopbar && !themeConfig.hideTopbarHome) {
-            const statusBar = document.querySelector('.status-bar');
-            if (statusBar) statusBar.style.display = 'flex';
+        if (statusBar) {
+            if (themeConfig.hideTopbar) {
+                statusBar.style.display = 'none';
+            } else {
+                statusBar.style.display = '';
+            }
         }
     };
 
