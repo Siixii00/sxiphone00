@@ -311,24 +311,17 @@ const loadCharListSync = () => {
 
 const saveCharList = async (list) => {
     try {
-        const serialized = JSON.stringify(list);
-        
-        // 1. 儲存到 localStorage
-        localStorage.setItem(CHARACTERS_KEY, serialized);
-        
-        // 2. 同時儲存到 IndexedDB (localforage)
-        if (typeof localforage !== 'undefined') {
-            await localforage.setItem(CHARACTERS_KEY, list);
-            // 標記資料也在 IndexedDB
-            localStorage.setItem('sx_characters_in_idb', 'true');
-        }
-        
-        // 3. 驗證
-        const verify = localStorage.getItem(CHARACTERS_KEY);
-        if (verify === serialized) {
-            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色到 localStorage 和 IndexedDB');
+        if (typeof SxStorage !== 'undefined') {
+            await SxStorage.setItem(CHARACTERS_KEY, list);
+            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色到 IndexedDB');
         } else {
-            console.error('[Settings] saveCharList: 驗證失敗，資料不一致');
+            const serialized = JSON.stringify(list);
+            localStorage.setItem(CHARACTERS_KEY, serialized);
+            if (typeof localforage !== 'undefined') {
+                await localforage.setItem(CHARACTERS_KEY, list);
+                localStorage.setItem('sx_characters_in_idb', 'true');
+            }
+            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色');
         }
     } catch (e) {
         console.error('[Settings] saveCharList 儲存失敗:', e);
@@ -350,11 +343,15 @@ const loadUserList = () => {
     }
 };
 
-const saveUserList = (list) => {
+const saveUserList = async (list) => {
     try {
-        const serialized = JSON.stringify(list);
-        localStorage.setItem(USERS_KEY, serialized);
-        console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶');
+        if (typeof SxStorage !== 'undefined') {
+            await SxStorage.setItem(USERS_KEY, list);
+            console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶到 IndexedDB');
+        } else {
+            localStorage.setItem(USERS_KEY, JSON.stringify(list));
+            console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶');
+        }
     } catch (e) {
         console.error('[Settings] saveUserList 儲存失敗:', e);
     }
@@ -370,8 +367,16 @@ const loadNpcList = () => {
     }
 };
 
-const saveNpcList = (list) => {
-    localStorage.setItem(NPCS_KEY, JSON.stringify(list));
+const saveNpcList = async (list) => {
+    try {
+        if (typeof SxStorage !== 'undefined') {
+            await SxStorage.setItem(NPCS_KEY, list);
+        } else {
+            localStorage.setItem(NPCS_KEY, JSON.stringify(list));
+        }
+    } catch (e) {
+        console.error('[Settings] saveNpcList 儲存失敗:', e);
+    }
 };
 
 /* =========================================================
@@ -379,7 +384,7 @@ const saveNpcList = (list) => {
    ========================================================= */
 async function saveAll() {
     let wbParts = {};
-    const wbFrame = document.getElementById('worldbookFrame'); // 這裡請確認你的 iframe ID 是否正確
+    const wbFrame = document.getElementById('worldbookFrame');
     if (wbFrame && wbFrame.contentWindow && wbFrame.contentWindow.getSerializedWorldbookParts) {
         wbParts = wbFrame.contentWindow.getSerializedWorldbookParts();
     } else if (typeof window.getSerializedWorldbookParts === 'function') {
@@ -387,7 +392,6 @@ async function saveAll() {
     }
     const lang = document.getElementById('langSelect')?.value || 'zh-Hant';
     const region = document.getElementById('regionInput')?.value || '';
-    // 自定義 CSS 欄位已移除
     const newUserPers = document.getElementById('maskPersonality')?.value || '';
     const newUserBG = document.getElementById('maskBackground')?.value || '';
     const newUserName = document.getElementById('maskNameInput')?.value || '';
@@ -396,61 +400,62 @@ async function saveAll() {
     const currentUserName = newUserName || localStorage.getItem('sx_user_name') || 'User';
     const currentUserAvatar = newUserAvatar || localStorage.getItem('sx_user_avatar') || '';
 
-    // 1. 強制寫入 LocalStorage (供其他應用調用)
-    localStorage.setItem('sx_masks', JSON.stringify(masks));
-    localStorage.setItem('api_configs', JSON.stringify(apis));
-    localStorage.setItem('sx_active_api', activeApiIndex.toString());
-    localStorage.setItem('sxiphone_lang', lang);
-    localStorage.setItem('sxiphone_region', region);
-    // 自定義 CSS 已移除，不再保存
-    localStorage.setItem('sx_user_name', currentUserName);
-    localStorage.setItem('sx_user_avatar', currentUserAvatar);
-    localStorage.setItem('sx_user_personality', newUserPers); // 新增
-    localStorage.setItem('sx_user_background', newUserBG);    // 新增
-    localStorage.setItem('sx_worldbook_cot', JSON.stringify(wbParts.sx_worldbook_cot || []));
-    localStorage.setItem('sx_worldbook_style', JSON.stringify(wbParts.sx_worldbook_style || []));
-    localStorage.setItem('sx_worldbook_global', JSON.stringify(wbParts.sx_worldbook_global || []));
-    localStorage.setItem('sx_worldbook_keywords', JSON.stringify(wbParts.sx_worldbook_keywords || []));
-    localStorage.setItem('sx_worldbook_backend', JSON.stringify(wbParts.sx_worldbook_backend || []));
-    localStorage.setItem('sx_worldbook_theater', JSON.stringify(wbParts.sx_worldbook_theater || []));
+    const smallKeys = {
+        'sx_active_api': activeApiIndex.toString(),
+        'sxiphone_lang': lang,
+        'sxiphone_region': region,
+        'sx_user_name': currentUserName,
+        'sx_user_avatar': currentUserAvatar,
+        'sx_user_personality': newUserPers,
+        'sx_user_background': newUserBG
+    };
+
+    for (const [key, value] of Object.entries(smallKeys)) {
+        localStorage.setItem(key, value);
+    }
+
+    const largeData = {
+        'sx_masks': masks,
+        'api_configs': apis,
+        'sx_worldbook_cot': wbParts.sx_worldbook_cot || [],
+        'sx_worldbook_style': wbParts.sx_worldbook_style || [],
+        'sx_worldbook_global': wbParts.sx_worldbook_global || [],
+        'sx_worldbook_keywords': wbParts.sx_worldbook_keywords || [],
+        'sx_worldbook_backend': wbParts.sx_worldbook_backend || [],
+        'sx_worldbook_theater': wbParts.sx_worldbook_theater || []
+    };
+
+    if (typeof SxStorage !== 'undefined') {
+        for (const [key, value] of Object.entries(largeData)) {
+            await SxStorage.setItem(key, value);
+        }
+    } else {
+        for (const [key, value] of Object.entries(largeData)) {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+        if (typeof localforage !== 'undefined') {
+            try {
+                await localforage.setItem('sx_app_persisted_data', {
+                    masks, apis, activeApiIndex, lang, region,
+                    userName: currentUserName, userAvatar: currentUserAvatar,
+                    userPersonality: newUserPers, userBackground: newUserBG,
+                    ...wbParts
+                });
+            } catch (e) {
+                console.error("IndexedDB 寫入失敗", e);
+            }
+        }
+    }
 
     if (typeof window.persistWorldbookIndex === 'function') {
         window.persistWorldbookIndex(wbParts);
     }
 
-    // 2. 針對 iOS 強制持久化至 IndexedDB (防止系統清理)
-    try {
-        await localforage.setItem('sx_app_persisted_data', {
-            masks: masks, 
-            apis: apis, 
-            activeApiIndex: activeApiIndex, 
-            lang: lang, 
-            region: region, 
-            // 自定義 CSS 已移除
-            userName: currentUserName, 
-            userAvatar: currentUserAvatar,
-            userPersonality: newUserPers,
-            userBackground: newUserBG,
-            sx_worldbook_cot: wbParts.sx_worldbook_cot || [],
-            sx_worldbook_style: wbParts.sx_worldbook_style || [],
-            sx_worldbook_global: wbParts.sx_worldbook_global || [],
-            sx_worldbook_keywords: wbParts.sx_worldbook_keywords || [],
-            sx_worldbook_backend: wbParts.sx_worldbook_backend || [],
-            sx_worldbook_theater: wbParts.sx_worldbook_theater || []
-        });
-        await localforage.setItem('api_configs_new', apis);
-        await localforage.setItem('sx_active_api_new', activeApiIndex);
-        console.log("iOS 持久化儲存成功");
-    } catch (e) {
-        console.error("IndexedDB 寫入失敗", e);
-    }
-    // 3. 跨應用通知：若在 iframe 則通知父視窗更新
     if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: 'settingsUpdated' }, '*');
         window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
         window.parent.postMessage({ type: 'LANGUAGE_CHANGED', lang }, '*');
     }
-    // 4. 本地 UI 更新
     applyLanguageToUI();
     window.dispatchEvent(new CustomEvent('sx-language-changed', { detail: { lang } }));
 }
@@ -833,6 +838,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const lsSize = document.getElementById('ls-size');
             const idbSize = document.getElementById('idb-size');
             const warningEl = document.getElementById('storage-warning');
+            const iosAlertEl = document.getElementById('ios-storage-alert');
             
             if (usageText) {
                 usageText.textContent = `${totalKB} KB`;
@@ -868,6 +874,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (warningEl) {
                 warningEl.classList.add('hidden');
             }
+            
+            if (iosAlertEl && iosWarning.isIOS) {
+                if (lsKB > 500 || iosWarning.warning) {
+                    iosAlertEl.classList.remove('hidden');
+                    if (window.lucide) lucide.createIcons();
+                } else {
+                    iosAlertEl.classList.add('hidden');
+                }
+            }
         } catch (e) {
             console.warn('[Settings] 更新儲存 UI 失敗:', e);
         }
@@ -875,37 +890,170 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const storageCleanupBtn = document.getElementById('storage-cleanup-btn');
     storageCleanupBtn?.addEventListener('click', async () => {
-        if (typeof UnifiedStorageManager === 'undefined') {
-            alert('UnifiedStorageManager 未載入');
-            return;
-        }
+        const cleanupModal = document.createElement('div');
+        cleanupModal.id = 'cleanup-modal';
+        cleanupModal.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
         
-        const manager = new UnifiedStorageManager();
+        cleanupModal.innerHTML = `
+            <div style="background: var(--ios-primary-bg); border-radius: 12px; max-width: 380px; width: 90%; padding: 20px;">
+                <h3 style="margin: 0 0 16px;">選擇清理方式</h3>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="cleanup-compress-btn" class="ios-btn" style="padding: 12px; text-align: left; background: linear-gradient(135deg, #34C759, #30D158);">
+                        <div style="font-weight: 600;">壓縮向量化 (推薦)</div>
+                        <div style="font-size: 11px; opacity: 0.9;">7天前資料壓縮成摘要，30天後刪除</div>
+                    </button>
+                    <button id="cleanup-delete-btn" class="ios-btn" style="padding: 12px; text-align: left; background: #FF9500;">
+                        <div style="font-weight: 600;">直接刪除舊資料</div>
+                        <div style="font-size: 11px; opacity: 0.9;">刪除 30 天前的資料</div>
+                    </button>
+                    <button id="cleanup-cache-btn" class="ios-btn" style="padding: 12px; text-align: left;">
+                        <div style="font-weight: 600;">僅清理快取</div>
+                        <div style="font-size: 11px; opacity: 0.8;">清除 Service Worker 快取</div>
+                    </button>
+                </div>
+                <button onclick="document.getElementById('cleanup-modal').remove()" style="margin-top: 16px; width: 100%; padding: 10px; background: var(--ios-secondary-bg); border: none; border-radius: 8px;">取消</button>
+            </div>
+        `;
         
-        if (!confirm('確定要清理舊資料嗎？\n\n將會：\n- 清除 30 天前的聊天快取\n- 清除 Service Worker 快取\n\n此操作無法復原。')) {
-            return;
-        }
+        document.body.appendChild(cleanupModal);
         
-        try {
-            const result = await manager.cleanup({
-                clearOldChatCache: true,
-                clearCache: true
-            });
+        document.getElementById('cleanup-compress-btn')?.addEventListener('click', async () => {
+            cleanupModal.remove();
             
-            let msg = '清理完成！\n';
-            if (result.localStorageCleared > 0) {
-                msg += `- 已清理 ${result.localStorageCleared} 個舊聊天室\n`;
-            }
-            if (result.cacheCleared) {
-                msg += '- 已清除 Service Worker 快取\n';
+            if (typeof SxStorage === 'undefined') {
+                alert('SxStorage 未載入');
+                return;
             }
             
-            alert(msg);
-            await updateStorageUI();
-            await updateIOSStoragePressure();
-        } catch (e) {
-            alert('清理失敗: ' + e.message);
-        }
+            try {
+                const btn = document.getElementById('storage-cleanup-btn');
+                btn.disabled = true;
+                btn.textContent = '處理中...';
+                
+                const stats = await SxStorage.compressAndVectorize({
+                    compressDays: 7,
+                    deleteDays: 30
+                });
+                
+                let msg = `清理完成！\n\n`;
+                msg += `📊 統計：\n`;
+                msg += `- 壓縮: ${stats.compressed} 筆\n`;
+                msg += `- 刪除: ${stats.deleted} 筆\n`;
+                msg += `- 向量化: ${stats.vectorized} 筆\n`;
+                msg += `- 節省: ${(stats.savedBytes / 1024).toFixed(1)} KB\n`;
+                
+                alert(msg);
+                await updateStorageUI();
+                await updateIOSStoragePressure();
+                
+                btn.disabled = false;
+                btn.textContent = '清理舊資料';
+            } catch (e) {
+                alert('清理失敗: ' + e.message);
+            }
+        });
+        
+        document.getElementById('cleanup-delete-btn')?.addEventListener('click', async () => {
+            cleanupModal.remove();
+            
+            if (typeof SxStorage === 'undefined') {
+                alert('SxStorage 未載入');
+                return;
+            }
+            
+            if (!confirm('確定要刪除 30 天前的舊資料嗎？\n\n此操作無法復原。')) {
+                return;
+            }
+            
+            try {
+                await SxStorage.clearOldData({ keepDays: 30 });
+                alert('清理完成！');
+                await updateStorageUI();
+                await updateIOSStoragePressure();
+            } catch (e) {
+                alert('清理失敗: ' + e.message);
+            }
+        });
+        
+        document.getElementById('cleanup-cache-btn')?.addEventListener('click', async () => {
+            cleanupModal.remove();
+            
+            if (typeof UnifiedStorageManager === 'undefined') {
+                alert('UnifiedStorageManager 未載入');
+                return;
+            }
+            
+            try {
+                const manager = new UnifiedStorageManager();
+                const result = await manager.cleanup({ clearCache: true });
+                alert(`快取清理完成！\n${result.cacheCleared ? '已清除 Service Worker 快取' : '無快取可清除'}`);
+            } catch (e) {
+                alert('清理失敗: ' + e.message);
+            }
+        });
+    });
+
+    const ipaGuideBtn = document.getElementById('ipa-guide-btn');
+    ipaGuideBtn?.addEventListener('click', () => {
+        const guideModal = document.createElement('div');
+        guideModal.id = 'ipa-guide-modal';
+        guideModal.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        guideModal.innerHTML = `
+            <div style="background: var(--ios-primary-bg); border-radius: 12px; max-width: 400px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0;">IPA 打包指南</h3>
+                    <button onclick="document.getElementById('ipa-guide-modal').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+                </div>
+                <div style="font-size: 13px; line-height: 1.6;">
+                    <p><strong>方法一：Capacitor (推薦)</strong></p>
+                    <ol style="padding-left: 20px; margin-bottom: 12px;">
+                        <li>npm install @capacitor/core @capacitor/cli @capacitor/ios</li>
+                        <li>npx cap init sxiphone com.sxiphone.app</li>
+                        <li>npx cap add ios</li>
+                        <li>npx cap sync ios</li>
+                        <li>npx cap open ios</li>
+                        <li>在 Xcode 中簽署並編譯</li>
+                    </ol>
+                    <p><strong>方法二：PWABuilder</strong></p>
+                    <ol style="padding-left: 20px; margin-bottom: 12px;">
+                        <li>造訪 pwabuilder.com</li>
+                        <li>輸入網站 URL</li>
+                        <li>下載 iOS專案</li>
+                        <li>在 Xcode 中簽署</li>
+                    </ol>
+                    <p><strong>簽署類型</strong></p>
+                    <ul style="padding-left: 20px;">
+                        <li>免費 Apple ID：7天有效</li>
+                        <li>開發者帳號 ($99/年)：1年有效</li>
+                    </ul>
+                    <p style="margin-top: 12px; padding: 8px; background: rgba(52,199,89,0.1); border-radius: 6px;">
+                        <strong>優點：</strong>獨立儲存空間，無5MB限制，不被iOS清除
+                    </p>
+                </div>
+                <a href="docs/IPA_BUILD_GUIDE.md" target="_blank" style="display: block; margin-top: 12px; padding: 10px; background: var(--ios-blue); color: white; text-align: center; border-radius: 8px; text-decoration: none;">
+                    查看完整指南文件
+                </a>
+            </div>
+        `;
+        
+        document.body.appendChild(guideModal);
     });
 
     const updateIOSStoragePressure = async () => {

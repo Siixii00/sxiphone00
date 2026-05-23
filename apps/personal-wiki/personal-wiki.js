@@ -803,7 +803,7 @@ async function loadChars() {
         select.appendChild(option);
     });
 
-    const settingsChars = getCharsFromSettings();
+    const settingsChars = await getCharsFromSettings();
     if (settingsChars.length > 0) {
         const settingsGroup = document.createElement('optgroup');
         settingsGroup.label = t('settingsChar');
@@ -831,17 +831,102 @@ async function loadChars() {
     }
 }
 
-function getCharsFromSettings() {
+async function getCharsFromSettings() {
     const allChars = [];
     
-    // 從 sx_characters 讀取角色
+    // 從 sx_characters讀取角色 (支援 localStorage + localforage)
     try {
+        let chars = [];
         const raw = localStorage.getItem('sx_characters');
         if (raw) {
-            const chars = JSON.parse(raw);
-            if (Array.isArray(chars)) {
-                chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                chars = parsed;
             }
+        }
+        
+        // localStorage沒有或為空，嘗試從 localforage讀取
+        if (chars.length === 0 && typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem('sx_characters');
+            if (idbData) {
+                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    chars = parsed;
+                }
+            }
+        }
+        
+        chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
+    } catch (e) {
+        console.error('[PersonalWiki] 讀取 sx_characters 失敗:', e);
+    }
+    
+    // 從 sx_users 讀取用戶角色 (支援 localStorage + localforage)
+    try {
+        let users = [];
+        const raw = localStorage.getItem('sx_users');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                users = parsed;
+            }
+        }
+        
+        if (users.length === 0 && typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem('sx_users');
+            if (idbData) {
+                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    users = parsed;
+                }
+            }
+        }
+        
+        users.forEach(u => allChars.push({ ...u, source: 'users' }));
+    } catch (e) {
+        console.error('[PersonalWiki] 讀取 sx_users 失敗:', e);
+    }
+    
+    // 從 sx_npcs 讀取 NPC 角色 (支援 localStorage + localforage)
+    try {
+        let npcs = [];
+        const raw = localStorage.getItem('sx_npcs');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                npcs = parsed;
+            }
+        }
+        
+        if (npcs.length === 0 && typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem('sx_npcs');
+            if (idbData) {
+                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    npcs = parsed;
+                }
+            }
+        }
+        
+        npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
+    } catch (e) {
+        console.error('[PersonalWiki] 讀取 sx_npcs 失敗:', e);
+    }
+    
+    // 如果有 SxSettings，使用它的 getAllPersonas 作為補充
+    if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
+        try {
+            const personas = SxSettings.getAllPersonas();
+            if (Array.isArray(personas) && personas.length > allChars.length) {
+                return personas;
+            }
+        } catch (e) {
+            console.error('[PersonalWiki] 從 SxSettings 讀取失敗:', e);
+        }
+    }
+    
+    return allChars;
+}
         }
     } catch (e) {
         console.error('[PersonalWiki] 讀取 sx_characters 失敗:', e);
@@ -936,7 +1021,7 @@ async function getAllMemoryData() {
 }
 
 async function importCharFromSettings(charIndex) {
-    const settingsChars = getCharsFromSettings();
+    const settingsChars = await getCharsFromSettings();
     if (charIndex < 0 || charIndex >= settingsChars.length) {
         alert(t('importCharFailed'));
         return;
@@ -2597,8 +2682,8 @@ function openAppearanceSettings(appId) {
     }
 }
 
-function showImportCharModal() {
-    const settingsChars = getCharsFromSettings();
+async function showImportCharModal() {
+    const settingsChars = await getCharsFromSettings();
     const list = document.getElementById('importCharList');
     
     if (settingsChars.length === 0) {

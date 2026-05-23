@@ -984,6 +984,32 @@
                 <i data-lucide="chevron-right" class="arrow"></i>
             </summary>
             <div class="list-card">
+                <div id="ios-storage-alert" class="hidden" style="padding: 12px; background: linear-gradient(135deg, rgba(255, 149, 0, 0.15), rgba(255, 69, 58, 0.1)); border-radius: 10px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <i data-lucide="alert-triangle" style="color: #FF9500;"></i>
+                        <span style="font-weight: 600; color: #FF9500;">iOS 儲存空間警告</span>
+                    </div>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                        iOS Safari 會在儲存空間不足時清除網站資料。建議以下方案：
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                            <i data-lucide="check-circle" style="color: #34C759; width: 14px;"></i>
+                            <span>啟用雲端備份 (GitHub/Supabase)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                            <i data-lucide="check-circle" style="color: #34C759; width: 14px;"></i>
+                            <span>打包成 IPA App (獨立儲存)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                            <i data-lucide="check-circle" style="color: #34C759; width: 14px;"></i>
+                            <span>定期清理舊資料</span>
+                        </div>
+                    </div>
+                    <button id="ipa-guide-btn" class="ios-btn" style="margin-top: 8px; font-size: 12px; padding: 6px 12px; background: linear-gradient(135deg, #FF9500, #FF453A); color: white;">
+                        查看 IPA 打包指南
+                    </button>
+                </div>
                 <div class="cell-v" style="margin-bottom: 16px; padding: 12px; background: var(--ios-secondary-bg); border-radius: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <span class="cell-label">儲存空間</span>

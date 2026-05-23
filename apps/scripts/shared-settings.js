@@ -10,6 +10,513 @@
         }
     };
 
+    const SxStorage = {
+        _initialized: false,
+        _useIndexedDBFirst: true,
+        _migrationComplete: false,
+        
+        priorityKeys: [
+            'sx_characters', 'sx_users', 'sx_npcs',
+            'sx_chat_sessions', 'sx_chat_history',
+            'sx_short_term_memory', 'sx_long_term_memory',
+            'sx_masks', 'sx_worldbook_cot', 'sx_worldbook_style',
+            'sx_worldbook_global', 'sx_worldbook_keywords',
+            'sx_worldbook_backend', 'sx_worldbook_theater'
+        ],
+        
+        async init() {
+            if (this._initialized) return;
+            this._initialized = true;
+            
+            if (typeof localforage === 'undefined') {
+                console.warn('[SxStorage] localforage 未載入，使用 localStorage 模式');
+                this._useIndexedDBFirst = false;
+                return;
+            }
+            
+            await this._checkMigrationStatus();
+            console.log('[SxStorage] 初始化完成，優先使用 IndexedDB');
+        },
+        
+        async _checkMigrationStatus() {
+            const status = localStorage.getItem('sx_storage_migration_status');
+            if (status === 'complete') {
+                this._migrationComplete = true;
+                return;
+            }
+            
+            await this._migrateAllPriorityKeys();
+        },
+        
+        async _migrateAllPriorityKeys() {
+            if (typeof localforage === 'undefined') return;
+            
+            let migratedCount = 0;
+            let freedBytes = 0;
+            
+            for (const key of this.priorityKeys) {
+                const value = localStorage.getItem(key);
+                if (!value) continue;
+                
+                try {
+                    await localforage.setItem(key, value);
+                    localStorage.removeItem(key);
+                    localStorage.setItem(`${key}_in_idb`, 'true');
+                    
+                    const size = (key.length + value.length) * 2;
+                    freedBytes += size;
+                    migratedCount++;
+                } catch (e) {
+                    console.error(`[SxStorage] 遷移 ${key} 失敗:`, e);
+                }
+            }
+            
+            if (migratedCount > 0) {
+                localStorage.setItem('sx_storage_migration_status', 'complete');
+                this._migrationComplete = true;
+                console.log(`[SxStorage] 遷移完成: ${migratedCount} 項, 釋放 ${(freedBytes / 1024).toFixed(1)} KB`);
+            }
+        },
+        
+        async setItem(key, value) {
+            await this.init();
+            
+            const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+            
+            if (this._useIndexedDBFirst && typeof localforage !== 'undefined') {
+                try {
+                    await localforage.setItem(key, serialized);
+                    localStorage.setItem(`${key}_in_idb`, 'true');
+                    
+                    localStorage.removeItem(key);
+                    return true;
+                } catch (e) {
+                    console.warn(`[SxStorage] IndexedDB 寫入失敗，回退 localStorage:`, e);
+                }
+            }
+            
+            try {
+                localStorage.setItem(key, serialized);
+                return true;
+            } catch (e) {
+                console.error(`[SxStorage] localStorage 寫入失敗:`, e);
+                return false;
+            }
+        },
+        
+        async getItem(key) {
+            await this.init();
+            
+            const inIdb = localStorage.getItem(`${key}_in_idb`) === 'true';
+            
+            if (inIdb && typeof localforage !== 'undefined') {
+                try {
+                    const value = await localforage.getItem(key);
+                    if (value !== null) return value;
+                } catch (e) {
+                    console.warn(`[SxStorage] IndexedDB讀取失敗:`, e);
+                }
+            }
+            
+            const lsValue = localStorage.getItem(key);
+            if (lsValue !== null) return lsValue;
+            
+            if (typeof localforage !== 'undefined') {
+                try {
+                    return await localforage.getItem(key);
+                } catch (e) {
+                    return null;
+                }
+            }
+            
+            return null;
+        },
+        
+        async getJson(key, fallback = []) {
+            const raw = await this.getItem(key);
+            return safeJsonParse(raw, fallback);
+        },
+        
+        async removeItem(key) {
+            localStorage.removeItem(key);
+            localStorage.removeItem(`${key}_in_idb`);
+            
+            if (typeof localforage !== 'undefined') {
+                try {
+                    await localforage.removeItem(key);
+                } catch (e) {}
+            }
+        },
+        
+        async getStorageUsage() {
+            let lsUsed = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    const value = localStorage.getItem(key);
+                    if (value) {
+                        lsUsed += (key.length + value.length) * 2;
+                    }
+                }
+            }
+            
+            let idbUsed = 0;
+            if (typeof localforage !== 'undefined') {
+                try {
+                    await localforage.iterate((value, key) => {
+                        const size = typeof value === 'string' 
+                            ? (key.length + value.length) * 2
+                            : (key.length + JSON.stringify(value).length) * 2;
+                        idbUsed += size;
+                    });
+                } catch (e) {}
+            }
+            
+            return {
+                localStorage: lsUsed,
+                indexedDB: idbUsed,
+                total: lsUsed + idbUsed,
+                localStorageKB: (lsUsed / 1024).toFixed(1),
+                indexedDBKB: (idbUsed / 1024).toFixed(1),
+                totalKB: ((lsUsed + idbUsed) / 1024).toFixed(1)
+            };
+        },
+        
+        async clearOldData(options = {}) {
+            const keepDays = options.keepDays || 7;
+            const cutoff = Date.now() - keepDays * 24 * 60 * 60 * 1000;
+            
+            const chatHistory = await this.getJson('sx_chat_history', []);
+            if (Array.isArray(chatHistory)) {
+                const filtered = chatHistory.filter(msg => {
+                    const ts = msg.timestamp || msg.createdAt;
+                    if (!ts) return true;
+                    return new Date(ts).getTime() > cutoff;
+                });
+                await this.setItem('sx_chat_history', filtered);
+            }
+            
+            const sessions = await this.getJson('sx_chat_sessions', []);
+            if (Array.isArray(sessions)) {
+                const filtered = sessions.filter(s => {
+                    const ts = s.lastMessageAt || s.updatedAt;
+                    if (!ts) return true;
+                    return new Date(ts).getTime() > cutoff;
+                });
+                await this.setItem('sx_chat_sessions', filtered);
+            }
+            
+            console.log(`[SxStorage] 清理完成，保留 ${keepDays} 天內資料`);
+        },
+        
+        async compressAndVectorize(options = {}) {
+            const compressDays = options.compressDays || 7;
+            const deleteDays = options.deleteDays || 30;
+            const now = Date.now();
+            const compressCutoff = now - compressDays * 24 * 60 * 60 * 1000;
+            const deleteCutoff = now - deleteDays * 24 * 60 * 60 * 1000;
+            
+            const stats = {
+                compressed: 0,
+                deleted: 0,
+                vectorized: 0,
+                savedBytes: 0
+            };
+            
+            const chatHistory = await this.getJson('sx_chat_history', []);
+            if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+                const compressedHistory = [];
+                const toDelete = [];
+                const toCompress = [];
+                
+                for (const msg of chatHistory) {
+                    const ts = new Date(msg.timestamp || msg.createdAt || 0).getTime();
+                    
+                    if (ts < deleteCutoff) {
+                        toDelete.push(msg);
+                        stats.deleted++;
+                    } else if (ts < compressCutoff) {
+                        toCompress.push(msg);
+                    } else {
+                        compressedHistory.push(msg);
+                    }
+                }
+                
+                if (toCompress.length > 0) {
+                    const compressed = await this._compressMessages(toCompress);
+                    compressedHistory.push(...compressed.compressed);
+                    stats.compressed = compressed.count;
+                    stats.savedBytes = compressed.savedBytes;
+                    
+                    if (compressed.vectors && compressed.vectors.length > 0) {
+                        await this._saveVectors(compressed.vectors, 'chat_history');
+                        stats.vectorized = compressed.vectors.length;
+                    }
+                }
+                
+                await this.setItem('sx_chat_history', compressedHistory);
+            }
+            
+            const sessions = await this.getJson('sx_chat_sessions', []);
+            if (Array.isArray(sessions) && sessions.length > 0) {
+                const activeSessions = [];
+                const toArchive = [];
+                
+                for (const session of sessions) {
+                    const ts = new Date(session.lastMessageAt || session.updatedAt || 0).getTime();
+                    
+                    if (ts < deleteCutoff) {
+                        stats.deleted++;
+                    } else if (ts < compressCutoff) {
+                        toArchive.push(session);
+                        stats.compressed++;
+                    } else {
+                        activeSessions.push(session);
+                    }
+                }
+                
+                if (toArchive.length > 0) {
+                    const archived = await this._compressSessions(toArchive);
+                    activeSessions.push(...archived.sessions);
+                    stats.savedBytes += archived.savedBytes;
+                    
+                    if (archived.vectors && archived.vectors.length > 0) {
+                        await this._saveVectors(archived.vectors, 'chat_sessions');
+                        stats.vectorized += archived.vectors.length;
+                    }
+                }
+                
+                await this.setItem('sx_chat_sessions', activeSessions);
+            }
+            
+            const memories = await this.getJson('sx_short_term_memory', []);
+            if (Array.isArray(memories) && memories.length > 0) {
+                const activeMemories = [];
+                const toArchive = [];
+                
+                for (const mem of memories) {
+                    const ts = new Date(mem.timestamp || mem.createdAt || 0).getTime();
+                    
+                    if (ts < deleteCutoff) {
+                        stats.deleted++;
+                    } else if (ts < compressCutoff) {
+                        toArchive.push(mem);
+                        stats.compressed++;
+                    } else {
+                        activeMemories.push(mem);
+                    }
+                }
+                
+                if (toArchive.length > 0) {
+                    const archived = await this._compressMemories(toArchive);
+                    activeMemories.push(...archived.memories);
+                    stats.savedBytes += archived.savedBytes;
+                    
+                    if (archived.vectors && archived.vectors.length > 0) {
+                        await this._saveVectors(archived.vectors, 'memories');
+                        stats.vectorized += archived.vectors.length;
+                    }
+                }
+                
+                await this.setItem('sx_short_term_memory', activeMemories);
+            }
+            
+            console.log(`[SxStorage] 壓縮向量化完成: 壓縮 ${stats.compressed}, 刪除 ${stats.deleted}, 向量化 ${stats.vectorized}, 節省 ${(stats.savedBytes / 1024).toFixed(1)} KB`);
+            
+            localStorage.setItem('sx_last_compress_cleanup', now.toString());
+            
+            return stats;
+        },
+        
+        async _compressMessages(messages) {
+            const compressed = [];
+            const vectors = [];
+            let savedBytes = 0;
+            
+            const grouped = {};
+            for (const msg of messages) {
+                const date = new Date(msg.timestamp || msg.createdAt).toDateString();
+                if (!grouped[date]) grouped[date] = [];
+                grouped[date].push(msg);
+            }
+            
+            for (const [date, msgs] of Object.entries(grouped)) {
+                const summary = {
+                    id: `compressed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'compressed_summary',
+                    date: date,
+                    messageCount: msgs.length,
+                    summary: this._generateSummary(msgs),
+                    participants: [...new Set(msgs.map(m => m.role || m.sender))],
+                    compressedAt: new Date().toISOString(),
+                    originalSize: JSON.stringify(msgs).length
+                };
+                
+                const vector = {
+                    id: summary.id,
+                    content: summary.summary,
+                    metadata: {
+                        date: date,
+                        messageCount: msgs.length,
+                        participants: summary.participants
+                    },
+                    createdAt: new Date().toISOString()
+                };
+                vectors.push(vector);
+                
+                compressed.push(summary);
+                savedBytes += summary.originalSize - JSON.stringify(summary).length;
+            }
+            
+            return { compressed, vectors, count: messages.length, savedBytes };
+        },
+        
+        async _compressSessions(sessions) {
+            const compressedSessions = [];
+            const vectors = [];
+            let savedBytes = 0;
+            
+            for (const session of sessions) {
+                const compressed = {
+                    id: session.id,
+                    charName: session.charName,
+                    compressedAt: new Date().toISOString(),
+                    messageCount: session.messages?.length || 0,
+                    summary: this._generateSessionSummary(session),
+                    lastMessageAt: session.lastMessageAt,
+                    originalSize: JSON.stringify(session).length
+                };
+                
+                if (session.messages && session.messages.length > 0) {
+                    const vector = {
+                        id: `session_${session.id}`,
+                        content: compressed.summary,
+                        metadata: {
+                            charName: session.charName,
+                            messageCount: compressed.messageCount
+                        },
+                        createdAt: new Date().toISOString()
+                    };
+                    vectors.push(vector);
+                }
+                
+                compressedSessions.push(compressed);
+                savedBytes += compressed.originalSize - JSON.stringify(compressed).length;
+            }
+            
+            return { sessions: compressedSessions, vectors, savedBytes };
+        },
+        
+        async _compressMemories(memories) {
+            const compressedMemories = [];
+            const vectors = [];
+            let savedBytes = 0;
+            
+            for (const mem of memories) {
+                const compressed = {
+                    id: mem.id,
+                    compressedAt: new Date().toISOString(),
+                    summary: mem.summary || mem.content?.substring(0, 200) || '',
+                    tags: mem.tags || [],
+                    emotion: mem.emotion,
+                    importance: mem.importance,
+                    originalSize: JSON.stringify(mem).length
+                };
+                
+                const vector = {
+                    id: mem.id,
+                    content: compressed.summary,
+                    metadata: {
+                        tags: compressed.tags,
+                        emotion: compressed.emotion,
+                        importance: compressed.importance
+                    },
+                    createdAt: new Date().toISOString()
+                };
+                vectors.push(vector);
+                
+                compressedMemories.push(compressed);
+                savedBytes += compressed.originalSize - JSON.stringify(compressed).length;
+            }
+            
+            return { memories: compressedMemories, vectors, savedBytes };
+        },
+        
+        _generateSummary(messages) {
+            const roles = {};
+            for (const msg of messages) {
+                const role = msg.role || msg.sender || 'unknown';
+                if (!roles[role]) roles[role] = [];
+                roles[role].push(msg.content || msg.text || '');
+            }
+            
+            const parts = [];
+            for (const [role, contents] of Object.entries(roles)) {
+                const totalLen = contents.reduce((sum, c) => sum + c.length, 0);
+                const avgLen = Math.round(totalLen / contents.length);
+                parts.push(`${role}: ${contents.length}則訊息 (平均${avgLen}字)`);
+            }
+            
+            return parts.join('; ');
+        },
+        
+        _generateSessionSummary(session) {
+            const msgs = session.messages || [];
+            if (msgs.length === 0) return '無訊息';
+            
+            const userMsgs = msgs.filter(m => m.role === 'user' || m.isUser).length;
+            const charMsgs = msgs.length - userMsgs;
+            
+            const lastMsg = msgs[msgs.length - 1];
+            const preview = (lastMsg?.content || lastMsg?.text || '').substring(0, 100);
+            
+            return `共${msgs.length}則訊息 (User:${userMsgs}, Char:${charMsgs})。最後: ${preview}...`;
+        },
+        
+        async _saveVectors(vectors, source) {
+            const existingVectors = await this.getJson('sx_compressed_vectors', []);
+            
+            for (const v of vectors) {
+                v.source = source;
+                existingVectors.push(v);
+            }
+            
+            await this.setItem('sx_compressed_vectors', existingVectors);
+        },
+        
+        async getCompressedVectors(options = {}) {
+            const vectors = await this.getJson('sx_compressed_vectors', []);
+            
+            if (options.source) {
+                return vectors.filter(v => v.source === options.source);
+            }
+            
+            return vectors;
+        },
+        
+        async searchCompressedData(query, options = {}) {
+            const vectors = await this.getCompressedVectors();
+            const results = [];
+            const queryLower = query.toLowerCase();
+            
+            for (const v of vectors) {
+                if (v.content && v.content.toLowerCase().includes(queryLower)) {
+                    results.push({
+                        id: v.id,
+                        content: v.content,
+                        metadata: v.metadata,
+                        source: v.source,
+                        score: 1
+                    });
+                }
+            }
+            
+            return results.sort((a, b) => b.score - a.score).slice(0, options.limit || 20);
+        }
+    };
+    
+    global.SxStorage = SxStorage;
+
     // --- 語言處理模組 ---
     const LanguageModule = {
         // 語言別名對應
