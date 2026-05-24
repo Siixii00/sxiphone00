@@ -3064,6 +3064,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         clientId: null,
         accessToken: null,
         tokenExpiry: null,
+        _tokenClient: null,
+        _gsiLoaded: false,
         
         SCOPES: 'https://www.googleapis.com/auth/drive.file',
         
@@ -3082,24 +3084,110 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         isConnected() {
             return this.isTokenValid();
         },
-        
+
+        /**
+         * 載入 Google Identity Services (GIS) SDK
+         */
+        async _loadGsi() {
+            if (this._gsiLoaded && window.google?.accounts?.oauth2) return;
+            return new Promise((resolve, reject) => {
+                if (window.google?.accounts?.oauth2) {
+                    this._gsiLoaded = true;
+                    return resolve();
+                }
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.defer = true;
+                script.onload = () => {
+                    this._gsiLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('Google Identity Services SDK 載入失敗'));
+                document.head.appendChild(script);
+            });
+        },
+
+        /**
+         * 使用 GIS Token Client 進行 OAuth 授權（彈出視窗方式）
+         */
         async authorize() {
             if (!this.clientId) {
                 throw new Error('請先設定 Client ID');
             }
-            
-            const redirectUri = window.location.origin + window.location.pathname;
-            const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + 
-                'client_id=' + encodeURIComponent(this.clientId) +
-                '&redirect_uri=' + encodeURIComponent(redirectUri) +
-                '&response_type=token' +
-                '&scope=' + encodeURIComponent(this.SCOPES) +
-                '&include_granted_scopes=true';
-            
-            window.location.href = authUrl;
+
+            await this._loadGsi();
+
+            return new Promise((resolve, reject) => {
+                try {
+                    this._tokenClient = google.accounts.oauth2.initTokenClient({
+                        client_id: this.clientId,
+                        scope: this.SCOPES,
+                        callback: (tokenResponse) => {
+                            if (tokenResponse.error) {
+                                reject(new Error(tokenResponse.error_description || tokenResponse.error));
+                                return;
+                            }
+                            
+                            this.accessToken = tokenResponse.access_token;
+                            const expiresIn = parseInt(tokenResponse.expires_in || '3600');
+                            this.tokenExpiry = Date.now() + expiresIn * 1000;
+                            
+                            localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
+                            localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                            
+                            console.info('[GDrive] 授權成功，token 有效期:', expiresIn, '秒');
+                            resolve(tokenResponse);
+                        },
+                        error_callback: (err) => {
+                            reject(new Error(err.message || '授權失敗'));
+                        }
+                    });
+
+                    // 觸發授權彈窗
+                    this._tokenClient.requestAccessToken();
+                } catch (e) {
+                    reject(new Error('初始化 OAuth 失敗: ' + e.message));
+                }
+            });
+        },
+
+        /**
+         * 如果 token 過期，嘗試靜默刷新
+         */
+        async ensureValidToken() {
+            if (this.isTokenValid()) return true;
+            if (!this.clientId) return false;
+
+            try {
+                await this._loadGsi();
+                return new Promise((resolve) => {
+                    const client = google.accounts.oauth2.initTokenClient({
+                        client_id: this.clientId,
+                        scope: this.SCOPES,
+                        prompt: '',  // 靜默模式（如果之前已授權過）
+                        callback: (resp) => {
+                            if (resp.error) {
+                                resolve(false);
+                                return;
+                            }
+                            this.accessToken = resp.access_token;
+                            this.tokenExpiry = Date.now() + parseInt(resp.expires_in || '3600') * 1000;
+                            localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
+                            localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                            resolve(true);
+                        },
+                        error_callback: () => resolve(false)
+                    });
+                    client.requestAccessToken();
+                });
+            } catch (_) {
+                return false;
+            }
         },
         
         parseTokenFromUrl() {
+            // 保留向後相容：舊的 implicit flow 回調解析
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             
@@ -3113,7 +3201,6 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                 localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, accessToken);
                 localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
                 
-                // 清除 URL 中的 token
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
                 return true;
@@ -3210,6 +3297,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         },
         
         disconnect() {
+            // 撤銷 token
+            if (this.accessToken) {
+                try {
+                    google?.accounts?.oauth2?.revoke?.(this.accessToken);
+                } catch (_) {}
+            }
+            
             localStorage.removeItem(GDRIVE_ACCESS_TOKEN_KEY);
             localStorage.removeItem(GDRIVE_TOKEN_EXPIRY_KEY);
             localStorage.removeItem(GDRIVE_USER_EMAIL_KEY);
@@ -3219,6 +3313,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             
             this.accessToken = null;
             this.tokenExpiry = null;
+            this._tokenClient = null;
         }
     };
 
@@ -3252,9 +3347,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             if (gdriveConnectedEl) gdriveConnectedEl.classList.add('hidden');
             
             if (GDriveService.clientId) {
-                setGDriveStatus('⚠️ Token 已過期，請重新授權', '#FF9500');
+                setGDriveStatus('⚠️ 尚未授權或 Token 已過期，請按「授權 Google Drive」', '#FF9500');
             } else {
-                setGDriveStatus('尚未設定 Client ID', '#666');
+                setGDriveStatus('請輸入 OAuth Client ID 後點擊「儲存」', '#666');
             }
         }
         
@@ -3267,8 +3362,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         GDriveService.init();
         
         if (!GDriveService.isTokenValid()) {
-            setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
-            return false;
+            // 嘗試靜默刷新 token
+            setGDriveStatus('Token 已過期，嘗試刷新...', '#FF9500');
+            const refreshed = await GDriveService.ensureValidToken();
+            if (!refreshed) {
+                setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
+                return false;
+            }
         }
         
         setGDriveStatus('正在收集資料...', '#007AFF');
@@ -3324,8 +3424,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         GDriveService.init();
         
         if (!GDriveService.isTokenValid()) {
-            setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
-            return false;
+            setGDriveStatus('Token 已過期，嘗試刷新...', '#FF9500');
+            const refreshed = await GDriveService.ensureValidToken();
+            if (!refreshed) {
+                setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
+                return false;
+            }
         }
         
         setGDriveStatus('正在下載備份...', '#007AFF');
@@ -3388,8 +3492,26 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     gdriveAuthorizeBtn?.addEventListener('click', async () => {
         GDriveService.init();
         
+        if (!GDriveService.clientId) {
+            setGDriveStatus('❌ 請先輸入並儲存 Client ID', '#FF453A');
+            return;
+        }
+
+        setGDriveStatus('正在開啟 Google 授權...', '#007AFF');
+        
         try {
             await GDriveService.authorize();
+            
+            // 授權成功，取得使用者資訊
+            setGDriveStatus('授權成功，正在取得帳號資訊...', '#007AFF');
+            try {
+                const userInfo = await GDriveService.getUserInfo();
+                if (userInfo.email) {
+                    localStorage.setItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
+                }
+            } catch (_) {}
+            
+            updateGDriveUI();
         } catch (err) {
             setGDriveStatus('❌ ' + err.message, '#FF453A');
         }

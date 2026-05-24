@@ -631,6 +631,86 @@ class UnifiedStorageManager {
     return this.sxStorage.migrateFromLocalStorage();
   }
 
+  /**
+   * 同步所有記憶資料（localStorage ↔ IndexedDB）
+   * @param {'push'|'pull'} direction
+   *   - push: localStorage → IndexedDB
+   *   - pull: IndexedDB → localStorage（寫入 sxStorage 快取，小型資料也同步 native）
+   * @returns {Promise<{shortTerm: {success, count?, reason?}, longTerm: {success, count?, reason?}}>}
+   */
+  async syncAllMemories(direction = 'push') {
+    await this._ensureStorage();
+
+    const MEMORY_KEYS = [
+      'sx_short_term_memory',
+      'sx_long_term_memory',
+      'sx_memory_associations',
+      'sx_memory_pool',
+      'sx_daily_awakening_state',
+      'sx_sleep_scheduler_state',
+      'sx_memory_identity',
+      'sx_chat_history',
+      'sx_chat_sessions',
+      'sx_characters',
+      'sx_users',
+      'sx_npcs',
+      'sx_masks',
+      'sx_char_name', 'sx_char_avatar', 'sx_char_personality', 'sx_char_background', 'sx_char_examples',
+      'sx_user_name', 'sx_user_avatar', 'sx_user_personality', 'sx_user_background',
+      'sx_worldbook_cot', 'sx_worldbook_style', 'sx_worldbook_global',
+      'sx_worldbook_keywords', 'sx_worldbook_backend', 'sx_worldbook_theater',
+      'sx_worldbook_mounts',
+      'sx_active_api',
+      'api_configs'
+    ];
+
+    const result = { shortTerm: { success: false }, longTerm: { success: false } };
+
+    try {
+      if (direction === 'push') {
+        // localStorage → IndexedDB
+        let pushed = 0;
+        for (const key of MEMORY_KEYS) {
+          try {
+            // 使用原生 localStorage 讀取（繞過 mirror 的快取）
+            const value = localStorage.getItem(key);
+            if (value !== null && value !== undefined) {
+              await this.sxStorage.setItem(key, value);
+              pushed++;
+            }
+          } catch (_) {}
+        }
+        result.shortTerm = { success: true, count: pushed };
+        result.longTerm = { success: true, count: pushed };
+        console.info(`[UnifiedStorageManager] syncAllMemories push: ${pushed} keys`);
+
+      } else if (direction === 'pull') {
+        // IndexedDB → localStorage（透過 mirror 或 native）
+        let pulled = 0;
+        for (const key of MEMORY_KEYS) {
+          try {
+            const value = await this.sxStorage.getItem(key);
+            if (value !== null && value !== undefined) {
+              // 寫入 localStorage（mirror 會同時寫 IndexedDB + native <8KB）
+              localStorage.setItem(key, value);
+              pulled++;
+            }
+          } catch (_) {}
+        }
+        result.shortTerm = { success: true, count: pulled };
+        result.longTerm = { success: true, count: pulled };
+        console.info(`[UnifiedStorageManager] syncAllMemories pull: ${pulled} keys`);
+      }
+    } catch (e) {
+      const msg = e.message || String(e);
+      result.shortTerm = { success: false, reason: msg };
+      result.longTerm = { success: false, reason: msg };
+      console.error('[UnifiedStorageManager] syncAllMemories 失敗:', e);
+    }
+
+    return result;
+  }
+
   async getStorageEstimate() {
     await this._ensureStorage();
     return this.sxStorage.getStorageEstimate();
