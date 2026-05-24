@@ -76,7 +76,9 @@
 
         saveConfig(newConfig) {
             this.config = { ...this.getDefaultConfig(), ...newConfig };
-            localStorage.setItem(CONFIG_KEY, JSON.stringify(this.config));
+            if (typeof sxStorage !== 'undefined' && sxStorage) {
+                sxStorage.setItem(CONFIG_KEY, JSON.stringify(this.config)).catch(() => {});
+            }
         }
 
         getSelectedCharacter() {
@@ -230,10 +232,8 @@
         }
 
         saveState() {
-            try {
-                localStorage.setItem(STATE_KEY, JSON.stringify(this.state));
-            } catch (e) {
-                console.warn('[FloatingMessenger] 保存狀態失敗:', e);
+            if (typeof sxStorage !== 'undefined' && sxStorage) {
+                sxStorage.setItem(STATE_KEY, JSON.stringify(this.state)).catch(() => {});
             }
         }
 
@@ -250,10 +250,8 @@
         }
 
         savePosition() {
-            try {
-                localStorage.setItem(POSITION_KEY, JSON.stringify(this.position));
-            } catch (e) {
-                console.warn('[FloatingMessenger] 保存位置失敗:', e);
+            if (typeof sxStorage !== 'undefined' && sxStorage) {
+                sxStorage.setItem(POSITION_KEY, JSON.stringify(this.position)).catch(() => {});
             }
         }
 

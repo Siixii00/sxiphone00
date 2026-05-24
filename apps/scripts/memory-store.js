@@ -1,189 +1,51 @@
-const DB_NAME = 'sx_memory_db';
-const DB_VERSION = 4;
-
 class MemoryStore {
   constructor() {
-    this.db = null;
+    this.sxStorage = null;
     this.isInitialized = false;
   }
 
   async init() {
-    if (this.isInitialized && this.db) {
-      console.log('[MemoryStore] 已初始化，跳過');
-      return this.db;
+    if (this.isInitialized) {
+      return true;
     }
 
-    return new Promise((resolve, reject) => {
-      console.log('[MemoryStore] 開始初始化 IndexedDB...');
-      
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    if (typeof sxStorage !== 'undefined') {
+      this.sxStorage = sxStorage;
+      await this.sxStorage.init();
+      this.isInitialized = true;
+      console.log('[MemoryStore] 初始化完成，使用 sxStorage');
+      return true;
+    }
 
-      request.onerror = (event) => {
-        console.error('[MemoryStore] IndexedDB 打開失敗:', event.target.error);
-        reject(new Error(`IndexedDB 初始化失敗: ${event.target.error}`));
-      };
-
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        this.isInitialized = true;
-        console.log('[MemoryStore] IndexedDB 初始化成功');
-        resolve(this.db);
-      };
-
-      request.onupgradeneeded = (event) => {
-        console.log('[MemoryStore] 執行 schema 升級...');
-        const db = event.target.result;
-        const transaction = event.target.transaction;
-        this._createSchema(db, transaction);
-      };
-    });
+    console.warn('[MemoryStore] sxStorage 未載入');
+    return false;
   }
 
-  _createSchema(db, transaction) {
-    // 處理 memories store
-    if (!db.objectStoreNames.contains('memories')) {
-      const memoriesStore = db.createObjectStore('memories', { keyPath: 'id' });
-      memoriesStore.createIndex('type', 'metadata.type', { unique: false });
-      memoriesStore.createIndex('importance', 'metadata.importance', { unique: false });
-      memoriesStore.createIndex('lastActive', 'metadata.lastActive', { unique: false });
-      memoriesStore.createIndex('created', 'metadata.created', { unique: false });
-      memoriesStore.createIndex('region', 'region.primary', { unique: false });
-      memoriesStore.createIndex('consolidated', 'metadata.consolidated', { unique: false });
-      memoriesStore.createIndex('hash', 'hash', { unique: false });
-      console.log('[MemoryStore] memories store 創建完成');
-    } else if (transaction) {
-      // 在現有 store 上添加缺少的 index
-      const store = transaction.objectStore('memories');
-      
-      if (!store.indexNames.contains('hash')) {
-        store.createIndex('hash', 'hash', { unique: false });
-        console.log('[MemoryStore] 已添加 hash index 到 memories store');
-      }
-      if (!store.indexNames.contains('consolidated')) {
-        store.createIndex('consolidated', 'metadata.consolidated', { unique: false });
-        console.log('[MemoryStore] 已添加 consolidated index 到 memories store');
-      }
-    }
-
-    if (!db.objectStoreNames.contains('embeddings')) {
-      const embeddingsStore = db.createObjectStore('embeddings', { keyPath: 'id' });
-      embeddingsStore.createIndex('createdAt', 'createdAt', { unique: false });
-      console.log('[MemoryStore] embeddings store 創建完成');
-    }
-
-    if (!db.objectStoreNames.contains('metadata')) {
-      db.createObjectStore('metadata', { keyPath: 'key' });
-      console.log('[MemoryStore] metadata store 創建完成');
-    }
-
-    console.log('[MemoryStore] Schema 升級完成');
+  get db() {
+    return this.sxStorage?.db || null;
   }
 
   async close() {
-    if (this.db) {
-      this.db.close();
-      this.db = null;
-      this.isInitialized = false;
-      console.log('[MemoryStore] 資料庫已關閉');
+    if (this.sxStorage) {
+      await this.sxStorage.close();
     }
+    this.isInitialized = false;
+    console.log('[MemoryStore] 已關閉');
   }
 
   async clear() {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
-    }
-
-    const storeNames = ['memories', 'embeddings', 'metadata'];
-    
-    for (const storeName of storeNames) {
-      await this._clearStore(storeName);
+    if (!this.sxStorage) {
+      throw new Error('Storage 未初始化');
     }
     
-    console.log('[MemoryStore] 所有資料已清除');
-  }
-
-  _clearStore(storeName) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.clear();
-
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] ${storeName} 已清除`);
-        resolve();
-      };
-
-      request.onerror = (event) => {
-        console.error(`[MemoryStore] 清除 ${storeName} 失敗:`, event.target.error);
-        reject(event.target.error);
-      };
-    });
-  }
-
-  getStore(storeName, mode = 'readonly') {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
-    }
-    const transaction = this.db.transaction(storeName, mode);
-    return transaction.objectStore(storeName);
-  }
-
-  async addMemory(memory) {
-    return this._addRecord('memories', memory);
-  }
-
-  async getMemory(id) {
-    return this._getRecord('memories', id);
-  }
-
-  async addEmbedding(embedding) {
-    return this._addRecord('embeddings', embedding);
-  }
-
-  async getEmbedding(id) {
-    return this._getRecord('embeddings', id);
-  }
-
-  async setMetadata(key, value) {
-    return this._addRecord('metadata', { key, value });
-  }
-
-  async getMetadata(key) {
-    const record = await this._getRecord('metadata', key);
-    return record ? record.value : null;
-  }
-
-  _addRecord(storeName, data) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.add(data);
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (event) => {
-        console.error(`[MemoryStore] 新增 ${storeName} 失敗:`, event.target.error);
-        reject(event.target.error);
-      };
-    });
-  }
-
-  _getRecord(storeName, id) {
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const request = store.get(id);
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = (event) => {
-        console.error(`[MemoryStore] 讀取 ${storeName} 失敗:`, event.target.error);
-        reject(event.target.error);
-      };
-    });
+    await this.sxStorage._clearStore('memories');
+    await this.sxStorage._clearStore('embeddings');
+    console.log('[MemoryStore] 所有記憶資料已清除');
   }
 
   async create(memory) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
 
     const contentHash = this._djb2Hash(memory.content || '');
@@ -199,75 +61,43 @@ class MemoryStore {
       id: memory.id || `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       content: memory.content || '',
       embedding: memory.embedding || null,
-      metadata: {
-        created: memory.metadata?.created || now,
-        lastActive: memory.metadata?.lastActive || now,
-        activationCount: memory.metadata?.activationCount || 1,
-        importance: memory.metadata?.importance || 5,
-        type: memory.metadata?.type || 'dynamic',
-        source: memory.metadata?.source || 'chat',
-        resolved: memory.metadata?.resolved || false,
-        digested: memory.metadata?.digested || false,
-        pinned: memory.metadata?.pinned || false,
-        consolidated: memory.metadata?.consolidated || false,
-        consolidatedAt: memory.metadata?.consolidatedAt || null
-      },
-      emotion: memory.emotion || { valence: 0.5, arousal: 0.5 },
+      charId: memory.charId || null,
+      type: memory.type || memory.metadata?.type || 'dynamic',
+      importance: memory.importance || memory.metadata?.importance || 5,
       tags: memory.tags || [],
       domain: memory.domain || [],
+      emotion: memory.emotion || { valence: 0.5, arousal: 0.5 },
       hash: contentHash,
       score: memory.score || 0,
-      region: memory.region || null
+      region: memory.region || null,
+      createdAt: memory.createdAt || memory.metadata?.created || now,
+      lastActive: memory.lastActive || memory.metadata?.lastActive || now,
+      activationCount: memory.activationCount || memory.metadata?.activationCount || 1,
+      source: memory.source || memory.metadata?.source || 'chat',
+      consolidated: memory.consolidated || memory.metadata?.consolidated || false,
+      metadata: memory.metadata || {}
     };
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readwrite');
-      const store = transaction.objectStore('memories');
-      const request = store.add(fullMemory);
-
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] 記憶創建成功: ${fullMemory.id}`);
-        resolve(fullMemory);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 創建記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    await this.sxStorage.saveMemory(fullMemory);
+    console.log(`[MemoryStore] 記憶創建成功: ${fullMemory.id}`);
+    return fullMemory;
   }
 
   async _findByHash(hash) {
-    if (!this.db) return null;
+    if (!this.sxStorage) return null;
     
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readonly');
-      const store = transaction.objectStore('memories');
-      const index = store.index('hash');
-      const request = index.get(hash);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 查找 hash 失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    const memories = await this.sxStorage.getAllMemories();
+    return memories.find(m => m.hash === hash) || null;
   }
 
   async _reinforceExisting(existing, newMemory) {
     const updated = { ...existing };
     
-    updated.metadata = {
-      ...updated.metadata,
-      activationCount: (updated.metadata?.activationCount || 1) + 1,
-      lastActive: new Date().toISOString(),
-      importance: Math.max(updated.metadata?.importance || 5, newMemory.metadata?.importance || 5),
-      reinforcementCount: (updated.metadata?.reinforcementCount || 0) + 1,
-      lastReinforced: new Date().toISOString()
-    };
+    updated.activationCount = (updated.activationCount || 1) + 1;
+    updated.lastActive = new Date().toISOString();
+    updated.importance = Math.max(updated.importance || 5, newMemory.importance || newMemory.metadata?.importance || 5);
+    updated.reinforcementCount = (updated.reinforcementCount || 0) + 1;
+    updated.lastReinforced = new Date().toISOString();
     
     if (newMemory.tags && newMemory.tags.length > 0) {
       updated.tags = [...new Set([...(updated.tags || []), ...newMemory.tags])];
@@ -283,53 +113,22 @@ class MemoryStore {
         arousal: Math.max(updated.emotion?.arousal || 0.5, newMemory.emotion.arousal || 0.5)
       };
     }
-    
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readwrite');
-      const store = transaction.objectStore('memories');
-      const request = store.put(updated);
 
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] 記憶強化成功: ${updated.id}`);
-        resolve(updated);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 強化記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    await this.sxStorage.saveMemory(updated);
+    console.log(`[MemoryStore] 記憶強化成功: ${updated.id}`);
+    return updated;
   }
 
   async read(id) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readonly');
-      const store = transaction.objectStore('memories');
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        if (request.result) {
-          console.log(`[MemoryStore] 讀取記憶成功: ${id}`);
-        } else {
-          console.log(`[MemoryStore] 記憶不存在: ${id}`);
-        }
-        resolve(request.result || null);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 讀取記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    return this.sxStorage.getMemory(id);
   }
 
   async update(id, updates) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
 
     const existing = await this.read(id);
@@ -346,11 +145,14 @@ class MemoryStore {
     if (updates.embedding !== undefined) {
       updated.embedding = updates.embedding;
     }
-    if (updates.metadata) {
-      updated.metadata = { ...updated.metadata, ...updates.metadata };
-      if (updates.metadata.lastActive === undefined) {
-        updated.metadata.lastActive = new Date().toISOString();
-      }
+    if (updates.importance !== undefined) {
+      updated.importance = updates.importance;
+    }
+    if (updates.type !== undefined) {
+      updated.type = updates.type;
+    }
+    if (updates.charId !== undefined) {
+      updated.charId = updates.charId;
     }
     if (updates.emotion) {
       updated.emotion = { ...updated.emotion, ...updates.emotion };
@@ -367,27 +169,20 @@ class MemoryStore {
     if (updates.region !== undefined) {
       updated.region = updates.region;
     }
+    if (updates.metadata) {
+      updated.metadata = { ...updated.metadata, ...updates.metadata };
+    }
+    
+    updated.lastActive = new Date().toISOString();
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readwrite');
-      const store = transaction.objectStore('memories');
-      const request = store.put(updated);
-
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] 更新記憶成功: ${id}`);
-        resolve(updated);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 更新記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    await this.sxStorage.saveMemory(updated);
+    console.log(`[MemoryStore] 更新記憶成功: ${id}`);
+    return updated;
   }
 
   async delete(id) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
 
     const existing = await this.read(id);
@@ -396,118 +191,36 @@ class MemoryStore {
       return false;
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readwrite');
-      const store = transaction.objectStore('memories');
-      const request = store.delete(id);
-
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] 刪除記憶成功: ${id}`);
-        resolve(true);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 刪除記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    await this.sxStorage.deleteMemory(id);
+    console.log(`[MemoryStore] 刪除記憶成功: ${id}`);
+    return true;
   }
 
   async getAll(options = {}) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readonly');
-      const store = transaction.objectStore('memories');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        let results = request.result || [];
-        
-        if (options.type) {
-          results = results.filter(m => m.metadata?.type === options.type);
-        }
-        if (options.minImportance !== undefined) {
-          results = results.filter(m => (m.metadata?.importance || 0) >= options.minImportance);
-        }
-        if (options.limit && results.length > options.limit) {
-          results = results.slice(0, options.limit);
-        }
-
-        console.log(`[MemoryStore] 獲取所有記憶: ${results.length} 條`);
-        resolve(results);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 獲取所有記憶失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    return this.sxStorage.getAllMemories(options);
   }
 
   async getByType(type) {
     return this.getAll({ type });
   }
 
+  async getByCharId(charId) {
+    if (!this.sxStorage) {
+      await this.init();
+    }
+    return this.sxStorage.getMemoriesByCharId(charId);
+  }
+
   async query(filters = {}) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
-    }
-
-    let results = await this.getAll();
-
-    if (filters.type) {
-      results = results.filter(m => m.metadata?.type === filters.type);
-    }
-    if (filters.minImportance !== undefined) {
-      results = results.filter(m => (m.metadata?.importance || 0) >= filters.minImportance);
-    }
-    if (filters.maxImportance !== undefined) {
-      results = results.filter(m => (m.metadata?.importance || 0) <= filters.maxImportance);
-    }
-    if (filters.resolved !== undefined) {
-      results = results.filter(m => m.metadata?.resolved === filters.resolved);
-    }
-    if (filters.pinned !== undefined) {
-      results = results.filter(m => m.metadata?.pinned === filters.pinned);
-    }
-    if (filters.tags && filters.tags.length > 0) {
-      results = results.filter(m => 
-        filters.tags.some(tag => m.tags?.includes(tag))
-      );
-    }
-    if (filters.domain && filters.domain.length > 0) {
-      results = results.filter(m => 
-        filters.domain.some(d => m.domain?.includes(d))
-      );
-    }
-    if (filters.since) {
-      const sinceDate = new Date(filters.since);
-      results = results.filter(m => new Date(m.metadata?.created) >= sinceDate);
-    }
-    if (filters.until) {
-      const untilDate = new Date(filters.until);
-      results = results.filter(m => new Date(m.metadata?.created) <= untilDate);
-    }
-    if (filters.region) {
-      results = results.filter(m => m.region?.primary === filters.region);
-    }
-    if (filters.consolidated !== undefined) {
-      results = results.filter(m => m.metadata?.consolidated === filters.consolidated);
-    }
-    if (filters.limit && results.length > filters.limit) {
-      results = results.slice(0, filters.limit);
-    }
-
-    console.log(`[MemoryStore] 查詢結果: ${results.length} 條`);
-    return results;
+    return this.getAll(filters);
   }
 
   async searchByEmbedding(embedding, k = 10) {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
+    if (!this.sxStorage) {
+      await this.init();
     }
     if (!embedding) {
       throw new Error('無效的嵌入向量');
@@ -537,30 +250,80 @@ class MemoryStore {
   }
 
   async count() {
-    if (!this.db) {
-      throw new Error('資料庫未初始化');
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction('memories', 'readonly');
-      const store = transaction.objectStore('memories');
-      const request = store.count();
-
-      request.onsuccess = () => {
-        console.log(`[MemoryStore] 記憶總數: ${request.result}`);
-        resolve(request.result);
-      };
-
-      request.onerror = (event) => {
-        console.error('[MemoryStore] 獲取計數失敗:', event.target.error);
-        reject(event.target.error);
-      };
-    });
+    const memories = await this.getAll();
+    return memories.length;
   }
 
   async exists(id) {
     const memory = await this.read(id);
     return memory !== null;
+  }
+
+  async addMemory(memory) {
+    return this.create(memory);
+  }
+
+  async getMemory(id) {
+    return this.read(id);
+  }
+
+  async addEmbedding(embedding) {
+    if (!this.sxStorage) {
+      await this.init();
+    }
+    
+    const record = {
+      id: embedding.id || `emb_${Date.now()}`,
+      memoryId: embedding.memoryId,
+      vector: embedding.vector || embedding.embedding,
+      createdAt: new Date().toISOString()
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.sxStorage.db.transaction('embeddings', 'readwrite');
+      const store = transaction.objectStore('embeddings');
+      const request = store.put(record);
+
+      request.onsuccess = () => resolve(record);
+      request.onerror = (event) => reject(event.target.error);
+    });
+  }
+
+  async getEmbedding(id) {
+    if (!this.sxStorage) {
+      await this.init();
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.sxStorage.db.transaction('embeddings', 'readonly');
+      const store = transaction.objectStore('embeddings');
+      const request = store.get(id);
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = (event) => reject(event.target.error);
+    });
+  }
+
+  async setMetadata(key, value) {
+    if (!this.sxStorage) {
+      await this.init();
+    }
+    return this.sxStorage.saveSetting(key, value);
+  }
+
+  async getMetadata(key) {
+    if (!this.sxStorage) {
+      await this.init();
+    }
+    return this.sxStorage.getSetting(key);
+  }
+
+  getStore(storeName, mode = 'readonly') {
+    if (!this.sxStorage || !this.sxStorage.db) {
+      throw new Error('資料庫未初始化');
+    }
+    const transaction = this.sxStorage.db.transaction(storeName, mode);
+    return transaction.objectStore(storeName);
   }
 
   _djb2Hash(str) {

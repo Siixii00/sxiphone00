@@ -274,6 +274,40 @@ function fakePreviewImage(styleId) {
   return svg;
 }
 
+const ImageHostService = {
+    isEnabled() {
+        return localStorage.getItem('sx_image_host_enabled') === 'true';
+    },
+    
+    async uploadToCatbox(dataUrl) {
+        try {
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            const ext = dataUrl.includes('svg') ? 'svg' : 'png';
+            const file = new File([blob], `image.${ext}`, { type: blob.type || 'image/png' });
+            
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', file);
+            
+            const userhash = localStorage.getItem('sx_catbox_userhash') || '';
+            if (userhash) formData.append('userhash', userhash);
+            
+            const res = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!res.ok) return null;
+            const url = await res.text();
+            return url && url.startsWith('https://') ? url.trim() : null;
+        } catch (e) {
+            console.warn('[SmartPainter] 圖床上傳失敗:', e);
+            return null;
+        }
+    }
+};
+
 function simulateGeneration() {
   const promptText = promptInput.value.trim();
   if (!promptText) {
@@ -286,7 +320,7 @@ function simulateGeneration() {
   generateBtn.disabled = true;
   generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 合成中…';
 
-  setTimeout(() => {
+  setTimeout(async () => {
     const preview = fakePreviewImage(activeStyle?.id);
     const record = {
       timestamp: Date.now(),
@@ -297,9 +331,19 @@ function simulateGeneration() {
     history = history.slice(-8);
     saveToStorage(STORAGE_KEYS.history, history);
     renderHistory();
+    
+    let imageUrl = preview;
+    if (ImageHostService.isEnabled()) {
+        const uploadedUrl = await ImageHostService.uploadToCatbox(preview);
+        if (uploadedUrl) {
+            imageUrl = uploadedUrl;
+            console.log('[SmartPainter] 圖片已上傳到圖床:', uploadedUrl);
+        }
+    }
+    
     window.parent?.postMessage({
       type: 'ALBUM_ADD_IMAGE',
-      url: preview,
+      url: imageUrl,
       source: 'painter'
     }, '*');
     

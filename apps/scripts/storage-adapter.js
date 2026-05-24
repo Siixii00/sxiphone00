@@ -1,237 +1,297 @@
 class StorageAdapter {
-    constructor() {
-        this.isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
-        this.preferIndexedDB = this.isIOS;
-        this._localforageReady = false;
-        this._initPromise = this._initLocalforage();
-        this._cache = new Map();
-        this._cacheExpiry = new Map();
-        this.CACHE_TTL = 30000;
+  constructor() {
+    this.sxStorage = null;
+    this._initPromise = this._init();
+    this._cache = new Map();
+    this._cacheExpiry = new Map();
+    this.CACHE_TTL = 60000;
+  }
+
+  async _init() {
+    if (typeof sxStorage !== 'undefined') {
+      this.sxStorage = sxStorage;
+      await this.sxStorage.init();
+      console.log('[StorageAdapter] sxStorage 初始化完成');
+      return true;
     }
+    console.error('[StorageAdapter] sxStorage 未載入！所有儲存功能無法運作。');
+    return false;
+  }
 
-    async _initLocalforage() {
-        if (typeof localforage === 'undefined') {
-            console.warn('[StorageAdapter] localforage 未載入');
-            return false;
-        }
-        try {
-            if (!localforage._config || !localforage._config.storeName) {
-                localforage.config({
-                    name: 'sxiphone',
-                    storeName: 'keyvaluepairs',
-                    driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
-                });
-            }
-            this._localforageReady = true;
-            console.log('[StorageAdapter] localforage 初始化完成，iOS模式:', this.isIOS);
-            return true;
-        } catch (e) {
-            console.error('[StorageAdapter] localforage 初始化失敗:', e);
-            return false;
-        }
+  async ready() {
+    return this._initPromise;
+  }
+
+  _getCache(key) {
+    if (this._cache.has(key)) {
+      const expiry = this._cacheExpiry.get(key);
+      if (expiry && Date.now() < expiry) {
+        return this._cache.get(key);
+      }
+      this._cache.delete(key);
+      this._cacheExpiry.delete(key);
     }
+    return undefined;
+  }
 
-    async ready() {
-        return this._initPromise;
+  _setCache(key, value) {
+    this._cache.set(key, value);
+    this._cacheExpiry.set(key, Date.now() + this.CACHE_TTL);
+  }
+
+  _clearCache(key) {
+    if (key) {
+      this._cache.delete(key);
+      this._cacheExpiry.delete(key);
+    } else {
+      this._cache.clear();
+      this._cacheExpiry.clear();
     }
+  }
 
-    _shouldCacheToLocalStorage(key, value) {
-        if (!this.isIOS) return true;
-        const smallKeys = [
-            'sx_user_name', 'sx_user_avatar', 'sx_user_background', 'sx_user_personality',
-            'sx_char_name', 'sx_char_avatar', 'sx_char_personality', 'sx_char_background',
-            'sx_chat_active', 'sx_theme', 'sx_language'
-        ];
-        if (smallKeys.includes(key)) return true;
-        if (key === 'sx_chat_history_cache') return true;
-        return false;
+  // ─── key-value store ────────────────────────────────────────────────────────
+
+  async setItem(key, value) {
+    await this._initPromise;
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+    this._setCache(key, stringValue);
+    if (this.sxStorage) {
+      await this.sxStorage.setItem(key, stringValue);
+      return true;
     }
+    console.error('[StorageAdapter] sxStorage 不可用，setItem 失敗:', key);
+    return false;
+  }
 
-    async setItem(key, value) {
-        await this._initPromise;
-        const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-        
-        this._cache.set(key, value);
-        this._cacheExpiry.set(key, Date.now() + this.CACHE_TTL);
-
-        if (this.preferIndexedDB && this._localforageReady) {
-            try {
-                await localforage.setItem(key, stringValue);
-                if (this._shouldCacheToLocalStorage(key, stringValue)) {
-                    try {
-                        localStorage.setItem(key, stringValue);
-                    } catch (e) {
-                        console.warn('[StorageAdapter] localStorage 快取失敗:', e);
-                    }
-                }
-                return true;
-            } catch (e) {
-                console.error('[StorageAdapter] IndexedDB 寫入失敗:', e);
-            }
-        }
-
-        try {
-            localStorage.setItem(key, stringValue);
-            return true;
-        } catch (e) {
-            console.error('[StorageAdapter] localStorage 寫入失敗:', e);
-            if (this._localforageReady) {
-                try {
-                    await localforage.setItem(key, stringValue);
-                    return true;
-                } catch (e2) {
-                    console.error('[StorageAdapter] 備援寫入也失敗:', e2);
-                }
-            }
-            return false;
-        }
+  async getItem(key) {
+    await this._initPromise;
+    const cached = this._getCache(key);
+    if (cached !== undefined) return cached;
+    if (this.sxStorage) {
+      const value = await this.sxStorage.getItem(key);
+      if (value !== null) {
+        this._setCache(key, value);
+        return value;
+      }
     }
+    return null;
+  }
 
-    async getItem(key) {
-        await this._initPromise;
+  async getJSON(key) {
+    const value = await this.getItem(key);
+    if (value === null) return null;
+    try { return JSON.parse(value); }
+    catch { return value; }
+  }
 
-        if (this._cache.has(key)) {
-            const expiry = this._cacheExpiry.get(key);
-            if (expiry && Date.now() < expiry) {
-                return this._cache.get(key);
-            }
-            this._cache.delete(key);
-            this._cacheExpiry.delete(key);
-        }
+  async setJSON(key, value) {
+    return this.setItem(key, JSON.stringify(value));
+  }
 
-        if (this.preferIndexedDB && this._localforageReady) {
-            try {
-                const value = await localforage.getItem(key);
-                if (value !== null) {
-                    this._cache.set(key, value);
-                    this._cacheExpiry.set(key, Date.now() + this.CACHE_TTL);
-                    return value;
-                }
-            } catch (e) {
-                console.warn('[StorageAdapter] IndexedDB 讀取失敗，嘗試 localStorage:', e);
-            }
-        }
+  async removeItem(key) {
+    await this._initPromise;
+    this._clearCache(key);
+    if (this.sxStorage) {
+      await this.sxStorage.removeItem(key);
+      return true;
+    }
+    console.error('[StorageAdapter] sxStorage 不可用，removeItem 失敗:', key);
+    return false;
+  }
 
+  async getAllKeys() {
+    await this._initPromise;
+    if (this.sxStorage) {
+      return this.sxStorage.getAllKeys();
+    }
+    console.error('[StorageAdapter] sxStorage 不可用，無法列金鑰');
+    return [];
+  }
+
+  // ─── chat session CRUD ──────────────────────────────────────────────────────
+
+  async saveChatSession(session) {
+    return this.sxStorage?.saveChatSession?.(session) ?? null;
+  }
+
+  async getChatSession(id) {
+    return this.sxStorage?.getChatSession?.(id) ?? null;
+  }
+
+  async getAllChatSessions() {
+    return this.sxStorage?.getAllChatSessions?.() ?? [];
+  }
+
+  async deleteChatSession(id) {
+    return this.sxStorage?.deleteChatSession?.(id) ?? false;
+  }
+
+  // ─── character CRUD ─────────────────────────────────────────────────────────
+
+  async saveCharacter(character) {
+    return this.sxStorage?.saveCharacter?.(character) ?? null;
+  }
+
+  async getCharacter(id) {
+    return this.sxStorage?.getCharacter?.(id) ?? null;
+  }
+
+  async getAllCharacters() {
+    return this.sxStorage?.getAllCharacters?.() ?? [];
+  }
+
+  async deleteCharacter(id) {
+    return this.sxStorage?.deleteCharacter?.(id) ?? false;
+  }
+
+  // ─── memory CRUD ────────────────────────────────────────────────────────────
+
+  async saveMemory(memory) {
+    return this.sxStorage?.saveMemory?.(memory) ?? null;
+  }
+
+  async getMemory(id) {
+    return this.sxStorage?.getMemory?.(id) ?? null;
+  }
+
+  async getAllMemories(options) {
+    return this.sxStorage?.getAllMemories?.(options) ?? [];
+  }
+
+  async deleteMemory(id) {
+    return this.sxStorage?.deleteMemory?.(id) ?? false;
+  }
+
+  // ─── settings CRUD ──────────────────────────────────────────────────────────
+
+  async saveSetting(key, value) {
+    return this.sxStorage?.saveSetting?.(key, value) ?? null;
+  }
+
+  async getSetting(key) {
+    return this.sxStorage?.getSetting?.(key) ?? null;
+  }
+
+  async getAllSettings() {
+    return this.sxStorage?.getAllSettings?.() ?? {};
+  }
+
+  // ─── migration (one-shot, reads native localStorage only during this call) ───
+
+  async migrateFromLocalStorage(keys) {
+    if (!this.sxStorage) {
+      console.warn('[StorageAdapter] 無法遷移：sxStorage 未就緒');
+      return { migrated: 0, errors: [] };
+    }
+    const result = { migrated: 0, errors: [] };
+    for (const key of keys) {
+      try {
         const localValue = localStorage.getItem(key);
         if (localValue !== null) {
-            this._cache.set(key, localValue);
-            this._cacheExpiry.set(key, Date.now() + this.CACHE_TTL);
+          await this.sxStorage.setItem(key, localValue);
+          console.info('[StorageAdapter] 遷移完成:', key);
+          result.migrated++;
         }
-        return localValue;
+      } catch (e) {
+        console.error('[StorageAdapter] 遷移失敗:', key, e);
+        result.errors.push({ key, error: e.message });
+      }
     }
+    return result;
+  }
 
-    async getJSON(key) {
-        const value = await this.getItem(key);
-        if (value === null) return null;
-        try {
-            return JSON.parse(value);
-        } catch (e) {
-            console.warn('[StorageAdapter] JSON 解析失敗:', key, e);
-            return null;
-        }
-    }
+  // ─── native localStorage cleanup (operates on remaining legacy keys only) ────
 
-    async setJSON(key, value) {
-        return this.setItem(key, JSON.stringify(value));
-    }
-
-    async removeItem(key) {
-        await this._initPromise;
-        this._cache.delete(key);
-        this._cacheExpiry.delete(key);
-
-        if (this._localforageReady) {
-            try {
-                await localforage.removeItem(key);
-            } catch (e) {
-                console.warn('[StorageAdapter] IndexedDB 刪除失敗:', e);
+  async clearLargeDataFromLocalStorage(keys) {
+    if (!keys || !keys.length) return;
+    for (const key of keys) {
+      try {
+        const value = localStorage.getItem(key);
+        if (value && value.length > 10000) {
+          if (this.sxStorage) {
+            const idbValue = await this.sxStorage.getItem(key);
+            if (idbValue !== null) {
+              localStorage.removeItem(key);
+              console.info('[StorageAdapter] 已從原生 localStorage 清除大型 key:', key);
             }
+          }
         }
-        localStorage.removeItem(key);
+      } catch (e) {
+        console.warn('[StorageAdapter] 清除失敗:', key, e);
+      }
+    }
+  }
+
+  // ─── usage reporting ────────────────────────────────────────────────────────
+
+  async getStorageUsage() {
+    let nativeSize = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) {
+          const v = localStorage.getItem(k);
+          if (v) nativeSize += k.length * 2 + v.length * 2;
+        }
+      }
+    } catch (_) {}
+
+    let indexedDBSize = 0;
+    if (this.sxStorage) {
+      const estimate = await this.sxStorage.getStorageEstimate();
+      indexedDBSize = estimate.usage;
     }
 
-    async migrateFromLocalStorage(keys) {
-        await this._initPromise;
-        if (!this._localforageReady) {
-            console.warn('[StorageAdapter] 無法遷移：localforage 未就緒');
-            return { migrated: 0, errors: [] };
-        }
+    return {
+      localStorageSize: nativeSize,
+      localStorageMB: (nativeSize / 1024 / 1024).toFixed(2),
+      indexedDBSize,
+      indexedDBMB: (indexedDBSize / 1024 / 1024).toFixed(2),
+      totalMB: ((nativeSize + indexedDBSize) / 1024 / 1024).toFixed(2)
+    };
+  }
 
-        const result = { migrated: 0, errors: [] };
+  // ─── export / import ────────────────────────────────────────────────────────
 
-        for (const key of keys) {
-            try {
-                const localValue = localStorage.getItem(key);
-                if (localValue !== null) {
-                    const existingValue = await localforage.getItem(key);
-                    if (existingValue === null) {
-                        await localforage.setItem(key, localValue);
-                        console.log('[StorageAdapter] 遷移完成:', key);
-                        result.migrated++;
-                    } else {
-                        console.log('[StorageAdapter] 跳過已存在:', key);
-                    }
-                }
-            } catch (e) {
-                console.error('[StorageAdapter] 遷移失敗:', key, e);
-                result.errors.push({ key, error: e.message });
-            }
-        }
+  async exportAllData() {
+    return this.sxStorage?.exportAllData?.() ?? {
+      keyValue: {}, chatSessions: [], characters: [],
+      memories: [], settings: {},
+      exportedAt: new Date().toISOString(), version: '1.0'
+    };
+  }
 
-        return result;
-    }
+  async importAllData(data) {
+    return this.sxStorage?.importAllData?.(data) ?? { success: false, count: 0 };
+  }
 
-    async clearLargeDataFromLocalStorage(keys) {
-        for (const key of keys) {
-            try {
-                const value = localStorage.getItem(key);
-                if (value && value.length > 10000) {
-                    const indexedDBValue = await localforage.getItem(key);
-                    if (indexedDBValue !== null) {
-                        localStorage.removeItem(key);
-                        console.log('[StorageAdapter] 已從 localStorage 清除大型資料:', key);
-                    }
-                }
-            } catch (e) {
-                console.warn('[StorageAdapter] 清除失敗:', key, e);
-            }
-        }
-    }
+  // ─── clear ──────────────────────────────────────────────────────────────────
 
-    async getStorageUsage() {
-        let localStorageSize = 0;
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key) {
-                const value = localStorage.getItem(key);
-                if (value) localStorageSize += value.length * 2;
-            }
-        }
+  async clearAll() {
+    return this.sxStorage?.clearAll?.() ?? false;
+  }
 
-        let indexedDBSize = 0;
-        if (this._localforageReady) {
-            try {
-                await localforage.iterate((value) => {
-                    if (typeof value === 'string') {
-                        indexedDBSize += value.length * 2;
-                    }
-                });
-            } catch (e) {
-                console.warn('[StorageAdapter] 計算 IndexedDB 大小失敗:', e);
-            }
-        }
+  // ─── migration from legacy localStorage → IndexedDB ────────────────────────
 
-        return {
-            localStorage: localStorageSize,
-            localStorageMB: (localStorageSize / 1024 / 1024).toFixed(2),
-            indexedDB: indexedDBSize,
-            indexedDBMB: (indexedDBSize / 1024 / 1024).toFixed(2),
-            totalMB: ((localStorageSize + indexedDBSize) / 1024 / 1024).toFixed(2)
-        };
-    }
+  async migrateFromLocalStorageToIndexedDB() {
+    if (!this.sxStorage) return { migrated: 0, errors: [] };
+    return this.sxStorage.migrateFromLocalStorage();
+  }
+
+  // ─── stats ──────────────────────────────────────────────────────────────────
+
+  async getStats() {
+    return this.sxStorage?.getStats?.() ?? {
+      keyValue: 0, chatSessions: 0, characters: 0,
+      memories: 0, settings: 0, media: 0,
+      totalRecords: 0, estimatedSize: 0
+    };
+  }
 }
 
 const storageAdapter = new StorageAdapter();
 
-window.StorageAdapter = StorageAdapter;
-window.storageAdapter = storageAdapter;
+if (typeof window !== 'undefined') {
+  window.StorageAdapter = StorageAdapter;
+  window.storageAdapter = storageAdapter;
+}

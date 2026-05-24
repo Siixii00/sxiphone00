@@ -932,7 +932,9 @@ class WikiEngine {
             index = index.slice(0, this.config.maxIndexSize);
         }
 
-        localStorage.setItem(`sx_wiki_${indexKey}`, JSON.stringify(index));
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            sxStorage.setItem(`sx_wiki_${indexKey}`, JSON.stringify(index)).catch(() => {});
+        }
     }
 
     async _appendLog(action, detail, entryId) {

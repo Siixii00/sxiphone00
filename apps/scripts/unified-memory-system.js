@@ -156,18 +156,22 @@ class UnifiedMemorySystem {
   
   _loadIdentity() {
     try {
-      const saved = localStorage.getItem('sx_memory_identity');
-      if (saved) {
-        this._identity = JSON.parse(saved);
+      if (typeof sxStorage !== 'undefined' && sxStorage?.getSetting) {
+        sxStorage.getSetting('sx_memory_identity').then(saved => {
+          if (saved && !this._identity) {
+            this._identity = JSON.parse(saved);
+            this._saveIdentity();
+          }
+        }).catch(() => {});
       }
-    } catch (e) {
+    } catch (_) {
       this._identity = null;
     }
   }
   
   _saveIdentity() {
-    if (this._identity) {
-      localStorage.setItem('sx_memory_identity', JSON.stringify(this._identity));
+    if (this._identity && typeof sxStorage !== 'undefined' && sxStorage?.saveSetting) {
+      sxStorage.saveSetting('sx_memory_identity', JSON.stringify(this._identity)).catch(() => {});
     }
   }
   

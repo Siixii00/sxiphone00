@@ -1,6 +1,94 @@
 (function(global) {
     'use strict';
 
+    // ─── 自動載入 sxStorage + localStorage-mirror（如果尚未載入）───────────
+    // 讓所有 iframe app 也能透過 localStorage.getItem 讀到 IndexedDB 資料
+    (function _ensureStorageMirror() {
+        if (global.__localStorageMirror?.isReady) return; // 已在父頁載入
+        if (typeof sxStorage !== 'undefined' && sxStorage !== null) {
+            // sxStorage 存在但 mirror 未載入 → 手動建立 mirror
+            if (!global.__localStorageMirror) {
+                _injectMirror();
+            }
+            return;
+        }
+        // sxStorage 未載入 → 動態注入 script
+        const basePath = _resolveScriptBasePath();
+        if (!basePath) return;
+        _loadScript(basePath + 'sx-storage.js', () => {
+            _loadScript(basePath + 'localStorage-mirror.js', () => {
+                if (global.__localStorageMirror && !global.__localStorageMirror.isReady) {
+                    global.__localStorageMirror.markSxReady();
+                }
+            });
+        });
+    })();
+
+    function _resolveScriptBasePath() {
+        // 找到 shared-settings.js 的路徑，推算出 scripts/ 目錄
+        try {
+            const scripts = document.querySelectorAll('script[src*="shared-settings"]');
+            if (scripts.length > 0) {
+                const src = scripts[0].getAttribute('src');
+                const idx = src.lastIndexOf('/');
+                return idx >= 0 ? src.slice(0, idx + 1) : '';
+            }
+            // fallback: 嘗試相對路徑
+            return '../scripts/';
+        } catch (_) {
+            return '../scripts/';
+        }
+    }
+
+    function _loadScript(src, onload) {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = onload || null;
+        s.onerror = () => console.warn('[shared-settings] 無法載入:', src);
+        (document.head || document.documentElement).appendChild(s);
+    }
+
+    function _injectMirror() {
+        // 精簡版 mirror：攔截 localStorage 讀寫 → sxStorage
+        if (global.__localStorageMirror) return;
+        const _nGet = localStorage.getItem.bind(localStorage);
+        const _nSet = localStorage.setItem.bind(localStorage);
+        const _nRem = localStorage.removeItem.bind(localStorage);
+        const NATIVE_MAX = 8192; // 8KB
+
+        localStorage.getItem = function(key) {
+            // 優先從 sxStorage 快取
+            if (typeof sxStorage !== 'undefined' && sxStorage?._getCache) {
+                try {
+                    const cached = sxStorage._getCache(key);
+                    if (cached !== undefined && cached !== null) return cached;
+                } catch(_) {}
+            }
+            // fallback: native localStorage
+            return _nGet(key);
+        };
+        localStorage.setItem = function(key, value) {
+            const str = typeof value === 'string' ? value : String(value);
+            // 寫入 IndexedDB
+            if (typeof sxStorage !== 'undefined' && sxStorage?.setItem) {
+                sxStorage.setItem(key, str).catch(() => {});
+            }
+            // 小型資料同步寫入 native（作為 iframe 同步讀取 fallback）
+            if (str.length <= NATIVE_MAX) {
+                try { _nSet(key, str); } catch(_) {}
+            }
+        };
+        localStorage.removeItem = function(key) {
+            if (typeof sxStorage !== 'undefined' && sxStorage?.removeItem) {
+                sxStorage.removeItem(key).catch(() => {});
+            }
+            try { _nRem(key); } catch(_) {}
+        };
+
+        global.__localStorageMirror = { isReady: true, isBootstrapDone: true, queuedWrites: 0, markSxReady() {} };
+        console.info('[shared-settings] 精簡版 localStorage mirror 已啟用');
+    }
+
     const safeJsonParse = (raw, fallback) => {
         if (!raw) return fallback;
         try {

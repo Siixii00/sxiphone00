@@ -6,7 +6,7 @@
     <title>sxiphone00</title>
 
     <!-- PWA 支援 -->
-    <link rel="manifest" href="/manifest.json" id="manifest-link">
+    <link rel="manifest" href="manifest.json" id="manifest-link">
     <meta name="theme-color" content="#0b0c12" id="theme-color-meta" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#0b0c12" id="theme-color-meta-light" media="(prefers-color-scheme: light)">
     <meta name="mobile-web-app-capable" content="yes">
@@ -101,7 +101,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
+    <script src="apps/scripts/sx-storage.js"></script>
+    <script src="apps/scripts/localStorage-mirror.js"></script>
+    <script src="apps/scripts/image-uploader.js"></script>
     <script src="apps/scripts/memory-store.js"></script>
+    <script src="apps/scripts/storage-adapter.js"></script>
+    <script src="apps/scripts/unified-storage-manager.js"></script>
     <script src="apps/scripts/embedding-engine.js"></script>
     <script src="apps/scripts/search-engine.js"></script>
     <script src="apps/scripts/decay-engine.js"></script>
@@ -480,7 +485,7 @@
         // 註冊 Service Worker (PWA 安裝支援)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                navigator.serviceWorker.register('sw.js', { scope: './' })
                     .then((registration) => {
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
                         

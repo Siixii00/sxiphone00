@@ -513,7 +513,15 @@ function saveUserMask() {
     // 2. 【核心修正】直接儲存為 User 專屬資料，不存入 masks 陣列
     // 這樣 Chat App 的 getUserConfig() 就能抓到正確的 User 資料
     localStorage.setItem('sx_user_name', name || 'User');
-    localStorage.setItem('sx_user_avatar', avatar);
+
+    // 頭像自動上傳圖床（base64 → URL）
+    if (avatar && typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(avatar)) {
+        ImageUploader.uploadOrKeep(avatar).then(finalUrl => {
+            localStorage.setItem('sx_user_avatar', finalUrl);
+        });
+    } else {
+        localStorage.setItem('sx_user_avatar', avatar);
+    }
     
     // 如果有輸入人設或背景，可以選擇存入另一個專屬 Key（選填）
     if (personality) localStorage.setItem('sx_user_personality', personality);
@@ -1620,21 +1628,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (success) refreshGitHubSection();
     });
 
-    // ==================== 雲端備份 (Supabase / Xata) ====================
-    const BACKUP_PROVIDER_KEY = 'sx_backup_provider';
+    // ==================== 雲端備份 (Supabase) ====================
     const SUPABASE_URL_KEY = 'sx_supabase_url';
     const SUPABASE_KEY_KEY = 'sx_supabase_key';
-    const XATA_URL_KEY = 'sx_xata_url';
-    const XATA_KEY_KEY = 'sx_xata_key';
     const BACKUP_TABLE_KEY = 'sx_backup_table';
 
-    const backupProviderSelect = document.getElementById('backup-provider');
-    const supabaseConfigDiv = document.getElementById('supabase-config');
-    const xataConfigDiv = document.getElementById('xata-config');
     const supabaseUrlInput = document.getElementById('supabase-url');
     const supabaseKeyInput = document.getElementById('supabase-key');
-    const xataUrlInput = document.getElementById('xata-url');
-    const xataKeyInput = document.getElementById('xata-key');
     const backupTableInput = document.getElementById('backup-table');
     const backupSaveBtn = document.getElementById('backup-save');
     const backupPushBtn = document.getElementById('backup-push');
@@ -1644,73 +1644,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backupStatusEl = document.getElementById('backup-status');
 
     const loadBackupSettings = () => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         const supabaseUrl = localStorage.getItem(SUPABASE_URL_KEY);
         const supabaseKey = localStorage.getItem(SUPABASE_KEY_KEY);
-        const xataUrl = localStorage.getItem(XATA_URL_KEY);
-        const xataKey = localStorage.getItem(XATA_KEY_KEY);
         const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
         
-        if (backupProviderSelect) backupProviderSelect.value = provider;
         if (supabaseUrlInput) supabaseUrlInput.value = supabaseUrl || '';
         if (supabaseKeyInput) supabaseKeyInput.value = supabaseKey || '';
-        if (xataUrlInput) xataUrlInput.value = xataUrl || '';
-        if (xataKeyInput) xataKeyInput.value = xataKey || '';
         if (backupTableInput) backupTableInput.value = table;
         
-        toggleBackupProviderUI(provider);
         updateBackupStatus();
-    };
-
-    const toggleBackupProviderUI = (provider) => {
-        if (supabaseConfigDiv) supabaseConfigDiv.style.display = provider === 'supabase' ? 'block' : 'none';
-        if (xataConfigDiv) xataConfigDiv.style.display = provider === 'xata' ? 'block' : 'none';
     };
 
     const updateBackupStatus = () => {
         if (!backupStatusEl) return;
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
-        const hasXata = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
         
-        if ((provider === 'supabase' && hasSupabase) || (provider === 'xata' && hasXata)) {
-            backupStatusEl.textContent = provider === 'supabase' ? '✅ Supabase 已設定' : '✅ Xata 已設定';
+        if (hasSupabase) {
+            backupStatusEl.textContent = '✅ Supabase 已設定';
+            backupStatusEl.style.color = '#34C759';
         } else {
             backupStatusEl.textContent = '尚未設定';
+            backupStatusEl.style.color = '#666';
         }
-    };
-
-    const parseXataConnectionString = (connStr) => {
-        if (!connStr) return null;
-        
-        connStr = connStr.trim();
-        
-        // PostgreSQL connection string 格式
-        // postgresql://xata:PASSWORD@workspace-id.region.xata.tech/postgres?sslmode=require
-        const pgMatch = connStr.match(/^postgresql:\/\/([^:]+):([^@]+)@([^.]+)\.([^.]+)\.xata\.tech\/postgres(\?.*)?$/);
-        if (pgMatch) {
-            const [, user, password, workspaceId, region] = pgMatch;
-            return {
-                type: 'postgresql',
-                connectionString: connStr,
-                gatewayUrl: 'https://' + workspaceId + '.' + region + '.xata.tech/sql',
-                workspaceId: workspaceId,
-                region: region
-            };
-        }
-        
-        console.warn('[Xata] 無法解析 Connection String，請使用 PostgreSQL 連線字串格式');
-        return null;
-    };
-
-    const getXataHeaders = () => {
-        const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-        if (!xataConfig) return null;
-        
-        return {
-            'Content-Type': 'application/json',
-            'Connection-String': xataConfig.connectionString
-        };
     };
 
     const setBackupStatus = (text) => {
@@ -1718,127 +1673,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const getBackupHeaders = () => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
-        const key = provider === 'supabase' 
-            ? localStorage.getItem(SUPABASE_KEY_KEY)
-            : localStorage.getItem(XATA_KEY_KEY);
-        
-        if (provider === 'supabase') {
-            return {
-                'apikey': key,
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            };
-        } else {
-            return {
-                'Authorization': `Bearer ${key}`,
-                'Content-Type': 'application/json'
-            };
-        }
-    };
-
-    const getBackupApiUrl = (action = 'list') => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
-        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-        
-        if (provider === 'supabase') {
-            const baseUrl = localStorage.getItem(SUPABASE_URL_KEY);
-            switch (action) {
-                case 'insert': return `${baseUrl}/rest/v1/${table}`;
-                case 'list': return `${baseUrl}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`;
-                default: return `${baseUrl}/rest/v1/${table}`;
-            }
-        } else {
-            const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-            if (!xataConfig) return null;
-            const { baseUrl, branch } = xataConfig;
-            switch (action) {
-                case 'insert': return `${baseUrl}:${branch}/tables/${table}/data`;
-                case 'list': return `${baseUrl}:${branch}/tables/${table}/query`;
-                default: return `${baseUrl}:${branch}/tables/${table}/data`;
-            }
-        }
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        return {
+            'Content-Type': 'application/json',
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Prefer': 'return=representation'
+        };
     };
 
     const testBackupConnection = async () => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        
+        if (!url || !key) {
+            setBackupStatus('❌ 請先設定 URL 和 Key');
+            return false;
+        }
+        
         setBackupStatus('正在測試連線...');
         
         try {
-            if (provider === 'supabase') {
-                const url = localStorage.getItem(SUPABASE_URL_KEY);
-                const key = localStorage.getItem(SUPABASE_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
-                    return false;
-                }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(url + '/rest/v1/' + table + '?select=count&limit=1', {
-                    headers: getBackupHeaders()
-                });
-                if (resp.ok) {
-                    setBackupStatus('✅ Supabase 連線成功');
-                    return true;
-                } else if (resp.status === 404) {
-                    // 資料表不存在，顯示 SQL 並提示使用者
-                    setBackupStatus('⚠️ 資料表不存在');
-                    const shouldCopy = confirm(
-                        'Supabase 資料表不存在！\n\n' +
-                        '請到 Supabase Dashboard → SQL Editor 建立資料表。\n\n' +
-                        '是否複製 SQL 語句到剪貼板？'
-                    );
-                    if (shouldCopy) {
-                        try {
-                            await navigator.clipboard.writeText(SUPABASE_TABLE_SQL);
-                            alert('SQL 已複製！\n\n請到 Supabase SQL Editor 貼上並執行，然後再測試連線。');
-                        } catch (e) {
-                            alert('無法複製，請手動複製以下 SQL：\n\n' + SUPABASE_TABLE_SQL);
-                        }
-                    }
-                    return false;
-                }
-                throw new Error('連線失敗 (' + resp.status + ')');
-            } else {
-                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                if (!xataConfig) {
-                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
-                    return false;
-                }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                
-                // 嘗試建立資料表（如果不存在）
-                const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
-                    'id TEXT PRIMARY KEY, ' +
-                    'version TEXT, ' +
-                    'exported_at TIMESTAMPTZ, ' +
-                    'device TEXT, ' +
-                    'data JSONB, ' +
-                    'data_hash TEXT, ' +
-                    'user_id TEXT' +
-                    ')';
-                
-                const createResp = await fetch(xataConfig.gatewayUrl, {
-                    method: 'POST',
-                    headers: getXataHeaders(),
-                    body: JSON.stringify({ query: createTableSQL })
-                });
-                
-                if (!createResp.ok) {
-                    const errData = await createResp.json().catch(() => ({}));
-                    throw new Error(errData.message || '建立資料表失敗');
-                }
-                
-                // 建立索引
-                const createIndexSQL = 'CREATE INDEX IF NOT EXISTS idx_' + table + '_exported_at ON ' + table + '(exported_at DESC)';
-                await fetch(xataConfig.gatewayUrl, {
-                    method: 'POST',
-                    headers: getXataHeaders(),
-                    body: JSON.stringify({ query: createIndexSQL })
-                });
-                
-                setBackupStatus('✅ Xata 連線成功，資料表已就緒');
+            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const resp = await fetch(`${url}/rest/v1/${table}?select=id&limit=1`, {
+                headers: getBackupHeaders()
+            });
+            
+            if (resp.ok) {
+                setBackupStatus('✅ Supabase 連線成功');
                 return true;
+            } else if (resp.status === 404) {
+                setBackupStatus('⚠️ 資料表不存在，請先建立');
+                
+                const createSQL = `
+CREATE TABLE sxiphone_backups (
+  id TEXT PRIMARY KEY,
+  version TEXT,
+  exported_at TIMESTAMPTZ,
+  device TEXT,
+  data JSONB,
+  user_id TEXT,
+  data_hash TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE sxiphone_backups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all operations" ON sxiphone_backups
+  FOR ALL USING (true) WITH CHECK (true);`;
+                
+                if (confirm('Supabase 資料表不存在！\n\n是否複製 SQL 建立語句？\n\n請到 Supabase Dashboard → SQL Editor 執行。')) {
+                    navigator.clipboard.writeText(createSQL);
+                    alert('SQL 已複製！\n\n請到 Supabase SQL Editor 貼上並執行，然後再測試連線。');
+                }
+                return false;
+            } else {
+                setBackupStatus(`❌ 連線失敗 (${resp.status})`);
+                return false;
             }
         } catch (err) {
             setBackupStatus(`❌ 連線錯誤: ${err.message}`);
@@ -1846,11 +1737,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    const clearOldBackups = async () => {
+        const url = localStorage.getItem(SUPABASE_URL_KEY);
+        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+        
+        try {
+            const resp = await fetch(`${url}/rest/v1/${table}?id=not.is.null`, {
+                method: 'DELETE',
+                headers: {
+                    ...getBackupHeaders(),
+                    'Prefer': 'return=minimal'
+                }
+            });
+            
+            if (resp.ok) {
+                console.log('[Supabase] 已清除舊備份');
+                return true;
+            } else {
+                console.warn('[Supabase] 清除舊備份失敗:', resp.status);
+                return false;
+            }
+        } catch (err) {
+            console.warn('[Supabase] 清除舊備份錯誤:', err);
+            return false;
+        }
+    };
+
     const pushBackup = async () => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         setBackupStatus('正在收集資料...');
         
         try {
+            const url = localStorage.getItem(SUPABASE_URL_KEY);
+            const key = localStorage.getItem(SUPABASE_KEY_KEY);
+            
+            if (!url || !key) {
+                setBackupStatus('❌ 請先設定 URL 和 Key');
+                return false;
+            }
+            
             const allData = await collectAllStorageData();
             const dataHash = await generateDataHash(allData);
             const lastHash = localStorage.getItem('sx_backup_last_data_hash');
@@ -1870,72 +1795,40 @@ document.addEventListener('DOMContentLoaded', async () => {
                 user_id: localStorage.getItem('sx_user_name') || 'default'
             };
 
+            setBackupStatus('正在清除舊備份...');
+            await clearOldBackups();
+            
             setBackupStatus('正在上傳備份...');
             
-            if (provider === 'supabase') {
-                const url = localStorage.getItem(SUPABASE_URL_KEY);
-                const key = localStorage.getItem(SUPABASE_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
+            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const resp = await fetch(`${url}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: getBackupHeaders(),
+                body: JSON.stringify(payload)
+            });
+            
+            if (!resp.ok) {
+                if (resp.status === 404) {
+                    setBackupStatus('資料表不存在，請先建立');
                     return false;
                 }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}/rest/v1/${table}`, {
-                    method: 'POST',
-                    headers: getBackupHeaders(),
-                    body: JSON.stringify(payload)
-                });
-                if (!resp.ok) {
-                    if (resp.status === 404) {
-                        setBackupStatus('資料表不存在，請先建立');
-                        return false;
-                    }
-                    throw new Error(`上傳失敗 (${resp.status})`);
-                }
-            } else {
-                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                if (!xataConfig) {
-                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
-                    return false;
-                }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                
-                // 先確保資料表存在
-                const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
-                    'id TEXT PRIMARY KEY, ' +
-                    'version TEXT, ' +
-                    'exported_at TIMESTAMPTZ, ' +
-                    'device TEXT, ' +
-                    'data JSONB, ' +
-                    'data_hash TEXT, ' +
-                    'user_id TEXT' +
-                    ')';
-                await fetch(xataConfig.gatewayUrl, {
-                    method: 'POST',
-                    headers: getXataHeaders(),
-                    body: JSON.stringify({ query: createTableSQL })
-                });
-                
-                // 使用 SQL INSERT
-                const dataJson = JSON.stringify(payload.data);
-                const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
-                const resp = await fetch(xataConfig.gatewayUrl, {
-                    method: 'POST',
-                    headers: getXataHeaders(),
-                    body: JSON.stringify({
-                        query: insertQuery,
-                        params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
-                    })
-                });
-                if (!resp.ok) {
-                    const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.message || '上傳失敗 (' + resp.status + ')');
-                }
+                throw new Error(`上傳失敗 (${resp.status})`);
             }
 
             localStorage.setItem('sx_backup_last_data_hash', dataHash);
             localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            setBackupStatus(`✅ ${provider === 'supabase' ? 'Supabase' : 'Xata'} 備份完成`);
+            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            
+            const count = parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1;
+            localStorage.setItem('sx_supabase_backup_count', count.toString());
+            
+            setBackupStatus('✅ Supabase 備份完成');
+            
+            const lastSyncEl = document.getElementById('supabase-last-sync');
+            const countEl = document.getElementById('supabase-backup-count');
+            if (lastSyncEl) lastSyncEl.textContent = new Date().toLocaleString();
+            if (countEl) countEl.textContent = count;
+            
             return true;
         } catch (err) {
             console.error('[Backup] 錯誤:', err);
@@ -1945,56 +1838,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const pullBackup = async () => {
-        const provider = localStorage.getItem(BACKUP_PROVIDER_KEY) || 'supabase';
         setBackupStatus('正在下載備份...');
         
         try {
-            let latestBackup;
+            const url = localStorage.getItem(SUPABASE_URL_KEY);
+            const key = localStorage.getItem(SUPABASE_KEY_KEY);
             
-            if (provider === 'supabase') {
-                const url = localStorage.getItem(SUPABASE_URL_KEY);
-                const key = localStorage.getItem(SUPABASE_KEY_KEY);
-                if (!url || !key) {
-                    setBackupStatus('❌ 請先設定 URL 和 Key');
-                    return false;
-                }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
-                    headers: getBackupHeaders()
-                });
-                if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
-                const backups = await resp.json();
-                if (!backups || backups.length === 0) {
-                    setBackupStatus('❌ 找不到備份資料');
-                    return false;
-                }
-                latestBackup = backups[0];
-            } else {
-                const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-                if (!xataConfig) {
-                    setBackupStatus('❌ 請先設定 PostgreSQL Connection String');
-                    return false;
-                }
-                const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-                const resp = await fetch(xataConfig.gatewayUrl, {
-                    method: 'POST',
-                    headers: getXataHeaders(),
-                    body: JSON.stringify({
-                        query: 'SELECT * FROM ' + table + ' ORDER BY exported_at DESC LIMIT 1'
-                    })
-                });
-                if (!resp.ok) throw new Error('下載失敗 (' + resp.status + ')');
-                const result = await resp.json();
-                if (!result.rows || result.rows.length === 0) {
-                    setBackupStatus('❌ 找不到備份資料');
-                    return false;
-                }
-                latestBackup = result.rows[0];
-                // 解析 data 欄位（可能是 JSON 字串）
-                if (typeof latestBackup.data === 'string') {
-                    latestBackup.data = JSON.parse(latestBackup.data);
-                }
+            if (!url || !key) {
+                setBackupStatus('❌ 請先設定 URL 和 Key');
+                return false;
             }
+            
+            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
+                headers: getBackupHeaders()
+            });
+            
+            if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
+            
+            const backups = await resp.json();
+            if (!backups || backups.length === 0) {
+                setBackupStatus('❌ 找不到備份資料');
+                return false;
+            }
+            
+            const latestBackup = backups[0];
 
             setBackupStatus('正在還原資料...');
             const dataToRestore = latestBackup.data;
@@ -2021,27 +1889,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     };
 
-    backupProviderSelect?.addEventListener('change', (e) => {
-        const provider = e.target.value;
-        localStorage.setItem(BACKUP_PROVIDER_KEY, provider);
-        toggleBackupProviderUI(provider);
-        updateBackupStatus();
-    });
-
     backupSaveBtn?.addEventListener('click', () => {
-        const provider = backupProviderSelect?.value || 'supabase';
-        localStorage.setItem(BACKUP_PROVIDER_KEY, provider);
-        
-        if (provider === 'supabase') {
-            if (supabaseUrlInput?.value) localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
-            if (supabaseKeyInput?.value) localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
-        } else {
-            if (xataUrlInput?.value) localStorage.setItem(XATA_URL_KEY, xataUrlInput.value.trim());
-            if (xataKeyInput?.value) localStorage.setItem(XATA_KEY_KEY, xataKeyInput.value.trim());
-        }
+        if (supabaseUrlInput?.value) localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
+        if (supabaseKeyInput?.value) localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
         if (backupTableInput?.value) localStorage.setItem(BACKUP_TABLE_KEY, backupTableInput.value.trim());
         
         setBackupStatus('✅ 設定已儲存');
+        updateBackupStatus();
     });
 
     backupTestBtn?.addEventListener('click', testBackupConnection);
@@ -2049,22 +1903,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     backupPullBtn?.addEventListener('click', pullBackup);
 
     backupClearBtn?.addEventListener('click', () => {
-        if (!confirm('確定要清除備份設定？')) return;
-        localStorage.removeItem(BACKUP_PROVIDER_KEY);
+        if (!confirm('確定要清除 Supabase 備份設定？')) return;
         localStorage.removeItem(SUPABASE_URL_KEY);
         localStorage.removeItem(SUPABASE_KEY_KEY);
-        localStorage.removeItem(XATA_URL_KEY);
-        localStorage.removeItem(XATA_KEY_KEY);
         localStorage.removeItem(BACKUP_TABLE_KEY);
         localStorage.removeItem('sx_backup_last_sync');
         localStorage.removeItem('sx_backup_last_data_hash');
+        localStorage.removeItem('sx_supabase_last_sync');
+        localStorage.removeItem('sx_supabase_backup_count');
         
         if (supabaseUrlInput) supabaseUrlInput.value = '';
         if (supabaseKeyInput) supabaseKeyInput.value = '';
-        if (xataUrlInput) xataUrlInput.value = '';
-        if (xataKeyInput) xataKeyInput.value = '';
-        if (backupProviderSelect) backupProviderSelect.value = 'supabase';
-        toggleBackupProviderUI('supabase');
         setBackupStatus('已清除設定');
     });
 
@@ -2139,6 +1988,455 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loadImageHostSettings();
+
+    // ==================== 圖片遷移功能 ====================
+    const migrateSection = document.getElementById('image-migrate-section');
+    const migrateStats = document.getElementById('migrate-stats');
+    const migrateBtn = document.getElementById('migrate-images-btn');
+    const migrateProgress = document.getElementById('migrate-progress');
+
+    const ImageHostService = {
+        isEnabled() {
+            return localStorage.getItem('sx_image_host_enabled') === 'true';
+        },
+        
+        getUserhash() {
+            return localStorage.getItem('sx_catbox_userhash') || '';
+        },
+        
+        async uploadToCatbox(dataUrl) {
+            try {
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                const ext = dataUrl.includes('image/png') ? 'png' : 
+                           dataUrl.includes('image/jpeg') ? 'jpg' : 
+                           dataUrl.includes('image/gif') ? 'gif' : 
+                           dataUrl.includes('image/webp') ? 'webp' : 'png';
+                const file = new File([blob], `image.${ext}`, { type: blob.type || 'image/png' });
+                
+                const formData = new FormData();
+                formData.append('reqtype', 'fileupload');
+                formData.append('fileToUpload', file);
+                
+                const userhash = this.getUserhash();
+                if (userhash) formData.append('userhash', userhash);
+                
+                const res = await fetch('https://catbox.moe/user/api.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) return null;
+                const url = await res.text();
+                return url && url.startsWith('https://') ? url.trim() : null;
+            } catch (e) {
+                console.warn('[ImageMigrate] 上傳失敗:', e);
+                return null;
+            }
+        }
+    };
+
+    const scanLocalImages = async () => {
+        const images = [];
+        
+        // 掃描 localforage (IndexedDB)
+        if (typeof localforage !== 'undefined') {
+            try {
+                const persistedData = await localforage.getItem('sx_app_persisted_data');
+                if (persistedData && typeof persistedData === 'object') {
+                    // 相簿
+                    if (Array.isArray(persistedData.sx_album_uploaded_images)) {
+                        persistedData.sx_album_uploaded_images.forEach(img => {
+                            if (img.url && img.url.startsWith('data:')) {
+                                images.push({ source: 'localforage_album', id: img.id, url: img.url, size: img.url.length * 0.75 });
+                            }
+                        });
+                    }
+                    // 聊天 sessions
+                    if (Array.isArray(persistedData.sx_chat_sessions)) {
+                        persistedData.sx_chat_sessions.forEach(session => {
+                            if (session.history && Array.isArray(session.history)) {
+                                session.history.forEach((msg, idx) => {
+                                    if (msg.content && msg.content.includes('data:image')) {
+                                        const matches = msg.content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g);
+                                        if (matches) {
+                                            matches.forEach((dataUrl, matchIdx) => {
+                                                images.push({ 
+                                                    source: 'localforage_chat_session', 
+                                                    sessionId: session.id,
+                                                    id: `lf_${session.id}_${idx}_${matchIdx}`, 
+                                                    url: dataUrl, 
+                                                    msgIndex: idx,
+                                                    size: dataUrl.length * 0.75
+                                                });
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('[ImageMigrate] 掃描 localforage 失敗:', e);
+            }
+        }
+        
+        // 掃描相簿
+        try {
+            const albumRaw = localStorage.getItem('sx_album_uploaded_images');
+            const albumImages = albumRaw ? JSON.parse(albumRaw) : [];
+            if (Array.isArray(albumImages)) {
+                albumImages.forEach(img => {
+                    if (img.url && img.url.startsWith('data:')) {
+                        images.push({ source: 'album', id: img.id, url: img.url, size: img.url.length * 0.75 });
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        // 掃描角色頭貼
+        try {
+            const charRaw = localStorage.getItem('sx_characters');
+            const chars = charRaw ? JSON.parse(charRaw) : [];
+            if (Array.isArray(chars)) {
+                chars.forEach(char => {
+                    if (char.avatar && char.avatar.startsWith('data:')) {
+                        images.push({ source: 'char', id: char.id, url: char.avatar, field: 'avatar', size: char.avatar.length * 0.75 });
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        // 掃描用戶頭貼
+        try {
+            const userAvatar = localStorage.getItem('sx_user_avatar');
+            if (userAvatar && userAvatar.startsWith('data:')) {
+                images.push({ source: 'user', id: 'current', url: userAvatar, size: userAvatar.length * 0.75 });
+            }
+        } catch (e) {}
+        
+        // 掃描聊天歷史中的圖片
+        try {
+            const historyRaw = localStorage.getItem('sx_chat_history');
+            const history = historyRaw ? JSON.parse(historyRaw) : [];
+            if (Array.isArray(history)) {
+                history.forEach((msg, idx) => {
+                    if (msg.content && msg.content.includes('data:image')) {
+                        const matches = msg.content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g);
+                        if (matches) {
+                            matches.forEach((dataUrl, matchIdx) => {
+                                images.push({ 
+                                    source: 'chat_history', 
+                                    id: `history_${idx}_${matchIdx}`, 
+                                    url: dataUrl, 
+                                    msgIndex: idx,
+                                    size: dataUrl.length * 0.75
+                                });
+                            });
+                        }
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        // 掃描聊天 sessions
+        try {
+            const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+            const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+            if (Array.isArray(sessions)) {
+                sessions.forEach(session => {
+                    if (session.history && Array.isArray(session.history)) {
+                        session.history.forEach((msg, idx) => {
+                            if (msg.content && msg.content.includes('data:image')) {
+                                const matches = msg.content.match(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/g);
+                                if (matches) {
+                                    matches.forEach((dataUrl, matchIdx) => {
+                                        images.push({ 
+                                            source: 'chat_session', 
+                                            sessionId: session.id,
+                                            id: `${session.id}_${idx}_${matchIdx}`, 
+                                            url: dataUrl, 
+                                            msgIndex: idx,
+                                            size: dataUrl.length * 0.75
+                                        });
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        } catch (e) {}
+        
+        return images;
+    };
+
+    const formatSize = (bytes) => {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    };
+
+    const checkAndShowMigrateSection = async () => {
+        if (!ImageHostService.isEnabled()) {
+            if (migrateSection) migrateSection.style.display = 'none';
+            return;
+        }
+        
+        const images = await scanLocalImages();
+        if (images.length === 0) {
+            if (migrateSection) migrateSection.style.display = 'none';
+            return;
+        }
+        
+        const totalSize = images.reduce((sum, img) => sum + img.size, 0);
+        
+        if (migrateSection) migrateSection.style.display = 'block';
+        if (migrateStats) {
+            migrateStats.textContent = `發現 ${images.length} 張本地圖片，約 ${formatSize(totalSize)}，可釋放儲存空間`;
+        }
+    };
+
+    const migrateImages = async () => {
+        if (!ImageHostService.isEnabled()) {
+            alert('請先啟用圖床上傳功能');
+            return;
+        }
+        
+        const images = await scanLocalImages();
+        if (images.length === 0) {
+            alert('沒有需要遷移的圖片');
+            return;
+        }
+        
+        if (!confirm(`確定要將 ${images.length} 張圖片上傳到圖床嗎？\n\n這可能需要一些時間，請保持網路連線穩定。`)) {
+            return;
+        }
+        
+        if (migrateProgress) {
+            migrateProgress.style.display = 'block';
+            migrateProgress.textContent = '準備上傳...';
+        }
+        if (migrateBtn) migrateBtn.disabled = true;
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        // 處理 localforage 中的相簿圖片
+        const lfAlbumImages = images.filter(img => img.source === 'localforage_album');
+        if (lfAlbumImages.length > 0 && typeof localforage !== 'undefined') {
+            const persistedData = await localforage.getItem('sx_app_persisted_data') || {};
+            if (!persistedData.sx_album_uploaded_images) persistedData.sx_album_uploaded_images = [];
+            
+            for (let i = 0; i < lfAlbumImages.length; i++) {
+                const img = lfAlbumImages[i];
+                if (migrateProgress) {
+                    migrateProgress.textContent = `上傳 IndexedDB 相簿圖片 ${i + 1}/${lfAlbumImages.length}...`;
+                }
+                
+                const newUrl = await ImageHostService.uploadToCatbox(img.url);
+                if (newUrl) {
+                    const item = persistedData.sx_album_uploaded_images.find(a => a.id === img.id);
+                    if (item) item.url = newUrl;
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            await localforage.setItem('sx_app_persisted_data', persistedData);
+        }
+        
+        // 處理 localforage 中的聊天圖片
+        const lfChatImages = images.filter(img => img.source === 'localforage_chat_session');
+        if (lfChatImages.length > 0 && typeof localforage !== 'undefined') {
+            const persistedData = await localforage.getItem('sx_app_persisted_data') || {};
+            if (!persistedData.sx_chat_sessions) persistedData.sx_chat_sessions = [];
+            
+            for (let i = 0; i < lfChatImages.length; i++) {
+                const img = lfChatImages[i];
+                if (migrateProgress) {
+                    migrateProgress.textContent = `上傳 IndexedDB 聊天圖片 ${i + 1}/${lfChatImages.length}...`;
+                }
+                
+                const newUrl = await ImageHostService.uploadToCatbox(img.url);
+                if (newUrl) {
+                    const session = persistedData.sx_chat_sessions.find(s => s.id === img.sessionId);
+                    if (session && session.history && session.history[img.msgIndex]) {
+                        session.history[img.msgIndex].content = session.history[img.msgIndex].content.replace(img.url, newUrl);
+                    }
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            await localforage.setItem('sx_app_persisted_data', persistedData);
+        }
+        
+        // 先處理相簿圖片
+        const albumImages = images.filter(img => img.source === 'album');
+        if (albumImages.length > 0) {
+            const albumRaw = localStorage.getItem('sx_album_uploaded_images');
+            let albumData = albumRaw ? JSON.parse(albumRaw) : [];
+            
+            for (let i = 0; i < albumImages.length; i++) {
+                const img = albumImages[i];
+                if (migrateProgress) {
+                    migrateProgress.textContent = `上傳相簿圖片 ${i + 1}/${albumImages.length}...`;
+                }
+                
+                const newUrl = await ImageHostService.uploadToCatbox(img.url);
+                if (newUrl) {
+                    const item = albumData.find(a => a.id === img.id);
+                    if (item) item.url = newUrl;
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                
+                // 每張圖片間隔一下避免請求太快
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            localStorage.setItem('sx_album_uploaded_images', JSON.stringify(albumData));
+        }
+        
+        // 處理角色頭貼
+        const charImages = images.filter(img => img.source === 'char');
+        if (charImages.length > 0) {
+            const charRaw = localStorage.getItem('sx_characters');
+            let charData = charRaw ? JSON.parse(charRaw) : [];
+            
+            for (let i = 0; i < charImages.length; i++) {
+                const img = charImages[i];
+                if (migrateProgress) {
+                    migrateProgress.textContent = `上傳角色頭貼 ${i + 1}/${charImages.length}...`;
+                }
+                
+                const newUrl = await ImageHostService.uploadToCatbox(img.url);
+                if (newUrl) {
+                    const char = charData.find(c => c.id === img.id);
+                    if (char) char.avatar = newUrl;
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            localStorage.setItem('sx_characters', JSON.stringify(charData));
+        }
+        
+        // 處理用戶頭貼
+        const userImages = images.filter(img => img.source === 'user');
+        if (userImages.length > 0) {
+            const img = userImages[0];
+            if (migrateProgress) {
+                migrateProgress.textContent = '上傳用戶頭貼...';
+            }
+            
+            const newUrl = await ImageHostService.uploadToCatbox(img.url);
+            if (newUrl) {
+                localStorage.setItem('sx_user_avatar', newUrl);
+                successCount++;
+            } else {
+                failCount++;
+            }
+        }
+        
+        // 處理聊天歷史中的圖片
+        const chatImages = images.filter(img => img.source === 'chat_history' || img.source === 'chat_session');
+        if (chatImages.length > 0) {
+            // 按 sessionId 分組處理
+            const sessionGroups = {};
+            chatImages.forEach(img => {
+                const key = img.source === 'chat_history' ? 'main_history' : img.sessionId;
+                if (!sessionGroups[key]) sessionGroups[key] = [];
+                sessionGroups[key].push(img);
+            });
+            
+            for (const [sessionId, imgs] of Object.entries(sessionGroups)) {
+                if (migrateProgress) {
+                    migrateProgress.textContent = `處理聊天記錄圖片...`;
+                }
+                
+                let data, storageKey;
+                if (sessionId === 'main_history') {
+                    const raw = localStorage.getItem('sx_chat_history');
+                    data = raw ? JSON.parse(raw) : [];
+                    storageKey = 'sx_chat_history';
+                } else {
+                    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+                    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+                    const session = sessions.find(s => s.id === sessionId);
+                    data = session ? session.history : [];
+                    storageKey = null;
+                }
+                
+                for (let i = 0; i < imgs.length; i++) {
+                    const img = imgs[i];
+                    if (migrateProgress) {
+                        migrateProgress.textContent = `上傳聊天圖片 ${successCount + failCount + 1}/${images.length}...`;
+                    }
+                    
+                    const newUrl = await ImageHostService.uploadToCatbox(img.url);
+                    if (newUrl && data[img.msgIndex]) {
+                        data[img.msgIndex].content = data[img.msgIndex].content.replace(img.url, newUrl);
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 500));
+                }
+                
+                if (sessionId === 'main_history') {
+                    localStorage.setItem(storageKey, JSON.stringify(data));
+                } else {
+                    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+                    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+                    const sessionIdx = sessions.findIndex(s => s.id === sessionId);
+                    if (sessionIdx >= 0) {
+                        sessions[sessionIdx].history = data;
+                        localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+                    }
+                }
+            }
+        }
+        
+        if (migrateProgress) {
+            migrateProgress.textContent = `完成！成功 ${successCount} 張，失敗 ${failCount} 張`;
+            migrateProgress.style.color = failCount > 0 ? '#FF9500' : '#34C759';
+        }
+        if (migrateBtn) migrateBtn.disabled = false;
+        
+        // 更新儲存空間顯示
+        updateStorageUI();
+        
+        // 重新檢查是否還有本地圖片
+        setTimeout(checkAndShowMigrateSection, 2000);
+    };
+
+    if (migrateBtn) {
+        migrateBtn.addEventListener('click', migrateImages);
+    }
+
+    // 初始檢查
+    setTimeout(checkAndShowMigrateSection, 500);
+
+    // 當圖床設定變更時重新檢查
+    if (imageHostEnabledToggle) {
+        imageHostEnabledToggle.addEventListener('change', () => {
+            setTimeout(checkAndShowMigrateSection, 300);
+        });
+    }
 
     // ==================== Supabase 一鍵設定 ====================
     const supabaseQuickUrlInput = document.getElementById('supabase-quick-url');
@@ -2549,7 +2847,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         supabaseMemorySyncStatusEl.textContent = `上次同步: ${lastMemorySync}`;
     }
 
-    // ==================== Supabase/Xata 增量備份函數 ====================
+    // ==================== Supabase 增量備份函數 ====================
     const SUPABASE_TABLE_SQL = `
 CREATE TABLE sxiphone_backups (
   id TEXT PRIMARY KEY,
@@ -2594,6 +2892,17 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             user_id: localStorage.getItem('sx_user_name') || 'default'
         };
 
+        // 先清除舊備份
+        await fetch(url + '/rest/v1/' + table + '?id=not.is.null', {
+            method: 'DELETE',
+            headers: {
+                'apikey': key,
+                'Authorization': 'Bearer ' + key,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            }
+        });
+
         const resp = await fetch(url + '/rest/v1/' + table, {
             method: 'POST',
             headers: {
@@ -2608,14 +2917,17 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         if (resp.ok) {
             localStorage.setItem('sx_backup_last_data_hash', dataHash);
             localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            
+            const count = parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1;
+            localStorage.setItem('sx_supabase_backup_count', count.toString());
+            
             console.log('[Supabase] 增量備份成功');
             return true;
         }
         
-        // 處理 404 錯誤（資料表不存在）
         if (resp.status === 404) {
             console.warn('[Supabase] 資料表不存在，請到 Supabase SQL Editor 建立資料表');
-            alert('Supabase 資料表不存在！\n\n請到 Supabase Dashboard → SQL Editor 執行以下 SQL：\n\n' + SUPABASE_TABLE_SQL);
             return false;
         }
         
@@ -2624,104 +2936,25 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         return false;
     };
 
-    const xataPushBackup = async () => {
-        const xataConfig = parseXataConnectionString(localStorage.getItem(XATA_URL_KEY));
-        if (!xataConfig) {
-            console.warn('[Xata] 未設定 Connection String');
-            return false;
-        }
-        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-        
-        const allData = await collectAllStorageData();
-        const dataHash = await generateDataHash(allData);
-        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
-        
-        if (dataHash === lastHash) {
-            console.log('[Xata] 資料無變動，跳過備份');
-            return true;
-        }
-
-        // 確保資料表存在
-        const createTableSQL = 'CREATE TABLE IF NOT EXISTS ' + table + ' (' +
-            'id TEXT PRIMARY KEY, ' +
-            'version TEXT, ' +
-            'exported_at TIMESTAMPTZ, ' +
-            'device TEXT, ' +
-            'data JSONB, ' +
-            'data_hash TEXT, ' +
-            'user_id TEXT' +
-            ')';
-        await fetch(xataConfig.gatewayUrl, {
-            method: 'POST',
-            headers: getXataHeaders(),
-            body: JSON.stringify({ query: createTableSQL })
-        });
-
-        const payload = {
-            id: 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            version: '3.0',
-            exported_at: new Date().toISOString(),
-            device: navigator.userAgent,
-            data: allData,
-            data_hash: dataHash,
-            user_id: localStorage.getItem('sx_user_name') || 'default'
-        };
-
-        const dataJson = JSON.stringify(payload.data);
-        const insertQuery = 'INSERT INTO ' + table + ' (id, version, exported_at, device, data, data_hash, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7)';
-        const resp = await fetch(xataConfig.gatewayUrl, {
-            method: 'POST',
-            headers: getXataHeaders(),
-            body: JSON.stringify({
-                query: insertQuery,
-                params: [payload.id, payload.version, payload.exported_at, payload.device, dataJson, payload.data_hash, payload.user_id]
-            })
-        });
-
-        if (resp.ok) {
-            localStorage.setItem('sx_backup_last_data_hash', dataHash);
-            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            console.log('[Xata] 增量備份成功');
-            return true;
-        }
-        console.warn('[Xata] 增量備份失敗:', resp.status);
-        return false;
-    };
-
     // ==================== 自動備份設定 ====================
-    const autoBackupEnabledToggle = document.getElementById('auto-backup-enabled');
     const autoBackupGithubToggle = document.getElementById('auto-backup-github');
     const autoBackupSupabaseToggle = document.getElementById('auto-backup-supabase');
-    const autoBackupXataToggle = document.getElementById('auto-backup-xata');
+    const autoBackupGDriveToggle = document.getElementById('auto-backup-gdrive');
     const autoBackupLocalToggle = document.getElementById('auto-backup-local');
     const autoBackupSaveBtn = document.getElementById('auto-backup-save');
     const autoBackupNowBtn = document.getElementById('auto-backup-now');
     const autoBackupStatusEl = document.getElementById('auto-backup-status');
-    
-    // 即時自動備份設定
-    const autoBackupRealtimeEnabledToggle = document.getElementById('auto-backup-realtime-enabled');
-    const autoBackupRealtimeProviderSelect = document.getElementById('auto-backup-realtime-provider');
 
     const loadAutoBackupSettings = () => {
-        // 睡眠後備份設定
-        const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
         const github = localStorage.getItem('sx_auto_backup_github') === 'true';
         const supabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
-        const xata = localStorage.getItem('sx_auto_backup_xata') === 'true';
+        const gdrive = localStorage.getItem('sx_auto_backup_gdrive') === 'true';
         const local = localStorage.getItem('sx_auto_backup_local') === 'true';
 
-        if (autoBackupEnabledToggle) autoBackupEnabledToggle.checked = enabled;
         if (autoBackupGithubToggle) autoBackupGithubToggle.checked = github;
         if (autoBackupSupabaseToggle) autoBackupSupabaseToggle.checked = supabase;
-        if (autoBackupXataToggle) autoBackupXataToggle.checked = xata;
+        if (autoBackupGDriveToggle) autoBackupGDriveToggle.checked = gdrive;
         if (autoBackupLocalToggle) autoBackupLocalToggle.checked = local;
-        
-        // 即時自動備份設定
-        const realtimeEnabled = localStorage.getItem('sx_auto_backup_realtime_enabled') === 'true';
-        const realtimeProvider = localStorage.getItem('sx_auto_backup_realtime_provider') || 'supabase';
-        
-        if (autoBackupRealtimeEnabledToggle) autoBackupRealtimeEnabledToggle.checked = realtimeEnabled;
-        if (autoBackupRealtimeProviderSelect) autoBackupRealtimeProviderSelect.value = realtimeProvider;
 
         updateAutoBackupStatus();
     };
@@ -2729,54 +2962,25 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     const updateAutoBackupStatus = () => {
         if (!autoBackupStatusEl) return;
 
-        // 即時備份狀態
-        const realtimeEnabled = localStorage.getItem('sx_auto_backup_realtime_enabled') === 'true';
-        const realtimeProvider = localStorage.getItem('sx_auto_backup_realtime_provider') || 'supabase';
-        
-        // 睡眠後備份狀態
-        const enabled = localStorage.getItem('sx_auto_backup_enabled') !== 'false';
         const targets = [];
         
         if (localStorage.getItem('sx_auto_backup_github') === 'true') targets.push('GitHub');
         if (localStorage.getItem('sx_auto_backup_supabase') === 'true') targets.push('Supabase');
-        if (localStorage.getItem('sx_auto_backup_xata') === 'true') targets.push('Xata');
+        if (localStorage.getItem('sx_auto_backup_gdrive') === 'true') targets.push('Google Drive');
         if (localStorage.getItem('sx_auto_backup_local') === 'true') targets.push('本地');
 
-        let statusText = '';
-        
-        // 即時備份狀態
-        if (realtimeEnabled) {
-            statusText += '🔄 即時備份: ' + realtimeProvider.toUpperCase();
+        if (targets.length === 0) {
+            autoBackupStatusEl.textContent = '未選擇備份目標';
         } else {
-            statusText += '⏸️ 即時備份: 停用';
+            autoBackupStatusEl.textContent = '備份目標: ' + targets.join(', ');
         }
-        
-        statusText += '\n';
-        
-        // 睡眠後備份狀態
-        if (!enabled) {
-            statusText += '💤 睡眠備份: 停用';
-        } else if (targets.length === 0) {
-            statusText += '💤 睡眠備份: 未選擇目標';
-        } else {
-            statusText += '💤 睡眠備份: ' + targets.join(', ');
-        }
-        
-        autoBackupStatusEl.textContent = statusText;
-        autoBackupStatusEl.style.whiteSpace = 'pre-line';
     };
 
     autoBackupSaveBtn?.addEventListener('click', () => {
-        // 睡眠後備份設定
-        localStorage.setItem('sx_auto_backup_enabled', autoBackupEnabledToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
-        localStorage.setItem('sx_auto_backup_xata', autoBackupXataToggle?.checked ? 'true' : 'false');
+        localStorage.setItem('sx_auto_backup_gdrive', autoBackupGDriveToggle?.checked ? 'true' : 'false');
         localStorage.setItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
-        
-        // 即時自動備份設定
-        localStorage.setItem('sx_auto_backup_realtime_enabled', autoBackupRealtimeEnabledToggle?.checked ? 'true' : 'false');
-        localStorage.setItem('sx_auto_backup_realtime_provider', autoBackupRealtimeProviderSelect?.value || 'supabase');
 
         updateAutoBackupStatus();
         if (autoBackupStatusEl) {
@@ -2788,7 +2992,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     autoBackupNowBtn?.addEventListener('click', async () => {
         if (autoBackupStatusEl) autoBackupStatusEl.textContent = '正在執行備份...';
 
-        const results = { github: null, supabase: null, xata: null, local: null };
+        const results = { github: null, supabase: null, gdrive: null, local: null };
 
         if (localStorage.getItem('sx_auto_backup_github') === 'true') {
             try {
@@ -2806,11 +3010,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             }
         }
 
-        if (localStorage.getItem('sx_auto_backup_xata') === 'true') {
+        if (localStorage.getItem('sx_auto_backup_gdrive') === 'true') {
             try {
-                results.xata = await xataPushBackup();
+                results.gdrive = await pushGDriveBackup();
             } catch (e) {
-                results.xata = false;
+                results.gdrive = false;
             }
         }
 
@@ -2832,6 +3036,376 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     });
 
     loadAutoBackupSettings();
+
+    // ==================== Google Drive 備份 ====================
+    const GDRIVE_CLIENT_ID_KEY = 'sx_gdrive_client_id';
+    const GDRIVE_ACCESS_TOKEN_KEY = 'sx_gdrive_access_token';
+    const GDRIVE_REFRESH_TOKEN_KEY = 'sx_gdrive_refresh_token';
+    const GDRIVE_TOKEN_EXPIRY_KEY = 'sx_gdrive_token_expiry';
+    const GDRIVE_USER_EMAIL_KEY = 'sx_gdrive_user_email';
+    const GDRIVE_FILE_ID_KEY = 'sx_gdrive_backup_file_id';
+    const GDRIVE_LAST_SYNC_KEY = 'sx_gdrive_last_sync';
+    const GDRIVE_FILE_NAME_KEY = 'sx_gdrive_file_name';
+
+    const gdriveClientIdInput = document.getElementById('gdrive-client-id');
+    const gdriveSaveClientBtn = document.getElementById('gdrive-save-client');
+    const gdriveAuthorizeBtn = document.getElementById('gdrive-authorize');
+    const gdriveBackupBtn = document.getElementById('gdrive-backup');
+    const gdriveRestoreBtn = document.getElementById('gdrive-restore');
+    const gdriveDisconnectBtn = document.getElementById('gdrive-disconnect');
+    const gdriveStatusEl = document.getElementById('gdrive-status');
+    const gdriveNotConnectedEl = document.getElementById('gdrive-not-connected');
+    const gdriveConnectedEl = document.getElementById('gdrive-connected');
+    const gdriveUserEmailEl = document.getElementById('gdrive-user-email');
+    const gdriveLastSyncEl = document.getElementById('gdrive-last-sync');
+    const gdriveFileNameEl = document.getElementById('gdrive-file-name');
+
+    const GDriveService = {
+        clientId: null,
+        accessToken: null,
+        tokenExpiry: null,
+        
+        SCOPES: 'https://www.googleapis.com/auth/drive.file',
+        
+        init() {
+            this.clientId = localStorage.getItem(GDRIVE_CLIENT_ID_KEY);
+            this.accessToken = localStorage.getItem(GDRIVE_ACCESS_TOKEN_KEY);
+            this.tokenExpiry = parseInt(localStorage.getItem(GDRIVE_TOKEN_EXPIRY_KEY) || '0');
+        },
+        
+        isTokenValid() {
+            if (!this.accessToken) return false;
+            if (!this.tokenExpiry) return false;
+            return Date.now() < this.tokenExpiry - 60000;
+        },
+        
+        isConnected() {
+            return this.isTokenValid();
+        },
+        
+        async authorize() {
+            if (!this.clientId) {
+                throw new Error('請先設定 Client ID');
+            }
+            
+            const redirectUri = window.location.origin + window.location.pathname;
+            const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + 
+                'client_id=' + encodeURIComponent(this.clientId) +
+                '&redirect_uri=' + encodeURIComponent(redirectUri) +
+                '&response_type=token' +
+                '&scope=' + encodeURIComponent(this.SCOPES) +
+                '&include_granted_scopes=true';
+            
+            window.location.href = authUrl;
+        },
+        
+        parseTokenFromUrl() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash);
+            
+            const accessToken = params.get('access_token');
+            const expiresIn = parseInt(params.get('expires_in') || '3600');
+            
+            if (accessToken) {
+                this.accessToken = accessToken;
+                this.tokenExpiry = Date.now() + expiresIn * 1000;
+                
+                localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, accessToken);
+                localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                
+                // 清除 URL 中的 token
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                return true;
+            }
+            return false;
+        },
+        
+        async getUserInfo() {
+            const resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: { 'Authorization': 'Bearer ' + this.accessToken }
+            });
+            
+            if (!resp.ok) throw new Error('無法取得使用者資訊');
+            return await resp.json();
+        },
+        
+        async findBackupFile() {
+            const query = "name='sxiphone_backup.json' and trashed=false";
+            const resp = await fetch(
+                'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(query) + 
+                '&spaces=drive&fields=files(id,name,modifiedTime)',
+                { headers: { 'Authorization': 'Bearer ' + this.accessToken } }
+            );
+            
+            if (!resp.ok) throw new Error('搜尋檔案失敗');
+            const data = await resp.json();
+            
+            if (data.files && data.files.length > 0) {
+                return data.files[0];
+            }
+            return null;
+        },
+        
+        async createBackupFile(content) {
+            const metadata = {
+                name: 'sxiphone_backup.json',
+                mimeType: 'application/json'
+            };
+            
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([content], { type: 'application/json' }));
+            
+            const resp = await fetch(
+                'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+                {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + this.accessToken },
+                    body: form
+                }
+            );
+            
+            if (!resp.ok) throw new Error('建立檔案失敗');
+            return await resp.json();
+        },
+        
+        async updateBackupFile(fileId, content) {
+            const resp = await fetch(
+                'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media',
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.accessToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: content
+                }
+            );
+            
+            if (!resp.ok) throw new Error('更新檔案失敗');
+            return await resp.json();
+        },
+        
+        async downloadBackupFile(fileId) {
+            const resp = await fetch(
+                'https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+                { headers: { 'Authorization': 'Bearer ' + this.accessToken } }
+            );
+            
+            if (!resp.ok) throw new Error('下載檔案失敗');
+            return await resp.text();
+        },
+        
+        async deleteBackupFile(fileId) {
+            const resp = await fetch(
+                'https://www.googleapis.com/drive/v3/files/' + fileId,
+                {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + this.accessToken }
+                }
+            );
+            
+            return resp.ok || resp.status === 404;
+        },
+        
+        disconnect() {
+            localStorage.removeItem(GDRIVE_ACCESS_TOKEN_KEY);
+            localStorage.removeItem(GDRIVE_TOKEN_EXPIRY_KEY);
+            localStorage.removeItem(GDRIVE_USER_EMAIL_KEY);
+            localStorage.removeItem(GDRIVE_FILE_ID_KEY);
+            localStorage.removeItem(GDRIVE_LAST_SYNC_KEY);
+            localStorage.removeItem(GDRIVE_FILE_NAME_KEY);
+            
+            this.accessToken = null;
+            this.tokenExpiry = null;
+        }
+    };
+
+    const setGDriveStatus = (text, color = '#666') => {
+        if (gdriveStatusEl) {
+            gdriveStatusEl.textContent = text;
+            gdriveStatusEl.style.color = color;
+        }
+    };
+
+    const updateGDriveUI = () => {
+        GDriveService.init();
+        
+        if (GDriveService.isConnected()) {
+            if (gdriveNotConnectedEl) gdriveNotConnectedEl.classList.add('hidden');
+            if (gdriveConnectedEl) gdriveConnectedEl.classList.remove('hidden');
+            
+            const email = localStorage.getItem(GDRIVE_USER_EMAIL_KEY);
+            if (gdriveUserEmailEl) gdriveUserEmailEl.textContent = email || '已連接';
+            
+            const lastSync = localStorage.getItem(GDRIVE_LAST_SYNC_KEY);
+            if (gdriveLastSyncEl) gdriveLastSyncEl.textContent = lastSync || '-';
+            
+            const fileName = localStorage.getItem(GDRIVE_FILE_NAME_KEY);
+            if (gdriveFileNameEl) gdriveFileNameEl.textContent = fileName || 'sxiphone_backup.json';
+            
+            setGDriveStatus('✅ Google Drive 已連接', '#34C759');
+            if (window.lucide) lucide.createIcons();
+        } else {
+            if (gdriveNotConnectedEl) gdriveNotConnectedEl.classList.remove('hidden');
+            if (gdriveConnectedEl) gdriveConnectedEl.classList.add('hidden');
+            
+            if (GDriveService.clientId) {
+                setGDriveStatus('⚠️ Token 已過期，請重新授權', '#FF9500');
+            } else {
+                setGDriveStatus('尚未設定 Client ID', '#666');
+            }
+        }
+        
+        if (gdriveClientIdInput) {
+            gdriveClientIdInput.value = localStorage.getItem(GDRIVE_CLIENT_ID_KEY) || '';
+        }
+    };
+
+    const pushGDriveBackup = async () => {
+        GDriveService.init();
+        
+        if (!GDriveService.isTokenValid()) {
+            setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
+            return false;
+        }
+        
+        setGDriveStatus('正在收集資料...', '#007AFF');
+        
+        try {
+            const allData = await collectAllStorageData();
+            const dataHash = await generateDataHash(allData);
+            const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+            
+            if (dataHash === lastHash) {
+                setGDriveStatus('資料無變動，跳過備份', '#34C759');
+                return true;
+            }
+            
+            const payload = {
+                version: '3.0',
+                exported_at: new Date().toISOString(),
+                device: navigator.userAgent,
+                data: allData,
+                data_hash: dataHash
+            };
+            
+            const content = JSON.stringify(payload, null, 2);
+            
+            setGDriveStatus('正在上傳到 Google Drive...', '#007AFF');
+            
+            // 查找舊檔案並刪除
+            const oldFile = await GDriveService.findBackupFile();
+            if (oldFile) {
+                await GDriveService.deleteBackupFile(oldFile.id);
+            }
+            
+            // 建立新檔案
+            const newFile = await GDriveService.createBackupFile(content);
+            
+            localStorage.setItem(GDRIVE_FILE_ID_KEY, newFile.id);
+            localStorage.setItem(GDRIVE_FILE_NAME_KEY, newFile.name);
+            localStorage.setItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
+            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            
+            setGDriveStatus('✅ 備份完成', '#34C759');
+            updateGDriveUI();
+            
+            return true;
+        } catch (err) {
+            console.error('[GDrive] 備份錯誤:', err);
+            setGDriveStatus('❌ 備份失敗: ' + err.message, '#FF453A');
+            return false;
+        }
+    };
+
+    const pullGDriveBackup = async () => {
+        GDriveService.init();
+        
+        if (!GDriveService.isTokenValid()) {
+            setGDriveStatus('❌ Token 已過期，請重新授權', '#FF453A');
+            return false;
+        }
+        
+        setGDriveStatus('正在下載備份...', '#007AFF');
+        
+        try {
+            const backupFile = await GDriveService.findBackupFile();
+            
+            if (!backupFile) {
+                setGDriveStatus('❌ 找不到備份檔案', '#FF453A');
+                return false;
+            }
+            
+            const content = await GDriveService.downloadBackupFile(backupFile.id);
+            const backupData = JSON.parse(content);
+            
+            if (!backupData.data) {
+                throw new Error('備份格式不正確');
+            }
+            
+            setGDriveStatus('正在還原資料...', '#007AFF');
+            
+            const count = await restoreAllStorageData(backupData.data);
+            localStorage.setItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
+            
+            setGDriveStatus('✅ 還原完成 (' + count + ' 筆資料)', '#34C759');
+            alert('✅ 已成功還原 ' + count + ' 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。');
+            
+            updateGDriveUI();
+            return true;
+        } catch (err) {
+            console.error('[GDrive] 還原錯誤:', err);
+            setGDriveStatus('❌ 還原失敗: ' + err.message, '#FF453A');
+            return false;
+        }
+    };
+
+    // 處理 OAuth 回傳的 token
+    if (GDriveService.parseTokenFromUrl()) {
+        // 成功取得 token，取得使用者資訊
+        GDriveService.getUserInfo().then(userInfo => {
+            localStorage.setItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
+            updateGDriveUI();
+        }).catch(err => {
+            console.warn('[GDrive] 取得使用者資訊失敗:', err);
+            updateGDriveUI();
+        });
+    }
+
+    gdriveSaveClientBtn?.addEventListener('click', () => {
+        const clientId = gdriveClientIdInput?.value.trim();
+        if (!clientId) {
+            setGDriveStatus('請輸入 Client ID', '#FF9500');
+            return;
+        }
+        localStorage.setItem(GDRIVE_CLIENT_ID_KEY, clientId);
+        GDriveService.clientId = clientId;
+        setGDriveStatus('✅ Client ID 已儲存', '#34C759');
+    });
+
+    gdriveAuthorizeBtn?.addEventListener('click', async () => {
+        GDriveService.init();
+        
+        try {
+            await GDriveService.authorize();
+        } catch (err) {
+            setGDriveStatus('❌ ' + err.message, '#FF453A');
+        }
+    });
+
+    gdriveBackupBtn?.addEventListener('click', pushGDriveBackup);
+    gdriveRestoreBtn?.addEventListener('click', pullGDriveBackup);
+
+    gdriveDisconnectBtn?.addEventListener('click', () => {
+        if (!confirm('確定要中斷 Google Drive 連接？')) return;
+        GDriveService.disconnect();
+        updateGDriveUI();
+    });
+
+    // 初始化 UI
+    updateGDriveUI();
 
     // ==================== 本地檔案備援 ====================
     const localFolderExportBtn = document.getElementById('local-folder-export');

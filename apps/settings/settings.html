@@ -1139,37 +1139,8 @@
             </summary>
             <div class="list-card">
                 <div class="cell-v">
-                    <span class="cell-label">即時自動備份</span>
-                    <p class="ios-caption">選擇要使用 Supabase 或 Xata 作為即時自動備份的目標。</p>
-                    
-                    <div class="ios-toggle-row">
-                        <span class="toggle-label">啟用即時自動備份</span>
-                        <label class="ios-toggle">
-                            <input type="checkbox" id="auto-backup-realtime-enabled">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div style="margin: 12px 0;">
-                        <label class="cell-label" for="auto-backup-realtime-provider">備份目標</label>
-                        <select id="auto-backup-realtime-provider" class="ios-input" style="margin-top: 4px;">
-                            <option value="supabase">Supabase</option>
-                            <option value="xata">Xata</option>
-                        </select>
-                    </div>
-                    
-                    <hr style="border: none; border-top: 1px solid var(--separator-color); margin: 16px 0;">
-                    
-                    <span class="cell-label">睡眠後自動備份</span>
-                    <p class="ios-caption">每次記憶睡眠流程完成後，自動將資料備份到已連接的服務。</p>
-                    
-                    <div class="ios-toggle-row">
-                        <span class="toggle-label">啟用睡眠備份</span>
-                        <label class="ios-toggle">
-                            <input type="checkbox" id="auto-backup-enabled" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+                    <span class="cell-label">自動備份選項</span>
+                    <p class="ios-caption">選擇要啟用的自動備份目標。建議至少啟用一個雲端備份。</p>
                     
                     <div class="ios-toggle-row">
                         <span class="toggle-label">備份到 GitHub</span>
@@ -1188,9 +1159,9 @@
                     </div>
                     
                     <div class="ios-toggle-row">
-                        <span class="toggle-label">備份到 Xata</span>
+                        <span class="toggle-label">備份到 Google Drive</span>
                         <label class="ios-toggle">
-                            <input type="checkbox" id="auto-backup-xata">
+                            <input type="checkbox" id="auto-backup-gdrive">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -1207,6 +1178,12 @@
                     
                     <div class="btn-row" style="margin-top:12px;">
                         <button class="ios-btn" id="auto-backup-save" type="button">儲存設定</button>
+                        <button class="ios-btn" id="auto-backup-now" type="button">立即備份</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
                         <button class="ios-btn" id="auto-backup-now" type="button">立即備份</button>
                     </div>
                 </div>
@@ -1297,108 +1274,41 @@
                     </p>
                     
                     <p class="ios-caption" id="image-host-status" style="margin-top:8px;">狀態：未啟用</p>
+                    
+                    <div id="image-migrate-section" class="cell-v" style="margin-top:16px; padding:12px; background:#fff3cd; border-radius:8px; display:none;">
+                        <span class="cell-label" style="font-size:13px;">⚠️ 發現本地儲存的圖片</span>
+                        <p class="ios-caption" style="margin-top:4px;" id="migrate-stats">--</p>
+                        <button id="migrate-images-btn" class="ios-btn" style="margin-top:8px; font-size:13px; padding:8px 16px;">遷移圖片到圖床</button>
+                        <p class="ios-caption" id="migrate-progress" style="margin-top:4px; display:none;">處理中...</p>
+                    </div>
                 </div>
             </div>
         </details>
     </section>
 
-    <!-- Supabase 自動備份（一鍵設定） -->
+    <!-- Supabase 備份設定 -->
     <section class="group">
         <details>
             <summary class="group-summary">
                 <div class="summary-left">
                     <i data-lucide="cloud-upload"></i>
-                    <span>Supabase 自動備份</span>
+                    <span>Supabase 雲端備份</span>
                 </div>
                 <i data-lucide="chevron-right" class="arrow"></i>
             </summary>
             <div class="list-card">
                 <div class="cell-v">
-                    <span class="cell-label">一鍵設定自動備份</span>
-                    <p class="ios-caption">填入 Supabase 專案 URL 和 anon key，系統將每 10 則對話自動備份。</p>
+                    <span class="cell-label">Supabase 設定</span>
+                    <p class="ios-caption">Supabase 提供免費 500MB 儲存空間，資料永久保存。備份前會自動清除雲端舊資料，避免重複。</p>
                     
-                    <label class="cell-label" for="supabase-quick-url">專案 URL</label>
-                    <input id="supabase-quick-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
+                    <label class="cell-label" for="supabase-url">專案 URL</label>
+                    <input id="supabase-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
                     
-                    <label class="cell-label" for="supabase-quick-key">Anon Key</label>
-                    <input id="supabase-quick-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
-                    
-                    <div class="ios-toggle-row" style="margin-top:12px;">
-                        <span class="toggle-label">啟用自動備份</span>
-                        <label class="ios-toggle">
-                            <input type="checkbox" id="supabase-auto-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="btn-row" style="margin-top:12px;">
-                        <button class="ios-btn primary" id="supabase-quick-enable" type="button">一鍵啟用</button>
-                        <button class="ios-btn" id="supabase-quick-test" type="button">測試連線</button>
-                    </div>
-                    
-                    <p class="ios-caption" id="supabase-quick-status">尚未設定</p>
-                    
-                    <div class="cell-v" style="margin-top:12px; padding:8px; background:#f5f5f5; border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
-                            <span>上次備份：<span id="supabase-last-sync">-</span></span>
-                            <span>備份次數：<span id="supabase-backup-count">0</span></span>
-                        </div>
-                    </div>
-                    
-                    <div class="cell-v" style="margin-top: 12px; padding: 10px; background: var(--ios-secondary-bg); border-radius: 8px;">
-                        <span class="cell-label" style="font-size: 13px;">記憶同步</span>
-                        <p class="ios-caption" style="font-size: 11px;">同步短期記憶到 Supabase 雲端，跨裝置共享記憶</p>
-                        <div class="btn-row" style="margin-top: 6px;">
-                            <button class="ios-btn" id="supabase-memory-sync-push" type="button" style="font-size: 12px; padding: 6px 12px;">推送記憶</button>
-                            <button class="ios-btn" id="supabase-memory-sync-pull" type="button" style="font-size: 12px; padding: 6px 12px;">拉取記憶</button>
-                        </div>
-                        <p class="ios-caption" id="supabase-memory-sync-status" style="font-size: 11px;"></p>
-                    </div>
-                </div>
-            </div>
-        </details>
-    </section>
-
-    <!-- Supabase 緊急備援 -->
-    <section class="group">
-        <details>
-            <summary class="group-summary">
-                <div class="summary-left">
-                    <i data-lucide="cloud"></i>
-                    <span>雲端備份 (Supabase / Xata)</span>
-                </div>
-                <i data-lucide="chevron-right" class="arrow"></i>
-            </summary>
-            <div class="list-card">
-                <div class="cell-v">
-                    <span class="cell-label">備份服務選擇</span>
-                    <p class="ios-caption">選擇 Supabase 或 Xata 作為雲端備份服務。Xata 免費空間較大 (15GB)。</p>
-                    
-                    <select id="backup-provider" class="ios-select" style="margin-bottom:12px;">
-                        <option value="supabase">Supabase (500MB 免費)</option>
-                        <option value="xata">Xata (15GB 免費)</option>
-                    </select>
-                    
-                    <div id="supabase-config">
-                        <label class="cell-label" for="supabase-url">Supabase URL</label>
-                        <input id="supabase-url" class="ios-input" type="text" placeholder="https://xxxxx.supabase.co">
-                        
-                        <label class="cell-label" for="supabase-key">Anon Key</label>
-                        <input id="supabase-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
-                    </div>
-                    
-                    <div id="xata-config" style="display:none;">
-                        <label class="cell-label" for="xata-url">Xata PostgreSQL Connection String</label>
-                        <input id="xata-url" class="ios-input" type="text" placeholder="postgresql://xata:password@workspace.region.xata.tech/postgres">
-                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">從 Xata Dashboard 取得 PostgreSQL 連線字串</p>
-                        
-                        <label class="cell-label" for="xata-key">API Key (可選)</label>
-                        <input id="xata-key" class="ios-input" type="password" placeholder="xau_...">
-                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">使用 PostgreSQL 連線字串時不需要 API Key</p>
-                    </div>
+                    <label class="cell-label" for="supabase-key">Anon Key</label>
+                    <input id="supabase-key" class="ios-input" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
                     
                     <label class="cell-label" for="backup-table">資料表名稱</label>
-                    <input id="backup-table" class="ios-input" type="text" placeholder="backups" value="sxiphone_backups">
+                    <input id="backup-table" class="ios-input" type="text" placeholder="sxiphone_backups" value="sxiphone_backups">
                     
                     <div class="btn-row" style="margin-top:12px;">
                         <button class="ios-btn" id="backup-save" type="button">儲存設定</button>
@@ -1408,9 +1318,76 @@
                     
                     <p class="ios-caption" id="backup-status">尚未設定</p>
                     
+                    <div class="cell-v" style="margin-top:12px; padding:8px; background:#f5f5f5; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
+                            <span>上次備份：<span id="supabase-last-sync">-</span></span>
+                            <span>備份次數：<span id="supabase-backup-count">0</span></span>
+                        </div>
+                    </div>
+                    
                     <div class="btn-row" style="margin-top:8px;">
                         <button class="ios-btn" id="backup-test" type="button">測試連線</button>
                         <button class="ios-btn" id="backup-clear" type="button" style="color:#FF453A;">清除設定</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </section>
+
+    <!-- Google Drive 備份 -->
+    <section class="group">
+        <details>
+            <summary class="group-summary">
+                <div class="summary-left">
+                    <i data-lucide="hard-drive"></i>
+                    <span>Google Drive 備份</span>
+                </div>
+                <i data-lucide="chevron-right" class="arrow"></i>
+            </summary>
+            <div class="list-card">
+                <div class="cell-v">
+                    <span class="cell-label">Google Drive 雲端備份</span>
+                    <p class="ios-caption">Google Drive 提供 15GB 免費空間，資料永久保存。使用 OAuth 授權，無需手動輸入密鑰。</p>
+                    
+                    <div id="gdrive-not-connected">
+                        <label class="cell-label" for="gdrive-client-id">OAuth Client ID</label>
+                        <input id="gdrive-client-id" class="ios-input" type="text" placeholder="你的 Google OAuth Client ID">
+                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">
+                            取得方式：Google Cloud Console → APIs & Services → Credentials → Create OAuth 2.0 Client ID (Web application)
+                        </p>
+                        
+                        <div class="btn-row" style="margin-top:12px;">
+                            <button class="ios-btn" id="gdrive-save-client" type="button">儲存 Client ID</button>
+                            <button class="ios-btn primary" id="gdrive-authorize" type="button">授權 Google Drive</button>
+                        </div>
+                    </div>
+                    
+                    <div id="gdrive-connected" class="hidden" style="padding:12px; background:rgba(52,199,89,0.1); border-radius:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="check-circle" style="color:#34C759;"></i>
+                            <span style="font-weight:500;">已連接 Google Drive</span>
+                        </div>
+                        <div style="margin-top:8px; font-size:12px; color:#666;">
+                            <span>帳號：<span id="gdrive-user-email">-</span></span>
+                        </div>
+                    </div>
+                    
+                    <p class="ios-caption" id="gdrive-status">尚未連接</p>
+                    
+                    <div class="cell-v" style="margin-top:12px; padding:8px; background:#f5f5f5; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
+                            <span>上次備份：<span id="gdrive-last-sync">-</span></span>
+                            <span>備份檔案：<span id="gdrive-file-name">-</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-row" style="margin-top:12px;">
+                        <button class="ios-btn primary" id="gdrive-backup" type="button">推送備份</button>
+                        <button class="ios-btn" id="gdrive-restore" type="button">拉取還原</button>
+                    </div>
+                    
+                    <div class="btn-row" style="margin-top:8px;">
+                        <button class="ios-btn" id="gdrive-disconnect" type="button" style="color:#FF453A;">中斷連接</button>
                     </div>
                 </div>
             </div>

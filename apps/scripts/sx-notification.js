@@ -74,9 +74,17 @@
             
             const originalSetItem = localStorage.setItem.bind(localStorage);
             localStorage.setItem = (key, value) => {
-                originalSetItem(key, value);
-                if (key === 'sx_theme_mode') {
-                    checkDark();
+                // sx_* 全部走 sxStorage（透過 localStorage-mirror 攔截或直接調用）
+                if (key && key.startsWith('sx_')) {
+                    // 觸發 sxStorage set + cache 更新
+                    if (typeof sxStorage !== 'undefined' && sxStorage) {
+                        sxStorage.setItem(key, value).catch(() => {});
+                    }
+                    if (key === 'sx_theme_mode') {
+                        checkDark();
+                    }
+                } else {
+                    originalSetItem(key, value);   // 非 sx key 才 fallback 原生 localStorage
                 }
             };
         }
@@ -233,8 +241,16 @@
 
         loadNotifications() {
             try {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                this.notifications = raw ? JSON.parse(raw) : [];
+                if (typeof sxStorage !== 'undefined' && sxStorage) {
+                    sxStorage.getItem(STORAGE_KEY).then(raw => {
+                        this.notifications = raw ? JSON.parse(raw) : [];
+                    }).catch(() => {
+                        this.notifications = [];
+                    });
+                } else {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    this.notifications = raw ? JSON.parse(raw) : [];
+                }
             } catch {
                 this.notifications = [];
             }
@@ -242,7 +258,14 @@
 
         saveNotifications() {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notifications.slice(0, MAX_NOTIFICATIONS)));
+                const content = JSON.stringify(this.notifications.slice(0, MAX_NOTIFICATIONS));
+                if (typeof sxStorage !== 'undefined' && sxStorage) {
+                    sxStorage.setItem(STORAGE_KEY, content).catch(e => {
+                        console.warn('[SxNotification] 儲存通知失敗:', e);
+                    });
+                } else {
+                    localStorage.setItem(STORAGE_KEY, content);
+                }
             } catch (e) {
                 console.warn('[SxNotification] 儲存通知失敗:', e);
             }

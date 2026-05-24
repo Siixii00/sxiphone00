@@ -1244,11 +1244,11 @@ class SleepEngine {
 
   async _storeAssociations(associations) {
     if (associations.length === 0) return;
-    
+
     try {
-      const existingRaw = localStorage.getItem('sx_memory_associations');
+      const existingRaw = await sxStorage.getItem('sx_memory_associations');
       const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      
+
       const associationMap = new Map();
       [...existing, ...associations].forEach(a => {
         const key = `${a.memoryA}:${a.memoryB}`;
@@ -1257,10 +1257,10 @@ class SleepEngine {
           associationMap.set(key, a);
         }
       });
-      
+
       const merged = Array.from(associationMap.values()).slice(-1000);
-      localStorage.setItem('sx_memory_associations', JSON.stringify(merged));
-      
+      await sxStorage.setItem('sx_memory_associations', JSON.stringify(merged));
+
       console.log(`[SleepEngine] 儲存 ${associations.length} 個新聯想，總計 ${merged.length} 個`);
     } catch (e) {
       console.warn('[SleepEngine] 儲存聯想失敗:', e);
@@ -1548,24 +1548,24 @@ class SleepEngine {
   }
 
   _markAwakeningNeeded() {
-    try {
-      localStorage.setItem('sx_sleep_completed_at', new Date().toISOString());
-      localStorage.setItem('sx_needs_awakening', 'true');
-      
-      const today = new Date().toDateString();
-      const awakeningState = localStorage.getItem('sx_daily_awakening_state');
-      if (awakeningState) {
-        const state = JSON.parse(awakeningState);
-        if (state.date !== today) {
-          localStorage.removeItem('sx_daily_awakening_state');
-          console.log('[SleepEngine] 已清除舊的喚醒狀態，明日將重新執行晨間回溯');
+    const now = Date.now();
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem('sx_sleep_completed_at', new Date().toISOString()).catch(() => {});
+      sxStorage.setItem('sx_needs_awakening', 'true').catch(() => {});
+      sxStorage.getItem('sx_daily_awakening_state').then(stateRaw => {
+        if (stateRaw) {
+          try {
+            const state = JSON.parse(stateRaw);
+            const today = new Date().toDateString();
+            if (state.date !== today) {
+              sxStorage.removeItem('sx_daily_awakening_state').catch(() => {});
+              console.log('[SleepEngine] 已清除舊的喚醒狀態，明日將重新執行晨間回溯');
+            }
+          } catch (_) {}
         }
-      }
-      
-      console.log('[SleepEngine] 已標記需要喚醒');
-    } catch (e) {
-      console.warn('[SleepEngine] 標記喚醒狀態失敗:', e);
+      }).catch(() => {});
     }
+    console.log('[SleepEngine] 已標記需要喚醒');
   }
 
   async _autoBackup(sleepReport) {
@@ -1796,31 +1796,39 @@ class SleepEngine {
   async _collectBackupData() {
     const data = {
       localStorage: {},
-      localforage: {},
+      sxStorage: {},
       memoryStats: null
     };
 
+    // 掃描原生 localStorage 中非 sx_* 的 legacy key
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
-      if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
-        try {
-          const value = localStorage.getItem(key);
-          if (value && value.length < 512000) {
-            data.localStorage[key] = value;
-          }
-        } catch {}
-      }
+      if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) continue; // 已遷移至 sxStorage
+      if (key === PWA_MANIFEST_KEY || key === PWA_ICON_KEY || key.startsWith('BOOT_ANIMATION')) continue;
+      try {
+        const value = localStorage.getItem(key);
+        if (value && value.length < 512000) {
+          data.localStorage[key] = value;
+        }
+      } catch {}
     }
 
-    if (typeof localforage !== 'undefined') {
+    // 從 sxStorage 取所有 sx_* key → 補入備份資料
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
       try {
-        await localforage.iterate((value, key) => {
-          if (key.startsWith('sx_') || key.startsWith('api_')) {
-            data.localforage[key] = value;
+        const keys = await sxStorage.getAllKeys();
+        for (const key of keys) {
+          if (key.startsWith('sx_')) {
+            try {
+              const value = await sxStorage.getItem(key);
+              if (value) data.sxStorage[key] = value;
+            } catch {}
           }
-        });
-      } catch {}
+        }
+      } catch (e) {
+        console.warn('[SleepEngine] _collectBackupData 讀取 sxStorage 失敗:', e);
+      }
     }
 
     if (this.memoryStore) {
@@ -1869,11 +1877,16 @@ class SleepScheduler {
 
   _loadSleepState() {
     try {
-      const saved = localStorage.getItem('sx_sleep_scheduler_state');
-      if (saved) {
-        const data = JSON.parse(saved);
-        this.sleepState = { ...this.sleepState, ...data };
-        this.nightlySleepTime = data.nightlySleepTime || this.nightlySleepTime;
+      if (typeof sxStorage !== 'undefined' && sxStorage) {
+        sxStorage.getItem('sx_sleep_scheduler_state').then(saved => {
+          if (saved) {
+            try {
+              const data = JSON.parse(saved);
+              this.sleepState = { ...this.sleepState, ...data };
+              this.nightlySleepTime = data.nightlySleepTime || this.nightlySleepTime;
+            } catch (_) {}
+          }
+        }).catch(() => {});
       }
     } catch (e) {
       console.warn('[SleepScheduler] 載入狀態失敗:', e);
@@ -1881,14 +1894,14 @@ class SleepScheduler {
   }
 
   _saveSleepState() {
-    try {
-      localStorage.setItem('sx_sleep_scheduler_state', JSON.stringify({
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem('sx_sleep_scheduler_state', JSON.stringify({
         ...this.sleepState,
         nightlySleepTime: this.nightlySleepTime,
         savedAt: new Date().toISOString()
-      }));
-    } catch (e) {
-      console.warn('[SleepScheduler] 保存狀態失敗:', e);
+      })).catch(e => {
+        console.warn('[SleepScheduler] _saveSleepState 失敗:', e);
+      });
     }
   }
 
@@ -2013,12 +2026,16 @@ class SleepScheduler {
       }
     });
     window.dispatchEvent(event);
-    
-    localStorage.setItem('sx_last_sleep_report', JSON.stringify({
-      trigger: report.trigger,
-      phases: report.phases,
-      timestamp: new Date().toISOString()
-    }));
+
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem('sx_last_sleep_report', JSON.stringify({
+        trigger: report.trigger,
+        phases: report.phases,
+        timestamp: new Date().toISOString()
+      })).catch(e => {
+        console.warn('[SleepScheduler] _notifySleepComplete 失敗:', e);
+      });
+    }
   }
 
   setNightlySleepTime(hour, minute) {

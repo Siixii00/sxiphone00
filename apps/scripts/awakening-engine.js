@@ -713,10 +713,10 @@ class AwakeningEngine {
   }
 
   _saveAwakeningState(state) {
-    try {
-      localStorage.setItem('sx_daily_awakening_state', JSON.stringify(state));
-    } catch (e) {
-      console.warn('[AwakeningEngine] 保存喚醒狀態失敗:', e);
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem('sx_daily_awakening_state', JSON.stringify(state)).catch(e => {
+        console.warn('[AwakeningEngine] _saveAwakeningState 失敗:', e);
+      });
     }
   }
 

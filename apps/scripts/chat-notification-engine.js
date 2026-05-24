@@ -49,11 +49,15 @@
 
         saveConfig(newConfig) {
             this.config = { ...DEFAULT_CONFIG, ...newConfig };
-            localStorage.setItem(CONFIG_KEY, JSON.stringify(this.config));
+            if (typeof sxStorage !== 'undefined' && sxStorage) {
+                sxStorage.setItem(CONFIG_KEY, JSON.stringify(this.config)).catch(() => {});
+            }
         }
 
         updateLastActive() {
-            localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
+            if (typeof sxStorage !== 'undefined' && sxStorage) {
+                sxStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString()).catch(() => {});
+            }
         }
 
         getLastActive() {

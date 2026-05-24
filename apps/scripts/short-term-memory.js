@@ -212,10 +212,11 @@ class ShortTermMemory {
   }
   
   _saveToStorage() {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.buffer));
-    } catch (e) {
-      console.warn('[ShortTermMemory] 儲存失敗:', e);
+    const content = JSON.stringify(this.buffer);
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem(this.storageKey, content).catch(e => {
+        console.warn('[ShortTermMemory] _saveToIndexedDB 失敗:', e);
+      });
     }
   }
   

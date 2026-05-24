@@ -1,35 +1,35 @@
-const CACHE_NAME = 'sxiphone-v16';
+const CACHE_NAME = 'sxiphone-v17';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/style.css',
-  '/main.js',
-  '/dock.js',
-  '/dock.css',
-  '/apps/widget/widget.js',
-  '/apps/widget/widget.css',
-  '/apps/widget/widget.html',
-  '/apps/widget/ios-styles.css',
-  '/apps/widget/core/state.js',
-  '/apps/widget/core/storage.js',
-  '/apps/widget/edit-mode.js',
-  '/apps/widget/services/weather.js',
-  '/apps/widget/services/calendar.js',
-  '/apps/widget/components/color-picker.js',
-  '/apps/widget/utils/dragdrop.js',
-  '/apps/screenshots/icon-192x192.png',
-  '/apps/screenshots/apple-touch-icon.png',
-  '/apps/screenshots/icon-48x48.png',
-  '/apps/screenshots/icon-120x120.png',
-  '/apps/screenshots/icon-152x152.png',
-  '/apps/screenshots/current.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './style.css',
+  './main.js',
+  './dock.js',
+  './dock.css',
+  './apps/widget/widget.js',
+  './apps/widget/widget.css',
+  './apps/widget/widget.html',
+  './apps/widget/ios-styles.css',
+  './apps/widget/core/state.js',
+  './apps/widget/core/storage.js',
+  './apps/widget/edit-mode.js',
+  './apps/widget/services/weather.js',
+  './apps/widget/services/calendar.js',
+  './apps/widget/components/color-picker.js',
+  './apps/widget/utils/dragdrop.js',
+  './apps/screenshots/icon-192x192.png',
+  './apps/screenshots/apple-touch-icon.png',
+  './apps/screenshots/icon-48x48.png',
+  './apps/screenshots/icon-120x120.png',
+  './apps/screenshots/icon-152x152.png',
+  './apps/screenshots/current.png'
 ];
 
 const CACHE_STRATEGIES = {
   networkFirst: ['/api/', '/chat'],
   cacheFirst: ['https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://unpkg.com'],
-  staleWhileRevalidate: ['/style.css', '/main.js', '/apps/scripts/'],
+  staleWhileRevalidate: ['style.css', 'main.js', '/apps/scripts/'],
   weatherAPI: ['api.open-meteo.com', 'nominatim.openstreetmap.org']
 };
 
@@ -197,21 +197,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const isAppSubdirectory = url.pathname.startsWith('/apps/');
+  const isAppSubdirectory = url.pathname.includes('/apps/');
   if (isAppSubdirectory) {
     return;
   }
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html')
+      caches.match(new Request(self.registration.scope + 'index.html'))
         .then((cachedResponse) => {
           if (cachedResponse) {
             fetch(request)
               .then((response) => {
                 if (response.ok) {
                   caches.open(CACHE_NAME).then((cache) => {
-                    cache.put('/index.html', response.clone());
+                    cache.put(new Request(self.registration.scope + 'index.html'), response.clone());
                   });
                 }
               })
@@ -223,7 +223,7 @@ self.addEventListener('fetch', (event) => {
               if (response.ok) {
                 const responseClone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => {
-                  cache.put('/index.html', responseClone);
+                  cache.put(new Request(self.registration.scope + 'index.html'), responseClone);
                 });
               }
               return response;
@@ -239,9 +239,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   const isStaticAsset = STATIC_ASSETS.some(asset => {
-    const normalizedRequest = url.pathname.startsWith('/') ? url.pathname : '/' + url.pathname;
-    const normalizedAsset = asset.startsWith('./') ? asset.replace('./', '/') : (asset.startsWith('/') ? asset : '/' + asset);
-    return normalizedRequest === normalizedAsset || normalizedRequest === asset;
+    const assetUrl = new URL(asset, self.registration.scope).href;
+    return url.href === assetUrl || url.href === assetUrl.replace(/\/$/, '/index.html');
   });
   
   if (isStaticAsset) {
@@ -297,8 +296,8 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'sxiphone',
     body: '您有新通知',
-    icon: '/apps/screenshots/icon-192x192.png',
-    badge: '/apps/screenshots/icon-48x48.png',
+    icon: 'apps/screenshots/icon-192x192.png',
+    badge: 'apps/screenshots/icon-48x48.png',
     tag: 'default',
     data: {}
   };
@@ -314,8 +313,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body,
-    icon: data.icon || '/apps/screenshots/icon-192x192.png',
-    badge: data.badge || '/apps/screenshots/icon-48x48.png',
+    icon: data.icon || 'apps/screenshots/icon-192x192.png',
+    badge: data.badge || 'apps/screenshots/icon-48x48.png',
     tag: data.tag || 'sx-notification',
     vibrate: [200, 100, 200],
     data: data.data || {},
@@ -359,7 +358,7 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
         if (clients.openWindow) {
-          const url = data.url || '/';
+          const url = data.url || self.registration.scope;
           return clients.openWindow(url);
         }
       })

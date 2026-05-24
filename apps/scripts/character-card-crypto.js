@@ -216,10 +216,17 @@ const CharacterCardCrypto = {
     async saveCharacterToLocalStorage(characterData) {
         const list = JSON.parse(localStorage.getItem('sx_characters') || '[]');
         const existingIdx = list.findIndex(item => item.name === characterData.name && characterData.name);
-        
+
+        let avatar = characterData.avatar || '';
+        // 自動上傳 avatar 到圖床
+        if (avatar && typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(avatar)) {
+            const uploadedUrl = await ImageUploader.uploadOrKeep(avatar);
+            if (uploadedUrl) avatar = uploadedUrl;
+        }
+
         const payload = {
             name: characterData.name || '',
-            avatar: characterData.avatar || '',
+            avatar: avatar,
             personality: characterData.personality || '',
             background: characterData.background || '',
             worldBook: characterData.worldBook || characterData.worldbook || '',

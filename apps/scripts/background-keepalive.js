@@ -147,15 +147,22 @@ const BackgroundKeepalive = (function() {
     }
 
     function saveConfig() {
-        localStorage.setItem(STORAGE_KEY_ENABLED, state.enabled ? '1' : '0');
-        localStorage.setItem(STORAGE_KEY_INTERVAL, String(state.interval));
-        localStorage.setItem(STORAGE_KEY_GREETING_ENABLED, state.greetingEnabled ? '1' : '0');
-        localStorage.setItem(STORAGE_KEY_GREETING_INTERVAL, String(state.greetingInterval));
-        localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, state.contextMode);
-        localStorage.setItem(STORAGE_KEY_CUSTOM_PROMPT, state.customPrompt);
-        localStorage.setItem(STORAGE_KEY_LAST_PING, String(state.lastPing));
-        localStorage.setItem(STORAGE_KEY_LAST_GREETING, String(state.lastGreeting));
-        localStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify(state.pendingQueue));
+        const entries = [
+            [STORAGE_KEY_ENABLED, state.enabled ? '1' : '0'],
+            [STORAGE_KEY_INTERVAL, String(state.interval)],
+            [STORAGE_KEY_GREETING_ENABLED, state.greetingEnabled ? '1' : '0'],
+            [STORAGE_KEY_GREETING_INTERVAL, String(state.greetingInterval)],
+            [STORAGE_KEY_CONTEXT_MODE, state.contextMode],
+            [STORAGE_KEY_CUSTOM_PROMPT, state.customPrompt],
+            [STORAGE_KEY_LAST_PING, String(state.lastPing)],
+            [STORAGE_KEY_LAST_GREETING, String(state.lastGreeting)],
+            [STORAGE_KEY_QUEUE, JSON.stringify(state.pendingQueue)]
+        ];
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            for (const [key, value] of entries) {
+                sxStorage.setItem(key, value).catch(() => {});
+            }
+        }
     }
 
     function clampInterval(value, min, max) {
@@ -757,8 +764,10 @@ const BackgroundKeepalive = (function() {
                 })
             });
 
-            state.lastPing = Date.now();
-            localStorage.setItem(STORAGE_KEY_LAST_PING, String(state.lastPing));
+        state.lastPing = Date.now();
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            sxStorage.setItem(STORAGE_KEY_LAST_PING, String(state.lastPing)).catch(() => {});
+        }
 
             return response.ok;
         } catch (err) {
@@ -786,10 +795,13 @@ const BackgroundKeepalive = (function() {
         if (state.pendingQueue.length > 10) {
             state.pendingQueue = state.pendingQueue.slice(-10);
         }
-        localStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify(state.pendingQueue));
 
         state.lastGreeting = Date.now();
-        localStorage.setItem(STORAGE_KEY_LAST_GREETING, String(state.lastGreeting));
+
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            sxStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify(state.pendingQueue)).catch(() => {});
+            sxStorage.setItem(STORAGE_KEY_LAST_GREETING, String(state.lastGreeting)).catch(() => {});
+        }
 
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({
@@ -909,7 +921,9 @@ const BackgroundKeepalive = (function() {
     function enterBackground() {
         state.isInBackground = true;
         
-        localStorage.setItem('sx_keepalive_background_time', String(Date.now()));
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            sxStorage.setItem('sx_keepalive_background_time', String(Date.now())).catch(() => {});
+        }
         
         if (state.enabled) {
             scheduleNextPing();
@@ -987,7 +1001,9 @@ const BackgroundKeepalive = (function() {
 
         const queue = [...state.pendingQueue];
         state.pendingQueue = [];
-        localStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify([]));
+        if (typeof sxStorage !== 'undefined' && sxStorage) {
+            sxStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify([])).catch(() => {});
+        }
 
         queue.forEach(item => {
             if (window.parent && window.parent !== window) {

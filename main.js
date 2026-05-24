@@ -333,21 +333,23 @@
 
     // 生成動態 manifest Blob URL
     const generateDynamicManifest = () => {
-        const baseUrl = window.location.origin;
+        // 使用實際的部署路徑（支援子目錄部署，如 GitHub Pages）
+        const basePath = window.location.href.replace(/\/[^\/]*$/, '/');
         
         const defaultManifest = {
             name: "sxiphone",
             short_name: "sxiphone",
-            start_url: baseUrl + "/",
+            start_url: basePath,
+            scope: basePath,
             display: "standalone",
-            display_override: ["fullscreen", "standalone", "minimal-ui"],
+            display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
             orientation: "portrait",
-            fullscreen: true,
             background_color: "#0b0c12",
             theme_color: "#0b0c12",
             description: "iOS 風格的手機介面模擬器",
             categories: ["entertainment", "utilities"],
-            lang: "zh-TW"
+            lang: "zh-TW",
+            id: "sxiphone-pwa"
         };
 
         try {
@@ -390,19 +392,19 @@
                 // 使用預設圖標
                 manifest.icons = [
                     {
-                        src: baseUrl + "/apps/screenshots/current.png",
+                        src: basePath + "apps/screenshots/current.png",
                         sizes: "512x512",
                         type: "image/png",
                         purpose: "any"
                     },
                     {
-                        src: baseUrl + "/apps/screenshots/icon-192x192.png",
+                        src: basePath + "apps/screenshots/icon-192x192.png",
                         sizes: "192x192",
                         type: "image/png",
                         purpose: "any"
                     },
                     {
-                        src: baseUrl + "/apps/screenshots/current.png",
+                        src: basePath + "apps/screenshots/current.png",
                         sizes: "512x512",
                         type: "image/png",
                         purpose: "maskable"
@@ -416,22 +418,22 @@
                     name: "聊天",
                     short_name: "聊天",
                     description: "開啟聊天應用",
-                    url: baseUrl + "/?app=chat",
-                    icons: [{ src: savedIcon || (baseUrl + "/apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
+                    url: basePath + "index.html?app=chat",
+                    icons: [{ src: savedIcon || (basePath + "apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
                 },
                 {
                     name: "設定",
                     short_name: "設定",
                     description: "開啟設定",
-                    url: baseUrl + "/?app=settings",
-                    icons: [{ src: savedIcon || (baseUrl + "/apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
+                    url: basePath + "index.html?app=settings",
+                    icons: [{ src: savedIcon || (basePath + "apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
                 }
             ];
 
             // 添加 screenshots
             manifest.screenshots = [
                 {
-                    src: savedIcon || (baseUrl + "/apps/screenshots/current.png"),
+                    src: savedIcon || (basePath + "apps/screenshots/current.png"),
                     sizes: "512x512",
                     type: "image/png"
                 }
@@ -694,12 +696,28 @@
         window.dispatchEvent(new CustomEvent('sx-language-changed', { detail: { lang } }));
     }
 
-    // --- 4. 桌布套用函式 ---
+    // --- 4. 桌布套用函式（自動上傳圖床） ---
     function applyWallpaper(url) {
         if (!url) return;
         const formattedUrl = url.startsWith('url(') ? url : `url('${url}')`;
         document.documentElement.style.setProperty('--wallpaper-url', formattedUrl);
-        localStorage.setItem('userWallpaper', url);
+
+        // 嘗試上傳圖床（base64 → URL），成功則回填 URL
+        if (typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(url)) {
+            ImageUploader.uploadOrKeep(url).then(finalUrl => {
+                if (finalUrl !== url) {
+                    // 上傳成功，用 URL 取代 base64
+                    const fmt = `url('${finalUrl}')`;
+                    document.documentElement.style.setProperty('--wallpaper-url', fmt);
+                    localStorage.setItem('userWallpaper', finalUrl);
+                    console.info('[Wallpaper] base64 已上傳圖床:', finalUrl);
+                } else {
+                    localStorage.setItem('userWallpaper', url);
+                }
+            });
+        } else {
+            localStorage.setItem('userWallpaper', url);
+        }
         console.log("✅ 桌布已更新並儲存");
     }
 
@@ -707,7 +725,21 @@
         if (!url) return;
         const formattedUrl = url.startsWith('url(') ? url : `url('${url}')`;
         document.documentElement.style.setProperty('--lockscreen-url', formattedUrl);
-        localStorage.setItem('userLockscreen', url);
+
+        if (typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(url)) {
+            ImageUploader.uploadOrKeep(url).then(finalUrl => {
+                if (finalUrl !== url) {
+                    const fmt = `url('${finalUrl}')`;
+                    document.documentElement.style.setProperty('--lockscreen-url', fmt);
+                    localStorage.setItem('userLockscreen', finalUrl);
+                    console.info('[Lockscreen] base64 已上傳圖床:', finalUrl);
+                } else {
+                    localStorage.setItem('userLockscreen', url);
+                }
+            });
+        } else {
+            localStorage.setItem('userLockscreen', url);
+        }
         console.log("✅ 鎖屏桌布已更新並儲存");
     }
 
@@ -5605,9 +5637,131 @@ const handleEnd = (y) => {
         }
     };
 
+    // ─── 啟動時自動遷移 base64 圖片到圖床 ──────────────────────────────────
+    const _migrateBase64ToImageHost = async () => {
+        if (typeof ImageUploader === 'undefined' || !ImageUploader.isEnabled()) return;
+
+        const IMAGE_KEYS = [
+            'userWallpaper',
+            'userLockscreen',
+            'sx_char_avatar',
+            'sx_user_avatar'
+        ];
+
+        let migrated = 0;
+        for (const key of IMAGE_KEYS) {
+            try {
+                const val = localStorage.getItem(key);
+                if (!val || !ImageUploader.isBase64(val)) continue;
+
+                console.info(`[ImageMigrate] 偵測到 base64 圖片: ${key} (${(val.length / 1024).toFixed(0)}KB)`);
+                const url = await ImageUploader.upload(val);
+                if (url) {
+                    localStorage.setItem(key, url);
+                    migrated++;
+                    console.info(`[ImageMigrate] ${key} → ${url}`);
+                }
+            } catch (e) {
+                console.warn(`[ImageMigrate] ${key} 遷移失敗:`, e);
+            }
+        }
+
+        // 掃描角色列表中的 avatar
+        try {
+            const charsRaw = localStorage.getItem('sx_characters');
+            if (charsRaw) {
+                const chars = JSON.parse(charsRaw);
+                let charMigrated = 0;
+                if (Array.isArray(chars)) {
+                    for (const char of chars) {
+                        if (char.avatar && ImageUploader.isBase64(char.avatar)) {
+                            const url = await ImageUploader.upload(char.avatar);
+                            if (url) {
+                                char.avatar = url;
+                                charMigrated++;
+                            }
+                        }
+                    }
+                    if (charMigrated > 0) {
+                        localStorage.setItem('sx_characters', JSON.stringify(chars));
+                        migrated += charMigrated;
+                        console.info(`[ImageMigrate] 角色 avatar 遷移: ${charMigrated} 張`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[ImageMigrate] 角色 avatar 掃描失敗:', e);
+        }
+
+        // 掃描 masks 中的 avatar
+        try {
+            const masksRaw = localStorage.getItem('sx_masks');
+            if (masksRaw) {
+                const masks = JSON.parse(masksRaw);
+                let maskMigrated = 0;
+                if (Array.isArray(masks)) {
+                    for (const mask of masks) {
+                        if (mask.avatar && ImageUploader.isBase64(mask.avatar)) {
+                            const url = await ImageUploader.upload(mask.avatar);
+                            if (url) {
+                                mask.avatar = url;
+                                maskMigrated++;
+                            }
+                        }
+                    }
+                    if (maskMigrated > 0) {
+                        localStorage.setItem('sx_masks', JSON.stringify(masks));
+                        migrated += maskMigrated;
+                    }
+                }
+            }
+        } catch (_) {}
+
+        // 掃描相簿中的 base64
+        try {
+            const albumRaw = localStorage.getItem('sx_album_uploaded_images');
+            if (albumRaw) {
+                const imgs = JSON.parse(albumRaw);
+                let albumMigrated = 0;
+                if (Array.isArray(imgs)) {
+                    for (const img of imgs) {
+                        if (img.url && ImageUploader.isBase64(img.url)) {
+                            const url = await ImageUploader.upload(img.url);
+                            if (url) {
+                                img.url = url;
+                                albumMigrated++;
+                            }
+                        }
+                    }
+                    if (albumMigrated > 0) {
+                        localStorage.setItem('sx_album_uploaded_images', JSON.stringify(imgs));
+                        migrated += albumMigrated;
+                        console.info(`[ImageMigrate] 相簿圖片遷移: ${albumMigrated} 張`);
+                    }
+                }
+            }
+        } catch (_) {}
+
+        if (migrated > 0) {
+            console.info(`[ImageMigrate] ✅ 總計遷移 ${migrated} 張 base64 圖片到圖床`);
+        } else {
+            console.info('[ImageMigrate] 無需遷移的 base64 圖片');
+        }
+    };
+
     function init() {
+        // 啟動 localStorage 全域反射層（所有 key 走 sxStorage / IndexedDB）
+        try {
+            if (window.__localStorageMirror?.markSxReady) {
+                window.__localStorageMirror.markSxReady();
+            }
+        } catch (_) {}
+
         requestStoragePersistence();
         checkStorageStatus();
+
+        // 延遲執行圖片自動上傳遷移（base64 → 圖床 URL）
+        setTimeout(_migrateBase64ToImageHost, 8000);
 
         applyLanguageToUI();
         updateClock();

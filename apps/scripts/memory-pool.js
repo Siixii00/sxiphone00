@@ -44,11 +44,14 @@ class MemoryPool {
   
   _loadFromStorage() {
     try {
-      const raw = localStorage.getItem(this.storageKey);
-      if (raw) {
-        const data = JSON.parse(raw);
-        this.pool = data.pool || this.pool;
-        this.triggerCache = new Map(data.triggerCache || []);
+      if (typeof sxStorage !== 'undefined' && sxStorage) {
+        sxStorage.getItem(this.storageKey).then(raw => {
+          if (raw) {
+            const data = JSON.parse(raw);
+            this.pool = data.pool || this.pool;
+            this.triggerCache = new Map(data.triggerCache || []);
+          }
+        }).catch(() => {});
       }
     } catch (e) {
       console.warn('[MemoryPool] 載入狀態失敗:', e);
@@ -56,14 +59,15 @@ class MemoryPool {
   }
   
   _saveToStorage() {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify({
-        pool: this.pool,
-        triggerCache: Array.from(this.triggerCache.entries()),
-        savedAt: new Date().toISOString()
-      }));
-    } catch (e) {
-      console.warn('[MemoryPool] 保存狀態失敗:', e);
+    const content = JSON.stringify({
+      pool: this.pool,
+      triggerCache: Array.from(this.triggerCache.entries()),
+      savedAt: new Date().toISOString()
+    });
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem(this.storageKey, content).catch(e => {
+        console.warn('[MemoryPool] _saveToStorage 失敗:', e);
+      });
     }
   }
   

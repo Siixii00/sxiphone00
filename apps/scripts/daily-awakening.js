@@ -23,12 +23,15 @@ class DailyAwakening {
 
   _loadState() {
     try {
-      const state = localStorage.getItem('sx_daily_awakening_state');
-      if (state) {
-        const parsed = JSON.parse(state);
-        this.lastAwakeningTime = parsed.lastAwakeningTime;
-        this.isAwakened = parsed.isAwakened || false;
-        this.collectMemories = parsed.collectMemories || [];
+      if (typeof sxStorage !== 'undefined' && sxStorage) {
+        sxStorage.getItem('sx_daily_awakening_state').then(raw => {
+          if (raw && !this.lastAwakeningTime) {
+            const parsed = JSON.parse(raw);
+            this.lastAwakeningTime = parsed.lastAwakeningTime;
+            this.isAwakened = parsed.isAwakened || false;
+            this.collectMemories = parsed.collectMemories || [];
+          }
+        }).catch(() => {});
       }
     } catch (e) {
       console.warn('[DailyAwakening] 載入狀態失敗:', e);
@@ -36,15 +39,16 @@ class DailyAwakening {
   }
 
   _saveState() {
-    try {
-      localStorage.setItem('sx_daily_awakening_state', JSON.stringify({
-        lastAwakeningTime: this.lastAwakeningTime,
-        isAwakened: this.isAwakened,
-        collectMemories: this.collectMemories,
-        savedAt: new Date().toISOString()
-      }));
-    } catch (e) {
-      console.warn('[DailyAwakening] 保存狀態失敗:', e);
+    const content = JSON.stringify({
+      lastAwakeningTime: this.lastAwakeningTime,
+      isAwakened: this.isAwakened,
+      collectMemories: this.collectMemories,
+      savedAt: new Date().toISOString()
+    });
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.setItem('sx_daily_awakening_state', content).catch(e => {
+        console.warn('[DailyAwakening] _saveState 失敗:', e);
+      });
     }
   }
 
@@ -91,9 +95,12 @@ class DailyAwakening {
     if (this.isInSleepTime()) {
       return false;
     }
-    
-    const sleepCompleted = localStorage.getItem('sx_sleep_completed_at');
-    const needsAwakeningFlag = localStorage.getItem('sx_needs_awakening') === 'true';
+
+    const read = (k) => (typeof sxStorage !== 'undefined' && sxStorage?._getCache?.(k));
+    const sleepCompleted = read('sx_sleep_completed_at')
+      ?? (typeof __localStorageMirror?.isReady === 'boolean' ? null : localStorage.getItem('sx_sleep_completed_at'));
+    const needsAwakeningFlag = read('sx_needs_awakening') === 'true'
+      || (typeof __localStorageMirror?.isReady !== 'boolean' && localStorage.getItem('sx_needs_awakening') === 'true');
     
     if (needsAwakeningFlag && sleepCompleted) {
       const sleepTime = new Date(sleepCompleted);
@@ -291,8 +298,11 @@ class DailyAwakening {
     this.lastAwakeningTime = new Date().toISOString();
     this.isAwakened = true;
     this._saveState();
-    
-    localStorage.removeItem('sx_needs_awakening');
+
+    // 喚醒後立即清除喚醒旗標
+    if (typeof sxStorage !== 'undefined' && sxStorage) {
+      sxStorage.removeItem('sx_needs_awakening').catch(() => {});
+    }
     
     console.log('[DailyAwakening] 喚醒完成:', {
       surfaced: surfaced.length,

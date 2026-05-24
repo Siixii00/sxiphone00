@@ -193,23 +193,127 @@ function openImagePicker() {
     if (input) input.click();
 }
 
+const ImageHostService = {
+    isEnabled() {
+        return localStorage.getItem('sx_image_host_enabled') === 'true';
+    },
+    
+    getProvider() {
+        return localStorage.getItem('sx_image_host_provider') || 'catbox';
+    },
+    
+    getUserhash() {
+        return localStorage.getItem('sx_catbox_userhash') || '';
+    },
+    
+    async uploadToCatbox(file) {
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', file);
+        
+        const userhash = this.getUserhash();
+        if (userhash) {
+            formData.append('userhash', userhash);
+        }
+        
+        try {
+            const response = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) return null;
+            
+            const url = await response.text();
+            if (url && url.startsWith('https://')) {
+                return url.trim();
+            }
+            return null;
+        } catch (e) {
+            console.warn('[Album] 圖床上傳失敗:', e);
+            return null;
+        }
+    },
+    
+    async uploadImage(source) {
+        if (!this.isEnabled()) return null;
+        
+        let file = null;
+        
+        if (source instanceof File) {
+            file = source;
+        } else if (typeof source === 'string' && source.startsWith('data:')) {
+            const response = await fetch(source);
+            const blob = await response.blob();
+            const ext = source.split(';')[0].split('/')[1] || 'png';
+            file = new File([blob], `image.${ext}`, { type: blob.type || 'image/png' });
+        }
+        
+        if (!file || file.size > 200 * 1024 * 1024) return null;
+        
+        return await this.uploadToCatbox(file);
+    }
+};
+
 function handleDeviceUpload(event) {
     const files = event.target.files;
     if (!files || !files.length) return;
-    Array.from(files).forEach(file => {
+    
+    Array.from(files).forEach(async (file) => {
         if (!file.type.startsWith('image/')) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            addImage(e.target.result, 'uploaded');
-        };
-        reader.readAsDataURL(file);
+        
+        let imageUrl = null;
+
+        // 優先使用全域 ImageUploader（支援圖床自動上傳）
+        if (typeof ImageUploader !== 'undefined' && ImageUploader.isEnabled()) {
+            try {
+                imageUrl = await ImageUploader.upload(file);
+                if (imageUrl) {
+                    console.log('[Album] 圖片已上傳到圖床:', imageUrl);
+                }
+            } catch (err) {
+                console.warn('[Album] ImageUploader 上傳失敗:', err);
+            }
+        }
+
+        // fallback: 使用舊的 ImageHostService
+        if (!imageUrl && ImageHostService.isEnabled()) {
+            try {
+                imageUrl = await ImageHostService.uploadImage(file);
+                if (imageUrl) {
+                    console.log('[Album] 圖片已透過 ImageHostService 上傳:', imageUrl);
+                }
+            } catch (err) {
+                console.warn('[Album] ImageHostService 上傳失敗:', err);
+            }
+        }
+
+        // 最後 fallback: base64（不建議，體積大）
+        if (!imageUrl) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                addImage(e.target.result, 'uploaded');
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+        
+        addImage(imageUrl, 'uploaded');
     });
+    
     if (event.target) event.target.value = '';
 }
 
 function receiveImage(dataUrl, source) {
     if (!dataUrl) return;
-    addImage(dataUrl, source);
+    // 接收圖片也嘗試上傳圖床
+    if (typeof ImageUploader !== 'undefined' && ImageUploader.isEnabled() && ImageUploader.isBase64(dataUrl)) {
+        ImageUploader.uploadOrKeep(dataUrl).then(finalUrl => {
+            addImage(finalUrl, source);
+        });
+    } else {
+        addImage(dataUrl, source);
+    }
 }
 
 window.addEventListener('message', (event) => {
