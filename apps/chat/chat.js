@@ -2906,6 +2906,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (target) {
                 const currentHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
                 target.history = currentHistory;
+                target.worldbookMounts = getWorldbookMounts();
                 saveChatSessions(sessions);
             }
         }

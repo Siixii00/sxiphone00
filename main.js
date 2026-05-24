@@ -2431,6 +2431,21 @@
                     console.log('[Main] 外送訂單已發送到 chat:', data.order);
                 }
                 break;
+            case 'HIDE_STATUS_BAR':
+                (function() {
+                    const statusBar = document.querySelector('.status-bar');
+                    if (statusBar) statusBar.style.display = 'none';
+                })();
+                break;
+            case 'SHOW_STATUS_BAR':
+                (function() {
+                    const statusBar = document.querySelector('.status-bar');
+                    const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
+                    if (statusBar && !themeConfig.hideTopbar) {
+                        statusBar.style.display = '';
+                    }
+                })();
+                break;
             case 'openApp':
                 if (data.appId) {
                     window.launchApp(data.appId);
