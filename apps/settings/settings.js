@@ -835,7 +835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         try {
             const detailed = await manager.getDetailedEstimate();
-            const iosWarning = manager.checkIOSStorageWarning();
+            const iosWarning = await manager.checkIOSStorageWarning();
             
             const totalKB = Math.round(detailed.total.size / 1024);
             const lsKB = Math.round(detailed.localStorage.size / 1024);
@@ -2006,13 +2006,18 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         async uploadToCatbox(dataUrl) {
             try {
+                // 如果已經是遠端 URL，跳過
+                if (dataUrl.startsWith('https://') || dataUrl.startsWith('http://')) {
+                    return dataUrl;
+                }
+                
                 const response = await fetch(dataUrl);
                 const blob = await response.blob();
-                const ext = dataUrl.includes('image/png') ? 'png' : 
-                           dataUrl.includes('image/jpeg') ? 'jpg' : 
-                           dataUrl.includes('image/gif') ? 'gif' : 
-                           dataUrl.includes('image/webp') ? 'webp' : 'png';
-                const file = new File([blob], `image.${ext}`, { type: blob.type || 'image/png' });
+                const ext = blob.type === 'image/png' ? 'png' : 
+                           blob.type === 'image/jpeg' ? 'jpg' : 
+                           blob.type === 'image/gif' ? 'gif' : 
+                           blob.type === 'image/webp' ? 'webp' : 'png';
+                const file = new File([blob], `image_${Date.now()}.${ext}`, { type: blob.type || 'image/png' });
                 
                 const formData = new FormData();
                 formData.append('reqtype', 'fileupload');
@@ -2026,9 +2031,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                     body: formData
                 });
                 
-                if (!res.ok) return null;
-                const url = await res.text();
-                return url && url.startsWith('https://') ? url.trim() : null;
+                if (!res.ok) {
+                    console.warn('[ImageMigrate] catbox 回傳 HTTP', res.status);
+                    return null;
+                }
+                const rawText = await res.text();
+                const url = rawText.trim();
+                return url && url.startsWith('https://') ? url : null;
             } catch (e) {
                 console.warn('[ImageMigrate] 上傳失敗:', e);
                 return null;
@@ -3140,7 +3149,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                             resolve(tokenResponse);
                         },
                         error_callback: (err) => {
-                            reject(new Error(err.message || '授權失敗'));
+                            // GIS 的 error_callback 格式：{ type: 'popup_closed_by_user' } 或 { type: 'popup_failed_to_open' }
+                            const errType = err?.type || err?.message || '授權失敗';
+                            if (errType === 'popup_closed_by_user') {
+                                reject(new Error('popup_closed'));
+                            } else {
+                                reject(new Error(errType));
+                            }
                         }
                     });
 
@@ -3484,9 +3499,14 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             setGDriveStatus('請輸入 Client ID', '#FF9500');
             return;
         }
+        // 基本格式驗證
+        if (!clientId.endsWith('.apps.googleusercontent.com')) {
+            setGDriveStatus('⚠️ Client ID 格式不正確，應以 .apps.googleusercontent.com 結尾', '#FF9500');
+            return;
+        }
         localStorage.setItem(GDRIVE_CLIENT_ID_KEY, clientId);
         GDriveService.clientId = clientId;
-        setGDriveStatus('✅ Client ID 已儲存', '#34C759');
+        setGDriveStatus('✅ Client ID 已儲存，請點「授權 Google Drive」', '#34C759');
     });
 
     gdriveAuthorizeBtn?.addEventListener('click', async () => {
@@ -3497,7 +3517,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             return;
         }
 
-        setGDriveStatus('正在開啟 Google 授權...', '#007AFF');
+        if (!GDriveService.clientId.endsWith('.apps.googleusercontent.com')) {
+            setGDriveStatus('❌ Client ID 格式不正確', '#FF453A');
+            return;
+        }
+
+        setGDriveStatus('正在載入 Google 授權元件...', '#007AFF');
         
         try {
             await GDriveService.authorize();
@@ -3513,7 +3538,21 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             
             updateGDriveUI();
         } catch (err) {
-            setGDriveStatus('❌ ' + err.message, '#FF453A');
+            const msg = err.message || String(err);
+            if (msg.includes('invalid_client')) {
+                setGDriveStatus(
+                    '❌ invalid_client 錯誤。請確認：\n' +
+                    '1. Client ID 類型必須是「Web application」\n' +
+                    '2. 已在「已授權的 JavaScript 來源」加入: ' + window.location.origin + '\n' +
+                    '3. Google Cloud 專案已啟用 Google Drive API\n' +
+                    '4. OAuth 同意畫面已設定（可用測試模式）',
+                    '#FF453A'
+                );
+            } else if (msg.includes('popup_closed') || msg.includes('access_denied')) {
+                setGDriveStatus('⚠️ 授權已取消', '#FF9500');
+            } else {
+                setGDriveStatus('❌ ' + msg, '#FF453A');
+            }
         }
     });
 
@@ -3528,6 +3567,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
     // 初始化 UI
     updateGDriveUI();
+
+    // 自動填入 origin hint
+    const originHintEl = document.getElementById('gdrive-origin-hint');
+    if (originHintEl) {
+        // iframe 裡的 origin 與父頁相同（同源），顯示頂層 origin
+        originHintEl.textContent = window.location.origin;
+    }
 
     // ==================== 本地檔案備援 ====================
     const localFolderExportBtn = document.getElementById('local-folder-export');

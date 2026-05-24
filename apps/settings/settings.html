@@ -1345,11 +1345,15 @@
                     
                     <div id="gdrive-not-connected">
                         <label class="cell-label" for="gdrive-client-id">OAuth Client ID</label>
-                        <input id="gdrive-client-id" class="ios-input" type="text" placeholder="你的 Google OAuth Client ID">
-                        <p class="ios-caption" style="font-size:11px;color:#888;margin-top:4px;">
-                            取得方式：Google Cloud Console → APIs &amp; Services → Credentials → Create OAuth 2.0 Client ID (Web application)<br>
-                            ⚠️ 必須在「已授權的 JavaScript 來源」加入你的網站網址（如 https://xxx.github.io）
-                        </p>
+                        <input id="gdrive-client-id" class="ios-input" type="text" placeholder="xxxxx.apps.googleusercontent.com">
+                        <div class="ios-caption" style="font-size:11px;color:#888;margin-top:6px;line-height:1.6;">
+                            <strong>設定步驟：</strong><br>
+                            1. 前往 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#007AFF;">Google Cloud Console</a><br>
+                            2. 建立 OAuth 2.0 用戶端 ID → 類型選「<b>網頁應用程式</b>」<br>
+                            3. 「已授權的 JavaScript 來源」加入：<code style="background:rgba(0,0,0,0.1);padding:2px 4px;border-radius:3px;" id="gdrive-origin-hint"></code><br>
+                            4. 前往 <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" style="color:#007AFF;">啟用 Google Drive API</a><br>
+                            5. 設定 <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" style="color:#007AFF;">OAuth 同意畫面</a>（測試模式即可，加入自己的 Google 帳號為測試使用者）
+                        </div>
                         
                         <div class="btn-row" style="margin-top:12px;">
                             <button class="ios-btn" id="gdrive-save-client" type="button">儲存 Client ID</button>

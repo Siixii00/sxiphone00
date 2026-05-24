@@ -721,6 +721,91 @@ class UnifiedStorageManager {
     return this.sxStorage.getStats();
   }
 
+  /**
+   * 取得詳細的儲存空間估算（localStorage + IndexedDB）
+   * settings.js 的 updateStorageUI() 依賴此方法
+   */
+  async getDetailedEstimate() {
+    await this._ensureStorage();
+
+    // localStorage 大小
+    let lsSize = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const val = localStorage.getItem(key);
+          if (val) lsSize += (key.length + val.length) * 2; // UTF-16
+        }
+      }
+    } catch (_) {}
+
+    // IndexedDB 大小
+    let idbSize = 0;
+    try {
+      if (navigator.storage?.estimate) {
+        const est = await navigator.storage.estimate();
+        idbSize = est.usage || 0;
+      } else if (this.sxStorage) {
+        const est = await this.sxStorage.getStorageEstimate();
+        idbSize = est.usage || 0;
+      }
+    } catch (_) {}
+
+    return {
+      localStorage: { size: lsSize, count: localStorage.length },
+      indexedDB: { size: idbSize },
+      total: { size: lsSize + idbSize }
+    };
+  }
+
+  /**
+   * iOS Safari 儲存警告檢查
+   * iOS Safari 的 IndexedDB 有特殊限制：
+   * - PWA 模式: 最多可使用裝置可用空間的 50%
+   * - 非 PWA: 可能被系統在 7 天未使用後清除
+   * @returns {Promise<{isIOS, isSafari?, warning?, usagePercentage, isPWA?}>}
+   */
+  async checkIOSStorageWarning() {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+
+    if (!isIOS) {
+      return { isIOS: false, warning: null, usagePercentage: 0 };
+    }
+
+    const result = { isIOS: true, isSafari, warning: null, usagePercentage: 0 };
+
+    // 用 StorageManager API 計算使用率
+    try {
+      if (navigator.storage?.estimate) {
+        const est = await navigator.storage.estimate();
+        const quota = est.quota || 0;
+        const usage = est.usage || 0;
+        if (quota > 0) {
+          result.usagePercentage = usage / quota;
+          if (result.usagePercentage > 0.9) {
+            result.warning = 'critical';
+          } else if (result.usagePercentage > 0.7) {
+            result.warning = 'warning';
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 檢查是否以 PWA 模式運行
+    const isPWA = window.matchMedia?.('(display-mode: standalone)')?.matches ||
+                  window.navigator?.standalone === true;
+    result.isPWA = isPWA;
+
+    if (!isPWA) {
+      result.warning = result.warning || 'warning';
+    }
+
+    return result;
+  }
+
   getBackupStatus() {
     return { ...this.backupStatus };
   }
