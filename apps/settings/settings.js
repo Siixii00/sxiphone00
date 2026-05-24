@@ -3128,11 +3128,30 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             await this._loadGsi();
 
             return new Promise((resolve, reject) => {
+                let settled = false;
+                
+                // 設置超時：如果 60 秒內沒有回調，可能是 consent screen 出錯
+                const timeout = setTimeout(() => {
+                    if (!settled) {
+                        settled = true;
+                        reject(new Error(
+                            '授權逾時。常見原因：\n' +
+                            '1. OAuth 同意畫面未設定 → 前往 Google Cloud Console → OAuth consent screen\n' +
+                            '2. 測試模式未加入你的帳號 → Test users → 加入你的 Gmail\n' +
+                            '3. 彈窗被瀏覽器封鎖 → 請允許彈窗'
+                        ));
+                    }
+                }, 60000);
+
                 try {
                     this._tokenClient = google.accounts.oauth2.initTokenClient({
                         client_id: this.clientId,
                         scope: this.SCOPES,
                         callback: (tokenResponse) => {
+                            if (settled) return;
+                            settled = true;
+                            clearTimeout(timeout);
+                            
                             if (tokenResponse.error) {
                                 reject(new Error(tokenResponse.error_description || tokenResponse.error));
                                 return;
@@ -3149,10 +3168,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                             resolve(tokenResponse);
                         },
                         error_callback: (err) => {
-                            // GIS 的 error_callback 格式：{ type: 'popup_closed_by_user' } 或 { type: 'popup_failed_to_open' }
+                            if (settled) return;
+                            settled = true;
+                            clearTimeout(timeout);
+                            
                             const errType = err?.type || err?.message || '授權失敗';
                             if (errType === 'popup_closed_by_user') {
                                 reject(new Error('popup_closed'));
+                            } else if (errType === 'popup_failed_to_open') {
+                                reject(new Error('彈窗被封鎖，請允許本站的彈出式視窗'));
                             } else {
                                 reject(new Error(errType));
                             }
@@ -3162,6 +3186,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                     // 觸發授權彈窗
                     this._tokenClient.requestAccessToken();
                 } catch (e) {
+                    settled = true;
+                    clearTimeout(timeout);
                     reject(new Error('初始化 OAuth 失敗: ' + e.message));
                 }
             });
@@ -3539,17 +3565,27 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             updateGDriveUI();
         } catch (err) {
             const msg = err.message || String(err);
+            
             if (msg.includes('invalid_client')) {
                 setGDriveStatus(
-                    '❌ invalid_client 錯誤。請確認：\n' +
-                    '1. Client ID 類型必須是「Web application」\n' +
-                    '2. 已在「已授權的 JavaScript 來源」加入: ' + window.location.origin + '\n' +
-                    '3. Google Cloud 專案已啟用 Google Drive API\n' +
-                    '4. OAuth 同意畫面已設定（可用測試模式）',
+                    '❌ invalid_client — Client ID 設定不正確：\n' +
+                    '• 類型必須是「Web application」(網頁應用程式)\n' +
+                    '• 「已授權的 JavaScript 來源」加入: ' + window.location.origin,
                     '#FF453A'
                 );
             } else if (msg.includes('popup_closed') || msg.includes('access_denied')) {
-                setGDriveStatus('⚠️ 授權已取消', '#FF9500');
+                setGDriveStatus('⚠️ 授權已取消或被拒絕', '#FF9500');
+            } else if (msg.includes('授權逾時') || msg.includes('同意畫面')) {
+                setGDriveStatus(
+                    '❌ Google OAuth 同意畫面可能未正確設定：\n' +
+                    '• 前往 Google Cloud Console → OAuth consent screen\n' +
+                    '• User type 選「External」→ 填寫 App name 和 email\n' +
+                    '• Test users 加入你自己的 Gmail 帳號\n' +
+                    '• 確認已啟用 Google Drive API',
+                    '#FF453A'
+                );
+            } else if (msg.includes('彈窗')) {
+                setGDriveStatus('❌ ' + msg, '#FF453A');
             } else {
                 setGDriveStatus('❌ ' + msg, '#FF453A');
             }

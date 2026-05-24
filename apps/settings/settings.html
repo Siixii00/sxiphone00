@@ -1346,13 +1346,16 @@
                     <div id="gdrive-not-connected">
                         <label class="cell-label" for="gdrive-client-id">OAuth Client ID</label>
                         <input id="gdrive-client-id" class="ios-input" type="text" placeholder="xxxxx.apps.googleusercontent.com">
-                        <div class="ios-caption" style="font-size:11px;color:#888;margin-top:6px;line-height:1.6;">
-                            <strong>設定步驟：</strong><br>
-                            1. 前往 <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#007AFF;">Google Cloud Console</a><br>
-                            2. 建立 OAuth 2.0 用戶端 ID → 類型選「<b>網頁應用程式</b>」<br>
-                            3. 「已授權的 JavaScript 來源」加入：<code style="background:rgba(0,0,0,0.1);padding:2px 4px;border-radius:3px;" id="gdrive-origin-hint"></code><br>
-                            4. 前往 <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" style="color:#007AFF;">啟用 Google Drive API</a><br>
-                            5. 設定 <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" style="color:#007AFF;">OAuth 同意畫面</a>（測試模式即可，加入自己的 Google 帳號為測試使用者）
+                        <div class="ios-caption" style="font-size:11px;color:#888;margin-top:6px;line-height:1.8;">
+                            <strong>⚠️ 設定步驟（必須全部完成才能授權）：</strong><br>
+                            ① <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" style="color:#007AFF;">設定 OAuth 同意畫面</a>
+                               → User type 選「External」→ 填寫 App name + 你的 email → 儲存<br>
+                            ② 同意畫面 → <b>Test users</b> → 加入你自己的 Gmail 帳號<br>
+                            ③ <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" style="color:#007AFF;">啟用 Google Drive API</a><br>
+                            ④ <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:#007AFF;">建立 OAuth 2.0 用戶端 ID</a>
+                               → 類型選「<b>網頁應用程式</b>」<br>
+                            ⑤ 「已授權的 JavaScript 來源」加入：<code style="background:rgba(0,0,0,0.1);padding:2px 4px;border-radius:3px;" id="gdrive-origin-hint"></code><br>
+                            ⑥ 複製 Client ID 貼到上方輸入框 → 儲存 → 授權
                         </div>
                         
                         <div class="btn-row" style="margin-top:12px;">
