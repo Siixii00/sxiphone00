@@ -1745,7 +1745,7 @@
                 <div class="cell" style="margin-top:8px;">
                     <span class="cell-label">匯入用戶設定</span>
                     <label class="toggle">
-                        <input type="checkbox" id="import-include-user">
+                        <input type="checkbox" id="import-include-user" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -1796,6 +1796,18 @@
                     <div id="import-preview-content" style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;max-height:300px;overflow-y:auto;font-size:13px;">
                     </div>
                     <div id="import-preview-stats" style="margin-top:12px;font-size:13px;color:var(--ios-gray);"></div>
+                    
+                    <div id="import-user-select-area" class="hidden" style="margin-top:12px;">
+                        <div class="cell-v">
+                            <span class="cell-label">匯入用戶選項</span>
+                            <select id="import-user-target-select" class="ios-select" style="margin-top:8px;">
+                                <option value="new">新增為新用戶</option>
+                                <option value="current">覆蓋當前用戶</option>
+                            </select>
+                            <p class="ios-caption" style="margin-top:4px;">選擇要將匯入的用戶資料儲存到哪裡</p>
+                        </div>
+                    </div>
+                    
                     <div class="btn-row" style="margin-top:12px;">
                         <button class="ios-btn" id="import-cancel-preview-btn">取消</button>
                         <button class="ios-btn primary" id="import-confirm-btn">確認匯入</button>

@@ -764,6 +764,7 @@ async function initApp() {
     applyLanguage();
     setupEventListeners();
     loadWikiApiSettings();
+    await loadUserSelectList();
     await loadChars();
     await loadUserWiki();
     await syncWithMemorySystem();
@@ -774,6 +775,92 @@ async function initApp() {
                 console.log(`[PersonalWiki] 已自動清理 ${result.cleaned} 筆過期資料`);
             }
         });
+    }
+}
+
+async function loadUserSelectList() {
+    const select = document.getElementById('wiki-user-select');
+    if (!select) return;
+    
+    let users = [];
+    try {
+        const raw = localStorage.getItem('sx_users');
+        if (raw) {
+            users = JSON.parse(raw);
+        }
+        if (users.length === 0 && typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem('sx_users');
+            if (idbData) {
+                users = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+            }
+        }
+    } catch (e) {
+        console.error('[PersonalWiki] 載入用戶列表失敗:', e);
+    }
+    
+    const currentUserName = localStorage.getItem('sx_user_name') || 'User';
+    const savedUserIndex = localStorage.getItem('sx_current_user_index');
+    
+    let optionsHtml = '';
+    if (users.length > 0) {
+        users.forEach((user, idx) => {
+            let selected = '';
+            if (savedUserIndex !== null) {
+                selected = idx === parseInt(savedUserIndex, 10) ? 'selected' : '';
+            } else {
+                selected = user.name === currentUserName ? 'selected' : '';
+            }
+            optionsHtml += `<option value="${idx}" ${selected}>${user.name}</option>`;
+        });
+    } else {
+        optionsHtml = `<option value="current" selected>${currentUserName}</option>`;
+    }
+    
+    select.innerHTML = optionsHtml;
+}
+
+async function switchWikiUser(value) {
+    if (value === 'current') return;
+    
+    let users = [];
+    try {
+        const raw = localStorage.getItem('sx_users');
+        if (raw) {
+            users = JSON.parse(raw);
+        }
+        if (users.length === 0 && typeof localforage !== 'undefined') {
+            const idbData = await localforage.getItem('sx_users');
+            if (idbData) {
+                users = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+            }
+        }
+    } catch (e) {
+        console.error('[PersonalWiki] 載入用戶列表失敗:', e);
+        return;
+    }
+    
+    const idx = parseInt(value, 10);
+    if (isNaN(idx) || idx < 0 || idx >= users.length) return;
+    
+    const user = users[idx];
+    if (user) {
+        localStorage.setItem('sx_current_user_index', idx.toString());
+        localStorage.setItem('sx_user_name', user.name || 'User');
+        localStorage.setItem('sx_user_avatar', user.avatar || '');
+        localStorage.setItem('sx_user_personality', user.personality || '');
+        localStorage.setItem('sx_user_background', user.background || '');
+        
+        const introTitle = document.querySelector('.wiki-intro h2');
+        if (introTitle) {
+            introTitle.textContent = `${user.name} 的個人百科`;
+        }
+        
+        await loadUserWiki();
+        
+        window.parent?.postMessage({
+            type: 'USER_SWITCHED',
+            payload: { name: user.name, avatar: user.avatar }
+        }, '*');
     }
 }
 
@@ -1858,35 +1945,6 @@ async function processFacebookHistoryForTimeline(posts) {
     });
     
     await saveTimelineEntries(timelineEntries, 'Facebook');
-}
-
-async function saveTimelineEntries(entries, sourceName) {
-    for (const entry of entries) {
-        try {
-            if (entry.content && entry.content.length > 100) {
-                const compressed = VectorCompressor.compressContent(entry.content);
-                entry.compressedContent = compressed.compressed;
-                entry.vectorHash = compressed.vector;
-                entry.keywords = compressed.keywords;
-                entry.compressed = true;
-                entry.compressionRatio = compressed.compressionRatio;
-                entry.originalLength = compressed.originalLength;
-            }
-            
-            await wikiDB.addSharedEntry(entry);
-        } catch (e) {
-            console.warn('[PersonalWiki] 添加條目失敗:', e);
-        }
-    }
-    
-    await wikiDB.addLog({
-        type: 'shared',
-        action: 'interaction_imported',
-        detail: `從 ${sourceName} 導入 ${entries.length} 個時間軸條目（已壓縮）`
-    });
-    
-    await loadSharedWiki();
-    alert(t('importChatSuccess'));
 }
 
 function createEntryElement(entry, type) {
@@ -4070,7 +4128,7 @@ async function autoSyncEntry(entry) {
 }
 
 // 更新 saveTimelineEntries 以支援自動同步
-async function saveTimelineEntriesWithSync(entries, sourceName) {
+async function saveTimelineEntries(entries, sourceName) {
     for (const entry of entries) {
         try {
             if (entry.content && entry.content.length > 100) {
@@ -4100,9 +4158,6 @@ async function saveTimelineEntriesWithSync(entries, sourceName) {
     await loadSharedWiki();
     alert(t('importChatSuccess'));
 }
-
-// 保留舊函式名稱以向後相容
-const saveTimelineEntries = saveTimelineEntriesWithSync;
 
 // 保留舊的函式以向後相容
 function showNotionConfigModal() {

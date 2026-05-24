@@ -70,8 +70,36 @@ body {
 .wiki-title {
     font-size: 18px;
     font-weight: 600;
-    flex: 1;
     text-align: center;
+}
+
+.header-user-select {
+    display: flex;
+    align-items: center;
+    margin: 0 8px;
+}
+
+.header-user-select select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.header-user-select select:hover {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.header-user-select select:focus {
+    border-color: var(--accent-primary);
 }
 
 .header-actions {

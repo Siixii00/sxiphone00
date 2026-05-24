@@ -18,6 +18,11 @@
                 <span data-i18n="back">返回</span>
             </button>
             <h1 class="wiki-title" data-i18n="personalRecord">個人紀錄</h1>
+            <div class="header-user-select">
+                <select id="wiki-user-select" onchange="switchWikiUser(this.value)">
+                    <option value="">載入用戶...</option>
+                </select>
+            </div>
             <div class="header-actions">
                 <button class="btn-icon" onclick="toggleSearch()" title="搜尋">
                     <i class="fas fa-search"></i>

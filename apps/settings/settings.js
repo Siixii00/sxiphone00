@@ -7040,6 +7040,26 @@ function renderImportPreview(messages, charName, importData = null) {
         }
         if (importData?.user) {
             statsHtml += `<p style="color:var(--ios-green);">✓ 包含用戶設定：${sanitizeText(importData.user.name)}</p>`;
+            
+            const userSelectArea = document.getElementById('import-user-select-area');
+            const userTargetSelect = document.getElementById('import-user-target-select');
+            if (userSelectArea && userTargetSelect) {
+                userSelectArea.classList.remove('hidden');
+                
+                const userList = loadUserList();
+                const currentUserName = localStorage.getItem('sx_user_name') || 'User';
+                
+                let optionsHtml = `<option value="new">新增為新用戶（${sanitizeText(importData.user.name || '未命名')}）</option>`;
+                optionsHtml += `<option value="current">覆蓋當前用戶（${sanitizeText(currentUserName)}）</option>`;
+                
+                userList.forEach((u, idx) => {
+                    optionsHtml += `<option value="existing_${idx}">更新現有用戶：${sanitizeText(u.name)}</option>`;
+                });
+                
+                userTargetSelect.innerHTML = optionsHtml;
+            }
+        } else {
+            document.getElementById('import-user-select-area')?.classList.add('hidden');
         }
         
         stats.innerHTML = statsHtml;
@@ -7207,9 +7227,58 @@ async function confirmImport() {
     }
     
     if (includeUser && user) {
-        if (user.name) localStorage.setItem('sx_user_name', user.name);
-        if (user.avatar) localStorage.setItem('sx_user_avatar', user.avatar);
-        if (user.background) localStorage.setItem('sx_user_background', user.background);
+        const userTargetSelect = document.getElementById('import-user-target-select');
+        const userTarget = userTargetSelect?.value || 'new';
+        
+        const userList = loadUserList();
+        const newUser = {
+            name: user.name || 'User',
+            avatar: user.avatar || '',
+            personality: user.personality || '',
+            background: user.background || ''
+        };
+        
+        if (userTarget === 'new') {
+            const existingIdx = userList.findIndex(u => u.name === newUser.name);
+            if (existingIdx >= 0) {
+                if (confirm(`已存在名為「${newUser.name}」的用戶，是否覆蓋？`)) {
+                    userList[existingIdx] = { ...userList[existingIdx], ...newUser };
+                }
+            } else {
+                userList.unshift(newUser);
+            }
+            await saveUserList(userList);
+            
+            localStorage.setItem('sx_user_name', newUser.name);
+            localStorage.setItem('sx_user_avatar', newUser.avatar);
+            localStorage.setItem('sx_user_personality', newUser.personality || '');
+            localStorage.setItem('sx_user_background', newUser.background || '');
+        } else if (userTarget === 'current') {
+            localStorage.setItem('sx_user_name', newUser.name);
+            localStorage.setItem('sx_user_avatar', newUser.avatar);
+            localStorage.setItem('sx_user_personality', newUser.personality || '');
+            localStorage.setItem('sx_user_background', newUser.background || '');
+            
+            const currentName = localStorage.getItem('sx_user_name');
+            const existingIdx = userList.findIndex(u => u.name === currentName);
+            if (existingIdx >= 0) {
+                userList[existingIdx] = { ...userList[existingIdx], ...newUser };
+            } else if (userList.length > 0) {
+                userList[0] = { ...userList[0], ...newUser };
+            }
+            await saveUserList(userList);
+        } else if (userTarget.startsWith('existing_')) {
+            const idx = parseInt(userTarget.replace('existing_', ''), 10);
+            if (idx >= 0 && idx < userList.length) {
+                userList[idx] = { ...userList[idx], ...newUser };
+                await saveUserList(userList);
+                
+                localStorage.setItem('sx_user_name', userList[idx].name);
+                localStorage.setItem('sx_user_avatar', userList[idx].avatar);
+                localStorage.setItem('sx_user_personality', userList[idx].personality || '');
+                localStorage.setItem('sx_user_background', userList[idx].background || '');
+            }
+        }
     }
     
     if (includeChat) {
