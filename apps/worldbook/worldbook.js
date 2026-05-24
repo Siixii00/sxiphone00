@@ -705,6 +705,18 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.toggle('disabled', isEnabled);
             const icon = toggleBtn.querySelector('i');
             icon.className = isEnabled ? 'fas fa-toggle-off' : 'fas fa-toggle-on';
+            
+            const parts = window.getSerializedWorldbookParts();
+            Object.keys(parts).forEach(key => {
+                if (key !== 'sx_detected_forbidden') {
+                    localStorage.setItem(key, JSON.stringify(parts[key]));
+                }
+            });
+            window.persistWorldbookIndex?.(parts);
+            
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
+            }
             return;
         }
 
