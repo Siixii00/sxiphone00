@@ -32,6 +32,38 @@ const i18n = {
         storyLong: '長篇（5+ 段）',
         storyPrompt: '額外提示（選填）',
         generateStoryNow: '立刻生成故事',
+        importChatHistory: '導入聊天紀錄',
+        importChatTimeline: '生成時間軸',
+        importChatDesc: '從聊天紀錄導入並生成雙人時間軸',
+        importChatSuccess: '已成功導入聊天紀錄並生成時間軸',
+        importChatFailed: '導入聊天紀錄失敗',
+        noChatHistory: '沒有找到聊天紀錄',
+        selectChat: '選擇聊天紀錄',
+        connectNotion: '連結 Notion',
+        connectLLMService: '連結 AI 服務',
+        notionConnectDesc: '將記憶同步到 Notion，自動生成圖文 Wiki',
+        llmServiceDesc: '使用 AI 服務生成結構化記憶和圖片描述',
+        notionSyncSuccess: '已成功同步到 Notion',
+        notionSyncFailed: '同步到 Notion 失敗',
+        llmProcessSuccess: 'AI 處理完成',
+        llmProcessFailed: 'AI 處理失敗',
+        autoSync: '自動同步',
+        autoSyncDesc: '每次互動後自動同步到 Notion',
+        autoCleanup: '自動清理',
+        autoCleanupDesc: '同步成功後3天自動刪除本地資料',
+        cleanupDays: '保留天數',
+        cleanupNow: '立即清理',
+        cleanupSuccess: '已清理過期資料',
+        externalServices: '外部服務整合',
+        selectLLMProvider: '選擇 AI 服務',
+        geminiApi: 'Gemini API',
+        openaiApi: 'OpenAI API',
+        anthropicApi: 'Anthropic API',
+        customApi: '自訂 API',
+        apiEndpoint: 'API 端點',
+        modelName: '模型名稱',
+        connectSuccess: '連結成功',
+        connectFailed: '連結失敗',
         newEntry: '新增條目',
         importNotebook: '導入 Notebook',
         syncMemory: '同步記憶',
@@ -138,6 +170,13 @@ const i18n = {
         storyLong: '长篇（5+ 段）',
         storyPrompt: '额外提示（选填）',
         generateStoryNow: '立刻生成故事',
+        importChatHistory: '导入聊天纪录',
+        importChatTimeline: '生成时间轴',
+        importChatDesc: '从聊天纪录导入并生成双人时间轴',
+        importChatSuccess: '已成功导入聊天纪录并生成时间轴',
+        importChatFailed: '导入聊天纪录失败',
+        noChatHistory: '没有找到聊天纪录',
+        selectChat: '选择聊天纪录',
         newEntry: '新增条目',
         importNotebook: '导入 Notebook',
         syncMemory: '同步记忆',
@@ -244,6 +283,13 @@ const i18n = {
         storyLong: 'Long (5+ paragraphs)',
         storyPrompt: 'Additional Prompt (Optional)',
         generateStoryNow: 'Generate Story Now',
+        importChatHistory: 'Import Chat History',
+        importChatTimeline: 'Generate Timeline',
+        importChatDesc: 'Import from chat history and generate shared timeline',
+        importChatSuccess: 'Successfully imported chat history and generated timeline',
+        importChatFailed: 'Failed to import chat history',
+        noChatHistory: 'No chat history found',
+        selectChat: 'Select Chat History',
         newEntry: 'New Entry',
         importNotebook: 'Import Notebook',
         syncMemory: 'Sync Memory',
@@ -514,8 +560,8 @@ let currentCharId = null;
 let wikiEngine = null;
 let editingEntryId = null;
 
-const DB_NAME = 'sx_personal_wiki';
-const DB_VERSION = 3;
+const WIKI_DB_NAME = 'sx_personal_wiki';
+const WIKI_DB_VERSION = 3;
 
 class PersonalWikiDB {
     constructor() {
@@ -524,7 +570,7 @@ class PersonalWikiDB {
 
     async init() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            const request = indexedDB.open(WIKI_DB_NAME, WIKI_DB_VERSION);
             
             request.onerror = () => reject(request.error);
             request.onsuccess = () => {
@@ -715,15 +761,20 @@ const wikiDB = new PersonalWikiDB();
 
 async function initApp() {
     await wikiDB.init();
-    wikiEngine = new WikiEngine(wikiDB);
-    await wikiEngine.initialize();
-    
     applyLanguage();
     setupEventListeners();
     loadWikiApiSettings();
     await loadChars();
     await loadUserWiki();
     await syncWithMemorySystem();
+    
+    if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+        AutoCleanup.cleanupExpiredEntries().then(result => {
+            if (result.cleaned > 0) {
+                console.log(`[PersonalWiki] 已自動清理 ${result.cleaned} 筆過期資料`);
+            }
+        });
+    }
 }
 
 function applyLanguage() {
@@ -925,53 +976,7 @@ async function getCharsFromSettings() {
         }
     }
     
-    return allChars;
-}
-        }
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_characters 失敗:', e);
-    }
-    
-    // 從 sx_users 讀取用戶角色
-    try {
-        const raw = localStorage.getItem('sx_users');
-        if (raw) {
-            const users = JSON.parse(raw);
-            if (Array.isArray(users)) {
-                users.forEach(u => allChars.push({ ...u, source: 'users' }));
-            }
-        }
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_users 失敗:', e);
-    }
-    
-    // 從 sx_npcs 讀取 NPC 角色
-    try {
-        const raw = localStorage.getItem('sx_npcs');
-        if (raw) {
-            const npcs = JSON.parse(raw);
-            if (Array.isArray(npcs)) {
-                npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
-            }
-        }
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_npcs 失敗:', e);
-    }
-    
-    // 如果有 SxSettings，使用它的 getAllPersonas 作為補充
-    if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
-        try {
-            const personas = SxSettings.getAllPersonas();
-            if (Array.isArray(personas) && personas.length > allChars.length) {
-                // SxSettings 可能包含更完整的資料，優先使用
-                return personas;
-            }
-        } catch (e) {
-            console.error('[PersonalWiki] 從 SxSettings 讀取失敗:', e);
-        }
-    }
-    
-    return allChars;
+return allChars;
 }
 
 function getUserFromSettings() {
@@ -1436,6 +1441,452 @@ async function exportSharedWiki() {
     a.download = `shared_wiki_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+async function importChatHistoryToShared() {
+    const sources = await getAvailableInteractionSources();
+    
+    if (sources.length === 0) {
+        alert(t('noChatHistory'));
+        return;
+    }
+    
+    showSourceSelectionModal(sources);
+}
+
+async function getAvailableInteractionSources() {
+    const sources = [];
+    
+    // Chat 應用程式
+    const chatSessions = JSON.parse(localStorage.getItem('sx_chat_sessions') || '[]');
+    if (chatSessions.length > 0) {
+        chatSessions.forEach(session => {
+            if (session.history && session.history.length > 0) {
+                sources.push({
+                    type: 'chat',
+                    id: session.id,
+                    name: session.title || session.charName || '聊天紀錄',
+                    charName: session.charName,
+                    count: session.history.length,
+                    date: session.id.replace('chat_', ''),
+                    data: session
+                });
+            }
+        });
+    }
+    
+    // 約會應用程式
+    const datingHistory = JSON.parse(localStorage.getItem('sx_dating_history') || '[]');
+    if (datingHistory.length > 0) {
+        datingHistory.forEach((record, idx) => {
+            sources.push({
+                type: 'dating',
+                id: `dating_${idx}`,
+                name: record.scene || record.charName || '約會紀錄',
+                charName: record.charName,
+                count: record.interactions?.length || 1,
+                date: record.date || record.timestamp,
+                data: record
+            });
+        });
+    }
+    
+    // 農場應用程式
+    const farmSave = localStorage.getItem('sx_farm_save');
+    if (farmSave) {
+        try {
+            const farmData = JSON.parse(farmSave);
+            if (farmData.fields || farmData.inventory || farmData.members) {
+                sources.push({
+                    type: 'farm',
+                    id: 'farm_main',
+                    name: '農場經營紀錄',
+                    charName: null,
+                    count: (farmData.members?.length || 0) + (farmData.fields?.filter(f => f?.crop)?.length || 0),
+                    date: new Date().toISOString(),
+                    data: farmData
+                });
+            }
+        } catch (e) {}
+    }
+    
+    // Lofter 應用程式
+    const lofterPosts = JSON.parse(localStorage.getItem('sx_lofter_posts') || '[]');
+    if (lofterPosts.length > 0) {
+        sources.push({
+            type: 'lofter',
+            id: 'lofter_posts',
+            name: 'Lofter 創作紀錄',
+            charName: null,
+            count: lofterPosts.length,
+            date: lofterPosts[0]?.createdAt || new Date().toISOString(),
+            data: lofterPosts
+        });
+    }
+    
+    // Twitter 應用程式
+    const tweets = JSON.parse(localStorage.getItem('sx_tweets') || '[]');
+    if (tweets.length > 0) {
+        sources.push({
+            type: 'twitter',
+            id: 'twitter_posts',
+            name: 'Twitter 互動紀錄',
+            charName: null,
+            count: tweets.length,
+            date: tweets[0]?.createdAt || new Date().toISOString(),
+            data: tweets
+        });
+    }
+    
+    // Facebook 應用程式
+    const fbPosts = JSON.parse(localStorage.getItem('sx_facebook_posts') || '[]');
+    if (fbPosts.length > 0) {
+        sources.push({
+            type: 'facebook',
+            id: 'facebook_posts',
+            name: 'Facebook 互動紀錄',
+            charName: null,
+            count: fbPosts.length,
+            date: fbPosts[0]?.createdAt || new Date().toISOString(),
+            data: fbPosts
+        });
+    }
+    
+    return sources;
+}
+
+function showSourceSelectionModal(sources) {
+    const existingModal = document.getElementById('sourceSelectionModal');
+    if (existingModal) existingModal.remove();
+    
+    const typeIcons = {
+        chat: 'fa-comments',
+        dating: 'fa-heart',
+        farm: 'fa-seedling',
+        lofter: 'fa-pen-fancy',
+        twitter: 'fa-twitter',
+        facebook: 'fa-facebook'
+    };
+    
+    const typeLabels = {
+        chat: '聊天',
+        dating: '約會',
+        farm: '農場',
+        lofter: '創作',
+        twitter: 'Twitter',
+        facebook: 'Facebook'
+    };
+    
+    const modal = document.createElement('div');
+    modal.id = 'sourceSelectionModal';
+    modal.className = 'chat-selection-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeSourceSelectionModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>${t('selectChat')}</h3>
+                <button class="btn-close" onclick="closeSourceSelectionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="source-list">
+                    ${sources.map(source => `
+                        <div class="source-item" onclick="selectInteractionSource('${source.type}', '${source.id}')">
+                            <div class="source-icon">
+                                <i class="fas ${typeIcons[source.type] || 'fa-file'}"></i>
+                            </div>
+                            <div class="source-info">
+                                <div class="source-title">${source.name}</div>
+                                <div class="source-meta">
+                                    <span class="source-type">${typeLabels[source.type] || source.type}</span>
+                                    <span class="source-count">${source.count} 則互動</span>
+                                    ${source.charName ? `<span class="source-char">${source.charName}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function closeSourceSelectionModal() {
+    const modal = document.getElementById('sourceSelectionModal');
+    if (modal) modal.remove();
+}
+
+async function selectInteractionSource(type, id) {
+    closeSourceSelectionModal();
+    
+    const sources = await getAvailableInteractionSources();
+    const source = sources.find(s => s.type === type && s.id === id);
+    
+    if (!source) {
+        alert(t('importChatFailed'));
+        return;
+    }
+    
+    switch (type) {
+        case 'chat':
+            await processChatHistoryForTimeline(source.data.history, source.data);
+            break;
+        case 'dating':
+            await processDatingHistoryForTimeline(source.data);
+            break;
+        case 'farm':
+            await processFarmHistoryForTimeline(source.data);
+            break;
+        case 'lofter':
+            await processLofterHistoryForTimeline(source.data);
+            break;
+        case 'twitter':
+            await processTwitterHistoryForTimeline(source.data);
+            break;
+        case 'facebook':
+            await processFacebookHistoryForTimeline(source.data);
+            break;
+        default:
+            alert(t('importChatFailed'));
+    }
+}
+
+async function processChatHistoryForTimeline(history, session = null) {
+    const user = getUserFromSettings();
+    const charName = session?.charName || localStorage.getItem('sx_char_name') || 'Char';
+    
+    const timelineEntries = [];
+    const groupedByDate = {};
+    
+    history.forEach(msg => {
+        if (!msg.timestamp) {
+            const dateKey = new Date().toISOString().split('T')[0];
+            if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+            groupedByDate[dateKey].push(msg);
+        } else {
+            const dateKey = new Date(msg.timestamp).toISOString().split('T')[0];
+            if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+            groupedByDate[dateKey].push(msg);
+        }
+    });
+    
+    Object.entries(groupedByDate).forEach(([date, msgs]) => {
+        const userMsgs = msgs.filter(m => m.role === 'user');
+        const charMsgs = msgs.filter(m => m.role === 'assistant' || m.role === 'char');
+        
+        if (userMsgs.length > 0 || charMsgs.length > 0) {
+            const entry = {
+                id: `timeline_chat_${date}_${Math.random().toString(36).substr(2, 9)}`,
+                title: `${date} 的對話`,
+                content: `User 說了 ${userMsgs.length} 次，${charName} 回應了 ${charMsgs.length} 次。\n\n摘要:\n${userMsgs.slice(0, 3).map(m => `User: ${m.content?.substring(0, 100)}...`).join('\n')}\n${charMsgs.slice(0, 3).map(m => `${charName}: ${m.content?.substring(0, 100)}...`).join('\n')}`,
+                category: 'shared-memories',
+                tags: ['聊天', '時間軸', date],
+                createdAt: new Date(date).toISOString(),
+                source: 'chat_import'
+            };
+            timelineEntries.push(entry);
+        }
+    });
+    
+    const firstMsg = history[0];
+    if (firstMsg) {
+        const milestoneEntry = {
+            id: `milestone_chat_${Math.random().toString(36).substr(2, 9)}`,
+            title: `第一次對話`,
+            content: `${user.name} 和 ${charName} 第一次開始交談。\n\n${firstMsg.content?.substring(0, 200)}...`,
+            category: 'shared-milestones',
+            tags: ['里程碑', '第一次', '聊天'],
+            createdAt: firstMsg.timestamp || new Date().toISOString(),
+            source: 'chat_import'
+        };
+        timelineEntries.push(milestoneEntry);
+    }
+    
+    await saveTimelineEntries(timelineEntries, '聊天');
+}
+
+async function processDatingHistoryForTimeline(data) {
+    const user = getUserFromSettings();
+    const charName = data.charName || 'Char';
+    const timelineEntries = [];
+    
+    if (data.scene) {
+        const sceneEntry = {
+            id: `dating_scene_${Math.random().toString(36).substr(2, 9)}`,
+            title: `${data.scene} 約會`,
+            content: `${user.name} 和 ${charName} 在 ${data.scene} 度過了美好時光。`,
+            category: 'shared-memories',
+            tags: ['約會', data.scene],
+            createdAt: data.date || data.timestamp || new Date().toISOString(),
+            source: 'dating_import'
+        };
+        timelineEntries.push(sceneEntry);
+    }
+    
+    if (data.interactions && data.interactions.length > 0) {
+        data.interactions.forEach((interaction, idx) => {
+            if (interaction.type || interaction.action) {
+                const entry = {
+                    id: `dating_interaction_${idx}_${Math.random().toString(36).substr(2, 9)}`,
+                    title: `互動: ${interaction.type || interaction.action}`,
+                    content: interaction.description || interaction.content || `${user.name} 和 ${charName} 進行了 ${interaction.type || interaction.action}`,
+                    category: 'shared-dialogues',
+                    tags: ['約會', '互動', interaction.type || interaction.action],
+                    createdAt: interaction.timestamp || new Date().toISOString(),
+                    source: 'dating_import'
+                };
+                timelineEntries.push(entry);
+            }
+        });
+    }
+    
+    await saveTimelineEntries(timelineEntries, '約會');
+}
+
+async function processFarmHistoryForTimeline(data) {
+    const user = getUserFromSettings();
+    const timelineEntries = [];
+    
+    if (data.members && data.members.length > 0) {
+        const membersEntry = {
+            id: `farm_members_${Math.random().toString(36).substr(2, 9)}`,
+            title: `農場成員`,
+            content: `${user.name} 的農場有以下成員：\n${data.members.map(m => `- ${m.name} (${m.role || '成員'})`).join('\n')}`,
+            category: 'shared-memories',
+            tags: ['農場', '成員'],
+            createdAt: new Date().toISOString(),
+            source: 'farm_import'
+        };
+        timelineEntries.push(membersEntry);
+    }
+    
+    if (data.fields) {
+        const crops = data.fields.filter(f => f?.crop);
+        if (crops.length > 0) {
+            const cropTypes = {};
+            crops.forEach(f => {
+                cropTypes[f.crop] = (cropTypes[f.crop] || 0) + 1;
+            });
+            
+            const harvestEntry = {
+                id: `farm_harvest_${Math.random().toString(36).substr(2, 9)}`,
+                title: `農場收成`,
+                content: `種植了 ${crops.length} 塊作物：\n${Object.entries(cropTypes).map(([crop, count]) => `- ${crop}: ${count} 塊`).join('\n')}`,
+                category: 'shared-milestones',
+                tags: ['農場', '收成'],
+                createdAt: new Date().toISOString(),
+                source: 'farm_import'
+            };
+            timelineEntries.push(harvestEntry);
+        }
+    }
+    
+    await saveTimelineEntries(timelineEntries, '農場');
+}
+
+async function processLofterHistoryForTimeline(posts) {
+    const user = getUserFromSettings();
+    const timelineEntries = [];
+    
+    posts.forEach((post, idx) => {
+        const entry = {
+            id: `lofter_post_${idx}_${Math.random().toString(36).substr(2, 9)}`,
+            title: post.title || `創作 #${idx + 1}`,
+            content: post.content?.substring(0, 500) || post.summary || '',
+            category: 'shared-stories',
+            tags: ['創作', 'Lofter', ...(post.tags || [])],
+            createdAt: post.createdAt || post.date || new Date().toISOString(),
+            source: 'lofter_import'
+        };
+        timelineEntries.push(entry);
+    });
+    
+    await saveTimelineEntries(timelineEntries, 'Lofter');
+}
+
+async function processTwitterHistoryForTimeline(tweets) {
+    const user = getUserFromSettings();
+    const timelineEntries = [];
+    
+    const groupedByDate = {};
+    tweets.forEach(tweet => {
+        const dateKey = (tweet.createdAt ? new Date(tweet.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+        groupedByDate[dateKey].push(tweet);
+    });
+    
+    Object.entries(groupedByDate).forEach(([date, dayTweets]) => {
+        const entry = {
+            id: `twitter_${date}_${Math.random().toString(36).substr(2, 9)}`,
+            title: `${date} 的推文`,
+            content: `發布了 ${dayTweets.length} 則推文：\n${dayTweets.slice(0, 5).map(t => `- ${t.content?.substring(0, 100)}...`).join('\n')}`,
+            category: 'shared-memories',
+            tags: ['Twitter', '時間軸', date],
+            createdAt: new Date(date).toISOString(),
+            source: 'twitter_import'
+        };
+        timelineEntries.push(entry);
+    });
+    
+    await saveTimelineEntries(timelineEntries, 'Twitter');
+}
+
+async function processFacebookHistoryForTimeline(posts) {
+    const user = getUserFromSettings();
+    const timelineEntries = [];
+    
+    const groupedByDate = {};
+    posts.forEach(post => {
+        const dateKey = (post.createdAt ? new Date(post.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+        groupedByDate[dateKey].push(post);
+    });
+    
+    Object.entries(groupedByDate).forEach(([date, dayPosts]) => {
+        const entry = {
+            id: `facebook_${date}_${Math.random().toString(36).substr(2, 9)}`,
+            title: `${date} 的動態`,
+            content: `發布了 ${dayPosts.length} 則動態：\n${dayPosts.slice(0, 5).map(p => `- ${p.content?.substring(0, 100)}...`).join('\n')}`,
+            category: 'shared-memories',
+            tags: ['Facebook', '時間軸', date],
+            createdAt: new Date(date).toISOString(),
+            source: 'facebook_import'
+        };
+        timelineEntries.push(entry);
+    });
+    
+    await saveTimelineEntries(timelineEntries, 'Facebook');
+}
+
+async function saveTimelineEntries(entries, sourceName) {
+    for (const entry of entries) {
+        try {
+            if (entry.content && entry.content.length > 100) {
+                const compressed = VectorCompressor.compressContent(entry.content);
+                entry.compressedContent = compressed.compressed;
+                entry.vectorHash = compressed.vector;
+                entry.keywords = compressed.keywords;
+                entry.compressed = true;
+                entry.compressionRatio = compressed.compressionRatio;
+                entry.originalLength = compressed.originalLength;
+            }
+            
+            await wikiDB.addSharedEntry(entry);
+        } catch (e) {
+            console.warn('[PersonalWiki] 添加條目失敗:', e);
+        }
+    }
+    
+    await wikiDB.addLog({
+        type: 'shared',
+        action: 'interaction_imported',
+        detail: `從 ${sourceName} 導入 ${entries.length} 個時間軸條目（已壓縮）`
+    });
+    
+    await loadSharedWiki();
+    alert(t('importChatSuccess'));
 }
 
 function createEntryElement(entry, type) {
@@ -2722,4 +3173,972 @@ function closeImportCharModal() {
 async function importCharFromSettingsAndClose(charIndex) {
     await importCharFromSettings(charIndex);
     closeImportCharModal();
+}
+
+// === 向量化壓縮功能 ===
+
+const VectorCompressor = {
+    simpleHash(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash).toString(36);
+    },
+    
+    extractKeywords(text) {
+        const stopWords = ['的', '了', '是', '在', '和', '有', '這', '那', '我', '你', '他', '她', '它', '們', '要', '會', '能', '與', '或', '但', '如', '因', '所', '以', '及', '等', '到', '從', '被', '把', '讓', '使', '對', '於', '很', '好', '都', '也', '就', '才', '還', '又', '再', '很', '太', '最', '更', '可', '不', '沒', '去', '來', '做', '看', '說', '想', '聽', '問', '答', '給', '拿', '用', '找', '知道', '覺得', 'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or', 'because', 'until', 'while', 'although', 'though', 'after', 'before', 'when', 'whenever', 'unless', 'since', 'that', 'what', 'which', 'who', 'whom', 'whose', 'whatever', 'whichever', 'whoever', 'whomever'];
+        
+        const words = text.toLowerCase().split(/[\s\n\r,，。！？！？;；:：""''「」『』【】〔〕（）()（）、·•\-—_]+/);
+        
+        const wordFreq = {};
+        words.forEach(word => {
+            if (word.length > 1 && !stopWords.includes(word)) {
+                wordFreq[word] = (wordFreq[word] || 0) + 1;
+            }
+        });
+        
+        return Object.entries(wordFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20)
+            .map(([word, freq]) => word);
+    },
+    
+    compressContent(content) {
+        if (!content || content.length < 50) {
+            return { compressed: content, vector: null, keywords: [] };
+        }
+        
+        const keywords = this.extractKeywords(content);
+        const vectorHash = this.simpleHash(content.substring(0, 500));
+        
+        const summaryLength = Math.min(200, Math.floor(content.length * 0.3));
+        const compressed = content.substring(0, summaryLength) + '...';
+        
+        return {
+            compressed,
+            vector: vectorHash,
+            keywords,
+            originalLength: content.length,
+            compressedLength: compressed.length,
+            compressionRatio: Math.round((1 - compressed.length / content.length) * 100)
+        };
+    },
+    
+    async compressAllEntries(storeName) {
+        let compressedCount = 0;
+        const entries = await wikiDB.getAllEntries(storeName);
+        
+        for (const entry of entries) {
+            if (entry.content && entry.content.length > 100 && !entry.compressed) {
+                const result = this.compressContent(entry.content);
+                entry.compressedContent = result.compressed;
+                entry.vectorHash = result.vector;
+                entry.keywords = result.keywords;
+                entry.compressed = true;
+                entry.compressionRatio = result.compressionRatio;
+                
+                await wikiDB.updateEntry(storeName, entry);
+                compressedCount++;
+            }
+        }
+        
+        return compressedCount;
+    }
+};
+
+// === 外部服務整合功能 ===
+
+const ExternalServices = {
+    notion: {
+        async connect(apiKey, databaseId) {
+            try {
+                const response = await fetch('https://api.notion.com/v1/databases/' + databaseId, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Notion-Version': '2022-06-28'
+                    }
+                });
+                
+                if (response.ok) {
+                    localStorage.setItem('sx_notion_api_key', apiKey);
+                    localStorage.setItem('sx_notion_database_id', databaseId);
+                    localStorage.setItem('sx_notion_connected', 'true');
+                    return { success: true };
+                }
+                return { success: false, error: '連線失敗' };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        },
+        
+        isConnected() {
+            return localStorage.getItem('sx_notion_connected') === 'true';
+        },
+        
+        async createWikiPage(entry, charName, userName) {
+            const apiKey = localStorage.getItem('sx_notion_api_key');
+            const databaseId = localStorage.getItem('sx_notion_database_id');
+            
+            if (!apiKey || !databaseId) return null;
+            
+            const content = entry.compressedContent || entry.content;
+            const blocks = await this.buildContentBlocks(content, entry, charName, userName);
+            
+            const response = await fetch('https://api.notion.com/v1/pages', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'Notion-Version': '2022-06-28'
+                },
+                body: JSON.stringify({
+                    parent: { database_id: databaseId },
+                    properties: {
+                        Name: {
+                            title: [{ text: { content: entry.title || '記憶' } }]
+                        },
+                        Category: {
+                            select: { name: this.mapCategory(entry.category) }
+                        },
+                        Date: {
+                            date: { start: entry.createdAt || new Date().toISOString() }
+                        },
+                        Tags: {
+                            multi_select: (entry.tags || []).map(t => ({ name: t }))
+                        },
+                        Characters: {
+                            rich_text: [{ text: { content: `${userName} & ${charName}` } }]
+                        }
+                    },
+                    children: blocks
+                })
+            });
+            
+            return response.ok ? await response.json() : null;
+        },
+        
+        async buildContentBlocks(content, entry, charName, userName) {
+            const blocks = [];
+            
+            blocks.push({
+                object: 'block',
+                type: 'heading_2',
+                heading_2: {
+                    rich_text: [{ type: 'text', text: { content: '📜 故事摘要' } }]
+                }
+            });
+            
+            const chunks = this.splitText(content, 2000);
+            chunks.forEach(chunk => {
+                blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: [{ type: 'text', text: { content: chunk } }]
+                    }
+                });
+            });
+            
+            if (entry.keywords && entry.keywords.length > 0) {
+                blocks.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: {
+                        rich_text: [{ type: 'text', text: { content: '🏷️ 關鍵字' } }]
+                    }
+                });
+                blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: {
+                        rich_text: entry.keywords.slice(0, 10).map(kw => ({
+                            type: 'text',
+                            text: { content: `#${kw} ` },
+                            annotations: { color: 'blue' }
+                        }))
+                    }
+                });
+            }
+            
+            blocks.push({
+                object: 'block',
+                type: 'divider',
+                divider: {}
+            });
+            
+            blocks.push({
+                object: 'block',
+                type: 'paragraph',
+                paragraph: {
+                    rich_text: [
+                        { type: 'text', text: { content: `👤 ${userName}` }, annotations: { bold: true } },
+                        { type: 'text', text: { content: ' ❤️ ' } },
+                        { type: 'text', text: { content: `${charName}` }, annotations: { bold: true } }
+                    ]
+                }
+            });
+            
+            return blocks;
+        },
+        
+        mapCategory(cat) {
+            const map = {
+                'shared-memories': '共同回憶',
+                'shared-milestones': '里程碑',
+                'shared-stories': '故事',
+                'shared-dialogues': '對話',
+                'shared-places': '地點',
+                'shared-gifts': '禮物'
+            };
+            return map[cat] || '回憶';
+        },
+        
+        splitText(text, maxLen) {
+            if (!text) return [];
+            const chunks = [];
+            let current = '';
+            const paras = text.split('\n');
+            for (const p of paras) {
+                if (current.length + p.length + 1 <= maxLen) {
+                    current += (current ? '\n' : '') + p;
+                } else {
+                    if (current) chunks.push(current);
+                    current = p;
+                }
+            }
+            if (current) chunks.push(current);
+            return chunks;
+        },
+        
+        disconnect() {
+            localStorage.removeItem('sx_notion_api_key');
+            localStorage.removeItem('sx_notion_database_id');
+            localStorage.removeItem('sx_notion_connected');
+        }
+    },
+    
+    llmService: {
+        providers: {
+            gemini: {
+                name: 'Gemini',
+                endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+                defaultModel: 'gemini-pro'
+            },
+            openai: {
+                name: 'OpenAI',
+                endpoint: 'https://api.openai.com/v1/chat/completions',
+                defaultModel: 'gpt-4o'
+            },
+            anthropic: {
+                name: 'Anthropic',
+                endpoint: 'https://api.anthropic.com/v1/messages',
+                defaultModel: 'claude-3-sonnet-20240229'
+            },
+            custom: {
+                name: '自訂',
+                endpoint: '',
+                defaultModel: ''
+            }
+        },
+        
+        async processEntry(entry, provider, apiKey, endpoint, model, charName, userName) {
+            const config = this.providers[provider] || this.providers.gemini;
+            const apiUrl = endpoint || config.endpoint;
+            const modelName = model || config.defaultModel;
+            
+            const prompt = `請將以下互動紀錄轉換為結構化的 Wiki 條目，包含：
+1. 一段優美的敘述性文字（100-150字）
+2. 3-5個關鍵詞
+3. 情感標籤（如：溫馨、浪漫、有趣、感人等）
+4. 建議的配圖描述（用於生成插圖）
+
+角色: ${userName} 和 ${charName}
+互動內容:
+${entry.content}
+
+請以 JSON 格式回應：
+{
+    "narrative": "敘述文字",
+    "keywords": ["關鍵詞1", "關鍵詞2"],
+    "emotionTags": ["情感標籤"],
+    "imagePrompt": "配圖描述"
+}`;
+
+            try {
+                if (provider === 'gemini') {
+                    return await this.callGemini(apiUrl, apiKey, modelName, prompt);
+                } else if (provider === 'openai') {
+                    return await this.callOpenAI(apiUrl, apiKey, modelName, prompt);
+                } else if (provider === 'anthropic') {
+                    return await this.callAnthropic(apiUrl, apiKey, modelName, prompt);
+                } else {
+                    return await this.callCustom(apiUrl, apiKey, modelName, prompt);
+                }
+            } catch (e) {
+                console.error('[LLMService] 處理失敗:', e);
+                return null;
+            }
+        },
+        
+        async callGemini(endpoint, apiKey, model, prompt) {
+            const url = `${endpoint}/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
+                })
+            });
+            
+            if (!response.ok) return null;
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            return this.parseResponse(text);
+        },
+        
+        async callOpenAI(endpoint, apiKey, model, prompt) {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: '你是一個專業的 Wiki 條目生成助手。' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1024
+                })
+            });
+            
+            if (!response.ok) return null;
+            const data = await response.json();
+            const text = data.choices?.[0]?.message?.content || '';
+            return this.parseResponse(text);
+        },
+        
+        async callAnthropic(endpoint, apiKey, model, prompt) {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    max_tokens: 1024,
+                    messages: [{ role: 'user', content: prompt }]
+                })
+            });
+            
+            if (!response.ok) return null;
+            const data = await response.json();
+            const text = data.content?.[0]?.text || '';
+            return this.parseResponse(text);
+        },
+        
+        async callCustom(endpoint, apiKey, model, prompt) {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    prompt: prompt,
+                    max_tokens: 1024
+                })
+            });
+            
+            if (!response.ok) return null;
+            const data = await response.json();
+            const text = data.choices?.[0]?.text || data.choices?.[0]?.message?.content || data.response || '';
+            return this.parseResponse(text);
+        },
+        
+        parseResponse(text) {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    return JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        },
+        
+        isConnected() {
+            return localStorage.getItem('sx_llm_connected') === 'true';
+        },
+        
+        connect(provider, apiKey, endpoint, model) {
+            if (apiKey) {
+                localStorage.setItem('sx_llm_provider', provider);
+                localStorage.setItem('sx_llm_api_key', apiKey);
+                localStorage.setItem('sx_llm_endpoint', endpoint || '');
+                localStorage.setItem('sx_llm_model', model || '');
+                localStorage.setItem('sx_llm_connected', 'true');
+                return { success: true };
+            }
+            return { success: false };
+        },
+        
+        disconnect() {
+            localStorage.removeItem('sx_llm_provider');
+            localStorage.removeItem('sx_llm_api_key');
+            localStorage.removeItem('sx_llm_endpoint');
+            localStorage.removeItem('sx_llm_model');
+            localStorage.removeItem('sx_llm_connected');
+        },
+        
+        getConfig() {
+            return {
+                provider: localStorage.getItem('sx_llm_provider') || 'gemini',
+                apiKey: localStorage.getItem('sx_llm_api_key') || '',
+                endpoint: localStorage.getItem('sx_llm_endpoint') || '',
+                model: localStorage.getItem('sx_llm_model') || ''
+            };
+        }
+    }
+};
+
+function showExternalServicesModal() {
+    const existingModal = document.getElementById('externalServicesModal');
+    if (existingModal) existingModal.remove();
+    
+    const notionConnected = ExternalServices.notion.isConnected();
+    const llmConnected = ExternalServices.llmService.isConnected();
+    const llmConfig = ExternalServices.llmService.getConfig();
+    
+    const modal = document.createElement('div');
+    modal.id = 'externalServicesModal';
+    modal.className = 'chat-selection-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeExternalServicesModal()"></div>
+        <div class="modal-content" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>${t('externalServices')}</h3>
+                <button class="btn-close" onclick="closeExternalServicesModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Notion 區塊 -->
+                <div class="service-section" style="margin-bottom: 24px; padding: 16px; background: var(--bg-tertiary); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 40px; height: 40px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M4 4h16v16H4V4z" fill="#000"/>
+                                <path d="M8 8h8M8 12h8M8 16h4" stroke="#fff" stroke-width="1.5"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0;">Notion</h4>
+                            <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">${t('notionConnectDesc')}</p>
+                        </div>
+                        <span style="margin-left: auto; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${notionConnected ? 'var(--accent-success)' : 'var(--bg-primary)'};">
+                            ${notionConnected ? '已連結' : '未連結'}
+                        </span>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; color: var(--text-secondary);">API Key</label>
+                        <input type="password" id="notionApiKey" placeholder="secret_xxx..." 
+                               style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; color: var(--text-secondary);">Database ID</label>
+                        <input type="text" id="notionDbId" placeholder="資料庫 ID"
+                               style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="connectNotion()" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-primary); color: white; border: none; cursor: pointer;">
+                            ${notionConnected ? '更新連結' : '連結 Notion'}
+                        </button>
+                        ${notionConnected ? `<button onclick="syncToNotion()" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-success); color: white; border: none; cursor: pointer;">同步記憶</button>` : ''}
+                    </div>
+                </div>
+                
+                <!-- AI 服務區塊 -->
+                <div class="service-section" style="padding: 16px; background: var(--bg-tertiary); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-brain" style="color: white;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0;">AI 服務</h4>
+                            <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">${t('llmServiceDesc')}</p>
+                        </div>
+                        <span style="margin-left: auto; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${ExternalServices.llmService.isConnected() ? 'var(--accent-success)' : 'var(--bg-primary)'};">
+                            ${ExternalServices.llmService.isConnected() ? '已連結' : '未連結'}
+                        </span>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; color: var(--text-secondary);">${t('selectLLMProvider')}</label>
+                        <select id="llmProvider" onchange="updateLLMProviderFields()"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                            <option value="gemini">Gemini API (Google)</option>
+                            <option value="openai">OpenAI API</option>
+                            <option value="anthropic">Anthropic API (Claude)</option>
+                            <option value="custom">${t('customApi')}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; color: var(--text-secondary);">API Key</label>
+                        <input type="password" id="llmApiKey" placeholder="輸入 API Key"
+                               style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 12px;" id="llmEndpointGroup">
+                        <label style="font-size: 13px; color: var(--text-secondary);">${t('apiEndpoint')}（選填）</label>
+                        <input type="text" id="llmEndpoint" placeholder="https://..."
+                               style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="font-size: 13px; color: var(--text-secondary);">${t('modelName')}（選填）</label>
+                        <input type="text" id="llmModel" placeholder="gpt-4o / gemini-pro / claude-3-sonnet..."
+                               style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-top: 4px;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="connectLLMService()" style="flex: 1; padding: 10px; border-radius: 6px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; cursor: pointer;">
+                            ${ExternalServices.llmService.isConnected() ? '更新連結' : '連結服務'}
+                        </button>
+                        ${ExternalServices.llmService.isConnected() ? `<button onclick="processWithLLMService()" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-warning); color: white; border: none; cursor: pointer;">處理記憶</button>` : ''}
+                    </div>
+                </div>
+                
+                <!-- 自動同步選項 -->
+                <div style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">
+                        <input type="checkbox" id="autoSyncEnabled" ${localStorage.getItem('sx_auto_sync') === 'true' ? 'checked' : ''} 
+                               onchange="toggleAutoSync(this.checked)">
+                        <span>${t('autoSync')}</span>
+                    </label>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px 24px;">
+                        ${t('autoSyncDesc')}
+                    </p>
+                    
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">
+                        <input type="checkbox" id="autoCleanupEnabled" ${localStorage.getItem('sx_auto_cleanup') === 'true' ? 'checked' : ''} 
+                               onchange="toggleAutoCleanup(this.checked, parseInt(document.getElementById('cleanupDaysInput')?.value || 3))">
+                        <span>${t('autoCleanup')}</span>
+                    </label>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 8px 24px;">
+                        ${t('autoCleanupDesc')}
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-left: 24px;">
+                        <label style="font-size: 12px;">${t('cleanupDays')}:</label>
+                        <input type="number" id="cleanupDaysInput" value="${localStorage.getItem('sx_cleanup_days') || '3'}" min="1" max="30"
+                               style="width: 60px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);"
+                               onchange="toggleAutoCleanup(document.getElementById('autoCleanupEnabled').checked, parseInt(this.value))">
+                        <span style="font-size: 12px;">天</span>
+                    </div>
+                    
+                    <div style="margin-top: 12px; margin-left: 24px; display: flex; gap: 8px;">
+                        <button onclick="runCleanupNow()" 
+                                style="padding: 8px 16px; border-radius: 6px; background: var(--accent-danger); color: white; border: none; cursor: pointer; font-size: 12px;">
+                            ${t('cleanupNow')}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('notionApiKey').value = localStorage.getItem('sx_notion_api_key') || '';
+    document.getElementById('notionDbId').value = localStorage.getItem('sx_notion_database_id') || '';
+    
+    document.getElementById('llmProvider').value = llmConfig.provider;
+    document.getElementById('llmApiKey').value = llmConfig.apiKey;
+    document.getElementById('llmEndpoint').value = llmConfig.endpoint;
+    document.getElementById('llmModel').value = llmConfig.model;
+    
+    updateLLMProviderFields();
+}
+
+function closeExternalServicesModal() {
+    const modal = document.getElementById('externalServicesModal');
+    if (modal) modal.remove();
+}
+
+async function connectNotion() {
+    const apiKey = document.getElementById('notionApiKey').value.trim();
+    const dbId = document.getElementById('notionDbId').value.trim();
+    
+    if (!apiKey || !dbId) {
+        alert('請填寫完整的 Notion設定');
+        return;
+    }
+    
+    const result = await ExternalServices.notion.connect(apiKey, dbId);
+    if (result.success) {
+        alert('Notion 連結成功！');
+        showExternalServicesModal();
+    } else {
+        alert('連結失敗: ' + result.error);
+    }
+}
+
+function updateLLMProviderFields() {
+    const provider = document.getElementById('llmProvider').value;
+    const endpointInput = document.getElementById('llmEndpoint');
+    const modelInput = document.getElementById('llmModel');
+    const config = ExternalServices.llmService.providers[provider];
+    
+    endpointInput.placeholder = config.endpoint || 'https://...';
+    modelInput.placeholder = config.defaultModel || 'model-name';
+}
+
+async function connectLLMService() {
+    const provider = document.getElementById('llmProvider').value;
+    const apiKey = document.getElementById('llmApiKey').value.trim();
+    const endpoint = document.getElementById('llmEndpoint').value.trim();
+    const model = document.getElementById('llmModel').value.trim();
+    
+    if (!apiKey) {
+        alert('請填寫 API Key');
+        return;
+    }
+    
+    ExternalServices.llmService.connect(provider, apiKey, endpoint, model);
+    alert(t('connectSuccess'));
+    showExternalServicesModal();
+}
+
+async function processWithLLMService() {
+    const entries = await wikiDB.getSharedEntries();
+    const config = ExternalServices.llmService.getConfig();
+    const user = getUserFromSettings();
+    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    
+    if (!config.apiKey || entries.length === 0) {
+        alert('請先連結 AI 服務');
+        return;
+    }
+    
+    let processed = 0;
+    
+    for (const entry of entries) {
+        if (!entry.llmProcessed) {
+            const result = await ExternalServices.llmService.processEntry(
+                entry,
+                config.provider,
+                config.apiKey,
+                config.endpoint,
+                config.model,
+                charName,
+                user.name
+            );
+            
+            if (result) {
+                entry.narrative = result.narrative;
+                entry.keywords = [...new Set([...(entry.keywords || []), ...result.keywords])];
+                entry.emotionTags = result.emotionTags;
+                entry.imagePrompt = result.imagePrompt;
+                entry.llmProcessed = true;
+                entry.exportedAt = Date.now();
+                await wikiDB.updateSharedEntry(entry);
+                
+                if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+                    AutoCleanup.markAsExported(entry.id, 'shared_entries');
+                }
+                
+                processed++;
+            }
+        }
+    }
+    
+    alert(`${t('llmProcessSuccess')}！已處理 ${processed} 個記憶`);
+    
+    if (processed > 0 && localStorage.getItem('sx_auto_cleanup') === 'true') {
+        AutoCleanup.cleanupExpiredEntries();
+    }
+    
+    await loadSharedWiki();
+    closeExternalServicesModal();
+}
+
+function toggleAutoSync(enabled) {
+    localStorage.setItem('sx_auto_sync', enabled ? 'true' : 'false');
+}
+
+const AutoCleanup = {
+    markAsExported(entryId, storeName) {
+        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        exported[entryId] = {
+            storeName,
+            exportedAt: Date.now(),
+            deleteAfter: Date.now() + (3 * 24 * 60 * 60 * 1000)
+        };
+        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+    },
+    
+    async cleanupExpiredEntries() {
+        if (localStorage.getItem('sx_auto_cleanup') !== 'true') return { cleaned: 0 };
+        
+        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        const now = Date.now();
+        let cleaned = 0;
+        
+        for (const [entryId, info] of Object.entries(exported)) {
+            if (now >= info.deleteAfter) {
+                try {
+                    await wikiDB.deleteEntry(info.storeName, entryId);
+                    delete exported[entryId];
+                    cleaned++;
+                } catch (e) {
+                    console.warn('[AutoCleanup] 刪除失敗:', e);
+                }
+            }
+        }
+        
+        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+        return { cleaned };
+    },
+    
+    async forceCleanup(daysOld = 3) {
+        const cutoff = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+        let cleaned = 0;
+        
+        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        
+        for (const [entryId, info] of Object.entries(exported)) {
+            if (info.exportedAt <= cutoff) {
+                try {
+                    await wikiDB.deleteEntry(info.storeName, entryId);
+                    delete exported[entryId];
+                    cleaned++;
+                } catch (e) {}
+            }
+        }
+        
+        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+        return { cleaned };
+    },
+    
+    getCleanupStats() {
+        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        const now = Date.now();
+        let pending = 0;
+        let readyToDelete = 0;
+        
+        for (const info of Object.values(exported)) {
+            if (now >= info.deleteAfter) {
+                readyToDelete++;
+            } else {
+                pending++;
+            }
+        }
+        
+        return { pending, readyToDelete, total: Object.keys(exported).length };
+    }
+};
+
+function toggleAutoCleanup(enabled, days = 3) {
+    localStorage.setItem('sx_auto_cleanup', enabled ? 'true' : 'false');
+    localStorage.setItem('sx_cleanup_days', days.toString());
+}
+
+async function runCleanupNow() {
+    const days = parseInt(localStorage.getItem('sx_cleanup_days') || '3');
+    const result = await AutoCleanup.forceCleanup(days);
+    alert(t('cleanupSuccess') + `: ${result.cleaned} 筆`);
+    await loadSharedWiki();
+}
+
+async function syncToNotion() {
+    const entries = await wikiDB.getSharedEntries();
+    const user = getUserFromSettings();
+    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    
+    if (entries.length === 0) {
+        alert('沒有可同步的記憶');
+        return;
+    }
+    
+    let success = 0;
+    let failed = 0;
+    
+    for (const entry of entries) {
+        const result = await ExternalServices.notion.createWikiPage(entry, charName, user.name);
+        if (result) {
+            success++;
+            entry.notionPageId = result.id;
+            entry.exportedAt = Date.now();
+            await wikiDB.updateSharedEntry(entry);
+            
+            if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+                AutoCleanup.markAsExported(entry.id, 'shared_entries');
+            }
+        } else {
+            failed++;
+        }
+    }
+    
+    if (failed === 0) {
+        alert(`${t('notionSyncSuccess')} (${success} 個條目)`);
+        AutoCleanup.cleanupExpiredEntries();
+    } else {
+        alert(`同步完成！成功: ${success}, 失敗: ${failed}`);
+    }
+    
+    closeExternalServicesModal();
+    await loadSharedWiki();
+}
+
+async function processWithNotebookLLM() {
+    const entries = await wikiDB.getSharedEntries();
+    const apiKey = localStorage.getItem('sx_notebook_llm_key');
+    const user = getUserFromSettings();
+    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    
+    if (!apiKey || entries.length === 0) {
+        alert('請先連結 NotebookLLM');
+        return;
+    }
+    
+    let processed = 0;
+    
+    for (const entry of entries) {
+        if (!entry.notebookProcessed) {
+            const result = await ExternalServices.notebookLLM.processEntry(entry, apiKey, charName, user.name);
+            if (result) {
+                entry.narrative = result.narrative;
+                entry.keywords = [...new Set([...(entry.keywords || []), ...result.keywords])];
+                entry.emotionTags = result.emotionTags;
+                entry.imagePrompt = result.imagePrompt;
+                entry.notebookProcessed = true;
+                entry.exportedAt = Date.now();
+                await wikiDB.updateSharedEntry(entry);
+                
+                if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+                    AutoCleanup.markAsExported(entry.id, 'shared_entries');
+                }
+                
+                processed++;
+            }
+        }
+    }
+    
+    alert(`處理完成！已處理 ${processed} 個記憶`);
+    
+    if (processed > 0 && localStorage.getItem('sx_auto_cleanup') === 'true') {
+        AutoCleanup.cleanupExpiredEntries();
+    }
+    
+    await loadSharedWiki();
+    closeExternalServicesModal();
+}
+
+async function autoSyncEntry(entry) {
+    if (localStorage.getItem('sx_auto_sync') !== 'true') return;
+    
+    const user = getUserFromSettings();
+    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    
+    if (ExternalServices.notion.isConnected()) {
+        await ExternalServices.notion.createWikiPage(entry, charName, user.name);
+    }
+    
+    if (ExternalServices.notebookLLM.isConnected()) {
+        const apiKey = localStorage.getItem('sx_notebook_llm_key');
+        const result = await ExternalServices.notebookLLM.processEntry(entry, apiKey, charName, user.name);
+        if (result) {
+            entry.narrative = result.narrative;
+            entry.keywords = [...new Set([...(entry.keywords || []), ...result.keywords])];
+            entry.emotionTags = result.emotionTags;
+            entry.imagePrompt = result.imagePrompt;
+            entry.notebookProcessed = true;
+            await wikiDB.updateSharedEntry(entry);
+        }
+    }
+}
+
+// 更新 saveTimelineEntries 以支援自動同步
+async function saveTimelineEntriesWithSync(entries, sourceName) {
+    for (const entry of entries) {
+        try {
+            if (entry.content && entry.content.length > 100) {
+                const compressed = VectorCompressor.compressContent(entry.content);
+                entry.compressedContent = compressed.compressed;
+                entry.vectorHash = compressed.vector;
+                entry.keywords = compressed.keywords;
+                entry.compressed = true;
+            }
+            
+            await wikiDB.addSharedEntry(entry);
+            
+            if (localStorage.getItem('sx_auto_sync') === 'true') {
+                autoSyncEntry(entry);
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] 添加條目失敗:', e);
+        }
+    }
+    
+    await wikiDB.addLog({
+        type: 'shared',
+        action: 'interaction_imported',
+        detail: `從 ${sourceName} 導入 ${entries.length} 個時間軸條目`
+    });
+    
+    await loadSharedWiki();
+    alert(t('importChatSuccess'));
+}
+
+// 保留舊函式名稱以向後相容
+const saveTimelineEntries = saveTimelineEntriesWithSync;
+
+// 保留舊的函式以向後相容
+function showNotionConfigModal() {
+    showExternalServicesModal();
+}
+
+function closeNotionConfigModal() {
+    closeExternalServicesModal();
+}
+
+function saveNotionConfig() {
+    connectNotion();
+}
+
+async function exportSharedWikiToNotion() {
+    await syncToNotion();
+}
+
+async function compressWikiEntries() {
+    try {
+        const userCount = await VectorCompressor.compressAllEntries('user_entries');
+        const charCount = await VectorCompressor.compressAllEntries('char_entries');
+        const sharedCount = await VectorCompressor.compressAllEntries('shared_entries');
+        
+        const total = userCount + charCount + sharedCount;
+        
+        await wikiDB.addLog({
+            type: 'system',
+            action: 'compression',
+            detail: `壓縮了 ${total} 個條目`
+        });
+        
+        alert(t('vectorCompressSuccess'));
+        return total;
+    } catch (e) {
+        console.error('[PersonalWiki] 壓縮失敗:', e);
+        return 0;
+    }
 }
