@@ -442,16 +442,26 @@ function getWorldbookIndex() {
     return [];
 }
 
-function loadChatSessions() {
+let _chatSessionsCache = null;
+let _indexedDBInitialized = false;
+
+async function initChatSessionsFromIndexedDB() {
+    if (_indexedDBInitialized) return;
+    _indexedDBInitialized = true;
+    
     if (typeof localforage !== 'undefined') {
-        const cached = localStorage.getItem('sx_chat_sessions');
-        if (cached) {
-            try {
-                const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed;
+        try {
+            const persistedData = await localforage.getItem('sx_app_persisted_data');
+            if (persistedData && persistedData.sx_chat_sessions) {
+                const sessions = persistedData.sx_chat_sessions;
+                if (Array.isArray(sessions) && sessions.length > 0) {
+                    _chatSessionsCache = sessions;
+                    console.log('[Chat] 從 IndexedDB 載入 sessions:', sessions.length);
+                    return;
                 }
-            } catch (e) {}
+            }
+        } catch (e) {
+            console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
         }
     }
     
@@ -459,35 +469,38 @@ function loadChatSessions() {
     if (raw) {
         try {
             const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-            console.warn('解析聊天室列表失敗', e);
-        }
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                _chatSessionsCache = parsed;
+                console.log('[Chat] 從 localStorage 載入 sessions:', parsed.length);
+                return;
+            }
+        } catch (e) {}
     }
-    return [];
+    _chatSessionsCache = [];
 }
 
-async function loadChatSessionsAsync() {
-    if (typeof localforage !== 'undefined') {
-        try {
-            const persistedData = await localforage.getItem('sx_app_persisted_data');
-            if (persistedData && persistedData.sx_chat_sessions) {
-                const sessions = persistedData.sx_chat_sessions;
-                if (Array.isArray(sessions) && sessions.length > 0) {
-                    localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
-                    return sessions;
-                }
-            }
-        } catch (e) {
-            console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
-        }
+function loadChatSessions() {
+    if (_chatSessionsCache !== null) {
+        return _chatSessionsCache;
     }
-    return loadChatSessions();
+    
+    const raw = localStorage.getItem('sx_chat_sessions');
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                _chatSessionsCache = parsed;
+                return parsed;
+            }
+        } catch (e) {}
+    }
+    _chatSessionsCache = [];
+    return [];
 }
 
 function saveChatSessions(sessions) {
     console.log('[saveChatSessions] 保存 sessions:', sessions.length, sessions.map(s => ({ id: s.id, historyLen: s.history?.length || 0 })));
-    localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+    _chatSessionsCache = sessions;
     localStorage.setItem('sx_last_activity_time', Date.now().toString());
     saveChatSessionsToIndexedDB(sessions);
 }
@@ -510,6 +523,7 @@ async function saveChatSessionsToIndexedDB(sessions) {
             sx_chat_sessions: sessions,
             lastSaved: Date.now()
         });
+        console.log('[Chat] 已儲存到 IndexedDB');
     } catch (e) {
         console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
     }
@@ -2918,58 +2932,67 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     migrateLegacyHistory();
-    renderChatListFromStorage();
-    renderFriendsList();
-    const initialSession = getActiveSession();
-    if (initialSession) {
-        setActiveChatId(initialSession.id);
-        localStorage.setItem('sx_chat_history', JSON.stringify(initialSession.history || []));
-        if (initialSession.charName) {
-            localStorage.setItem('sx_char_name', initialSession.charName);
-        }
-        if (initialSession.charAvatar) {
-            localStorage.setItem('sx_char_avatar', initialSession.charAvatar);
-        }
-        if (initialSession.charPersonality) {
-            localStorage.setItem('sx_char_personality', initialSession.charPersonality);
-        }
-        if (initialSession.charBackground) {
-            localStorage.setItem('sx_char_background', initialSession.charBackground);
-        }
-    }
-    showChatList();
-
-    // B. 初始化 UI 顯示
-    const hintEl = document.getElementById('hint-name');
-    let displayName = localStorage.getItem('sx_char_name');
-    if (!displayName || displayName === '預設用戶') {
-        displayName = charConfig.name || "AI 助理";
-    }
-    if (nameEl) nameEl.innerText = displayName;
-    if (chatTitleEl) chatTitleEl.innerText = displayName;
-    if (hintEl) hintEl.innerText = displayName;
-    if (charPersInput) charPersInput.value = localStorage.getItem('sx_char_personality') || charConfig.personality || "";
-    if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
-    if (charNameInput) charNameInput.value = displayName;
     
-    console.log('[Chat] 初始化 UI，角色名稱:', displayName);
-
-    renderPresetOptions();
-
-    initUserUI();
-    renderHistory();
-    initSideDrawer();
-    initAPISettings();
-    initPhoneCheckToggle();
-    initPasskeyControlToggle();
+    // 從 IndexedDB 載入 sessions（主要初始化流程）
+    (async () => {
+        await initChatSessionsFromIndexedDB();
+        
+        renderChatListFromStorage();
+        renderFriendsList();
+        
+        const initialSession = getActiveSession();
+        if (initialSession) {
+            setActiveChatId(initialSession.id);
+            if (initialSession.history) {
+                localStorage.setItem('sx_chat_history', JSON.stringify(initialSession.history));
+            }
+            if (initialSession.charName) {
+                localStorage.setItem('sx_char_name', initialSession.charName);
+            }
+            if (initialSession.charAvatar) {
+                localStorage.setItem('sx_char_avatar', initialSession.charAvatar);
+            }
+            if (initialSession.charPersonality) {
+                localStorage.setItem('sx_char_personality', initialSession.charPersonality);
+            }
+            if (initialSession.charBackground) {
+                localStorage.setItem('sx_char_background', initialSession.charBackground);
+            }
+        }
+        
+        showChatList();
+        
+        // 初始化 UI 顯示
+        const hintEl = document.getElementById('hint-name');
+        let displayName = localStorage.getItem('sx_char_name');
+        if (!displayName || displayName === '預設用戶') {
+            displayName = charConfig.name || "AI 助理";
+        }
+        if (nameEl) nameEl.innerText = displayName;
+        if (chatTitleEl) chatTitleEl.innerText = displayName;
+        if (hintEl) hintEl.innerText = displayName;
+        if (charPersInput) charPersInput.value = localStorage.getItem('sx_char_personality') || charConfig.personality || "";
+        if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
+        if (charNameInput) charNameInput.value = displayName;
+        
+        console.log('[Chat] 初始化完成，角色名稱:', displayName);
+        
+        renderPresetOptions();
+        initUserUI();
+        renderHistory();
+        initSideDrawer();
+        initAPISettings();
+        initPhoneCheckToggle();
+        initPasskeyControlToggle();
+        
+        initDatingInvitation();
+        initDatingInviteSettings();
+        initGreetingSettings();
+        initRelationshipDistanceSettings();
+    })();
     checkBlockStatus();
     
     requestWorldbookSync();
-
-    initDatingInvitation();
-    initDatingInviteSettings();
-    initGreetingSettings();
-    initRelationshipDistanceSettings();
 
 
     const chatFontRange = document.getElementById('chat-font-range');
@@ -7790,7 +7813,23 @@ function renderHistory() {
     notice.innerHTML = `現在正與 <span id="hint-name">${activeName}</span> 對話中`;
     chatFlow.appendChild(notice);
     
-    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+    // 優先從 session 中讀取 history
+    let history = null;
+    const activeId = getActiveChatId();
+    if (activeId) {
+        const sessions = loadChatSessions();
+        const session = sessions.find(s => s.id === activeId);
+        if (session && session.history) {
+            history = session.history;
+            // 同步到 localStorage
+            localStorage.setItem('sx_chat_history', JSON.stringify(history));
+        }
+    }
+    
+    if (!history) {
+        history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+    }
+    
     if (history.length === 0) {
         window.parent?.postMessage({
             type: 'MEMORY_REQUEST_HISTORY',
@@ -7872,8 +7911,6 @@ function handleJustSend() {
             console.log('[handleJustSend] 更新現有 session:', activeId, 'history 長度:', history.length);
         }
     }
-    
-    saveChatSessionsToIndexedDB(loadChatSessions());
 }
 
 /**

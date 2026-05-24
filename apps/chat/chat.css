@@ -106,7 +106,11 @@ body, html {
 
 .chat-app.detail-active .kakao-bottom-tabs {
     z-index: 500 !important;
-    pointer-events: auto !important;
+    pointer-events: none !important;
+}
+
+.chat-app.detail-active .kakao-bottom-tabs * {
+    pointer-events: none;
 }
 
 .kakao-bottom-tab {
