@@ -626,6 +626,29 @@ class UnifiedStorageManager {
     return this.sxStorage.clearAll();
   }
 
+  async cleanup(options = {}) {
+    const result = { cacheCleared: false, clearedSize: 0 };
+    
+    if (options.clearCache) {
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          for (const name of cacheNames) {
+            const cache = await caches.open(name);
+            const keys = await cache.keys();
+            result.clearedSize += keys.length;
+            await caches.delete(name);
+          }
+          result.cacheCleared = true;
+        } catch (e) {
+          console.error('[UnifiedStorageManager] 清理快取失敗:', e);
+        }
+      }
+    }
+    
+    return result;
+  }
+
   async migrateFromLocalStorage() {
     await this._ensureStorage();
     return this.sxStorage.migrateFromLocalStorage();
