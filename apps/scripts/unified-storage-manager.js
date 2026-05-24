@@ -258,9 +258,9 @@ class UnifiedStorageManager {
   async backupToGitHub(options = {}) {
     await this._ensureStorage();
     
-    const token = options.token || await this.getSetting('sx_github_token');
-    const repoName = options.repoName || await this.getSetting('sx_github_repo_name') || 'sxiphone-backup';
-    const basePath = options.filePath || await this.getSetting('sx_github_backup_file') || 'backup/sxiphone';
+    const token = options.token || localStorage.getItem('sx_github_token') || await this.getSetting('sx_github_token');
+    const repoName = options.repoName || localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || await this.getSetting('sx_github_repo_name') || 'sxiphone-backup';
+    const basePath = options.filePath || localStorage.getItem('sx_github_backup_file') || await this.getSetting('sx_github_backup_file') || 'backup/sxiphone';
     const statusCallback = options.onStatus || (() => {});
     
     if (!token) {
@@ -469,9 +469,9 @@ class UnifiedStorageManager {
   async restoreFromGitHub(options = {}) {
     await this._ensureStorage();
     
-    const token = options.token || await this.getSetting('sx_github_token');
-    const repoName = options.repoName || await this.getSetting('sx_github_repo_name') || 'sxiphone-backup';
-    const basePath = options.filePath || await this.getSetting('sx_github_backup_file') || 'backup/sxiphone';
+    const token = options.token || localStorage.getItem('sx_github_token') || await this.getSetting('sx_github_token');
+    const repoName = options.repoName || localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || await this.getSetting('sx_github_repo_name') || 'sxiphone-backup';
+    const basePath = options.filePath || localStorage.getItem('sx_github_backup_file') || await this.getSetting('sx_github_backup_file') || 'backup/sxiphone';
     const statusCallback = options.onStatus || (() => {});
     const onProgress = options.onProgress || (() => {});
 

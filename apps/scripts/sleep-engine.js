@@ -1106,7 +1106,7 @@ class SleepEngine {
   async _syncToCloud(memories) {
     try {
       const githubToken = localStorage.getItem('sx_github_token');
-      const githubRepo = localStorage.getItem('sx_github_repo');
+      const githubRepo = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
       
       if (!githubToken || !githubRepo) {
         console.log('[SleepEngine] 未連接 GitHub，跳過雲端同步');
@@ -2536,7 +2536,7 @@ SleepEngine.prototype._buildWikiLinks = async function(db, entries) {
 SleepEngine.prototype._syncWikiToCloud = async function(db, entries) {
     try {
       const githubToken = localStorage.getItem('sx_github_token');
-      const githubRepo = localStorage.getItem('sx_github_repo');
+      const githubRepo = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
       
       if (!githubToken || !githubRepo) {
         console.log('[SleepEngine] Wiki 同步: 未連接 GitHub，跳過');
