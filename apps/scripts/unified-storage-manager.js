@@ -541,11 +541,24 @@ class UnifiedStorageManager {
       }
 
       const partData = await partResp.json();
-      parts.push(partData.content);
+      console.log('[UnifiedStorageManager] part', i, 'content type:', typeof partData.content, 'length:', partData.content?.length, 'encoding:', partData.encoding);
+      if (partData.encoding === 'base64') {
+        parts.push(partData.content);
+      } else if (typeof partData.content === 'string') {
+        const raw = partData.content;
+        if (/^[A-Za-z0-9+/=]+$/.test(raw.replace(/\s/g, ''))) {
+          parts.push(raw);
+        } else {
+          parts.push(btoa(unescape(encodeURIComponent(raw))));
+        }
+      } else {
+        parts.push(JSON.stringify(partData.content));
+      }
     }
 
     statusCallback('正在合併資料...');
     const combinedBase64 = parts.join('');
+    console.log('[UnifiedStorageManager] combined base64 length:', combinedBase64.length, 'first 100 chars:', combinedBase64.substring(0, 100));
     const jsonStr = this._decodeBase64(combinedBase64);
 
     if (checksum) {
