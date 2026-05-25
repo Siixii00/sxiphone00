@@ -81,8 +81,6 @@ async function appendToChatHistory(role, content) {
     history.push({ role, content });
     await saveChatHistoryToIndexedDB(history);
 }
-    await saveChatHistoryToIndexedDB(history);
-}
 
 async function updateChatHistoryItem(index, updates) {
     const history = getChatHistory();
@@ -701,14 +699,6 @@ const saveToPersistentStorage = async () => {
             userName,
             userAvatar,
             userPersonality,
-            userBackground,
-            lastSaved: Date.now()
-        });
-        console.log("[Storage] 聊天數據已保存至 IndexedDB");
-    } catch (e) {
-        console.error("[Storage] IndexedDB 保存失敗:", e);
-    }
-};
             userBackground,
             lastSaved: Date.now()
         });
