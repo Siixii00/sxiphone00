@@ -604,6 +604,11 @@ class UnifiedStorageManager {
   }
 
   _decodeBase64(base64) {
+    const trimmed = base64.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      console.log('[UnifiedStorageManager] 內容已是 JSON，跳過解碼');
+      return base64;
+    }
     const cleaned = base64.replace(/\s/g, '');
     try {
       return decodeURIComponent(escape(atob(cleaned)));
