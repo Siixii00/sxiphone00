@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sxiphone-v17';
+const CACHE_NAME = 'sxiphone-v18';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -204,35 +204,24 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(new Request(self.registration.scope + 'index.html'))
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            fetch(request)
-              .then((response) => {
-                if (response.ok) {
-                  caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(new Request(self.registration.scope + 'index.html'), response.clone());
-                  });
-                }
-              })
-              .catch(() => {});
-            return cachedResponse;
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
           }
-          return fetch(request)
-            .then((response) => {
-              if (response.ok) {
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                  cache.put(new Request(self.registration.scope + 'index.html'), responseClone);
-                });
-              }
-              return response;
-            })
-            .catch(() => {
-              return new Response(FALLBACK_HTML, {
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cachedResponse) => {
+            return cachedResponse || caches.match('./index.html').then((fallback) => {
+              return fallback || new Response(FALLBACK_HTML, {
                 headers: { 'Content-Type': 'text/html' }
               });
             });
+          });
         })
     );
     return;
