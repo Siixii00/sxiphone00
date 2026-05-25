@@ -591,10 +591,16 @@ class UnifiedStorageManager {
   }
 
   _decodeBase64(base64) {
+    const cleaned = base64.replace(/\s/g, '');
     try {
-      return decodeURIComponent(escape(atob(base64)));
+      return decodeURIComponent(escape(atob(cleaned)));
     } catch (e) {
-      return atob(base64);
+      try {
+        return atob(cleaned);
+      } catch (e2) {
+        console.error('[UnifiedStorageManager] Base64 解碼失敗，字串長度:', cleaned.length, '前 50 字元:', cleaned.substring(0, 50));
+        throw new Error('Base64 解碼失敗: ' + e2.message);
+      }
     }
   }
 
