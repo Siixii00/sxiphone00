@@ -2416,7 +2416,25 @@ function checkBlockStatus() {
     return false;
 }
 // --- 2. DOMContentLoaded 初始化 (整合去重版) ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // 先從 IndexedDB 回填用戶資料到 localStorage
+    const persistedUserData = await loadUserSettingsFromIndexedDB();
+    if (persistedUserData) {
+        if (persistedUserData.name && !localStorage.getItem('sx_user_name')) {
+            localStorage.setItem('sx_user_name', persistedUserData.name);
+        }
+        if (persistedUserData.avatar && !localStorage.getItem('sx_user_avatar')) {
+            localStorage.setItem('sx_user_avatar', persistedUserData.avatar);
+        }
+        if (persistedUserData.personality && !localStorage.getItem('sx_user_personality')) {
+            localStorage.setItem('sx_user_personality', persistedUserData.personality);
+        }
+        if (persistedUserData.background && !localStorage.getItem('sx_user_background')) {
+            localStorage.setItem('sx_user_background', persistedUserData.background);
+        }
+        console.log('[Chat] 已從 IndexedDB 回填用戶資料');
+    }
+    
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
