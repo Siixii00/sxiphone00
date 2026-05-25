@@ -3018,8 +3018,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await initChatHistoryIndexedDB();
         await initChatSessionsFromIndexedDB();
         
-        _chatHistoryCache = null;
-        
         const initialSession = getActiveSession();
         if (initialSession) {
             setActiveChatId(initialSession.id);
@@ -3062,6 +3060,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (charNameInput) charNameInput.value = displayName;
         
         console.log('[Chat] 初始化完成，角色名稱:', displayName);
+        console.log('[Chat] 初始化完成，history 快取:', _chatHistoryCache?.length || 0, '條');
+        console.log('[Chat] 初始化完成，sessions 快取:', _chatSessionsCache?.length || 0, '個');
         
         renderPresetOptions();
         initUserUI();
@@ -7881,33 +7881,38 @@ function renderHistory() {
     const chatFlow = document.getElementById('chat-flow');
     if (!chatFlow) return;
     chatFlow.innerHTML = "";
-    
+
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
-    
+
     console.log('[renderHistory] 角色名稱:', charConfig?.name, '用戶名稱:', userConfig?.name);
-    
+
     const activeName = charConfig?.name || 'AI 助理';
     const notice = document.createElement('div');
     notice.className = 'system-notice';
     notice.innerHTML = `現在正與 <span id="hint-name">${activeName}</span> 對話中`;
     chatFlow.appendChild(notice);
-    
+
     let history = null;
     const activeId = getActiveChatId();
+    console.log('[renderHistory] activeId:', activeId);
+    
     if (activeId) {
         const sessions = loadChatSessions();
+        console.log('[renderHistory] sessions 数量:', sessions.length);
         const session = sessions.find(s => s.id === activeId);
         if (session && session.history) {
             history = session.history;
             setChatHistorySync(history);
+            console.log('[renderHistory] 從 session 恢復 history:', history.length, '條');
         }
     }
-    
+
     if (!history) {
         history = getChatHistory();
+        console.log('[renderHistory] 從快取取得 history:', history.length, '條');
     }
-    
+
     if (history.length === 0) {
         const config = getGreetingConfig();
         if (config.enabled) {
@@ -7917,7 +7922,7 @@ function renderHistory() {
             history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
             setChatHistorySync(history);
             localStorage.setItem(LAST_GREETING_KEY, Date.now().toString());
-            
+
             const activeId = getActiveChatId();
             if (activeId) {
                 const sessions = loadChatSessions();
@@ -7934,6 +7939,9 @@ function renderHistory() {
         }, '*');
         return;
     }
+    
+    console.log('[renderHistory] 渲染 history:', history.length, '條');
+    
     history.forEach((m, historyIdx) => {
         const type = m.role === 'user' ? 'mine' : 'other';
         const timestamp = m.timestamp || Date.now();
@@ -7950,7 +7958,7 @@ function renderHistory() {
             appendMsg(type, m.content, { timestamp, historyIndex: historyIdx });
         }
     });
-    
+
     RandomGreetingSystem.start();
 }
 
