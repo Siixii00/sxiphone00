@@ -42,11 +42,11 @@ async function initChatHistoryIndexedDB() {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) {
                 _chatHistoryCache = parsed;
-                console.log('[ChatHistory] 從 localStorage 載入 history:', parsed.length, '條');
+                console.log('[ChatHistory] 從 localStorage 遷移 history:', parsed.length, '條');
                 if (parsed.length > 0 && typeof localforage !== 'undefined') {
                     await localforage.setItem('sx_chat_history', parsed);
                     localStorage.removeItem('sx_chat_history');
-                    console.log('[ChatHistory] 已遷移至 IndexedDB');
+                    console.log('[ChatHistory] 已遷移至 IndexedDB 並清除 localStorage');
                 }
                 return;
             }
@@ -59,58 +59,19 @@ function getChatHistory() {
     if (_chatHistoryCache !== null) {
         return _chatHistoryCache;
     }
-    
-    if (typeof sxStorage !== 'undefined') {
-        const cached = sxStorage._getCache('sx_chat_history');
-        if (cached !== undefined && cached !== null) {
-            try {
-                const parsed = JSON.parse(cached);
-                if (Array.isArray(parsed)) {
-                    _chatHistoryCache = parsed;
-                    return parsed;
-                }
-            } catch (e) {}
-        }
-    }
-    
-    const raw = localStorage.getItem('sx_chat_history');
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                _chatHistoryCache = parsed;
-                return parsed;
-            }
-        } catch (e) {}
-    }
-    _chatHistoryCache = [];
+    console.warn('[ChatHistory] 快取為空，請先調用 initChatHistoryIndexedDB()');
     return [];
 }
 
 async function saveChatHistoryToIndexedDB(history) {
     _chatHistoryCache = history;
     
-    const serialized = JSON.stringify(history);
-    
-    if (typeof sxStorage !== 'undefined') {
-        sxStorage._setCache('sx_chat_history', serialized);
-    }
-    
     if (typeof localforage !== 'undefined') {
         try {
             await localforage.setItem('sx_chat_history', history);
-            console.log('[ChatHistory] 已儲存到 IndexedDB (localforage):', history.length, '條');
+            console.log('[ChatHistory] 已儲存到 IndexedDB:', history.length, '條');
         } catch (e) {
-            console.warn('[ChatHistory] localforage 儲存失敗:', e);
-        }
-    }
-    
-    if (typeof sxStorage !== 'undefined') {
-        try {
-            await sxStorage.setItem('sx_chat_history', serialized);
-            console.log('[ChatHistory] 已儲存到 IndexedDB (sxStorage):', history.length, '條');
-        } catch (e) {
-            console.warn('[ChatHistory] sxStorage 儲存失敗:', e);
+            console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
         }
     }
 }
@@ -118,6 +79,8 @@ async function saveChatHistoryToIndexedDB(history) {
 async function appendToChatHistory(role, content) {
     const history = getChatHistory();
     history.push({ role, content });
+    await saveChatHistoryToIndexedDB(history);
+}
     await saveChatHistoryToIndexedDB(history);
 }
 
@@ -134,7 +97,10 @@ async function clearChatHistory() {
     if (typeof localforage !== 'undefined') {
         try {
             await localforage.removeItem('sx_chat_history');
-        } catch (e) {}
+            console.log('[ChatHistory] 已清除 IndexedDB 聊天記錄');
+        } catch (e) {
+            console.warn('[ChatHistory] 清除 IndexedDB 失敗:', e);
+        }
     }
     localStorage.removeItem('sx_chat_history');
 }
@@ -148,15 +114,7 @@ function setChatHistorySync(history) {
     
     if (typeof localforage !== 'undefined') {
         localforage.setItem('sx_chat_history', history).catch(e => {
-            console.warn('[ChatHistory] IndexedDB (localforage) 儲存失敗:', e);
-        });
-    }
-    
-    if (typeof sxStorage !== 'undefined') {
-        const serialized = JSON.stringify(history);
-        sxStorage._setCache('sx_chat_history', serialized);
-        sxStorage.setItem('sx_chat_history', serialized).catch(e => {
-            console.warn('[ChatHistory] IndexedDB (sxStorage) 儲存失敗:', e);
+            console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
         });
     }
 }
@@ -616,6 +574,10 @@ async function initChatSessionsFromIndexedDB() {
                 if (Array.isArray(sessions) && sessions.length > 0) {
                     _chatSessionsCache = sessions;
                     console.log('[Chat] 從 IndexedDB 載入 sessions:', sessions.length, '第一個 session history:', sessions[0]?.history?.length || 0);
+                    
+                    if (persistedData.sx_chat_active) {
+                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
+                    }
                     return;
                 }
             }
@@ -630,7 +592,16 @@ async function initChatSessionsFromIndexedDB() {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed) && parsed.length > 0) {
                 _chatSessionsCache = parsed;
-                console.log('[Chat] 從 localStorage 載入 sessions:', parsed.length);
+                console.log('[Chat] 從 localStorage 遷移 sessions:', parsed.length);
+                if (typeof localforage !== 'undefined') {
+                    await localforage.setItem('sx_app_persisted_data', {
+                        sx_chat_sessions: parsed,
+                        sx_chat_active: localStorage.getItem('sx_chat_active') || '',
+                        lastSaved: Date.now()
+                    });
+                    localStorage.removeItem('sx_chat_sessions');
+                    console.log('[Chat] 已遷移至 IndexedDB 並清除 localStorage');
+                }
                 return;
             }
         } catch (e) {}
@@ -642,18 +613,7 @@ function loadChatSessions() {
     if (_chatSessionsCache !== null) {
         return _chatSessionsCache;
     }
-    
-    const raw = localStorage.getItem('sx_chat_sessions');
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                _chatSessionsCache = parsed;
-                return parsed;
-            }
-        } catch (e) {}
-    }
-    _chatSessionsCache = [];
+    console.warn('[Chat] sessions 快取為空，請先調用 initChatSessionsFromIndexedDB()');
     return [];
 }
 
@@ -680,9 +640,10 @@ async function saveChatSessionsToIndexedDB(sessions) {
         await localforage.setItem('sx_app_persisted_data', {
             ...existingData,
             sx_chat_sessions: sessions,
+            sx_chat_active: getActiveChatId(),
             lastSaved: Date.now()
         });
-        console.log('[Chat] 已儲存到 IndexedDB');
+        console.log('[Chat] 已儲存 sessions 到 IndexedDB');
     } catch (e) {
         console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
     }
@@ -691,7 +652,6 @@ async function saveChatSessionsToIndexedDB(sessions) {
 const saveChatData = () => {
     try {
         const sessions = loadChatSessions();
-        localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
         const activeId = getActiveChatId();
         if (activeId) localStorage.setItem('sx_chat_active', activeId);
         
@@ -706,7 +666,7 @@ const saveChatData = () => {
         
         localStorage.setItem('sx_last_activity_time', Date.now().toString());
         
-        console.log("聊天數據已保存至 localStorage");
+        console.log("聊天數據已保存");
     } catch (e) {
         console.error("保存聊天數據失敗:", e);
     }
@@ -716,7 +676,7 @@ const saveToPersistentStorage = async () => {
     saveChatData();
     
     if (typeof localforage === 'undefined') {
-        console.warn('[Storage] localforage 未載入，略過 IndexedDB 備份');
+        console.warn('[Storage] localforage 未載入，略過 IndexedDB 儲存');
         return;
     }
     
@@ -735,14 +695,20 @@ const saveToPersistentStorage = async () => {
         const userPersonality = localStorage.getItem('sx_user_personality') || '';
         const userBackground = localStorage.getItem('sx_user_background') || '';
         
-        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
         await localforage.setItem('sx_app_persisted_data', {
-            ...existingData,
             sx_chat_sessions: sessions,
             sx_chat_active: getActiveChatId(),
             userName,
             userAvatar,
             userPersonality,
+            userBackground,
+            lastSaved: Date.now()
+        });
+        console.log("[Storage] 聊天數據已保存至 IndexedDB");
+    } catch (e) {
+        console.error("[Storage] IndexedDB 保存失敗:", e);
+    }
+};
             userBackground,
             lastSaved: Date.now()
         });
@@ -762,97 +728,50 @@ window.addEventListener('beforeunload', () => {
 });
 
 window.addEventListener('pageshow', async (event) => {
+    console.log('[Chat] pageshow 事件觸發');
+    
     const lastActivityTime = parseInt(localStorage.getItem('sx_last_activity_time') || '0');
     const now = Date.now();
     const timeSinceLastActivity = now - lastActivityTime;
     const isLongSleep = timeSinceLastActivity > 30 * 60 * 1000;
     
-    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
-    let hasLocalData = false;
-    try {
-        const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
-        hasLocalData = Array.isArray(sessions) && sessions.length > 0;
-    } catch (e) {
-        hasLocalData = false;
-    }
+    console.log('[Chat] pageshow - 距上次活動:', Math.round(timeSinceLastActivity / 1000 / 60), '分鐘, isLongSleep:', isLongSleep);
     
     if (typeof localforage !== 'undefined') {
         try {
             const persistedData = await localforage.getItem('sx_app_persisted_data');
             if (persistedData) {
-                const shouldRestore = !hasLocalData || isLongSleep || (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0);
+                if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
+                if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
+                if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
+                if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
                 
-                if (shouldRestore) {
-                    if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
-                    if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
-                    if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
-                    if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
-                    
-                    if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
-                    if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
-                    if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
-                    if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
-                }
+                if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
+                if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
+                if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
+                if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
                 
-                if (persistedData.sx_chat_sessions) {
-                    const existingSessionsRaw = localStorage.getItem('sx_chat_sessions');
-                    let existingSessions = [];
-                    try {
-                        existingSessions = existingSessionsRaw ? JSON.parse(existingSessionsRaw) : [];
-                    } catch (e) {
-                        existingSessions = [];
-                    }
+                if (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0) {
+                    _chatSessionsCache = persistedData.sx_chat_sessions;
+                    console.log('[Chat] 從 IndexedDB 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
                     
-                    const persistedSessions = persistedData.sx_chat_sessions;
-                    
-                    if (!hasLocalData && persistedSessions.length > 0) {
-                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
-                        console.log('[Chat] localStorage 為空，從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
-                        
-                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
-                        if (activeId) {
-                            const activeSession = persistedSessions.find(s => s.id === activeId);
-                            if (activeSession && activeSession.history) {
-                                setChatHistorySync(activeSession.history);
-                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
-                            }
-                        }
-                    } else if (persistedSessions.length > existingSessions.length) {
-                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
-                        console.log('[Chat] 從 localforage 恢復聊天 sessions (較完整):', persistedSessions.length, '個 (原:', existingSessions.length, ')');
-                        
-                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
-                        if (activeId) {
-                            const activeSession = persistedSessions.find(s => s.id === activeId);
-                            if (activeSession && activeSession.history) {
-                                setChatHistorySync(activeSession.history);
-                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
-                            }
-                        }
-                    } else if (isLongSleep && persistedSessions.length > 0) {
-                        localStorage.setItem('sx_chat_sessions', JSON.stringify(persistedSessions));
-                        console.log('[Chat] 休眠後從 localforage 恢復聊天 sessions:', persistedSessions.length, '個');
-                        
-                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
-                        if (activeId) {
-                            const activeSession = persistedSessions.find(s => s.id === activeId);
-                            if (activeSession && activeSession.history) {
-                                setChatHistorySync(activeSession.history);
-                                console.log('[Chat] 同步恢復 sx_chat_history, 長度:', activeSession.history.length);
-                            }
+                    const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
+                    if (activeId) {
+                        localStorage.setItem('sx_chat_active', activeId);
+                        const activeSession = persistedData.sx_chat_sessions.find(s => s.id === activeId);
+                        if (activeSession && activeSession.history) {
+                            _chatHistoryCache = activeSession.history;
+                            console.log('[Chat] 恢復聊天 history:', activeSession.history.length, '條');
                         }
                     }
                 }
                 
                 if (persistedData.sx_chat_active) {
-                    const existingActive = localStorage.getItem('sx_chat_active');
-                    if (!existingActive) {
-                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
-                    }
+                    localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                 }
             }
         } catch (e) {
-            console.warn('[Chat] 從 localforage 恢復用戶資料失敗:', e);
+            console.warn('[Chat] 從 IndexedDB 恢復資料失敗:', e);
         }
     }
     
@@ -3090,19 +3009,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     migrateLegacyHistory();
     
-    // 從 IndexedDB 載入 sessions（主要初始化流程）
     (async () => {
         await initChatHistoryIndexedDB();
         await initChatSessionsFromIndexedDB();
         
-        renderChatListFromStorage();
-        renderFriendsList();
+        _chatHistoryCache = null;
         
         const initialSession = getActiveSession();
         if (initialSession) {
             setActiveChatId(initialSession.id);
-            if (initialSession.history) {
+            if (initialSession.history && initialSession.history.length > 0) {
                 setChatHistorySync(initialSession.history);
+                console.log('[Chat] 初始化時從 session 恢復 history:', initialSession.history.length, '條');
             }
             if (initialSession.charName) {
                 localStorage.setItem('sx_char_name', initialSession.charName);
@@ -3121,9 +3039,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        renderChatListFromStorage();
+        renderFriendsList();
+        
         showChatList();
         
-        // 初始化 UI 顯示
         const hintEl = document.getElementById('hint-name');
         let displayName = localStorage.getItem('sx_char_name');
         if (!displayName || displayName === '預設用戶') {
@@ -7975,7 +7895,6 @@ function renderHistory() {
     notice.innerHTML = `現在正與 <span id="hint-name">${activeName}</span> 對話中`;
     chatFlow.appendChild(notice);
     
-    // 優先從 session 中讀取 history
     let history = null;
     const activeId = getActiveChatId();
     if (activeId) {
@@ -7983,7 +7902,6 @@ function renderHistory() {
         const session = sessions.find(s => s.id === activeId);
         if (session && session.history) {
             history = session.history;
-            // 同步到 localStorage
             setChatHistorySync(history);
         }
     }
@@ -7993,6 +7911,25 @@ function renderHistory() {
     }
     
     if (history.length === 0) {
+        const config = getGreetingConfig();
+        if (config.enabled) {
+            console.log('[renderHistory] history 為空，發送初始問候');
+            const greeting = RandomGreetingSystem.selectGreeting(charConfig?.personality);
+            appendMsg('other', greeting, { timestamp: Date.now() });
+            history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
+            setChatHistorySync(history);
+            localStorage.setItem(LAST_GREETING_KEY, Date.now().toString());
+            
+            const activeId = getActiveChatId();
+            if (activeId) {
+                const sessions = loadChatSessions();
+                const target = sessions.find(s => s.id === activeId);
+                if (target) {
+                    target.history = history;
+                    saveChatSessions(sessions);
+                }
+            }
+        }
         window.parent?.postMessage({
             type: 'MEMORY_REQUEST_HISTORY',
             payload: { limit: 8, source: 'chat:history-seed' }
@@ -8360,12 +8297,29 @@ const RandomGreetingSystem = {
         const greeting = this.selectGreeting(charConfig.personality);
         
         const history = getChatHistory();
+        
+        // 如果已有聊天內容（超過一條訊息），不發送問候
+        if (history.length > 1) {
+            console.log('[Greeting] 已有聊天內容，跳過問候');
+            return;
+        }
+        
         const lastMsg = history[history.length - 1];
         
+        // 如果最後一條訊息是 AI 且在 5 分鐘內，跳過
         if (lastMsg && lastMsg.role === 'assistant') {
             const lastMsgTime = lastMsg.timestamp || 0;
             const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-            if (lastMsgTime > fiveMinutesAgo) return;
+            if (lastMsgTime > fiveMinutesAgo) {
+                console.log('[Greeting] 最近已有 AI 訊息，跳過問候');
+                return;
+            }
+        }
+        
+        // 如果最後一條訊息是用戶訊息，不發送問候（讓 AI 回覆）
+        if (lastMsg && lastMsg.role === 'user') {
+            console.log('[Greeting] 最後是用戶訊息，跳過問候');
+            return;
         }
         
         appendMsg('other', greeting, { timestamp: Date.now() });
@@ -8390,10 +8344,17 @@ const RandomGreetingSystem = {
     async sendCheckIn() {
         if (!this.shouldCheckIn()) return;
         
+        const history = getChatHistory();
+        
+        // 如果沒有聊天內容，不發送 check-in
+        if (history.length === 0) {
+            console.log('[Greeting] 無聊天內容，跳過 check-in');
+            return;
+        }
+        
         const charConfig = getActiveConfig();
         const checkIn = this.selectCheckIn();
         
-        const history = getChatHistory();
         appendMsg('other', checkIn, { timestamp: Date.now() });
         history.push({ role: 'assistant', content: checkIn, timestamp: Date.now() });
         setChatHistorySync(history);
