@@ -89,15 +89,55 @@ async function initChatHistoryIndexedDB() {
 
 function showDebugMessage(msg) {
     const debugEl = document.getElementById('chat-debug-info');
+    const timestamp = new Date().toLocaleTimeString();
+    const newMsg = `${timestamp}: ${msg}`;
+    
     if (debugEl) {
-        debugEl.innerHTML += `<br>${new Date().toLocaleTimeString()}: ${msg}`;
+        debugEl.innerHTML += `<br>${newMsg}`;
     } else {
         const chatFlow = document.getElementById('chat-flow');
         if (chatFlow) {
             const div = document.createElement('div');
             div.id = 'chat-debug-info';
-            div.style.cssText = 'position:fixed;top:10px;left:10px;background:#333;color:#fff;padding:10px;font-size:12px;z-index:9999;max-height:200px;overflow:auto;border-radius:5px;';
-            div.innerHTML = `${new Date().toLocaleTimeString()}: ${msg}`;
+            div.style.cssText = 'position:fixed;top:10px;left:10px;background:#333;color:#fff;padding:10px;font-size:12px;z-index:9999;max-height:100px;overflow:auto;border-radius:5px;max-width:90%;';
+            div.innerHTML = newMsg;
+            
+            div.addEventListener('click', function() {
+                if (this.style.maxHeight === '100px') {
+                    this.style.maxHeight = '50vh';
+                    this.style.width = '90%';
+                    this.style.maxWidth = '90%';
+                    this.innerHTML += '<br><br>--- 點擊複製全部內容 ---';
+                } else {
+                    const text = this.innerText;
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            alert('已複製到剪貼簿！');
+                        }).catch(() => {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = text;
+                            textarea.style.position = 'fixed';
+                            textarea.style.left = '-9999px';
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            alert('已複製到剪貼簿！');
+                        });
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        alert('已複製到剪貼簿！');
+                    }
+                }
+            });
+            
             document.body.appendChild(div);
         }
     }
@@ -136,11 +176,17 @@ async function saveChatHistoryToIndexedDB(history) {
 
 function setChatHistorySync(history) {
     _chatHistoryCache = history;
+    console.log('[setChatHistorySync] 設定 history:', history.length, '條');
+    showDebugMessage('setChatHistorySync: ' + history.length + ' 條');
     
     const historyStore = getHistoryStore();
     if (historyStore) {
-        historyStore.setItem('sx_chat_history', history).catch(e => {
+        historyStore.setItem('sx_chat_history', history).then(() => {
+            console.log('[ChatHistory] 已同步儲存到 IndexedDB:', history.length, '條');
+            showDebugMessage('History saved to IndexedDB');
+        }).catch(e => {
             console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
+            showDebugMessage('IndexedDB save error: ' + e.message);
         });
     }
 }
@@ -698,28 +744,37 @@ function saveChatSessions(sessions) {
     console.log('[saveChatSessions] 保存 sessions:', sessions.length, sessions.map(s => ({ id: s.id, historyLen: s.history?.length || 0 })));
     _chatSessionsCache = sessions;
     localStorage.setItem('sx_last_activity_time', Date.now().toString());
-    saveChatSessionsToIndexedDB(sessions);
+    saveChatSessionsToIndexedDB(sessions).catch(e => {
+        console.warn('[saveChatSessions] IndexedDB 儲存失敗:', e);
+    });
+}
+
+function getChatDataStore() {
+    if (typeof localforage === 'undefined') return null;
+    return localforage.createInstance({
+        name: 'sxiphone',
+        storeName: 'chatData'
+    });
 }
 
 async function saveChatSessionsToIndexedDB(sessions) {
-    if (typeof localforage === 'undefined') return;
+    const chatDataStore = getChatDataStore();
+    if (!chatDataStore) return;
     
     try {
-        const chatDataStore = localforage.createInstance({
-            name: 'sxiphone',
-            storeName: 'chatData'
-        });
-        
         const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
-        await chatDataStore.setItem('sx_app_persisted_data', {
+        const newData = {
             ...existingData,
             sx_chat_sessions: sessions,
             sx_chat_active: getActiveChatId(),
             lastSaved: Date.now()
-        });
-        console.log('[Chat] 已儲存 sessions 到 IndexedDB');
+        };
+        await chatDataStore.setItem('sx_app_persisted_data', newData);
+        console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
+        showDebugMessage('Sessions saved to IndexedDB');
     } catch (e) {
         console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
+        showDebugMessage('IndexedDB save error: ' + e.message);
     }
 }
 

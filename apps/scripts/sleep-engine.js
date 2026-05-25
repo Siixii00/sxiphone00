@@ -1635,9 +1635,13 @@ class SleepEngine {
     if (hasSuccess && typeof UnifiedStorageManager !== 'undefined') {
       try {
         const manager = new UnifiedStorageManager();
-        const cleanupResult = await manager.progressiveCleanupAfterBackup({ success: true, source: 'auto' });
-        if (cleanupResult && !cleanupResult.skipped) {
-          console.log('[SleepEngine] 漸進式清理完成，釋放空間:', cleanupResult.spaceReclaimed);
+        if (manager.progressiveCleanupAfterBackup) {
+          const cleanupResult = await manager.progressiveCleanupAfterBackup({ success: true, source: 'auto' });
+          if (cleanupResult && !cleanupResult.skipped) {
+            console.log('[SleepEngine] 漸進式清理完成，釋放空間:', cleanupResult.spaceReclaimed);
+          }
+        } else {
+          console.log('[SleepEngine] progressiveCleanupAfterBackup 方法不存在，跳過清理');
         }
       } catch (e) {
         console.warn('[SleepEngine] 漸進式清理失敗:', e);
