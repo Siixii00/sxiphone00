@@ -20,6 +20,7 @@ async function initChatHistoryIndexedDB() {
     
     _chatHistoryInitPromise = (async () => {
         console.log('[ChatHistory] 開始初始化...');
+        showDebugMessage('ChatHistory 初始化中...');
         
         if (typeof localforage !== 'undefined') {
             try {
@@ -32,12 +33,18 @@ async function initChatHistoryIndexedDB() {
                 if (history && Array.isArray(history) && history.length > 0) {
                     _chatHistoryCache = history;
                     console.log('[ChatHistory] 從 IndexedDB 載入 history:', history.length, '條');
+                    showDebugMessage(`IndexedDB history: ${history.length} 條`);
                     _chatHistoryIndexedDBReady = true;
                     return;
+                } else {
+                    showDebugMessage('IndexedDB history: 空');
                 }
             } catch (e) {
                 console.warn('[ChatHistory] 從 IndexedDB 載入失敗:', e);
+                showDebugMessage('IndexedDB error: ' + e.message);
             }
+        } else {
+            showDebugMessage('localforage 未載入');
         }
         
         const raw = localStorage.getItem('sx_chat_history');
@@ -46,6 +53,7 @@ async function initChatHistoryIndexedDB() {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     console.log('[ChatHistory] 發現 localStorage history:', parsed.length, '條，準備遷移');
+                    showDebugMessage(`localStorage history: ${parsed.length} 條`);
                     
                     if (typeof localforage !== 'undefined') {
                         const historyStore = localforage.createInstance({
@@ -70,12 +78,30 @@ async function initChatHistoryIndexedDB() {
         
         if (_chatHistoryCache === null) {
             _chatHistoryCache = [];
+            showDebugMessage('history cache: 空');
         }
         _chatHistoryIndexedDBReady = true;
         console.log('[ChatHistory] 初始化完成');
     })();
     
     return _chatHistoryInitPromise;
+}
+
+function showDebugMessage(msg) {
+    const debugEl = document.getElementById('chat-debug-info');
+    if (debugEl) {
+        debugEl.innerHTML += `<br>${new Date().toLocaleTimeString()}: ${msg}`;
+    } else {
+        const chatFlow = document.getElementById('chat-flow');
+        if (chatFlow) {
+            const div = document.createElement('div');
+            div.id = 'chat-debug-info';
+            div.style.cssText = 'position:fixed;top:10px;left:10px;background:#333;color:#fff;padding:10px;font-size:12px;z-index:9999;max-height:200px;overflow:auto;border-radius:5px;';
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${msg}`;
+            document.body.appendChild(div);
+        }
+    }
+    console.log('[Debug]', msg);
 }
 
 function getChatHistory() {
@@ -86,16 +112,36 @@ function getChatHistory() {
     return [];
 }
 
+function getHistoryStore() {
+    if (typeof localforage === 'undefined') return null;
+    return localforage.createInstance({
+        name: 'sxiphone',
+        storeName: 'chatHistory'
+    });
+}
+
 async function saveChatHistoryToIndexedDB(history) {
     _chatHistoryCache = history;
     
-    if (typeof localforage !== 'undefined') {
+    const historyStore = getHistoryStore();
+    if (historyStore) {
         try {
-            await localforage.setItem('sx_chat_history', history);
+            await historyStore.setItem('sx_chat_history', history);
             console.log('[ChatHistory] 已儲存到 IndexedDB:', history.length, '條');
         } catch (e) {
             console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
         }
+    }
+}
+
+function setChatHistorySync(history) {
+    _chatHistoryCache = history;
+    
+    const historyStore = getHistoryStore();
+    if (historyStore) {
+        historyStore.setItem('sx_chat_history', history).catch(e => {
+            console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
+        });
     }
 }
 
@@ -115,9 +161,10 @@ async function updateChatHistoryItem(index, updates) {
 
 async function clearChatHistory() {
     _chatHistoryCache = [];
-    if (typeof localforage !== 'undefined') {
+    const historyStore = getHistoryStore();
+    if (historyStore) {
         try {
-            await localforage.removeItem('sx_chat_history');
+            await historyStore.removeItem('sx_chat_history');
             console.log('[ChatHistory] 已清除 IndexedDB 聊天記錄');
         } catch (e) {
             console.warn('[ChatHistory] 清除 IndexedDB 失敗:', e);
@@ -129,15 +176,16 @@ async function clearChatHistory() {
 async function setChatHistory(history) {
     await saveChatHistoryToIndexedDB(history);
 }
-
-function setChatHistorySync(history) {
-    _chatHistoryCache = history;
-    
-    if (typeof localforage !== 'undefined') {
-        localforage.setItem('sx_chat_history', history).catch(e => {
-            console.warn('[ChatHistory] IndexedDB 儲存失敗:', e);
-        });
+            console.log('[ChatHistory] 已清除 IndexedDB 聊天記錄');
+        } catch (e) {
+            console.warn('[ChatHistory] 清除 IndexedDB 失敗:', e);
+        }
     }
+    localStorage.removeItem('sx_chat_history');
+}
+
+async function setChatHistory(history) {
+    await saveChatHistoryToIndexedDB(history);
 }
 
 const ImageHostService = {
@@ -7930,7 +7978,7 @@ function renderHistory() {
     
     if (activeId) {
         const sessions = loadChatSessions();
-        console.log('[renderHistory] sessions 数量:', sessions.length);
+        console.log('[renderHistory] sessions 數量:', sessions.length);
         const session = sessions.find(s => s.id === activeId);
         if (session && session.history) {
             history = session.history;
