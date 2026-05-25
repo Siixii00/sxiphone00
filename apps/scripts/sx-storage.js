@@ -722,27 +722,45 @@ async exportAllData() {
   }
   
   async _getLocalforageKeys() {
+    if (typeof localforage !== 'undefined') {
+      try {
+        await localforage.ready();
+        if (typeof localforage.keys === 'function') {
+          return await localforage.keys();
+        }
+      } catch (e) {
+        console.warn('[SXStorage] localforage.keys() 失敗:', e);
+      }
+    }
     return new Promise((resolve, reject) => {
       const keys = [];
-      const dbName = 'sxiphone';
-      const request = indexedDB.open(dbName);
+      const request = indexedDB.open('sxiphone');
       
       request.onsuccess = () => {
         const db = request.result;
-        const tx = db.transaction(db.objectStoreNames[0], 'readonly');
-        const store = tx.objectStore(db.objectStoreNames[0]);
-        const cursorReq = store.openCursor();
+        const storeNames = Array.from(db.objectStoreNames);
+        const tx = db.transaction(storeNames, 'readonly');
         
-        cursorReq.onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor) {
-            keys.push(cursor.key);
-            cursor.continue();
-          } else {
-            resolve(keys);
-          }
-        };
-        cursorReq.onerror = () => resolve(keys);
+        let pending = storeNames.length;
+        for (const storeName of storeNames) {
+          const store = tx.objectStore(storeName);
+          const cursorReq = store.openCursor();
+          
+          cursorReq.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+              keys.push(cursor.key);
+              cursor.continue();
+            } else {
+              pending--;
+              if (pending === 0) resolve(keys);
+            }
+          };
+          cursorReq.onerror = () => {
+            pending--;
+            if (pending === 0) resolve(keys);
+          };
+        }
       };
       request.onerror = () => resolve([]);
     });
