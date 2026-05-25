@@ -766,34 +766,6 @@ async exportAllData() {
     });
   }
 
-    data.chatSessions = await this._getAllFromStore(STORES.CHAT_SESSIONS);
-    data.characters = await this._getAllFromStore(STORES.CHARACTERS);
-    data.memories = await this._getAllFromStore(STORES.MEMORIES);
-    
-    const settingsData = await this._getAllFromStore(STORES.SETTINGS);
-    for (const item of settingsData) {
-      data.settings[item.key] = item.value;
-    }
-    
-    data.media = await this._getAllFromStore(STORES.MEDIA);
-    
-    const charListRaw = localStorage.getItem('sx_characters');
-    if (charListRaw) {
-      try {
-        data.charList = JSON.parse(charListRaw);
-      } catch (e) {}
-    }
-    
-    const userListRaw = localStorage.getItem('sx_users');
-    if (userListRaw) {
-      try {
-        data.userList = JSON.parse(userListRaw);
-      } catch (e) {}
-    }
-
-    return data;
-  }
-
   async _getAllFromStore(storeName) {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(storeName, 'readonly');
