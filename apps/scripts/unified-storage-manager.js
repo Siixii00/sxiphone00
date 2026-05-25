@@ -36,6 +36,49 @@ class UnifiedStorageManager {
       await this.sxStorage.init();
       return true;
     }
+    if (typeof localforage !== 'undefined') {
+      console.log('[UnifiedStorageManager] 使用 localforage 作為備用儲存');
+      this.sxStorage = {
+        init: async () => { await localforage.ready(); },
+        setItem: async (k, v) => { await localforage.setItem(k, v); },
+        getItem: async (k) => { return await localforage.getItem(k); },
+        saveSetting: async (k, v) => { await localforage.setItem(`setting_${k}`, v); },
+        getSetting: async (k) => { return await localforage.getItem(`setting_${k}`); },
+        exportAllData: async () => {
+          const data = { localStorage: {}, localforage: {}, version: '2.0', exportedAt: new Date().toISOString() };
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sx_')) {
+              data.localStorage[key] = localStorage.getItem(key);
+            }
+          }
+          try {
+            const keys = await localforage.keys();
+            for (const key of keys) {
+              if (key.startsWith('sx_') || key.startsWith('setting_')) {
+                data.localforage[key] = await localforage.getItem(key);
+              }
+            }
+          } catch (e) {}
+          return data;
+        },
+        importAllData: async (d) => {
+          if (d.localStorage) {
+            for (const [k, v] of Object.entries(d.localStorage)) {
+              localStorage.setItem(k, typeof v === 'object' ? JSON.stringify(v) : v);
+            }
+          }
+          if (d.localforage) {
+            for (const [k, v] of Object.entries(d.localforage)) {
+              await localforage.setItem(k, v);
+            }
+          }
+          return { success: true };
+        }
+      };
+      await this.sxStorage.init();
+      return true;
+    }
     console.warn('[UnifiedStorageManager] sxStorage 未初始化');
     return false;
   }
