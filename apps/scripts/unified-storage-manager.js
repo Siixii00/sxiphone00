@@ -542,32 +542,23 @@ class UnifiedStorageManager {
 
       const partData = await partResp.json();
       console.log('[UnifiedStorageManager] part', i, 'content type:', typeof partData.content, 'length:', partData.content?.length, 'encoding:', partData.encoding);
-      const rawContent = partData.content || partData;
-      if (typeof rawContent === 'string' && rawContent.trim().startsWith('{')) {
-        parts.push(rawContent);
-      } else if (partData.encoding === 'base64') {
-        parts.push(partData.content);
-      } else if (typeof rawContent === 'string') {
-        if (/^[A-Za-z0-9+/=]+$/.test(rawContent.replace(/\s/g, ''))) {
-          parts.push(rawContent);
-        } else {
-          parts.push(rawContent);
-        }
+      
+      let partContent;
+      if (partData.encoding === 'base64' || (typeof partData.content === 'string' && /^[A-Za-z0-9+/=\s]+$/.test(partData.content))) {
+        partContent = this._decodeBase64(partData.content);
+      } else if (typeof partData.content === 'string') {
+        partContent = partData.content;
       } else {
-        parts.push(JSON.stringify(rawContent));
+        partContent = JSON.stringify(partData);
       }
+      parts.push(partContent);
     }
 
     statusCallback('正在合併資料...');
-    const combined = parts.join('');
-    console.log('[UnifiedStorageManager] combined length:', combined.length, 'first 100 chars:', combined.substring(0, 100));
+    const combinedBase64 = parts.join('');
+    console.log('[UnifiedStorageManager] combined base64 length:', combinedBase64.length, 'first 100 chars:', combinedBase64.substring(0, 100));
     
-    let jsonStr;
-    if (combined.trim().startsWith('{') || combined.trim().startsWith('[')) {
-      jsonStr = combined;
-    } else {
-      jsonStr = this._decodeBase64(combined);
-    }
+    const jsonStr = this._decodeBase64(combinedBase64);
 
     if (checksum) {
       const computedChecksum = await this._computeChecksum(jsonStr);
