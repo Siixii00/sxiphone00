@@ -541,24 +541,25 @@ class UnifiedStorageManager {
       }
 
       const partData = await partResp.json();
-      console.log('[UnifiedStorageManager] part', i, 'content type:', typeof partData.content, 'length:', partData.content?.length, 'encoding:', partData.encoding);
+      console.log('[UnifiedStorageManager] part', i, 'encoding:', partData.encoding, 'content preview:', partData.content?.substring(0, 100));
       
-      let partContent;
-      if (partData.encoding === 'base64' || (typeof partData.content === 'string' && /^[A-Za-z0-9+/=\s]+$/.test(partData.content))) {
+      let partContent = partData.content;
+      if (partData.encoding === 'base64') {
         partContent = this._decodeBase64(partData.content);
-      } else if (typeof partData.content === 'string') {
-        partContent = partData.content;
-      } else {
-        partContent = JSON.stringify(partData);
       }
       parts.push(partContent);
     }
 
     statusCallback('正在合併資料...');
-    const combinedBase64 = parts.join('');
-    console.log('[UnifiedStorageManager] combined base64 length:', combinedBase64.length, 'first 100 chars:', combinedBase64.substring(0, 100));
+    const combined = parts.join('');
+    console.log('[UnifiedStorageManager] combined length:', combined.length, 'first 100 chars:', combined.substring(0, 100));
     
-    const jsonStr = this._decodeBase64(combinedBase64);
+    let jsonStr;
+    if (combined.trim().startsWith('{') || combined.trim().startsWith('[')) {
+      jsonStr = combined;
+    } else {
+      jsonStr = this._decodeBase64(combined);
+    }
 
     if (checksum) {
       const computedChecksum = await this._computeChecksum(jsonStr);
