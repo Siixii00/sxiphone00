@@ -3129,7 +3129,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         renderPresetOptions();
         initUserUI();
-        renderHistory();
         initSideDrawer();
         initAPISettings();
         initPhoneCheckToggle();
@@ -3139,6 +3138,8 @@ document.addEventListener('DOMContentLoaded', () => {
         initDatingInviteSettings();
         initGreetingSettings();
         initRelationshipDistanceSettings();
+        
+        renderHistory();
     })();
     checkBlockStatus();
     
