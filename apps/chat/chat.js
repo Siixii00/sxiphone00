@@ -665,6 +665,7 @@ async function initChatSessionsFromIndexedDB() {
     
     _chatSessionsInitPromise = (async () => {
         console.log('[Chat] 開始初始化 sessions...');
+        showDebugMessage('Sessions 初始化中...');
         
         if (typeof localforage !== 'undefined') {
             try {
@@ -675,8 +676,68 @@ async function initChatSessionsFromIndexedDB() {
                 
                 const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
                 console.log('[Chat] IndexedDB persistedData:', persistedData ? '有資料' : '無資料');
+                showDebugMessage('persistedData: ' + (persistedData ? '有' : '無'));
+                
                 if (persistedData && persistedData.sx_chat_sessions && Array.isArray(persistedData.sx_chat_sessions) && persistedData.sx_chat_sessions.length > 0) {
                     _chatSessionsCache = persistedData.sx_chat_sessions;
+                    console.log('[Chat] 從 IndexedDB 載入 sessions:', persistedData.sx_chat_sessions.length, '第一個 session history:', persistedData.sx_chat_sessions[0]?.history?.length || 0);
+                    showDebugMessage('Sessions: ' + persistedData.sx_chat_sessions.length + ' 個, history: ' + (persistedData.sx_chat_sessions[0]?.history?.length || 0) + ' 條');
+                    
+                    if (persistedData.sx_chat_active) {
+                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
+                    }
+                    _indexedDBInitialized = true;
+                    return;
+                }
+            } catch (e) {
+                console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
+                showDebugMessage('Sessions error: ' + e.message);
+            }
+        }
+        
+        const raw = localStorage.getItem('sx_chat_sessions');
+        if (raw) {
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    console.log('[Chat] 發現 localStorage sessions:', parsed.length, '個，準備遷移');
+                    showDebugMessage('localStorage sessions: ' + parsed.length + ' 個');
+                    
+                    if (typeof localforage !== 'undefined') {
+                        const chatDataStore = localforage.createInstance({
+                            name: 'sxiphone',
+                            storeName: 'chatData'
+                        });
+                        await chatDataStore.setItem('sx_app_persisted_data', {
+                            sx_chat_sessions: parsed,
+                            sx_chat_active: localStorage.getItem('sx_chat_active') || '',
+                            lastSaved: Date.now()
+                        });
+                        _chatSessionsCache = parsed;
+                        console.log('[Chat] 已遷移至 IndexedDB，共', parsed.length, '個 sessions');
+                        
+                        const shouldDelete = confirm('發現 localStorage 中有聊天 sessions，已遷移至 IndexedDB。\n\n是否要清除 localStorage 中的舊資料以釋放空間？\n（資料已安全儲存在 IndexedDB 中）');
+                        if (shouldDelete) {
+                            localStorage.removeItem('sx_chat_sessions');
+                            console.log('[Chat] 已清除 localStorage 舊資料');
+                        }
+                    } else {
+                        _chatSessionsCache = parsed;
+                    }
+                }
+            } catch (e) {}
+        }
+        
+        if (_chatSessionsCache === null) {
+            _chatSessionsCache = [];
+            showDebugMessage('Sessions cache: 空');
+        }
+        _indexedDBInitialized = true;
+        console.log('[Chat] sessions 初始化完成');
+    })();
+    
+    return _chatSessionsInitPromise;
+}
                     console.log('[Chat] 從 IndexedDB 載入 sessions:', persistedData.sx_chat_sessions.length, '第一個 session history:', persistedData.sx_chat_sessions[0]?.history?.length || 0);
                     
                     if (persistedData.sx_chat_active) {
