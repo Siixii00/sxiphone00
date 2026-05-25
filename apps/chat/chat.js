@@ -3116,6 +3116,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (initialSession.charBackground) {
                 localStorage.setItem('sx_char_background', initialSession.charBackground);
             }
+            if (initialSession.worldbookMounts !== undefined) {
+                applySessionWorldbookMounts(initialSession.worldbookMounts);
+            }
         }
         
         showChatList();
