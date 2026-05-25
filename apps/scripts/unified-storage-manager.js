@@ -596,11 +596,12 @@ class UnifiedStorageManager {
   }
 
   _encodeBase64(str) {
-    try {
-      return btoa(unescape(encodeURIComponent(str)));
-    } catch (e) {
-      return btoa(str);
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    return btoa(binary);
   }
 
   _decodeBase64(base64) {
@@ -611,14 +612,15 @@ class UnifiedStorageManager {
     }
     const cleaned = base64.replace(/\s/g, '');
     try {
-      return decodeURIComponent(escape(atob(cleaned)));
-    } catch (e) {
-      try {
-        return atob(cleaned);
-      } catch (e2) {
-        console.error('[UnifiedStorageManager] Base64 解碼失敗，字串長度:', cleaned.length, '前 50 字元:', cleaned.substring(0, 50));
-        throw new Error('Base64 解碼失敗: ' + e2.message);
+      const binary = atob(cleaned);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
       }
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch (e) {
+      console.error('[UnifiedStorageManager] Base64 解碼失敗:', e.message);
+      throw new Error('Base64 解碼失敗: ' + e.message);
     }
   }
 
