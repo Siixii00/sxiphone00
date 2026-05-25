@@ -648,45 +648,6 @@ async function initChatSessionsFromIndexedDB() {
     
     return _chatSessionsInitPromise;
 }
-            }
-        } catch (e) {
-            console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
-        }
-    }
-    
-    const raw = localStorage.getItem('sx_chat_sessions');
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                console.log('[Chat] 發現 localStorage sessions:', parsed.length, '個，準備遷移');
-                
-                if (typeof localforage !== 'undefined') {
-                    const existingSessions = _chatSessionsCache || [];
-                    const mergedSessions = existingSessions.length > parsed.length ? existingSessions : parsed;
-                    
-                    await localforage.setItem('sx_app_persisted_data', {
-                        sx_chat_sessions: mergedSessions,
-                        sx_chat_active: localStorage.getItem('sx_chat_active') || '',
-                        lastSaved: Date.now()
-                    });
-                    _chatSessionsCache = mergedSessions;
-                    console.log('[Chat] 已遷移至 IndexedDB，共', mergedSessions.length, '個 sessions');
-                    
-                    const shouldDelete = confirm('發現 localStorage 中有聊天 sessions，已遷移至 IndexedDB。\n\n是否要清除 localStorage 中的舊資料以釋放空間？\n（資料已安全儲存在 IndexedDB 中）');
-                    if (shouldDelete) {
-                        localStorage.removeItem('sx_chat_sessions');
-                        console.log('[Chat] 已清除 localStorage 舊資料');
-                    }
-                }
-            }
-        } catch (e) {}
-    }
-    
-    if (_chatSessionsCache === null) {
-        _chatSessionsCache = [];
-    }
-}
 
 function loadChatSessions() {
     if (_chatSessionsCache !== null) {
