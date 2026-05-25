@@ -602,12 +602,20 @@ async function initChatSessionsFromIndexedDB() {
     
     if (typeof localforage !== 'undefined') {
         try {
+            localforage.config({
+                name: 'sxiphone',
+                storeName: 'chatData',
+                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
+            });
+            
             const persistedData = await localforage.getItem('sx_app_persisted_data');
+            console.log('[Chat] IndexedDB persistedData:', persistedData ? '有資料' : '無資料');
             if (persistedData && persistedData.sx_chat_sessions) {
                 const sessions = persistedData.sx_chat_sessions;
+                console.log('[Chat] sessions 數量:', Array.isArray(sessions) ? sessions.length : '非陣列');
                 if (Array.isArray(sessions) && sessions.length > 0) {
                     _chatSessionsCache = sessions;
-                    console.log('[Chat] 從 IndexedDB 載入 sessions:', sessions.length);
+                    console.log('[Chat] 從 IndexedDB 載入 sessions:', sessions.length, '第一個 session history:', sessions[0]?.history?.length || 0);
                     return;
                 }
             }
