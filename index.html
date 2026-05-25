@@ -483,12 +483,22 @@
 
         // 註冊 Service Worker (PWA 安裝支援)
         if ('serviceWorker' in navigator) {
+            const isIOSPWA = /iPad|iPhone|iPod/.test(navigator.userAgent) && 
+                            (window.matchMedia('(display-mode: standalone)').matches || 
+                             window.navigator.standalone === true);
+            
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js', { scope: './' })
                     .then((registration) => {
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
                         
-                        // 檢查更新
+                        if (isIOSPWA) {
+                            console.log('[PWA] iOS PWA 模式，確保 controller 存在');
+                            if (!navigator.serviceWorker.controller) {
+                                console.log('[PWA] 等待 Service Worker 激活...');
+                            }
+                        }
+                        
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
                             newWorker.addEventListener('statechange', () => {
