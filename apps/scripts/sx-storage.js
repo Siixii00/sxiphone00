@@ -659,7 +659,7 @@ class SXStorage {
     });
   }
 
-  async exportAllData() {
+async exportAllData() {
     await this.init();
     
     const data = {
@@ -669,8 +669,10 @@ class SXStorage {
       memories: [],
       settings: {},
       media: [],
+      localStorage: {},
+      localforage: {},
       exportedAt: new Date().toISOString(),
-      version: '1.0'
+      version: '2.0'
     };
 
     const kvData = await this._getAllFromStore(STORES.KEY_VALUE);
@@ -688,6 +690,88 @@ class SXStorage {
     }
     
     data.media = await this._getAllFromStore(STORES.MEDIA);
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts')) {
+        const value = localStorage.getItem(key);
+        try {
+          data.localStorage[key] = JSON.parse(value);
+        } catch (e) {
+          data.localStorage[key] = value;
+        }
+      }
+    }
+    
+    if (typeof localforage !== 'undefined') {
+      try {
+        await localforage.ready();
+        const keys = await this._getLocalforageKeys();
+        for (const key of keys) {
+          if (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts') {
+            const value = await localforage.getItem(key);
+            data.localforage[key] = value;
+          }
+        }
+      } catch (e) {
+        console.warn('[SXStorage] 匯出 localforage 失敗:', e);
+      }
+    }
+
+    return data;
+  }
+  
+  async _getLocalforageKeys() {
+    return new Promise((resolve, reject) => {
+      const keys = [];
+      const dbName = 'sxiphone';
+      const request = indexedDB.open(dbName);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(db.objectStoreNames[0], 'readonly');
+        const store = tx.objectStore(db.objectStoreNames[0]);
+        const cursorReq = store.openCursor();
+        
+        cursorReq.onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor) {
+            keys.push(cursor.key);
+            cursor.continue();
+          } else {
+            resolve(keys);
+          }
+        };
+        cursorReq.onerror = () => resolve(keys);
+      };
+      request.onerror = () => resolve([]);
+    });
+  }
+
+    data.chatSessions = await this._getAllFromStore(STORES.CHAT_SESSIONS);
+    data.characters = await this._getAllFromStore(STORES.CHARACTERS);
+    data.memories = await this._getAllFromStore(STORES.MEMORIES);
+    
+    const settingsData = await this._getAllFromStore(STORES.SETTINGS);
+    for (const item of settingsData) {
+      data.settings[item.key] = item.value;
+    }
+    
+    data.media = await this._getAllFromStore(STORES.MEDIA);
+    
+    const charListRaw = localStorage.getItem('sx_characters');
+    if (charListRaw) {
+      try {
+        data.charList = JSON.parse(charListRaw);
+      } catch (e) {}
+    }
+    
+    const userListRaw = localStorage.getItem('sx_users');
+    if (userListRaw) {
+      try {
+        data.userList = JSON.parse(userListRaw);
+      } catch (e) {}
+    }
 
     return data;
   }
@@ -748,6 +832,45 @@ class SXStorage {
         await this.saveMedia(media);
         count++;
       }
+    }
+    
+    if (data.localStorage) {
+      for (const [key, value] of Object.entries(data.localStorage)) {
+        if (typeof value === 'object') {
+          localStorage.setItem(key, JSON.stringify(value));
+        } else {
+          localStorage.setItem(key, String(value));
+        }
+        count++;
+      }
+    }
+    
+    if (data.localforage && typeof localforage !== 'undefined') {
+      try {
+        await localforage.ready();
+        for (const [key, value] of Object.entries(data.localforage)) {
+          await localforage.setItem(key, value);
+          count++;
+        }
+      } catch (e) {
+        console.warn('[SXStorage] 匯入 localforage 失敗:', e);
+      }
+    }
+    
+    if (data.charList) {
+      localStorage.setItem('sx_characters', JSON.stringify(data.charList));
+      if (typeof localforage !== 'undefined') {
+        await localforage.setItem('sx_characters', data.charList);
+      }
+      count++;
+    }
+    
+    if (data.userList) {
+      localStorage.setItem('sx_users', JSON.stringify(data.userList));
+      if (typeof localforage !== 'undefined') {
+        await localforage.setItem('sx_users', data.userList);
+      }
+      count++;
     }
 
     this._clearCache();
