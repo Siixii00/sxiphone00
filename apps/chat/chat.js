@@ -93,23 +93,42 @@ function showDebugMessage(msg) {
     const newMsg = `${timestamp}: ${msg}`;
     
     if (debugEl) {
-        debugEl.innerHTML += `<br>${newMsg}`;
+        const contentEl = debugEl.querySelector('.debug-content');
+        if (contentEl) {
+            contentEl.innerHTML += `<br>${newMsg}`;
+        }
     } else {
         const chatFlow = document.getElementById('chat-flow');
         if (chatFlow) {
             const div = document.createElement('div');
             div.id = 'chat-debug-info';
             div.style.cssText = 'position:fixed;top:10px;left:10px;background:#333;color:#fff;padding:10px;font-size:12px;z-index:9999;max-height:100px;overflow:auto;border-radius:5px;max-width:90%;';
-            div.innerHTML = newMsg;
             
-            div.addEventListener('click', function() {
+            const closeBtn = document.createElement('span');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'position:absolute;top:2px;right:8px;cursor:pointer;font-size:18px;color:#fff;';
+            closeBtn.onclick = function(e) {
+                e.stopPropagation();
+                div.remove();
+            };
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'debug-content';
+            contentDiv.innerHTML = newMsg;
+            
+            div.appendChild(closeBtn);
+            div.appendChild(contentDiv);
+            
+            div.addEventListener('click', function(e) {
+                if (e.target === closeBtn) return;
+                
                 if (this.style.maxHeight === '100px') {
                     this.style.maxHeight = '50vh';
                     this.style.width = '90%';
                     this.style.maxWidth = '90%';
-                    this.innerHTML += '<br><br>--- 點擊複製全部內容 ---';
+                    contentDiv.innerHTML += '<br><br>--- 點擊複製全部內容 ---';
                 } else {
-                    const text = this.innerText;
+                    const text = contentDiv.innerText;
                     if (navigator.clipboard) {
                         navigator.clipboard.writeText(text).then(() => {
                             alert('已複製到剪貼簿！');
@@ -777,8 +796,15 @@ async function saveChatSessionsToIndexedDB(sessions) {
             lastSaved: Date.now()
         };
         await chatDataStore.setItem('sx_app_persisted_data', newData);
-        console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
-        showDebugMessage('Sessions saved to IndexedDB');
+        
+        // 驗證寫入
+        const verify = await chatDataStore.getItem('sx_app_persisted_data');
+        if (verify && verify.sx_chat_sessions) {
+            console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
+            showDebugMessage('Sessions saved OK, verify: ' + verify.sx_chat_sessions.length + ' 個');
+        } else {
+            showDebugMessage('Sessions saved but verify FAILED');
+        }
     } catch (e) {
         console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
         showDebugMessage('IndexedDB save error: ' + e.message);
@@ -8026,27 +8052,32 @@ function renderHistory() {
     let history = null;
     const activeId = getActiveChatId();
     console.log('[renderHistory] activeId:', activeId);
+    showDebugMessage('renderHistory activeId: ' + (activeId || '無'));
     
     if (activeId) {
         const sessions = loadChatSessions();
         console.log('[renderHistory] sessions 數量:', sessions.length);
+        showDebugMessage('sessions: ' + sessions.length + ' 個');
         const session = sessions.find(s => s.id === activeId);
         if (session && session.history) {
             history = session.history;
             setChatHistorySync(history);
             console.log('[renderHistory] 從 session 恢復 history:', history.length, '條');
+            showDebugMessage('從 session 恢復: ' + history.length + ' 條');
         }
     }
 
     if (!history) {
         history = getChatHistory();
         console.log('[renderHistory] 從快取取得 history:', history.length, '條');
+        showDebugMessage('從快取取得: ' + history.length + ' 條');
     }
 
     if (history.length === 0) {
         const config = getGreetingConfig();
         if (config.enabled) {
             console.log('[renderHistory] history 為空，發送初始問候');
+            showDebugMessage('history 為空，發送問候');
             const greeting = RandomGreetingSystem.selectGreeting(charConfig?.personality);
             appendMsg('other', greeting, { timestamp: Date.now() });
             history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
@@ -8071,6 +8102,7 @@ function renderHistory() {
     }
     
     console.log('[renderHistory] 渲染 history:', history.length, '條');
+    showDebugMessage('渲染 history: ' + history.length + ' 條');
     
     history.forEach((m, historyIdx) => {
         const type = m.role === 'user' ? 'mine' : 'other';
