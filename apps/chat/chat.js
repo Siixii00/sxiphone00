@@ -621,63 +621,6 @@ async function initChatSessionsFromIndexedDB() {
         _chatSessionsCache = [];
     }
 }
-        } catch (e) {}
-    }
-    
-    if (typeof localforage !== 'undefined') {
-        try {
-            localforage.config({
-                name: 'sxiphone',
-                storeName: 'chatData',
-                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
-            });
-            
-            const persistedData = await localforage.getItem('sx_app_persisted_data');
-            console.log('[Chat] IndexedDB persistedData:', persistedData ? '有資料' : '無資料');
-            
-            if (persistedData && persistedData.sx_chat_sessions && Array.isArray(persistedData.sx_chat_sessions) && persistedData.sx_chat_sessions.length > 0) {
-                if (shouldMigrateFromLocalStorage && localSessions.length > persistedData.sx_chat_sessions.length) {
-                    console.log('[Chat] localStorage 資料較新，進行遷移');
-                    _chatSessionsCache = localSessions;
-                    
-                    await localforage.setItem('sx_app_persisted_data', {
-                        sx_chat_sessions: localSessions,
-                        sx_chat_active: localStorage.getItem('sx_chat_active') || '',
-                        lastSaved: Date.now()
-                    });
-                    localStorage.removeItem('sx_chat_sessions');
-                    console.log('[Chat] 已遷移至 IndexedDB 並清除 localStorage');
-                } else {
-                    _chatSessionsCache = persistedData.sx_chat_sessions;
-                    console.log('[Chat] 從 IndexedDB 載入 sessions:', persistedData.sx_chat_sessions.length, '第一個 session history:', persistedData.sx_chat_sessions[0]?.history?.length || 0);
-                }
-                
-                if (persistedData.sx_chat_active) {
-                    localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
-                }
-                return;
-            }
-        } catch (e) {
-            console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
-        }
-    }
-    
-    if (shouldMigrateFromLocalStorage) {
-        _chatSessionsCache = localSessions;
-        console.log('[Chat] 從 localStorage 遷移 sessions:', localSessions.length);
-        if (typeof localforage !== 'undefined') {
-            await localforage.setItem('sx_app_persisted_data', {
-                sx_chat_sessions: localSessions,
-                sx_chat_active: localStorage.getItem('sx_chat_active') || '',
-                lastSaved: Date.now()
-            });
-            localStorage.removeItem('sx_chat_sessions');
-            console.log('[Chat] 已遷移至 IndexedDB 並清除 localStorage');
-        }
-        return;
-    }
-    _chatSessionsCache = [];
-}
 
 function loadChatSessions() {
     if (_chatSessionsCache !== null) {
