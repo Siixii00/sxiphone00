@@ -7128,62 +7128,55 @@ ${examples}
             const envEnabled = envSettingsRaw ? JSON.parse(envSettingsRaw).enabled : false;
             
             if (envEnabled) {
-                if (window.parent && window.parent !== window && typeof window.parent.getEnvContext === 'function') {
-                    envContext = window.parent.getEnvContext();
-                    console.log('[ChatEngine] 從父視窗獲取環境上下文（時間已更新）');
-                } else if (typeof window.getEnvContext === 'function') {
-                    envContext = window.getEnvContext();
-                    console.log('[ChatEngine] 從本機獲取環境上下文（時間已更新）');
-                } else {
-                    const settings = JSON.parse(envSettingsRaw);
-                    const parts = [];
-                    const now = new Date();
-                    const timezone = settings.autoTimezone 
-                        ? Intl.DateTimeFormat().resolvedOptions().timeZone 
-                        : settings.manualTimezone || 'Asia/Taipei';
+                const settings = JSON.parse(envSettingsRaw);
+                const parts = [];
+                const now = new Date();
+                const timezone = settings.autoTimezone 
+                    ? Intl.DateTimeFormat().resolvedOptions().timeZone 
+                    : settings.manualTimezone || 'Asia/Taipei';
+                
+                if (settings.injectTime !== false) {
+                    const timeStr = now.toLocaleString('zh-TW', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'long',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone
+                    });
                     
-                    if (settings.injectTime !== false) {
-                        const timeStr = now.toLocaleString('zh-TW', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            weekday: 'long',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone
-                        });
-                        
-                        const hour = now.getHours();
-                        let timeOfDay = '';
-                        if (hour >= 5 && hour < 12) timeOfDay = '早上';
-                        else if (hour >= 12 && hour < 14) timeOfDay = '中午';
-                        else if (hour >= 14 && hour < 18) timeOfDay = '下午';
-                        else if (hour >= 18 && hour < 22) timeOfDay = '晚上';
-                        else timeOfDay = '深夜';
-                        
-                        parts.push(`目前時間：${timeStr}（${timeOfDay}）`);
-                        parts.push(`ISO 時間：${now.toISOString()}`);
-                    }
+                    const hour = now.getHours();
+                    let timeOfDay = '';
+                    if (hour >= 5 && hour < 12) timeOfDay = '早上';
+                    else if (hour >= 12 && hour < 14) timeOfDay = '中午';
+                    else if (hour >= 14 && hour < 18) timeOfDay = '下午';
+                    else if (hour >= 18 && hour < 22) timeOfDay = '晚上';
+                    else timeOfDay = '深夜';
                     
-                    if (settings.injectLocation !== false) {
-                        if (settings.useFictionalLocation && settings.locationDisplay) {
-                            parts.push(`所在地：${settings.locationDisplay}`);
-                        } else if (settings.locationCity) {
-                            const location = settings.locationCountry 
-                                ? `${settings.locationCity}, ${settings.locationCountry}`
-                                : settings.locationCity;
-                            parts.push(`所在地：${location}`);
-                        }
-                    }
-                    
-                    if (settings.injectWeather !== false && settings.cachedWeather) {
-                        const w = settings.cachedWeather;
-                        parts.push(`目前天氣：${w.description}，氣溫 ${w.temperature}°C`);
-                    }
-                    
-                    envContext = parts.join('\n');
-                    console.log('[ChatEngine] 直接計算環境上下文（時間已更新）');
+                    parts.push(`目前時間：${timeStr}（${timeOfDay}）`);
+                    parts.push(`ISO 時間：${now.toISOString()}`);
+                    console.log('[ChatEngine] 時間注入:', timeStr, timeOfDay);
                 }
+                
+                if (settings.injectLocation !== false) {
+                    if (settings.useFictionalLocation && settings.locationDisplay) {
+                        parts.push(`所在地：${settings.locationDisplay}`);
+                    } else if (settings.locationCity) {
+                        const location = settings.locationCountry 
+                            ? `${settings.locationCity}, ${settings.locationCountry}`
+                            : settings.locationCity;
+                        parts.push(`所在地：${location}`);
+                    }
+                }
+                
+                if (settings.injectWeather !== false && settings.cachedWeather) {
+                    const w = settings.cachedWeather;
+                    parts.push(`目前天氣：${w.description}，氣溫 ${w.temperature}°C`);
+                }
+                
+                envContext = parts.join('\n');
+                console.log('[ChatEngine] 環境上下文已生成:', envContext);
             }
         } catch (e) {
             console.warn('[ChatEngine] 獲取環境上下文失敗:', e);

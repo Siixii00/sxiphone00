@@ -1,15 +1,15 @@
 class DecayEngine {
   constructor(options = {}) {
     this.memoryStore = options.memoryStore || null;
-    
+
     this.config = {
-      lambda: options.lambda || 0.05,
+      lambda: options.lambda || 0.03,
       threshold: options.threshold || 0.3,
-      archiveThreshold: options.archiveThreshold || 0.1,
-      autoResolveDays: options.autoResolveDays || 30,
+      archiveThreshold: options.archiveThreshold || 0.15,
+      autoResolveDays: options.autoResolveDays || 60,
       checkIntervalHours: options.checkIntervalHours || 24,
-      shortTermDays: options.shortTermDays || 3,
-      freshnessHalfLife: options.freshnessHalfLife || 36
+      shortTermDays: options.shortTermDays || 7,
+      freshHalfLife: options.freshHalfLife || 48
     };
 
     this.lastCheckTime = null;

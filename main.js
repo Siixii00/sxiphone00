@@ -2829,6 +2829,10 @@
                     emitMemoryEvent('MEMORY_POOL_STATS_RESULT', { isInitialized: false }, event.source);
                 }
                 break;
+            case 'MEMORY_WRITE_RESULT':
+                // 記憶寫入結果，僅記錄不需要額外處理
+                console.log('[Main] MEMORY_WRITE_RESULT:', data.payload);
+                break;
             case 'UNIFIED_MEMORY_RECALL':
                 if (unifiedMemory && unifiedMemory.isInitialized) {
                     unifiedMemory.recall(data.payload?.query || '', data.payload?.options || {})

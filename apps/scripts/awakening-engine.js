@@ -4,13 +4,13 @@ class AwakeningEngine {
     this.embeddingEngine = options.embeddingEngine || null;
     this.searchEngine = options.searchEngine || null;
     this.emotionTagger = options.emotionTagger || null;
-    
+
     this.config = {
-      yesterdayMemoryLimit: options.yesterdayMemoryLimit || 30,
-      recentMemoryLimit: options.recentMemoryLimit || 10,
-      minImportance: options.minImportance || 4,
-      emotionalBoostThreshold: options.emotionalBoostThreshold || 0.7,
-      awakeningCooldown: options.awakeningCooldown || 3600000
+      yesterdayMemoryLimit: options.yesterdayMemoryLimit || 50,
+      recentMemoryLimit: options.recentMemoryLimit || 20,
+      minImportance: options.minImportance || 3,
+      emotionalBoostThreshold: options.emotionalBoostThreshold || 0.6,
+      awakeningCooldown: options.awakeningCooldown || 1800000
     };
     
     this.lastAwakening = null;
@@ -713,9 +713,14 @@ class AwakeningEngine {
   }
 
   _saveAwakeningState(state) {
+    try {
+      localStorage.setItem('sx_daily_awakening_state', JSON.stringify(state));
+    } catch (e) {
+      console.warn('[AwakeningEngine] localStorage 保存失敗:', e);
+    }
     if (typeof sxStorage !== 'undefined' && sxStorage) {
       sxStorage.setItem('sx_daily_awakening_state', JSON.stringify(state)).catch(e => {
-        console.warn('[AwakeningEngine] _saveAwakeningState 失敗:', e);
+        console.warn('[AwakeningEngine] IndexedDB 保存失敗:', e);
       });
     }
   }
