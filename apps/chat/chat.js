@@ -176,17 +176,6 @@ async function clearChatHistory() {
 async function setChatHistory(history) {
     await saveChatHistoryToIndexedDB(history);
 }
-            console.log('[ChatHistory] 已清除 IndexedDB 聊天記錄');
-        } catch (e) {
-            console.warn('[ChatHistory] 清除 IndexedDB 失敗:', e);
-        }
-    }
-    localStorage.removeItem('sx_chat_history');
-}
-
-async function setChatHistory(history) {
-    await saveChatHistoryToIndexedDB(history);
-}
 
 const ImageHostService = {
     CATBOX_URL: 'https://catbox.moe/user/api.php',
