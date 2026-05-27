@@ -64,11 +64,9 @@ async function initChatHistoryIndexedDB() {
                         _chatHistoryCache = parsed;
                         console.log('[ChatHistory] 已遷移至 IndexedDB，共', parsed.length, '條');
                         
-                        const shouldDelete = confirm('發現 localStorage 中有聊天記錄，已遷移至 IndexedDB。\n\n是否要清除 localStorage 中的舊資料以釋放空間？\n（資料已安全儲存在 IndexedDB 中）');
-                        if (shouldDelete) {
-                            localStorage.removeItem('sx_chat_history');
-                            console.log('[ChatHistory] 已清除 localStorage 舊資料');
-                        }
+                        // 強制清除 localStorage 舊資料，避免下次啟動時舊資料被遷移回來覆蓋新資料
+                        localStorage.removeItem('sx_chat_history');
+                        console.log('[ChatHistory] 已強制清除 localStorage 舊資料');
                     } else {
                         _chatHistoryCache = parsed;
                     }
@@ -663,11 +661,10 @@ async function initChatSessionsFromIndexedDB() {
                         _chatSessionsCache = parsed;
                         console.log('[Chat] 已遷移至 IndexedDB，共', parsed.length, '個 sessions');
                         
-                        const shouldDelete = confirm('發現 localStorage 中有聊天 sessions，已遷移至 IndexedDB。\n\n是否要清除 localStorage 中的舊資料以釋放空間？\n（資料已安全儲存在 IndexedDB 中）');
-                        if (shouldDelete) {
-                            localStorage.removeItem('sx_chat_sessions');
-                            console.log('[Chat] 已清除 localStorage 舊資料');
-                        }
+                        // 強制清除 localStorage 舊資料，避免下次啟動時舊資料被遷移回來覆蓋新資料
+                        localStorage.removeItem('sx_chat_sessions');
+                        localStorage.removeItem('sx_chat_history');
+                        console.log('[Chat] 已強制清除 localStorage 舊資料');
                     } else {
                         _chatSessionsCache = parsed;
                     }
@@ -738,6 +735,11 @@ async function saveChatSessionsToIndexedDB(sessions) {
         if (verify && verify.sx_chat_sessions) {
             console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
             showDebugMessage('Sessions saved OK, verify: ' + verify.sx_chat_sessions.length + ' 個');
+            
+            // IndexedDB 寫入成功後，清除 localStorage 中的舊資料
+            // 防止下次啟動時舊資料被遷移回來覆蓋新資料
+            localStorage.removeItem('sx_chat_sessions');
+            localStorage.removeItem('sx_chat_history');
         } else {
             showDebugMessage('Sessions saved but verify FAILED');
         }
@@ -8818,9 +8820,13 @@ window.triggerRegen = async (e) => {
     if (history[history.length - 1]?.role !== 'assistant') return;
 
     history.pop();
-    setChatHistorySync(history);
-
-    const activeId = getActiveChatId();
+        setChatHistorySync(history);
+        
+        // 清除 localStorage 中的舊資料，確保下次啟動時不會被舊資料覆蓋
+        localStorage.removeItem('sx_chat_history');
+        localStorage.removeItem('sx_chat_sessions');
+        
+        const activeId = getActiveChatId();
     if (activeId) {
         const sessions = loadChatSessions();
         const target = sessions.find(s => s.id === activeId);
