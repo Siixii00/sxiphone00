@@ -633,6 +633,29 @@ async function initChatSessionsFromIndexedDB() {
                     if (persistedData.sx_chat_active) {
                         localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                     }
+
+                    // 嘗試用 pagehide 同步備份合並，若備份更新則以備份為主
+                    try {
+                        const pagehideBackupStr = localStorage.getItem('sx_sessions_pagehide_backup');
+                        if (pagehideBackupStr) {
+                            const pagehideBackup = JSON.parse(pagehideBackupStr);
+                            if (pagehideBackup.sessions && pagehideBackup.sessions.length > 0) {
+                                const idbMsgCount = _chatSessionsCache.reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                                const backupMsgCount = pagehideBackup.sessions.reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                                if (backupMsgCount > idbMsgCount) {
+                                    _chatSessionsCache = pagehideBackup.sessions;
+                                    if (pagehideBackup.activeId) {
+                                        localStorage.setItem('sx_chat_active', pagehideBackup.activeId);
+                                    }
+                                    console.log('[Chat] pagehide 備份較新，使用備份資料 (備份:', backupMsgCount, '條 vs IDB:', idbMsgCount, '條)');
+                                    showDebugMessage('使用 pagehide 備份: ' + backupMsgCount + ' 條');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Chat] 讀取 pagehide 備份失敗:', e);
+                    }
+
                     _indexedDBInitialized = true;
                     return;
                 }
@@ -799,6 +822,20 @@ const saveToPersistentStorage = async () => {
 
 window.addEventListener('pagehide', () => {
     saveChatData();
+    // 同步將最新 sessions 備份到 localStorage，確保頁面卸載前資料不遺失
+    // saveToPersistentStorage() 是 async，在 pagehide 中無法被等待
+    try {
+        const sessions = loadChatSessions();
+        if (sessions && sessions.length > 0) {
+            localStorage.setItem('sx_sessions_pagehide_backup', JSON.stringify({
+                sessions,
+                activeId: getActiveChatId(),
+                savedAt: Date.now()
+            }));
+        }
+    } catch (e) {
+        console.warn('[Chat] pagehide 同步備份失敗:', e);
+    }
     saveToPersistentStorage();
 });
 
@@ -821,6 +858,33 @@ window.addEventListener('pageshow', async (event) => {
     console.log('[Chat] pageshow - history 快取:', _chatHistoryCache?.length || 0, '條');
     console.log('[Chat] pageshow - sessions 快取:', _chatSessionsCache?.length || 0, '個');
     
+    // 先嘗試從 pagehide 的同步備份恢復（比 IndexedDB 更即時，避免 async 寫入未完成）
+    try {
+        const pagehideBackupStr = localStorage.getItem('sx_sessions_pagehide_backup');
+        if (pagehideBackupStr) {
+            const pagehideBackup = JSON.parse(pagehideBackupStr);
+            const idbLastSaved = _chatSessionsCache ? null : 0; // 稍後與 IndexedDB 比較
+            if (pagehideBackup.sessions && pagehideBackup.sessions.length > 0) {
+                // 與目前快取比較，若備份更新則使用備份
+                const currentMaxMsgCount = (_chatSessionsCache || []).reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                const backupMaxMsgCount = pagehideBackup.sessions.reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                if (backupMaxMsgCount >= currentMaxMsgCount) {
+                    _chatSessionsCache = pagehideBackup.sessions;
+                    if (pagehideBackup.activeId) {
+                        localStorage.setItem('sx_chat_active', pagehideBackup.activeId);
+                        const activeSession = pagehideBackup.sessions.find(s => s.id === pagehideBackup.activeId);
+                        if (activeSession && activeSession.history) {
+                            _chatHistoryCache = activeSession.history;
+                        }
+                    }
+                    console.log('[Chat] pageshow - 從 pagehide 同步備份恢復:', pagehideBackup.sessions.length, '個 sessions,', backupMaxMsgCount, '條訊息');
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[Chat] 讀取 pagehide 備份失敗:', e);
+    }
+
     if (typeof localforage !== 'undefined') {
         try {
             const chatDataStore = localforage.createInstance({
@@ -841,21 +905,28 @@ window.addEventListener('pageshow', async (event) => {
                 if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
                 
                 if (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0) {
-                    _chatSessionsCache = persistedData.sx_chat_sessions;
-                    console.log('[Chat] 從 IndexedDB 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
-                    
-                    const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
-                    if (activeId) {
-                        localStorage.setItem('sx_chat_active', activeId);
-                        const activeSession = persistedData.sx_chat_sessions.find(s => s.id === activeId);
-                        if (activeSession && activeSession.history) {
-                            _chatHistoryCache = activeSession.history;
-                            console.log('[Chat] 恢復聊天 history:', activeSession.history.length, '條');
+                    // 只有當 IndexedDB 的資料比目前快取更多時才覆蓋（保留更新的備份資料）
+                    const idbMsgCount = persistedData.sx_chat_sessions.reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                    const cacheMsgCount = (_chatSessionsCache || []).reduce((sum, s) => sum + (s.history?.length || 0), 0);
+                    if (idbMsgCount >= cacheMsgCount) {
+                        _chatSessionsCache = persistedData.sx_chat_sessions;
+                        console.log('[Chat] 從 IndexedDB 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
+                        
+                        const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
+                        if (activeId) {
+                            localStorage.setItem('sx_chat_active', activeId);
+                            const activeSession = persistedData.sx_chat_sessions.find(s => s.id === activeId);
+                            if (activeSession && activeSession.history) {
+                                _chatHistoryCache = activeSession.history;
+                                console.log('[Chat] 恢復聊天 history:', activeSession.history.length, '條');
+                            }
                         }
+                    } else {
+                        console.log('[Chat] pageshow - pagehide 備份較新，保留備份資料 (備份:', cacheMsgCount, '條, IDB:', idbMsgCount, '條)');
                     }
                 }
                 
-                if (persistedData.sx_chat_active) {
+                if (persistedData.sx_chat_active && !localStorage.getItem('sx_chat_active')) {
                     localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                 }
             }
@@ -8020,6 +8091,13 @@ function renderHistory() {
     }
 
     if (history.length === 0) {
+        // 若 IndexedDB 尚未初始化完成，不要在此時插入問候語
+        // 避免在真實資料尚未載入時誤判為空並覆寫
+        if (!_indexedDBInitialized || !_chatHistoryIndexedDBReady) {
+            console.log('[renderHistory] IndexedDB 尚未初始化完成，跳過問候語插入，等待資料載入');
+            showDebugMessage('等待 IndexedDB 初始化，暫不插入問候');
+            return;
+        }
         const config = getGreetingConfig();
         if (config.enabled) {
             console.log('[renderHistory] history 為空，發送初始問候');
