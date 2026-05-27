@@ -34,8 +34,6 @@ async function initChatHistoryIndexedDB() {
                     _chatHistoryCache = history;
                     console.log('[ChatHistory] 從 IndexedDB 載入 history:', history.length, '條');
                     showDebugMessage(`IndexedDB history: ${history.length} 條`);
-                    _chatHistoryIndexedDBReady = true;
-                    return;
                 } else {
                     showDebugMessage('IndexedDB history: 空');
                 }
@@ -45,33 +43,6 @@ async function initChatHistoryIndexedDB() {
             }
         } else {
             showDebugMessage('localforage 未載入');
-        }
-        
-        const raw = localStorage.getItem('sx_chat_history');
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    console.log('[ChatHistory] 發現 localStorage history:', parsed.length, '條，準備遷移');
-                    showDebugMessage(`localStorage history: ${parsed.length} 條`);
-                    
-                    if (typeof localforage !== 'undefined') {
-                        const historyStore = localforage.createInstance({
-                            name: 'sxiphone',
-                            storeName: 'chatHistory'
-                        });
-                        await historyStore.setItem('sx_chat_history', parsed);
-                        _chatHistoryCache = parsed;
-                        console.log('[ChatHistory] 已遷移至 IndexedDB，共', parsed.length, '條');
-                        
-                        // 強制清除 localStorage 舊資料，避免下次啟動時舊資料被遷移回來覆蓋新資料
-                        localStorage.removeItem('sx_chat_history');
-                        console.log('[ChatHistory] 已強制清除 localStorage 舊資料');
-                    } else {
-                        _chatHistoryCache = parsed;
-                    }
-                }
-            } catch (e) {}
         }
         
         if (_chatHistoryCache === null) {
@@ -161,7 +132,6 @@ async function clearChatHistory() {
             console.warn('[ChatHistory] 清除 IndexedDB 失敗:', e);
         }
     }
-    localStorage.removeItem('sx_chat_history');
 }
 
 async function setChatHistory(history) {
@@ -631,45 +601,11 @@ async function initChatSessionsFromIndexedDB() {
                     if (persistedData.sx_chat_active) {
                         localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                     }
-                    _indexedDBInitialized = true;
-                    return;
                 }
             } catch (e) {
                 console.warn('[Chat] 從 IndexedDB 載入失敗:', e);
                 showDebugMessage('Sessions error: ' + e.message);
             }
-        }
-        
-        const raw = localStorage.getItem('sx_chat_sessions');
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    console.log('[Chat] 發現 localStorage sessions:', parsed.length, '個，準備遷移');
-                    showDebugMessage('localStorage sessions: ' + parsed.length + ' 個');
-                    
-                    if (typeof localforage !== 'undefined') {
-                        const chatDataStore = localforage.createInstance({
-                            name: 'sxiphone',
-                            storeName: 'chatData'
-                        });
-                        await chatDataStore.setItem('sx_app_persisted_data', {
-                            sx_chat_sessions: parsed,
-                            sx_chat_active: localStorage.getItem('sx_chat_active') || '',
-                            lastSaved: Date.now()
-                        });
-                        _chatSessionsCache = parsed;
-                        console.log('[Chat] 已遷移至 IndexedDB，共', parsed.length, '個 sessions');
-                        
-                        // 強制清除 localStorage 舊資料，避免下次啟動時舊資料被遷移回來覆蓋新資料
-                        localStorage.removeItem('sx_chat_sessions');
-                        localStorage.removeItem('sx_chat_history');
-                        console.log('[Chat] 已強制清除 localStorage 舊資料');
-                    } else {
-                        _chatSessionsCache = parsed;
-                    }
-                }
-            } catch (e) {}
         }
         
         if (_chatSessionsCache === null) {
@@ -735,11 +671,6 @@ async function saveChatSessionsToIndexedDB(sessions) {
         if (verify && verify.sx_chat_sessions) {
             console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
             showDebugMessage('Sessions saved OK, verify: ' + verify.sx_chat_sessions.length + ' 個');
-            
-            // IndexedDB 寫入成功後，清除 localStorage 中的舊資料
-            // 防止下次啟動時舊資料被遷移回來覆蓋新資料
-            localStorage.removeItem('sx_chat_sessions');
-            localStorage.removeItem('sx_chat_history');
         } else {
             showDebugMessage('Sessions saved but verify FAILED');
         }
@@ -1141,44 +1072,6 @@ function handleFloatingScreenshot(dataUrl) {
     
     const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
     addMessage(`${charName} 已收到截圖，請稍等...`, 'ai', false);
-}
-
-function migrateLegacyHistory() {
-    const legacyRaw = localStorage.getItem('sx_chat_history');
-    if (!legacyRaw) return;
-    try {
-        const legacyHistory = JSON.parse(legacyRaw);
-        if (!Array.isArray(legacyHistory) || legacyHistory.length === 0) return;
-        
-        const sessions = loadChatSessions();
-        const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
-        const charAvatar = localStorage.getItem('sx_char_avatar') || '';
-        const charPersonality = localStorage.getItem('sx_char_personality') || '';
-        const charBackground = localStorage.getItem('sx_char_background') || '';
-        
-        const existingSession = sessions.find(s => 
-            s.history && s.history.length === legacyHistory.length &&
-            JSON.stringify(s.history) === JSON.stringify(legacyHistory)
-        );
-        
-        if (!existingSession) {
-            const newId = `chat_${Date.now()}`;
-            sessions.unshift({
-                id: newId,
-                title: charName,
-                charName: charName,
-                charAvatar: charAvatar,
-                charPersonality: charPersonality,
-                charBackground: charBackground,
-                history: legacyHistory
-            });
-            saveChatSessions(sessions);
-            localStorage.setItem('sx_chat_active', newId);
-            console.log('[Chat] 已遷移舊聊天紀錄到新 session:', newId);
-        }
-    } catch (e) {
-        console.warn('遷移舊聊天紀錄失敗', e);
-    }
 }
 
 function getActiveChatId() {
@@ -3139,8 +3032,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderHistory();
     });
 
-    migrateLegacyHistory();
-    
     (async () => {
         await initChatHistoryIndexedDB();
         await initChatSessionsFromIndexedDB();
@@ -8820,19 +8711,15 @@ window.triggerRegen = async (e) => {
     if (history[history.length - 1]?.role !== 'assistant') return;
 
     history.pop();
-        setChatHistorySync(history);
-        
-        // 清除 localStorage 中的舊資料，確保下次啟動時不會被舊資料覆蓋
-        localStorage.removeItem('sx_chat_history');
-        localStorage.removeItem('sx_chat_sessions');
-        
-        const activeId = getActiveChatId();
+    await saveChatHistoryToIndexedDB(history);
+    
+    const activeId = getActiveChatId();
     if (activeId) {
         const sessions = loadChatSessions();
         const target = sessions.find(s => s.id === activeId);
         if (target) {
             target.history = history;
-            saveChatSessions(sessions);
+            await saveChatSessionsAsync(sessions);
         }
     }
 

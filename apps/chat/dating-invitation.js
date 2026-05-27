@@ -124,14 +124,25 @@ function checkScheduledDates() {
 }
 
 // 顯示約會提醒
-function showDateReminder(date) {
+async function showDateReminder(date) {
   const reminderHtml = buildDateReminderCard(date);
   appendMsg('other', reminderHtml);
   
-  // 存入歷史紀錄
-  const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+  // 存入歷史紀錄（使用 IndexedDB）
+  const history = getChatHistory();
   history.push({ role: 'assistant', content: `🔔 約會提醒：與 ${date.charName} 的約會時間到了！` });
-  localStorage.setItem('sx_chat_history', JSON.stringify(history));
+  await saveChatHistoryToIndexedDB(history);
+  
+  // 更新 session
+  const activeId = getActiveChatId();
+  if (activeId) {
+    const sessions = loadChatSessions();
+    const target = sessions.find(s => s.id === activeId);
+    if (target) {
+      target.history = history;
+      await saveChatSessionsAsync(sessions);
+    }
+  }
 }
 
 // 嘗試觸發約會邀請
@@ -263,7 +274,7 @@ async function generateDatingInvitation() {
 
     const fullContent = '💌 約會邀請：' + invitationText;
     history.push({ role: 'assistant', content: fullContent });
-    localStorage.setItem('sx_chat_history', JSON.stringify(history));
+    await saveChatHistoryToIndexedDB(history);
 
     const activeId = getActiveChatId();
     if (activeId) {
@@ -271,7 +282,7 @@ async function generateDatingInvitation() {
       const target = sessions.find(function(s) { return s.id === activeId; });
       if (target) {
         target.history = history;
-        saveChatSessions(sessions);
+        await saveChatSessionsAsync(sessions);
       }
     }
 
@@ -303,7 +314,18 @@ async function generateDatingInvitation() {
     appendMsg('other', cardHtml);
     const fullContent = '💌 約會邀請：' + fallbackText;
     history.push({ role: 'assistant', content: fullContent });
-    localStorage.setItem('sx_chat_history', JSON.stringify(history));
+    await saveChatHistoryToIndexedDB(history);
+    
+    const activeId = getActiveChatId();
+    if (activeId) {
+      const sessions = loadChatSessions();
+      const target = sessions.find(function(s) { return s.id === activeId; });
+      if (target) {
+        target.history = history;
+        await saveChatSessionsAsync(sessions);
+      }
+    }
+    
     DatingInvitation.lastInviteTime = Date.now();
   }
 }
@@ -391,10 +413,21 @@ function scheduleDate(scene, minutes, inviteId) {
   const confirmMsg = '好的！我們約定在 ' + timeStr + ' 去' + scene + '約會吧！期待見到你～ 💕';
   appendMsg('mine', confirmMsg);
   
-  // 存入歷史
-  const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+  // 存入歷史（使用 IndexedDB）
+  const history = getChatHistory();
   history.push({ role: 'user', content: confirmMsg });
-  localStorage.setItem('sx_chat_history', JSON.stringify(history));
+  await saveChatHistoryToIndexedDB(history);
+  
+  // 更新 session
+  const activeId = getActiveChatId();
+  if (activeId) {
+    const sessions = loadChatSessions();
+    const target = sessions.find(s => s.id === activeId);
+    if (target) {
+      target.history = history;
+      await saveChatSessionsAsync(sessions);
+    }
+  }
   
   // 啟動倒數計時
   startCountdownTimer();
@@ -486,7 +519,7 @@ function cancelDate(dateId) {
 }
 
 // 婉拒約會邀請
-function rejectDatingInvite(inviteId) {
+async function rejectDatingInvite(inviteId) {
   const card = document.getElementById(inviteId);
   if (card) {
     card.innerHTML = '<div class="invite-rejected">已婉拒邀請</div>';
@@ -497,10 +530,21 @@ function rejectDatingInvite(inviteId) {
   const rejectMsg = '抱歉，我現在不太方便...下次再說好嗎？';
   appendMsg('mine', rejectMsg);
   
-  // 存入歷史
-  const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+  // 存入歷史（使用 IndexedDB）
+  const history = getChatHistory();
   history.push({ role: 'user', content: rejectMsg });
-  localStorage.setItem('sx_chat_history', JSON.stringify(history));
+  await saveChatHistoryToIndexedDB(history);
+  
+  // 更新 session
+  const activeId = getActiveChatId();
+  if (activeId) {
+    const sessions = loadChatSessions();
+    const target = sessions.find(s => s.id === activeId);
+    if (target) {
+      target.history = history;
+      await saveChatSessionsAsync(sessions);
+    }
+  }
   
   DatingInvitation.currentInvitation = null;
   console.log('已婉拒約會邀請');
@@ -558,14 +602,27 @@ function formatTimeRemaining(targetTime) {
 }
 
 // 監聽來自 dating app 的訊息
-window.addEventListener('message', (event) => {
+window.addEventListener('message', async (event) => {
   const data = event.data;
   if (!data || typeof data !== 'object') return;
   
   if (data.type === 'DATING_ENDED') {
-    const history = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+    // 存入歷史（使用 IndexedDB）
+    const history = getChatHistory();
     history.push({ role: 'assistant', content: '💕 約會結束了，期待下次再一起出去玩！' });
-    localStorage.setItem('sx_chat_history', JSON.stringify(history));
+    await saveChatHistoryToIndexedDB(history);
+    
+    // 更新 session
+    const activeId = getActiveChatId();
+    if (activeId) {
+      const sessions = loadChatSessions();
+      const target = sessions.find(s => s.id === activeId);
+      if (target) {
+        target.history = history;
+        await saveChatSessionsAsync(sessions);
+      }
+    }
+    
     renderHistory();
   }
 });
