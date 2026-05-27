@@ -1107,6 +1107,7 @@ class SleepEngine {
     try {
       const githubToken = localStorage.getItem('sx_github_token');
       const githubRepo = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo') || 'sxiphone-backup';
+      const githubUser = localStorage.getItem('sx_github_user');
       
       if (!githubToken || !githubRepo) {
         console.log('[SleepEngine] 未連接 GitHub，跳過雲端同步');
@@ -1127,8 +1128,9 @@ class SleepEngine {
       };
 
       const path = `data/social_memories_${new Date().toISOString().split('T')[0]}.json`;
+      const repoPath = githubUser ? `${githubUser}/${githubRepo}` : githubRepo;
       
-      const response = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${path}`, {
+      const response = await fetch(`https://api.github.com/repos/${repoPath}/contents/${path}`, {
         method: 'PUT',
         headers: {
           'Authorization': `token ${githubToken}`,
@@ -1143,7 +1145,8 @@ class SleepEngine {
       if (response.ok) {
         console.log(`[SleepEngine] 雲端同步成功: ${payload.count} 條記憶`);
       } else {
-        console.warn('[SleepEngine] 雲端同步失敗:', response.status);
+        const errText = await response.text();
+        console.warn('[SleepEngine] 雲端同步失敗:', response.status, errText.substring(0, 200));
       }
     } catch (e) {
       console.warn('[SleepEngine] 雲端同步出錯:', e);

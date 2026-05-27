@@ -370,8 +370,12 @@ class UnifiedStorageManager {
         })
       });
       if (!createResp.ok) {
-        throw new Error('無法建立儲存庫');
+        const errText = await createResp.text();
+        throw new Error('無法建立儲存庫: ' + createResp.status);
       }
+    } else if (!repoResp.ok) {
+      const errText = await repoResp.text();
+      throw new Error('無法檢查儲存庫: ' + repoResp.status);
     }
   }
 
@@ -404,8 +408,10 @@ class UnifiedStorageManager {
     });
 
     if (!uploadResp.ok) {
-      const errData = await uploadResp.json().catch(() => ({}));
-      throw new Error(errData.message || `上傳失敗 (${uploadResp.status})`);
+      const errText = await uploadResp.text();
+      let errMsg = `上傳失敗 (${uploadResp.status})`;
+      try { const errData = JSON.parse(errText); errMsg = errData.message || errMsg; } catch {}
+      throw new Error(errMsg);
     }
 
     this.backupStatus.lastSuccess = new Date().toISOString();
@@ -468,8 +474,10 @@ class UnifiedStorageManager {
       });
 
       if (!uploadResp.ok) {
-        const errData = await uploadResp.json().catch(() => ({}));
-        throw new Error(`分割 ${partNum} 上傳失敗: ${errData.message || uploadResp.status}`);
+        const errText = await uploadResp.text();
+        let errMsg = `分割 ${partNum} 上傳失敗 (${uploadResp.status})`;
+        try { const errData = JSON.parse(errText); errMsg = `分割 ${partNum} 上傳失敗: ${errData.message || uploadResp.status}`; } catch {}
+        throw new Error(errMsg);
       }
     }
 
@@ -562,8 +570,13 @@ class UnifiedStorageManager {
         const data = await manifestResp.json();
         const content = this._decodeBase64(data.content);
         return JSON.parse(content);
+      } else {
+        const errText = await manifestResp.text();
+        console.warn('[UnifiedStorageManager] 無法取得 manifest:', manifestResp.status, errText.substring(0, 200));
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[UnifiedStorageManager] _fetchManifest 錯誤:', e);
+    }
     return null;
   }
 
@@ -580,10 +593,16 @@ class UnifiedStorageManager {
       });
 
       if (!partResp.ok) {
-        throw new Error(`無法下載分割 ${i}`);
+        const errText = await partResp.text();
+        throw new Error(`無法下載分割 ${i} (${partResp.status})`);
       }
 
-      const partData = await partResp.json();
+      let partData;
+      try {
+        partData = await partResp.json();
+      } catch (e) {
+        throw new Error(`分割 ${i} 格式錯誤: 無法解析 JSON`);
+      }
       console.log('[UnifiedStorageManager] part', i, 'encoding:', partData.encoding, 'content preview:', partData.content?.substring(0, 100));
       
       let partContent = partData.content;
@@ -629,7 +648,12 @@ class UnifiedStorageManager {
       throw new Error(`下載失敗 (${fileResp.status})`);
     }
 
-    const fileData = await fileResp.json();
+    let fileData;
+    try {
+      fileData = await fileResp.json();
+    } catch (e) {
+      throw new Error('備份檔案格式錯誤: 無法解析 JSON');
+    }
     const content = this._decodeBase64(fileData.content);
     const payload = JSON.parse(content);
 

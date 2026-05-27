@@ -392,13 +392,18 @@ async function saveAll() {
     }
     const lang = document.getElementById('langSelect')?.value || 'zh-Hant';
     const region = document.getElementById('regionInput')?.value || '';
-    const newUserPers = document.getElementById('maskPersonality')?.value || '';
-    const newUserBG = document.getElementById('maskBackground')?.value || '';
-    const newUserName = document.getElementById('maskNameInput')?.value || '';
-    const newUserAvatar = document.getElementById('avatarUrlInput')?.value || '';
-
-    const currentUserName = newUserName || localStorage.getItem('sx_user_name') || 'User';
-    const currentUserAvatar = newUserAvatar || localStorage.getItem('sx_user_avatar') || '';
+    
+    // 從表單元素讀取 user 資料，但只有在有值時才使用，否則保留 localStorage 原值
+    const formUserPers = document.getElementById('maskPersonality')?.value || '';
+    const formUserBG = document.getElementById('maskBackground')?.value || '';
+    const formUserName = document.getElementById('maskNameInput')?.value || '';
+    const formUserAvatar = document.getElementById('avatarUrlInput')?.value || '';
+    
+    // 智能合併：表單有值時用表單值，否則用 localStorage 原值
+    const currentUserName = formUserName || localStorage.getItem('sx_user_name') || 'User';
+    const currentUserAvatar = formUserAvatar || localStorage.getItem('sx_user_avatar') || '';
+    const currentUserPers = formUserPers || localStorage.getItem('sx_user_personality') || '';
+    const currentUserBG = formUserBG || localStorage.getItem('sx_user_background') || '';
 
     const smallKeys = {
         'sx_active_api': activeApiIndex.toString(),
@@ -406,8 +411,8 @@ async function saveAll() {
         'sxiphone_region': region,
         'sx_user_name': currentUserName,
         'sx_user_avatar': currentUserAvatar,
-        'sx_user_personality': newUserPers,
-        'sx_user_background': newUserBG
+        'sx_user_personality': currentUserPers,
+        'sx_user_background': currentUserBG
     };
 
     for (const [key, value] of Object.entries(smallKeys)) {
@@ -438,7 +443,7 @@ async function saveAll() {
                 await localforage.setItem('sx_app_persisted_data', {
                     masks, apis, activeApiIndex, lang, region,
                     userName: currentUserName, userAvatar: currentUserAvatar,
-                    userPersonality: newUserPers, userBackground: newUserBG,
+                    userPersonality: currentUserPers, userBackground: currentUserBG,
                     ...wbParts
                 });
             } catch (e) {
@@ -512,7 +517,10 @@ function saveUserMask() {
 
     // 2. 【核心修正】直接儲存為 User 專屬資料，不存入 masks 陣列
     // 這樣 Chat App 的 getUserConfig() 就能抓到正確的 User 資料
-    localStorage.setItem('sx_user_name', name || 'User');
+    // 只有在有輸入值時才更新，避免跳回 'User'
+    if (name) {
+        localStorage.setItem('sx_user_name', name);
+    }
 
     // 頭像自動上傳圖床（base64 → URL）
     if (avatar && typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(avatar)) {
@@ -523,8 +531,9 @@ function saveUserMask() {
         localStorage.setItem('sx_user_avatar', avatar);
     }
     
-    // 如果有輸入人設或背景，可以選擇存入另一個專屬 Key（選填）
+    // 如果有輸入人設或背景，存入專屬 Key
     if (personality) localStorage.setItem('sx_user_personality', personality);
+    if (background) localStorage.setItem('sx_user_background', background);
 
     // 同步到 users 列表
     const list = loadUserList();
@@ -3844,20 +3853,29 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         if (backgroundInput) backgroundInput.value = user.background || '';
         
         try {
-            localStorage.setItem('sx_user_name', user.name || 'User');
-            localStorage.setItem('sx_user_avatar', user.avatar || '');
-            localStorage.setItem('sx_user_personality', user.personality || '');
-            localStorage.setItem('sx_user_background', user.background || '');
+            // 只有在 user.name 有值時才覆蓋，避免清空或跳回 'User'
+            if (user.name) {
+                localStorage.setItem('sx_user_name', user.name);
+            }
+            if (user.avatar) {
+                localStorage.setItem('sx_user_avatar', user.avatar);
+            }
+            if (user.personality) {
+                localStorage.setItem('sx_user_personality', user.personality);
+            }
+            if (user.background) {
+                localStorage.setItem('sx_user_background', user.background);
+            }
             console.log('[Settings] 已更新用戶 localStorage');
             
             // 發送消息通知 Chat 更新
             window.parent?.postMessage({ 
                 type: 'USER_SETTINGS_UPDATED', 
                 payload: { 
-                    name: user.name || 'User', 
-                    avatar: user.avatar || '', 
-                    personality: user.personality || '', 
-                    background: user.background || '' 
+                    name: user.name || localStorage.getItem('sx_user_name') || 'User', 
+                    avatar: user.avatar || localStorage.getItem('sx_user_avatar') || '', 
+                    personality: user.personality || localStorage.getItem('sx_user_personality') || '', 
+                    background: user.background || localStorage.getItem('sx_user_background') || '' 
                 }
             }, '*');
             console.log('[Settings] 已發送 USER_SETTINGS_UPDATED 消息');
@@ -4086,10 +4104,19 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         else list.unshift(payload);
         saveUserList(list);
         
-        localStorage.setItem('sx_user_name', payload.name || 'User');
-        localStorage.setItem('sx_user_avatar', payload.avatar || '');
-        localStorage.setItem('sx_user_personality', payload.personality || '');
-        localStorage.setItem('sx_user_background', payload.background || '');
+        // 只有在 name 有值時才更新 localStorage，避免跳回 'User'
+        if (payload.name) {
+            localStorage.setItem('sx_user_name', payload.name);
+        }
+        if (payload.avatar) {
+            localStorage.setItem('sx_user_avatar', payload.avatar);
+        }
+        if (payload.personality) {
+            localStorage.setItem('sx_user_personality', payload.personality);
+        }
+        if (payload.background) {
+            localStorage.setItem('sx_user_background', payload.background);
+        }
         
         updateCharListUI();
         
@@ -4410,10 +4437,24 @@ async function initStorage() {
         const saved = await localforage.getItem('sx_app_persisted_data');
         if (saved) {
             masks = saved.masks || masks;
-            localStorage.setItem('sx_user_name', saved.userName || 'User');
-            localStorage.setItem('sx_user_avatar', saved.userAvatar || '');
-            localStorage.setItem('sx_user_personality', saved.userPersonality || '');
-            localStorage.setItem('sx_user_background', saved.userBackground || '');
+            // 只有當 persisted 資料有值且 localStorage 沒有值時才覆蓋（避免覆蓋使用者已輸入的新值）
+            const existingName = localStorage.getItem('sx_user_name');
+            const existingAvatar = localStorage.getItem('sx_user_avatar');
+            const existingPersonality = localStorage.getItem('sx_user_personality');
+            const existingBackground = localStorage.getItem('sx_user_background');
+            
+            if (saved.userName && saved.userName !== 'User' && (!existingName || existingName === 'User')) {
+                localStorage.setItem('sx_user_name', saved.userName);
+            }
+            if (saved.userAvatar && !existingAvatar) {
+                localStorage.setItem('sx_user_avatar', saved.userAvatar);
+            }
+            if (saved.userPersonality && !existingPersonality) {
+                localStorage.setItem('sx_user_personality', saved.userPersonality);
+            }
+            if (saved.userBackground && !existingBackground) {
+                localStorage.setItem('sx_user_background', saved.userBackground);
+            }
 
             // 新 key 沒值時，沿用舊整包裡的 API 設定
             if (!Array.isArray(savedApis)) {

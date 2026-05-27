@@ -4977,18 +4977,26 @@ const handleEnd = (y) => {
         return r.json();
     });
 
-    const githubApiRaw = (token, path, opts = {}) => fetch(`https://api.github.com${path}`, {
-        ...opts,
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-            ...(opts.headers || {})
+    const githubApiRaw = async (token, path, opts = {}) => {
+        const res = await fetch(`https://api.github.com${path}`, {
+            ...opts,
+            headers: {
+                Authorization: `token ${token}`,
+                Accept: 'application/vnd.github.v3+json',
+                ...(opts.headers || {})
+            }
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            let errMsg = `GitHub API ${res.status}: ${res.statusText}`;
+            try { const errData = JSON.parse(text); errMsg = errData.message || errMsg; } catch {}
+            throw new Error(errMsg);
         }
-    });
+        return res;
+    };
 
     const validateGitHubToken = async (token) => {
         const res = await githubApiRaw(token, '/user');
-        if (!res.ok) throw new Error('無效的 Token');
         return res.json();
     };
 

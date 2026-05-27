@@ -3259,7 +3259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
         const data = event.data;
         if (!data || typeof data !== 'object') return;
         
@@ -3271,14 +3271,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             appendMsg('mine', '', { type: 'image', url: data.emoji.url, name: data.emoji.name });
             const history = getChatHistory();
             history.push({ role: "user", content: `[表情: ${data.emoji.name}]`, imageUrl: data.emoji.url });
-            setChatHistorySync(history);
+            await saveChatHistoryToIndexedDB(history);
             const activeId = getActiveChatId();
             if (activeId) {
                 const sessions = loadChatSessions();
                 const target = sessions.find(s => s.id === activeId);
                 if (target) {
                     target.history = history;
-                    saveChatSessions(sessions);
+                    await saveChatSessionsAsync(sessions);
                 }
             }
             
@@ -8112,7 +8112,7 @@ function renderHistory() {
 /**
  * [功能 A] 純發送訊息：僅將文字貼到對話流，不觸發 AI
  */
-function handleJustSend() {
+async function handleJustSend() {
     const val = msgInput.value.trim();
     if (!val) return;
 
@@ -8123,7 +8123,7 @@ function handleJustSend() {
 
     let history = getChatHistory();
     history.push({ role: "user", content: val, timestamp: Date.now() });
-    setChatHistorySync(history);
+    await saveChatHistoryToIndexedDB(history);
     console.log('[handleJustSend] sx_chat_history 已更新, 長度:', history.length);
     
     window.parent?.postMessage({
@@ -8146,7 +8146,7 @@ function handleJustSend() {
         }
         const newSession = createSessionData({ charName, history });
         sessions.unshift(newSession);
-        saveChatSessions(sessions);
+        await saveChatSessionsAsync(sessions);
         setActiveChatId(newSession.id);
         activeId = newSession.id;
         console.log('[handleJustSend] 創建新 session:', newSession.id);
@@ -8157,7 +8157,7 @@ function handleJustSend() {
             if (!target.charName) {
                 target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
             }
-            saveChatSessions(sessions);
+            await saveChatSessionsAsync(sessions);
             console.log('[handleJustSend] 更新現有 session:', activeId, 'history 長度:', history.length);
         }
     }
@@ -8216,7 +8216,7 @@ async function handleTriggerAI() {
             const combinedReply = messages.join('\n');
             const freshHistory = getChatHistory();
             freshHistory.push({ role: "assistant", content: combinedReply, generationMode: generationMode, splitMessages: messages });
-            setChatHistorySync(freshHistory);
+            await saveChatHistoryToIndexedDB(freshHistory);
             handleHouseInviteResponse(aiReply, freshHistory);
             window.parent?.postMessage({
                 type: 'MEMORY_CHAT_EVENT',
@@ -8232,7 +8232,7 @@ async function handleTriggerAI() {
                 }
                 const newSession = createSessionData({ charName, history: freshHistory });
                 sessions.unshift(newSession);
-                saveChatSessions(sessions);
+                await saveChatSessionsAsync(sessions);
                 setActiveChatId(newSession.id);
             } else {
                 const target = sessions.find(s => s.id === activeId);
@@ -8241,14 +8241,14 @@ async function handleTriggerAI() {
                     if (!target.charName) {
                         target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
-                    saveChatSessions(sessions);
+                    await saveChatSessionsAsync(sessions);
                 }
             }
         } else {
             appendMsg('other', aiReply);
             const freshHistory = getChatHistory();
             freshHistory.push({ role: "assistant", content: aiReply });
-            setChatHistorySync(freshHistory);
+            await saveChatHistoryToIndexedDB(freshHistory);
             handleHouseInviteResponse(aiReply, freshHistory);
             window.parent?.postMessage({
                 type: 'MEMORY_CHAT_EVENT',
@@ -8264,7 +8264,7 @@ async function handleTriggerAI() {
                 }
                 const newSession = createSessionData({ charName, history: freshHistory });
                 sessions.unshift(newSession);
-                saveChatSessions(sessions);
+                await saveChatSessionsAsync(sessions);
                 setActiveChatId(newSession.id);
             } else {
                 const target = sessions.find(s => s.id === activeId);
@@ -8273,7 +8273,7 @@ async function handleTriggerAI() {
                     if (!target.charName) {
                         target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
-                    saveChatSessions(sessions);
+                    await saveChatSessionsAsync(sessions);
                 }
             }
         }
@@ -9121,12 +9121,12 @@ const VoiceCallEngine = {
                 appendMsg('mine', userText);
                 let history = getChatHistory();
                 history.push({ role: 'user', content: userText });
-                setChatHistorySync(history);
+                await saveChatHistoryToIndexedDB(history);
                 const activeId = getActiveChatId();
                 if (activeId) {
                     const sessions = loadChatSessions();
                     const target = sessions.find(s => s.id === activeId);
-                    if (target) { target.history = history; saveChatSessions(sessions); }
+                    if (target) { target.history = history; await saveChatSessionsAsync(sessions); }
                 }
 
                 const statusText = document.getElementById('call-status-text');
@@ -9144,11 +9144,11 @@ const VoiceCallEngine = {
                     appendMsg('other', charReply);
                     history = getChatHistory();
                     history.push({ role: 'assistant', content: charReply });
-                    setChatHistorySync(history);
+                    await saveChatHistoryToIndexedDB(history);
                     if (activeId) {
                         const sessions = loadChatSessions();
                         const target = sessions.find(s => s.id === activeId);
-                        if (target) { target.history = history; saveChatSessions(sessions); }
+                        if (target) { target.history = history; await saveChatSessionsAsync(sessions); }
                     }
 
                     if (this.settings?.voiceAutoTts !== false) {

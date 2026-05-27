@@ -845,10 +845,19 @@ async function switchWikiUser(value) {
     const user = users[idx];
     if (user) {
         localStorage.setItem('sx_current_user_index', idx.toString());
-        localStorage.setItem('sx_user_name', user.name || 'User');
-        localStorage.setItem('sx_user_avatar', user.avatar || '');
-        localStorage.setItem('sx_user_personality', user.personality || '');
-        localStorage.setItem('sx_user_background', user.background || '');
+        // 只有在有值時才更新，避免跳回 'User'
+        if (user.name) {
+            localStorage.setItem('sx_user_name', user.name);
+        }
+        if (user.avatar) {
+            localStorage.setItem('sx_user_avatar', user.avatar);
+        }
+        if (user.personality) {
+            localStorage.setItem('sx_user_personality', user.personality);
+        }
+        if (user.background) {
+            localStorage.setItem('sx_user_background', user.background);
+        }
         
         const introTitle = document.querySelector('.wiki-intro h2');
         if (introTitle) {
