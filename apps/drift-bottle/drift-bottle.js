@@ -1,5 +1,5 @@
 import { trigrams, hexagrams } from './iching-data.js';
-import tarotWaiteData from './tarot_waite.json';
+import tarotWaiteData from './tarot_waite.json' with { type: 'json' };
 
 const homeView = document.getElementById('fortune-home');
 const introOverlay = document.getElementById('drift-intro');
@@ -784,7 +784,9 @@ tarotWaiteData.tarot.minor_arcana.pentacles.forEach(card => {
       reversedMeaning: card.reversed.meaning
     };
   }
-});\n\nconst marseilleMajorMeanings = {
+});
+
+const marseilleMajorMeanings = {
   0: {
     name: '愚者',
     nameEn: 'Le Mat',

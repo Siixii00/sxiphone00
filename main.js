@@ -1,11 +1,4 @@
 (function() {
-    // --- 防止重複初始化 ---
-    if (window.__sxiphoneInitialized) {
-        console.warn('[Main] 檢測到重複初始化，跳過');
-        return;
-    }
-    window.__sxiphoneInitialized = true;
-    
     // --- iOS 記憶體壓力保護 ---
     const IOSMemoryProtection = {
         lastSaveTime: 0,
@@ -1924,7 +1917,7 @@
             });
         }
 
-        if (splash) splash.classList.toggle('hidden', config.enabled === false);
+        if (splash) splash.classList.add('hidden');
 
         return config;
     };
@@ -6016,20 +6009,10 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         }, 2000);
 
         const splash = document.getElementById('splash-screen');
-        if (splash && bootConfig.enabled !== false) {
-            splash.classList.remove('splash-hidden');
-            splash.setAttribute('aria-hidden', 'false');
-            setTimeout(() => {
-                splash.classList.add('splash-hidden');
-                splash.setAttribute('aria-hidden', 'true');
-            }, 4200);
+        if (splash) {
+            splash.classList.add('hidden');
         }
     }
     
-    if (window.__sxiphoneInitialized) {
-        console.warn('[Main] 檢測到重複初始化，跳過');
-    } else {
-        window.__sxiphoneInitialized = true;
-        init();
-    }
+    init();
 })();
