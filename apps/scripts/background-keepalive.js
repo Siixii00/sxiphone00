@@ -1087,9 +1087,25 @@ const BackgroundKeepalive = (function() {
     }
 
     function init() {
+        if (window.__backgroundKeepaliveInitialized) {
+            console.warn('[Keepalive] 檢測到重複初始化，跳過');
+            return;
+        }
+        window.__backgroundKeepaliveInitialized = true;
+        
         loadConfig();
-
+        
+        let _lastVisibilityChangeTime = 0;
+        const VISIBILITY_CHANGE_THRESHOLD = 500;
+        
         document.addEventListener('visibilitychange', () => {
+            const now = Date.now();
+            if (now - _lastVisibilityChangeTime < VISIBILITY_CHANGE_THRESHOLD) {
+                console.log('[Keepalive] 忽略快速重複的 visibilitychange 事件');
+                return;
+            }
+            _lastVisibilityChangeTime = now;
+            
             if (document.visibilityState === 'hidden') {
                 enterBackground();
             } else {

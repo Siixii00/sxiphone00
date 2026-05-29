@@ -1514,6 +1514,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
+        
+        if (data.persistedData && typeof localforage !== 'undefined') {
+            try {
+                const chatDataStore = localforage.createInstance({
+                    name: 'sxiphone',
+                    storeName: 'chatData'
+                });
+                const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                const mergedData = { ...existingData, ...data.persistedData };
+                await chatDataStore.setItem('sx_app_persisted_data', mergedData);
+                console.log('[Restore] persistedData 已還原，包含 keys:', Object.keys(mergedData));
+                
+                if (mergedData.userName) localStorage.setItem('sx_user_name', mergedData.userName);
+                if (mergedData.userAvatar) localStorage.setItem('sx_user_avatar', mergedData.userAvatar);
+                if (mergedData.userPersonality) localStorage.setItem('sx_user_personality', mergedData.userPersonality);
+                if (mergedData.userBackground) localStorage.setItem('sx_user_background', mergedData.userBackground);
+                if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
+                if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
+                if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
+                if (mergedData.charName) localStorage.setItem('sx_char_name', mergedData.charName);
+                if (mergedData.charAvatar) localStorage.setItem('sx_char_avatar', mergedData.charAvatar);
+                if (mergedData.charPersonality) localStorage.setItem('sx_char_personality', mergedData.charPersonality);
+                if (mergedData.charBackground) localStorage.setItem('sx_char_background', mergedData.charBackground);
+                if (mergedData.sx_characters) localStorage.setItem('sx_characters', JSON.stringify(mergedData.sx_characters));
+                if (mergedData.sx_users) localStorage.setItem('sx_users', JSON.stringify(mergedData.sx_users));
+                if (mergedData.masks) localStorage.setItem('sx_masks', JSON.stringify(mergedData.masks));
+                if (mergedData.apis) localStorage.setItem('api_configs', JSON.stringify(mergedData.apis));
+                
+                count++;
+            } catch (e) {
+                console.warn('[Restore] persistedData 還原失敗:', e);
+            }
+        }
 
         window.dispatchEvent(new CustomEvent('sxiphone-data-restored', { 
             detail: { count, source: 'github-pull' } 

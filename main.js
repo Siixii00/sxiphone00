@@ -1,4 +1,35 @@
 (function() {
+    // --- 防止重複初始化 ---
+    if (window.__sxiphoneInitialized) {
+        console.warn('[Main] 檢測到重複初始化，跳過');
+        return;
+    }
+    window.__sxiphoneInitialized = true;
+    
+    // --- iOS 記憶體壓力保護 ---
+    const IOSMemoryProtection = {
+        lastSaveTime: 0,
+        saveThrottle: 2000,
+        isSaving: false,
+        
+        shouldSave() {
+            const now = Date.now();
+            if (this.isSaving || (now - this.lastSaveTime) < this.saveThrottle) {
+                return false;
+            }
+            return true;
+        },
+        
+        markSaveStart() {
+            this.isSaving = true;
+            this.lastSaveTime = Date.now();
+        },
+        
+        markSaveEnd() {
+            this.isSaving = false;
+        }
+    };
+    
     // --- 0. 瀏覽器兼容性檢測與修復 ---
     const BrowserCompat = {
         // 檢測瀏覽器類型
@@ -5019,21 +5050,47 @@ const handleEnd = (y) => {
         }
     };
 
-    const collectBackupData = () => {
+    const collectBackupData = async () => {
         const skipKeys = new Set([GITHUB_TOKEN_KEY, GITHUB_USER_KEY, GITHUB_REPO_KEY]);
-        const data = {};
+        const data = { localStorage: {}, localforage: {}, persistedData: null };
+        
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (!key || skipKeys.has(key)) continue;
             const val = localStorage.getItem(key);
             if (val && val.length > 512000) continue;
-            data[key] = val;
+            data.localStorage[key] = val;
         }
+        
+        if (typeof localforage !== 'undefined') {
+            try {
+                await localforage.ready();
+                const keys = await localforage.keys();
+                for (const key of keys) {
+                    if (skipKeys.has(key)) continue;
+                    const val = await localforage.getItem(key);
+                    data.localforage[key] = val;
+                }
+                
+                const chatDataStore = localforage.createInstance({
+                    name: 'sxiphone',
+                    storeName: 'chatData'
+                });
+                const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+                if (persistedData) {
+                    data.persistedData = persistedData;
+                    console.log('[GitHub] 收集 persistedData 完成，包含 keys:', Object.keys(persistedData));
+                }
+            } catch (e) {
+                console.warn('[GitHub] 收集 IndexedDB 資料失敗:', e);
+            }
+        }
+        
         return data;
     };
 
     const pushToGitHub = async (token, username, repo) => {
-        const data = collectBackupData();
+        const data = await collectBackupData();
         const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
         let sha = null;
         try {
@@ -5054,32 +5111,72 @@ const handleEnd = (y) => {
         const raw = decodeURIComponent(escape(atob(file.content)));
         const data = JSON.parse(raw);
         const skipKeys = new Set([GITHUB_TOKEN_KEY, GITHUB_USER_KEY, GITHUB_REPO_KEY]);
-        Object.entries(data).forEach(([key, val]) => {
-            if (!skipKeys.has(key)) localStorage.setItem(key, val);
-        });
         
-        if (typeof localforage !== 'undefined') {
+        if (data.localStorage) {
+            Object.entries(data.localStorage).forEach(([key, val]) => {
+                if (!skipKeys.has(key)) localStorage.setItem(key, val);
+            });
+        } else {
+            Object.entries(data).forEach(([key, val]) => {
+                if (!skipKeys.has(key) && key !== 'localforage' && key !== 'persistedData') {
+                    localStorage.setItem(key, val);
+                }
+            });
+        }
+        
+        if (data.localforage && typeof localforage !== 'undefined') {
             try {
-                const selectedBuiltins = data['sx_worldbook_selected_builtins'] 
-                    ? JSON.parse(data['sx_worldbook_selected_builtins']) 
-                    : [];
-                const existingPersisted = await localforage.getItem('sx_app_persisted_data') || {};
-                existingPersisted.sx_worldbook_selected_builtins = selectedBuiltins;
-                ['sx_worldbook_cot', 'sx_worldbook_style', 'sx_worldbook_global', 'sx_worldbook_keywords', 'sx_worldbook_backend'].forEach(key => {
-                    if (data[key]) {
-                        try {
-                            existingPersisted[key] = JSON.parse(data[key]);
-                        } catch (e) {}
+                for (const [key, val] of Object.entries(data.localforage)) {
+                    if (!skipKeys.has(key)) {
+                        await localforage.setItem(key, val);
                     }
-                });
-                await localforage.setItem('sx_app_persisted_data', existingPersisted);
-                console.log('[GitHub Sync] 世界書選擇已同步至持久化存儲:', selectedBuiltins);
+                }
             } catch (e) {
-                console.error('[GitHub Sync] 同步世界書選擇失敗:', e);
+                console.warn('[GitHub] localforage 還原失敗:', e);
             }
         }
         
-        return Object.keys(data).length;
+        if (data.persistedData && typeof localforage !== 'undefined') {
+            try {
+                const chatDataStore = localforage.createInstance({
+                    name: 'sxiphone',
+                    storeName: 'chatData'
+                });
+                const existingPersisted = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                const mergedData = { ...existingPersisted, ...data.persistedData };
+                await chatDataStore.setItem('sx_app_persisted_data', mergedData);
+                console.log('[GitHub] persistedData 已還原，包含 keys:', Object.keys(mergedData));
+                
+                if (mergedData.userName) localStorage.setItem('sx_user_name', mergedData.userName);
+                if (mergedData.userAvatar) localStorage.setItem('sx_user_avatar', mergedData.userAvatar);
+                if (mergedData.userPersonality) localStorage.setItem('sx_user_personality', mergedData.userPersonality);
+                if (mergedData.userBackground) localStorage.setItem('sx_user_background', mergedData.userBackground);
+                if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
+if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
+                if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
+                if (mergedData.charName) localStorage.setItem('sx_char_name', mergedData.charName);
+                if (mergedData.charAvatar) localStorage.setItem('sx_char_avatar', mergedData.charAvatar);
+                if (mergedData.charPersonality) localStorage.setItem('sx_char_personality', mergedData.charPersonality);
+                if (mergedData.charBackground) localStorage.setItem('sx_char_background', mergedData.charBackground);
+                if (mergedData.sx_characters) localStorage.setItem('sx_characters', JSON.stringify(mergedData.sx_characters));
+                if (mergedData.sx_users) localStorage.setItem('sx_users', JSON.stringify(mergedData.sx_users));
+                if (mergedData.masks) localStorage.setItem('sx_masks', JSON.stringify(mergedData.masks));
+                if (mergedData.apis) localStorage.setItem('api_configs', JSON.stringify(mergedData.apis));
+            } catch (e) {
+                console.warn('[GitHub] persistedData 還原失敗:', e);
+            }
+        }
+        
+        let count = 0;
+        if (data.localStorage) count += Object.keys(data.localStorage).length;
+        if (data.localforage) count += Object.keys(data.localforage).length;
+        if (data.persistedData) count += 1;
+        if (!data.localStorage && !data.localforage && !data.persistedData) {
+            count = Object.keys(data).length;
+        }
+        
+        console.log('[GitHub] 還原完成，共 ' + count + ' 筆資料');
+        return count;
     };
 
     const showGitHubStep = (step) => {
@@ -5406,17 +5503,34 @@ const handleEnd = (y) => {
     });
 
     // visibilitychange 處理
+    let _lastVisibilityChangeTime = 0;
+    const VISIBILITY_CHANGE_THRESHOLD = 500;
+    
     document.addEventListener('visibilitychange', () => {
+        const now = Date.now();
+        if (now - _lastVisibilityChangeTime < VISIBILITY_CHANGE_THRESHOLD) {
+            console.log('[Visibility] 忽略快速重複的 visibilitychange 事件');
+            return;
+        }
+        _lastVisibilityChangeTime = now;
+        
         if (document.visibilityState === 'hidden') {
             console.log('頁面變為不可見，保存數據...');
             saveAllData();
         } else if (document.visibilityState === 'visible') {
-            const preferredFullscreen = localStorage.getItem('sx_fullscreen_preferred');
-            if (preferredFullscreen === 'true' && window.SxBrowserCompat) {
-                const isCurrentlyFullscreen = window.SxBrowserCompat.isFullscreen();
-                if (!isCurrentlyFullscreen) {
-                    console.log('[Fullscreen] 恢復全螢幕模式...');
-                    window.SxBrowserCompat.requestFullscreen().catch(() => {});
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                          window.navigator.standalone === true;
+            
+            if (!isIOS || !isPWA) {
+                const preferredFullscreen = localStorage.getItem('sx_fullscreen_preferred');
+                if (preferredFullscreen === 'true' && window.SxBrowserCompat) {
+                    const isCurrentlyFullscreen = window.SxBrowserCompat.isFullscreen();
+                    if (!isCurrentlyFullscreen) {
+                        console.log('[Fullscreen] 恢復全螢幕模式...');
+                        window.SxBrowserCompat.requestFullscreen().catch(() => {});
+                    }
                 }
             }
         }
@@ -5912,5 +6026,10 @@ const handleEnd = (y) => {
         }
     }
     
-    init();
+    if (window.__sxiphoneInitialized) {
+        console.warn('[Main] 檢測到重複初始化，跳過');
+    } else {
+        window.__sxiphoneInitialized = true;
+        init();
+    }
 })();
