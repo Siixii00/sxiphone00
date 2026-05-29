@@ -39,27 +39,68 @@ class UnifiedStorageManager {
     if (typeof localforage !== 'undefined') {
       console.log('[UnifiedStorageManager] 使用 localforage 作為備用儲存');
       this.sxStorage = {
-        init: async () => { await localforage.ready(); },
-        setItem: async (k, v) => { await localforage.setItem(k, v); },
-        getItem: async (k) => { return await localforage.getItem(k); },
-        saveSetting: async (k, v) => { await localforage.setItem(`setting_${k}`, v); },
-        getSetting: async (k) => { return await localforage.getItem(`setting_${k}`); },
+        init: async () => { 
+          await localforage.ready(); 
+          this.chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+          });
+        },
+        setItem: async (k, v) => { 
+          await localforage.setItem(k, v); 
+          await this._syncToPersistedData(k, v);
+        },
+        getItem: async (k) => { 
+          let value = await localforage.getItem(k);
+          if (value === null || value === undefined) {
+            const persistedData = await this._getPersistedData();
+            if (persistedData && persistedData[k] !== undefined) {
+              value = persistedData[k];
+            }
+          }
+          return value;
+        },
+        saveSetting: async (k, v) => { 
+          await localforage.setItem(`setting_${k}`, v); 
+          await this._syncToPersistedData(`setting_${k}`, v);
+        },
+        getSetting: async (k) => { 
+          return await localforage.getItem(`setting_${k}`); 
+        },
         exportAllData: async () => {
-          const data = { localStorage: {}, localforage: {}, version: '2.0', exportedAt: new Date().toISOString() };
+          const data = { 
+            localStorage: {}, 
+            localforage: {}, 
+            persistedData: null, 
+            version: '3.0', 
+            exportedAt: new Date().toISOString() 
+          };
+          
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith('sx_')) {
               data.localStorage[key] = localStorage.getItem(key);
             }
           }
+          
           try {
             const keys = await localforage.keys();
             for (const key of keys) {
-              if (key.startsWith('sx_') || key.startsWith('setting_')) {
+              if (key.startsWith('sx_') || key.startsWith('setting_') || key.startsWith('api_')) {
                 data.localforage[key] = await localforage.getItem(key);
               }
             }
           } catch (e) {}
+          
+          try {
+            const chatDataStore = localforage.createInstance({ name: 'sxiphone', storeName: 'chatData' });
+            const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+            if (persistedData) {
+              data.persistedData = persistedData;
+              console.log('[UnifiedStorageManager] 匯出 persistedData 完成，包含 keys:', Object.keys(persistedData));
+            }
+          } catch (e) {}
+          
           return data;
         },
         importAllData: async (d) => {
@@ -73,6 +114,13 @@ class UnifiedStorageManager {
               await localforage.setItem(k, v);
             }
           }
+          if (d.persistedData) {
+            try {
+              const chatDataStore = localforage.createInstance({ name: 'sxiphone', storeName: 'chatData' });
+              await chatDataStore.setItem('sx_app_persisted_data', d.persistedData);
+              console.log('[UnifiedStorageManager] 匯入 persistedData 完成');
+            } catch (e) {}
+          }
           return { success: true };
         }
       };
@@ -81,6 +129,40 @@ class UnifiedStorageManager {
     }
     console.warn('[UnifiedStorageManager] sxStorage 未初始化');
     return false;
+  }
+
+  async _syncToPersistedData(key, value) {
+    if (typeof localforage === 'undefined') return;
+    try {
+      if (!this.chatDataStore) {
+        this.chatDataStore = localforage.createInstance({
+          name: 'sxiphone',
+          storeName: 'chatData'
+        });
+      }
+      const existingData = await this.chatDataStore.getItem('sx_app_persisted_data') || {};
+      existingData[key] = value;
+      existingData.lastSaved = Date.now();
+      await this.chatDataStore.setItem('sx_app_persisted_data', existingData);
+    } catch (e) {
+      console.warn('[UnifiedStorageManager] _syncToPersistedData 失敗:', e);
+    }
+  }
+
+  async _getPersistedData() {
+    if (typeof localforage === 'undefined') return null;
+    try {
+      if (!this.chatDataStore) {
+        this.chatDataStore = localforage.createInstance({
+          name: 'sxiphone',
+          storeName: 'chatData'
+        });
+      }
+      return await this.chatDataStore.getItem('sx_app_persisted_data') || {};
+    } catch (e) {
+      console.warn('[UnifiedStorageManager] _getPersistedData 失敗:', e);
+      return null;
+    }
   }
 
   async setItem(key, value) {

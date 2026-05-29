@@ -393,13 +393,11 @@ async function saveAll() {
     const lang = document.getElementById('langSelect')?.value || 'zh-Hant';
     const region = document.getElementById('regionInput')?.value || '';
     
-    // 從表單元素讀取 user 資料，但只有在有值時才使用，否則保留 localStorage 原值
     const formUserPers = document.getElementById('maskPersonality')?.value || '';
     const formUserBG = document.getElementById('maskBackground')?.value || '';
     const formUserName = document.getElementById('maskNameInput')?.value || '';
     const formUserAvatar = document.getElementById('avatarUrlInput')?.value || '';
     
-    // 智能合併：表單有值時用表單值，否則用 localStorage 原值
     const currentUserName = formUserName || localStorage.getItem('sx_user_name') || 'User';
     const currentUserAvatar = formUserAvatar || localStorage.getItem('sx_user_avatar') || '';
     const currentUserPers = formUserPers || localStorage.getItem('sx_user_personality') || '';
@@ -412,7 +410,14 @@ async function saveAll() {
         'sx_user_name': currentUserName,
         'sx_user_avatar': currentUserAvatar,
         'sx_user_personality': currentUserPers,
-        'sx_user_background': currentUserBG
+        'sx_user_background': currentUserBG,
+        'sx_user_likes': localStorage.getItem('sx_user_likes') || '',
+        'sx_user_taboos': localStorage.getItem('sx_user_taboos') || '',
+        'sx_user_status': localStorage.getItem('sx_user_status') || '',
+        'sx_char_name': localStorage.getItem('sx_char_name') || '',
+        'sx_char_avatar': localStorage.getItem('sx_char_avatar') || '',
+        'sx_char_personality': localStorage.getItem('sx_char_personality') || '',
+        'sx_char_background': localStorage.getItem('sx_char_background') || ''
     };
 
     for (const [key, value] of Object.entries(smallKeys)) {
@@ -438,17 +443,59 @@ async function saveAll() {
         for (const [key, value] of Object.entries(largeData)) {
             localStorage.setItem(key, JSON.stringify(value));
         }
-        if (typeof localforage !== 'undefined') {
-            try {
-                await localforage.setItem('sx_app_persisted_data', {
-                    masks, apis, activeApiIndex, lang, region,
-                    userName: currentUserName, userAvatar: currentUserAvatar,
-                    userPersonality: currentUserPers, userBackground: currentUserBG,
-                    ...wbParts
-                });
-            } catch (e) {
-                console.error("IndexedDB 寫入失敗", e);
+    }
+    
+    if (typeof localforage !== 'undefined') {
+        try {
+            const chatDataStore = localforage.createInstance({
+                name: 'sxiphone',
+                storeName: 'chatData'
+            });
+            const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+            
+            const sxCharacters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
+            const sxUsers = JSON.parse(localStorage.getItem('sx_users') || '[]');
+            const sxChatSessions = existingData.sx_chat_sessions || [];
+            
+            const newData = {
+                ...existingData,
+                ...smallKeys,
+                masks,
+                apis,
+                activeApiIndex,
+                lang,
+                region,
+                userName: currentUserName,
+                userAvatar: currentUserAvatar,
+                userPersonality: currentUserPers,
+                userBackground: currentUserBG,
+                userLikes: smallKeys['sx_user_likes'],
+                userTaboos: smallKeys['sx_user_taboos'],
+                userStatus: smallKeys['sx_user_status'],
+                charName: smallKeys['sx_char_name'],
+                charAvatar: smallKeys['sx_char_avatar'],
+                charPersonality: smallKeys['sx_char_personality'],
+                charBackground: smallKeys['sx_char_background'],
+                sx_characters: sxCharacters,
+                sx_users: sxUsers,
+                sx_chat_sessions: sxChatSessions,
+                ...largeData,
+                lastSaved: Date.now(),
+                ...wbParts
+            };
+            
+            await chatDataStore.setItem('sx_app_persisted_data', newData);
+            
+            for (const [key, value] of Object.entries(smallKeys)) {
+                await localforage.setItem(key, value);
             }
+            for (const [key, value] of Object.entries(largeData)) {
+                await localforage.setItem(key, value);
+            }
+            
+            console.log('[Settings] 已同步所有設定至 IndexedDB，包含 keys:', Object.keys(newData));
+        } catch (e) {
+            console.error('[Settings] IndexedDB 寫入失敗', e);
         }
     }
 
@@ -4677,16 +4724,56 @@ function handleImport(e) {
             if (data.localStorage) {
                 for (const [key, value] of Object.entries(data.localStorage)) {
                     if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
-                        localStorage.setItem(key, value);
+                        if (typeof value === 'object') {
+                            localStorage.setItem(key, JSON.stringify(value));
+                        } else {
+                            localStorage.setItem(key, String(value));
+                        }
                     }
                 }
             }
             
             if (data.localforage && typeof localforage !== 'undefined') {
                 try {
-                    await localforage.setItem('sx_app_persisted_data', data.localforage);
+                    for (const [key, value] of Object.entries(data.localforage)) {
+                        await localforage.setItem(key, value);
+                    }
                 } catch (lfErr) {
                     console.warn('[Import] localforage restore failed:', lfErr);
+                }
+            }
+
+            if (data.persistedData && typeof localforage !== 'undefined') {
+                try {
+                    const chatDataStore = localforage.createInstance({
+                        name: 'sxiphone',
+                        storeName: 'chatData'
+                    });
+                    const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                    const mergedData = { ...existingData, ...data.persistedData };
+                    await chatDataStore.setItem('sx_app_persisted_data', mergedData);
+                    console.log('[Import] persistedData 匯入完成，包含 keys:', Object.keys(mergedData));
+                    
+                    if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
+                    if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
+                    if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
+                } catch (pdErr) {
+                    console.warn('[Import] persistedData restore failed:', pdErr);
+                }
+            }
+            
+            if (data.chatSessions && typeof localforage !== 'undefined') {
+                try {
+                    const chatDataStore = localforage.createInstance({
+                        name: 'sxiphone',
+                        storeName: 'chatData'
+                    });
+                    const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                    existingData.sx_chat_sessions = data.chatSessions;
+                    await chatDataStore.setItem('sx_app_persisted_data', existingData);
+                    console.log('[Import] chatSessions 匯入完成:', data.chatSessions.length, '個');
+                } catch (csErr) {
+                    console.warn('[Import] chatSessions restore failed:', csErr);
                 }
             }
             
@@ -4700,7 +4787,7 @@ function handleImport(e) {
             
             saveAll();
             renderMasks(); 
-            renderApis();
+            renderApis(); 
             
             alert('✅ 備份已導入！\n\n建議重新整理頁面以確保所有資料正確載入。');
         } catch (err) { 

@@ -785,15 +785,36 @@ window.addEventListener('pageshow', async (event) => {
             
             const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
             if (persistedData) {
-                if (persistedData.userName) localStorage.setItem('sx_user_name', persistedData.userName);
-                if (persistedData.userAvatar) localStorage.setItem('sx_user_avatar', persistedData.userAvatar);
-                if (persistedData.userPersonality) localStorage.setItem('sx_user_personality', persistedData.userPersonality);
-                if (persistedData.userBackground) localStorage.setItem('sx_user_background', persistedData.userBackground);
+                console.log('[Chat] 從 IndexedDB 讀取 persistedData，包含 keys:', Object.keys(persistedData));
                 
-                if (persistedData.charName) localStorage.setItem('sx_char_name', persistedData.charName);
-                if (persistedData.charAvatar) localStorage.setItem('sx_char_avatar', persistedData.charAvatar);
-                if (persistedData.charPersonality) localStorage.setItem('sx_char_personality', persistedData.charPersonality);
-                if (persistedData.charBackground) localStorage.setItem('sx_char_background', persistedData.charBackground);
+                const stringFields = [
+                    'userName', 'userAvatar', 'userPersonality', 'userBackground',
+                    'userLikes', 'userTaboos', 'userStatus',
+                    'charName', 'charAvatar', 'charPersonality', 'charBackground'
+                ];
+                
+                for (const field of stringFields) {
+                    if (persistedData[field]) {
+                        const lsKey = field.startsWith('user') ? `sx_${field}` : `sx_${field}`;
+                        localStorage.setItem(lsKey, persistedData[field]);
+                    }
+                }
+                
+                if (persistedData.sx_characters && Array.isArray(persistedData.sx_characters)) {
+                    localStorage.setItem('sx_characters', JSON.stringify(persistedData.sx_characters));
+                }
+                
+                if (persistedData.sx_users && Array.isArray(persistedData.sx_users)) {
+                    localStorage.setItem('sx_users', JSON.stringify(persistedData.sx_users));
+                }
+                
+                if (persistedData.masks && Array.isArray(persistedData.masks)) {
+                    localStorage.setItem('sx_masks', JSON.stringify(persistedData.masks));
+                }
+                
+                if (persistedData.apis && Array.isArray(persistedData.apis)) {
+                    localStorage.setItem('api_configs', JSON.stringify(persistedData.apis));
+                }
                 
                 if (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0) {
                     _chatSessionsCache = persistedData.sx_chat_sessions;
@@ -812,6 +833,14 @@ window.addEventListener('pageshow', async (event) => {
                 
                 if (persistedData.sx_chat_active) {
                     localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
+                }
+                
+                if (persistedData.sxiphone_lang) {
+                    localStorage.setItem('sxiphone_lang', persistedData.sxiphone_lang);
+                }
+                
+                if (persistedData.activeApiIndex !== undefined) {
+                    localStorage.setItem('sx_active_api', persistedData.activeApiIndex.toString());
                 }
             }
         } catch (e) {
@@ -1324,23 +1353,21 @@ async function saveCharSettingsToIndexedDB(charData) {
     if (typeof localforage === 'undefined') return;
     
     try {
-        if (!localforage._config || !localforage._config.storeName) {
-            localforage.config({
-                name: 'sxiphone',
-                storeName: 'chatData',
-                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
-            });
-        }
-        
-        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-        await localforage.setItem('sx_app_persisted_data', {
-            ...existingData,
-            charName: charData.name || existingData.charName,
-            charAvatar: charData.avatar || existingData.charAvatar,
-            charPersonality: charData.personality || existingData.charPersonality,
-            charBackground: charData.background || existingData.charBackground,
-            lastSaved: Date.now()
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
         });
+        const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+        const newData = {
+            ...existingData,
+            charName: charData.name || localStorage.getItem('sx_char_name') || existingData.charName || '',
+            charAvatar: charData.avatar || localStorage.getItem('sx_char_avatar') || existingData.charAvatar || '',
+            charPersonality: charData.personality || localStorage.getItem('sx_char_personality') || existingData.charPersonality || '',
+            charBackground: charData.background || localStorage.getItem('sx_char_background') || existingData.charBackground || '',
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
+            lastSaved: Date.now()
+        };
+        await chatDataStore.setItem('sx_app_persisted_data', newData);
         console.log('[Storage] 角色設定已保存至 IndexedDB');
     } catch (e) {
         console.warn('[Storage] 角色設定儲存到 IndexedDB 失敗:', e);
@@ -1351,7 +1378,11 @@ async function loadCharSettingsFromIndexedDB() {
     if (typeof localforage === 'undefined') return null;
     
     try {
-        const persistedData = await localforage.getItem('sx_app_persisted_data');
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+        });
+        const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
         if (persistedData) {
             return {
                 name: persistedData.charName,
@@ -1370,23 +1401,25 @@ async function saveUserSettingsToIndexedDB(userData) {
     if (typeof localforage === 'undefined') return;
     
     try {
-        if (!localforage._config || !localforage._config.storeName) {
-            localforage.config({
-                name: 'sxiphone',
-                storeName: 'chatData',
-                driver: [localforage.INDEXEDDB, localforage.WEBSQL, localforage.LOCALSTORAGE]
-            });
-        }
-        
-        const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-        await localforage.setItem('sx_app_persisted_data', {
-            ...existingData,
-            userName: userData.name || existingData.userName,
-            userAvatar: userData.avatar || existingData.userAvatar,
-            userPersonality: userData.personality || existingData.userPersonality,
-            userBackground: userData.background || existingData.userBackground,
-            lastSaved: Date.now()
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
         });
+        const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+        const newData = {
+            ...existingData,
+            userName: userData.name || localStorage.getItem('sx_user_name') || existingData.userName || 'User',
+            userAvatar: userData.avatar || localStorage.getItem('sx_user_avatar') || existingData.userAvatar || '',
+            userPersonality: userData.personality || localStorage.getItem('sx_user_personality') || existingData.userPersonality || '',
+            userBackground: userData.background || localStorage.getItem('sx_user_background') || existingData.userBackground || '',
+            userLikes: localStorage.getItem('sx_user_likes') || existingData.userLikes || '',
+            userTaboos: localStorage.getItem('sx_user_taboos') || existingData.userTaboos || '',
+            userStatus: localStorage.getItem('sx_user_status') || existingData.userStatus || '',
+            sx_users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
+            lastSaved: Date.now()
+        };
+        await chatDataStore.setItem('sx_app_persisted_data', newData);
         console.log('[Storage] 用戶設定已保存至 IndexedDB');
     } catch (e) {
         console.warn('[Storage] 用戶設定儲存到 IndexedDB 失敗:', e);
@@ -1397,13 +1430,20 @@ async function loadUserSettingsFromIndexedDB() {
     if (typeof localforage === 'undefined') return null;
     
     try {
-        const persistedData = await localforage.getItem('sx_app_persisted_data');
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+        });
+        const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
         if (persistedData) {
             return {
                 name: persistedData.userName,
                 avatar: persistedData.userAvatar,
                 personality: persistedData.userPersonality,
-                background: persistedData.userBackground
+                background: persistedData.userBackground,
+                likes: persistedData.userLikes,
+                taboos: persistedData.userTaboos,
+                status: persistedData.userStatus
             };
         }
     } catch (e) {
@@ -2036,6 +2076,10 @@ function initUserUI() {
     const userNameInput = document.getElementById('set-user-name');
     const userAvatarPreview = document.getElementById('preview-user-avatar');
     const userBgInput = document.getElementById('set-user-background');
+    const userLikesInput = document.getElementById('set-likes');
+    const userTaboosInput = document.getElementById('set-taboos');
+    const userStatusInput = document.getElementById('set-status');
+    const savePrefsBtn = document.getElementById('save-prefs');
     
     if (userNameInput) {
         const newUserNameInput = userNameInput.cloneNode(true);
@@ -2071,10 +2115,97 @@ function initUserUI() {
         });
     }
     
+    if (userLikesInput) {
+        const savedLikes = localStorage.getItem('sx_user_likes') || '';
+        userLikesInput.value = savedLikes;
+    }
+    
+    if (userTaboosInput) {
+        const savedTaboos = localStorage.getItem('sx_user_taboos') || '';
+        userTaboosInput.value = savedTaboos;
+    }
+    
+    if (userStatusInput) {
+        const savedStatus = localStorage.getItem('sx_user_status') || '';
+        userStatusInput.value = savedStatus;
+    }
+    
+    if (savePrefsBtn) {
+        savePrefsBtn.addEventListener('click', () => {
+            const likes = userLikesInput?.value || '';
+            const taboos = userTaboosInput?.value || '';
+            const status = userStatusInput?.value || '';
+            
+            localStorage.setItem('sx_user_likes', likes);
+            localStorage.setItem('sx_user_taboos', taboos);
+            localStorage.setItem('sx_user_status', status);
+            
+            saveUserPreferencesToIndexedDB({ likes, taboos, status });
+            
+            console.log('[Chat] 個人偏好設定已儲存');
+            alert('✅ 個人設定已更新');
+        });
+    }
+    
     const userLabels = document.querySelectorAll('.mine .user-name');
     userLabels.forEach(label => label.innerText = user.name || 'User');
 
     console.log("用戶 UI 初始化完成:", user.name, user.avatar ? '有頭貼' : '無頭貼');
+}
+
+async function saveUserPreferencesToIndexedDB(prefs) {
+    if (typeof localforage === 'undefined') return;
+    
+    try {
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+        });
+        const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+        const newData = {
+            ...existingData,
+            userLikes: prefs.likes || localStorage.getItem('sx_user_likes') || existingData.userLikes || '',
+            userTaboos: prefs.taboos || localStorage.getItem('sx_user_taboos') || existingData.userTaboos || '',
+            userStatus: prefs.status || localStorage.getItem('sx_user_status') || existingData.userStatus || '',
+            userName: localStorage.getItem('sx_user_name') || existingData.userName || 'User',
+            userAvatar: localStorage.getItem('sx_user_avatar') || existingData.userAvatar || '',
+            userPersonality: localStorage.getItem('sx_user_personality') || existingData.userPersonality || '',
+            userBackground: localStorage.getItem('sx_user_background') || existingData.userBackground || '',
+            charName: localStorage.getItem('sx_char_name') || existingData.charName || '',
+            charAvatar: localStorage.getItem('sx_char_avatar') || existingData.charAvatar || '',
+            charPersonality: localStorage.getItem('sx_char_personality') || existingData.charPersonality || '',
+            charBackground: localStorage.getItem('sx_char_background') || existingData.charBackground || '',
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
+            sx_users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
+            lastSaved: Date.now()
+        };
+        await chatDataStore.setItem('sx_app_persisted_data', newData);
+        console.log('[Storage] 個人偏好與角色設定已保存至 IndexedDB');
+    } catch (e) {
+        console.warn('[Storage] 個人偏好儲存到 IndexedDB 失敗:', e);
+    }
+}
+
+async function loadUserPreferencesFromIndexedDB() {
+    if (typeof localforage === 'undefined') return null;
+    
+    try {
+        const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+        });
+        const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+        if (persistedData) {
+            return {
+                likes: persistedData.userLikes,
+                taboos: persistedData.userTaboos,
+                status: persistedData.userStatus
+            };
+        }
+    } catch (e) {
+        console.warn('[Storage] 從 IndexedDB 載入個人偏好失敗:', e);
+    }
+    return null;
 }
 
 function updateUserToList() {
@@ -7987,9 +8118,14 @@ function renderHistory() {
             appendMsg(type, m.content, { type: 'image', url: m.imageUrl, name: m.content?.replace('[表情: ', '').replace(']', '') || 'emoji', timestamp, historyIndex: historyIdx });
         } else if ((m.generationMode === 'multi' || m.generationMode === 'multi-text') && Array.isArray(m.splitMessages) && m.splitMessages.length > 0) {
             m.splitMessages.forEach((msg, splitIdx) => {
-                const trimmedMsg = msg.trim();
-                if (trimmedMsg) {
-                    appendMsg(type, trimmedMsg, { timestamp, historyIndex: historyIdx, splitIndex: splitIdx });
+                let displayMsg = msg.trim();
+                if (displayMsg) {
+                    if (m.generationMode === 'multi-text') {
+                        displayMsg = displayMsg.replace(/^「(.+)」$/s, '$1');
+                        displayMsg = displayMsg.replace(/^"(.+)"$/s, '$1');
+                        displayMsg = displayMsg.replace(/^'(.+)'$/s, '$1');
+                    }
+                    appendMsg(type, displayMsg, { timestamp, historyIndex: historyIdx, splitIndex: splitIdx });
                 }
             });
         } else {
@@ -8099,10 +8235,16 @@ async function handleTriggerAI() {
         const generationMode = ChatEngine.getGenerationMode();
         if (generationMode === 'multi' || generationMode === 'multi-text') {
             const messages = aiReply.split('|||SPLIT|||').filter(msg => msg.trim());
-            for (const msg of messages) {
-                const trimmedMsg = msg.trim();
-                if (trimmedMsg) {
-                    appendMsg('other', trimmedMsg);
+            for (let i = 0; i < messages.length; i++) {
+                let msg = messages[i].trim();
+                if (msg) {
+                    if (generationMode === 'multi-text') {
+                        msg = msg.replace(/^「(.+)」$/s, '$1');
+                        msg = msg.replace(/^"(.+)"$/s, '$1');
+                        msg = msg.replace(/^'(.+)'$/s, '$1');
+                        messages[i] = msg;
+                    }
+                    appendMsg('other', msg);
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
             }

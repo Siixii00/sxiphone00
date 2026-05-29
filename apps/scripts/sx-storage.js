@@ -671,8 +671,9 @@ async exportAllData() {
       media: [],
       localStorage: {},
       localforage: {},
+      persistedData: null,
       exportedAt: new Date().toISOString(),
-      version: '2.0'
+      version: '3.0'
     };
 
     const kvData = await this._getAllFromStore(STORES.KEY_VALUE);
@@ -693,7 +694,7 @@ async exportAllData() {
     
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts')) {
+      if (key && (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts' || key.startsWith('sxiphone'))) {
         const value = localStorage.getItem(key);
         try {
           data.localStorage[key] = JSON.parse(value);
@@ -708,7 +709,7 @@ async exportAllData() {
         await localforage.ready();
         const keys = await this._getLocalforageKeys();
         for (const key of keys) {
-          if (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts') {
+          if (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts' || key.startsWith('setting_')) {
             const value = await localforage.getItem(key);
             data.localforage[key] = value;
           }
@@ -716,7 +717,31 @@ async exportAllData() {
       } catch (e) {
         console.warn('[SXStorage] 匯出 localforage 失敗:', e);
       }
+      
+      try {
+        const chatDataStore = localforage.createInstance({
+          name: 'sxiphone',
+          storeName: 'chatData'
+        });
+        const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+        if (persistedData) {
+          data.persistedData = persistedData;
+          console.log('[SXStorage] 匯出 persistedData 完成，包含 keys:', Object.keys(persistedData));
+        }
+      } catch (e) {
+        console.warn('[SXStorage] 匯出 chatData persistedData 失敗:', e);
+      }
     }
+
+    console.log('[SXStorage] 匯出完成，包含:', {
+      keyValue: Object.keys(data.keyValue).length,
+      chatSessions: data.chatSessions.length,
+      characters: data.characters.length,
+      memories: data.memories.length,
+      localStorage: Object.keys(data.localStorage).length,
+      localforage: Object.keys(data.localforage).length,
+      persistedData: data.persistedData ? Object.keys(data.persistedData).length : 0
+    });
 
     return data;
   }
@@ -861,6 +886,37 @@ async exportAllData() {
         await localforage.setItem('sx_users', data.userList);
       }
       count++;
+    }
+
+    if (data.persistedData && typeof localforage !== 'undefined') {
+      try {
+        const chatDataStore = localforage.createInstance({
+          name: 'sxiphone',
+          storeName: 'chatData'
+        });
+        await chatDataStore.setItem('sx_app_persisted_data', data.persistedData);
+        console.log('[SXStorage] 匯入 persistedData 完成，包含 keys:', Object.keys(data.persistedData));
+        
+        if (data.persistedData.userName) localStorage.setItem('sx_user_name', data.persistedData.userName);
+        if (data.persistedData.userAvatar) localStorage.setItem('sx_user_avatar', data.persistedData.userAvatar);
+        if (data.persistedData.userPersonality) localStorage.setItem('sx_user_personality', data.persistedData.userPersonality);
+        if (data.persistedData.userBackground) localStorage.setItem('sx_user_background', data.persistedData.userBackground);
+        if (data.persistedData.userLikes) localStorage.setItem('sx_user_likes', data.persistedData.userLikes);
+        if (data.persistedData.userTaboos) localStorage.setItem('sx_user_taboos', data.persistedData.userTaboos);
+        if (data.persistedData.userStatus) localStorage.setItem('sx_user_status', data.persistedData.userStatus);
+        if (data.persistedData.charName) localStorage.setItem('sx_char_name', data.persistedData.charName);
+        if (data.persistedData.charAvatar) localStorage.setItem('sx_char_avatar', data.persistedData.charAvatar);
+        if (data.persistedData.charPersonality) localStorage.setItem('sx_char_personality', data.persistedData.charPersonality);
+        if (data.persistedData.charBackground) localStorage.setItem('sx_char_background', data.persistedData.charBackground);
+        if (data.persistedData.sx_characters) localStorage.setItem('sx_characters', JSON.stringify(data.persistedData.sx_characters));
+        if (data.persistedData.sx_users) localStorage.setItem('sx_users', JSON.stringify(data.persistedData.sx_users));
+        if (data.persistedData.masks) localStorage.setItem('sx_masks', JSON.stringify(data.persistedData.masks));
+        if (data.persistedData.apis) localStorage.setItem('api_configs', JSON.stringify(data.persistedData.apis));
+        
+        count++;
+      } catch (e) {
+        console.warn('[SXStorage] 匯入 persistedData 失敗:', e);
+      }
     }
 
     this._clearCache();
