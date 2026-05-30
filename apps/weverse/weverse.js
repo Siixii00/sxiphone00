@@ -517,18 +517,13 @@ function renderActiveCommunity() {
   }
   
   if (joinedGroupIds.length === 0) {
-    activeNameEl.textContent = '歡迎來到 Weverse';
+    activeNameEl.textContent = '尚未加入社群';
     activeBioEl.textContent = '探索並加入你喜歡的藝人社群，開始追蹤他們的動態！';
     activeTypeEl.textContent = '';
     memberCountEl.textContent = '';
     onlineCountEl.textContent = '';
     storyStripEl.innerHTML = '';
-    feedEl.innerHTML = `
-      <div class="welcome-prompt">
-        <p>選擇你喜歡的藝人社群加入吧！</p>
-        <button class="primary-btn" id="welcome-explore-btn" type="button">探索社群</button>
-      </div>
-    `;
+    feedEl.innerHTML = '';
     return;
   }
   
