@@ -668,3 +668,135 @@ window.addEventListener('offline', () => {
 
 bindEvents();
 checkNetworkAndBootstrap();
+initReminderSettings();
+
+function initReminderSettings() {
+    const toggle = document.getElementById('reminder-toggle');
+    const intervalSelect = document.getElementById('reminder-interval');
+    const testBtn = document.getElementById('reminder-test-btn');
+    const statusText = document.getElementById('reminder-status-text');
+    const intervalRow = document.getElementById('reminder-interval-row');
+    
+    if (!toggle || !intervalSelect || !testBtn || !statusText) {
+        console.warn('[Weather] 找不到提醒設定 UI 元素');
+        return;
+    }
+    
+    function updateStatusDisplay() {
+        if (window.WeatherReminderScheduler) {
+            const status = window.WeatherReminderScheduler.getStatus();
+            
+            if (status.enabled) {
+                const nextTime = new Date(status.nextReminder);
+                const now = new Date();
+                const diffMs = Math.max(0, status.nextReminder - Date.now());
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins > 60) {
+                    const hours = Math.floor(diffMins / 60);
+                    const mins = diffMins % 60;
+                    statusText.textContent = `下次提醒：${hours} 小時 ${mins} 分鐘後`;
+                } else {
+                    statusText.textContent = `下次提醒：${diffMins} 分鐘後`;
+                }
+                
+                if (intervalRow) intervalRow.style.opacity = '1';
+            } else {
+                statusText.textContent = '狀態：未啟用';
+                if (intervalRow) intervalRow.style.opacity = '0.5';
+            }
+            
+            toggle.checked = status.enabled;
+        }
+    }
+    
+    const savedEnabled = localStorage.getItem('sx_weather_reminder_enabled') === '1';
+    const savedInterval = localStorage.getItem('sx_weather_reminder_interval');
+    
+    toggle.checked = savedEnabled;
+    
+    if (savedInterval) {
+        const mins = Math.floor(Number(savedInterval) / 60000);
+        const options = [30, 60, 90, 120, 180];
+        const closest = options.reduce((prev, curr) => 
+            Math.abs(curr - mins) < Math.abs(prev - mins) ? curr : prev
+        );
+        intervalSelect.value = String(closest);
+    }
+    
+    updateStatusDisplay();
+    
+    toggle.addEventListener('change', () => {
+        if (!window.WeatherReminderScheduler) {
+            console.warn('[Weather] WeatherReminderScheduler 未載入');
+            return;
+        }
+        
+        if (toggle.checked) {
+            const location = localStorage.getItem(WEATHER_STORAGE_KEY);
+            if (!location) {
+                alert('請先設定地點以啟用天氣提醒');
+                toggle.checked = false;
+                return;
+            }
+            
+            const intervalMins = Number(intervalSelect.value);
+            window.WeatherReminderScheduler.setInterval(intervalMins * 60000);
+            window.WeatherReminderScheduler.start();
+            
+            if (window.SxNotification) {
+                const permStatus = window.SxNotification.getPermissionStatus();
+                if (permStatus.supported && permStatus.permission !== 'granted') {
+                    window.SxNotification.requestSystemPermission();
+                }
+            }
+        } else {
+            window.WeatherReminderScheduler.stop();
+        }
+        
+        updateStatusDisplay();
+    });
+    
+    intervalSelect.addEventListener('change', () => {
+        if (!window.WeatherReminderScheduler) return;
+        
+        const intervalMins = Number(intervalSelect.value);
+        window.WeatherReminderScheduler.setInterval(intervalMins * 60000);
+        
+        if (toggle.checked) {
+            updateStatusDisplay();
+        }
+    });
+    
+    testBtn.addEventListener('click', () => {
+        if (!window.WeatherReminderScheduler) {
+            console.warn('[Weather] WeatherReminderScheduler 未載入');
+            return;
+        }
+        
+        const location = localStorage.getItem(WEATHER_STORAGE_KEY);
+        if (!location) {
+            alert('請先設定地點');
+            return;
+        }
+        
+        testBtn.disabled = true;
+        testBtn.textContent = '發送中...';
+        
+        window.WeatherReminderScheduler.triggerImmediateReminder()
+            .then(() => {
+                testBtn.textContent = '已發送！';
+                setTimeout(() => {
+                    testBtn.textContent = '測試提醒';
+                    testBtn.disabled = false;
+                }, 2000);
+            })
+            .catch(err => {
+                console.warn('[Weather] 測試提醒失敗:', err);
+                testBtn.textContent = '測試提醒';
+                testBtn.disabled = false;
+            });
+    });
+    
+    setInterval(updateStatusDisplay, 60000);
+}

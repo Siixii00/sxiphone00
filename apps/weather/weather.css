@@ -304,6 +304,130 @@ body {
     color: var(--text-sec);
 }
 
+.reminder-settings-section {
+    margin: 0 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.reminder-settings-section h2 {
+    font-size: 16px;
+    color: var(--text-main);
+}
+
+.reminder-settings-card {
+    padding: 16px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.reminder-toggle-row,
+.reminder-interval-row,
+.reminder-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.reminder-interval-row {
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reminder-status-row {
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+#reminder-interval {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#reminder-interval:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.secondary-btn {
+    background: rgba(79, 172, 254, 0.15);
+    border: 1px solid rgba(79, 172, 254, 0.3);
+    color: var(--accent);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.secondary-btn:hover {
+    background: rgba(79, 172, 254, 0.25);
+}
+
+.secondary-btn:active {
+    background: rgba(79, 172, 254, 0.35);
+}
+
+#reminder-status-text {
+    color: var(--text-sec);
+    font-size: 13px;
+}
+
 .empty-state {
     text-align: center;
     color: var(--text-sec);

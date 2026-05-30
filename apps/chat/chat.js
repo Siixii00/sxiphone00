@@ -887,6 +887,10 @@ window.addEventListener('pageshow', async (event) => {
         renderHistory();
     }
     
+    if (typeof loadSavedChatTheme === 'function') {
+        loadSavedChatTheme();
+    }
+    
     console.log('[Chat] pageshow - 重新載入角色設定:', displayName);
     console.log('[Chat] pageshow - 重新載入用戶設定:', userConfig.name, userConfig.avatar ? '有頭貼' : '無頭貼');
     console.log('[Chat] pageshow - 生成模式:', savedMode);

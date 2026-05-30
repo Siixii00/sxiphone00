@@ -67,6 +67,33 @@
                 <p>請到 chats 設定角色，天氣提醒將顯示在此。</p>
             </div>
         </section>
+
+        <section class="reminder-settings-section">
+            <h2>定時提醒設定</h2>
+            <div class="reminder-settings-card">
+                <div class="reminder-toggle-row">
+                    <span>啟用每小時天氣提醒</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="reminder-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="reminder-interval-row" id="reminder-interval-row">
+                    <span>提醒間隔</span>
+                    <select id="reminder-interval">
+                        <option value="30">30 分鐘</option>
+                        <option value="60" selected>1 小時</option>
+                        <option value="90">1.5 小時</option>
+                        <option value="120">2 小時</option>
+                        <option value="180">3 小時</option>
+                    </select>
+                </div>
+                <div class="reminder-status-row" id="reminder-status-row">
+                    <span id="reminder-status-text">狀態：未啟用</span>
+                    <button class="secondary-btn" id="reminder-test-btn">測試提醒</button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script src="../scripts/shared-settings.js"></script>
