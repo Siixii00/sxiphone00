@@ -4,7 +4,6 @@ const modeBtn = document.getElementById('mode-btn');
 const panels = document.querySelectorAll('.panel');
 const statusText = document.getElementById('status-text');
 const homeBack = document.getElementById('home-back');
-const bottomBack = document.getElementById('bottom-back');
 const historyList = document.getElementById('history-list');
 const historyRefresh = document.getElementById('history-refresh');
 const charSelect = document.getElementById('char-select');
@@ -13,8 +12,6 @@ const detailSearchQuery = document.getElementById('detail-search-query');
 const detailTime = document.getElementById('detail-time');
 const detailSummary = document.getElementById('detail-summary');
 const detailPageContent = document.getElementById('detail-page-content');
-const quickTiles = Array.from(document.querySelectorAll('.quick-tile'));
-const incognitoQuickGrid = document.getElementById('incognito-quick-grid');
 const newTabBtn = document.getElementById('new-tab-btn');
 const historyModal = document.getElementById('history-modal');
 const historyModalClose = document.getElementById('history-modal-close');
@@ -42,6 +39,9 @@ const bookmarkUrlInput = document.getElementById('bookmark-url');
 const bookmarkFolderSelect = document.getElementById('bookmark-folder');
 const bookmarkSaveBtn = document.getElementById('bookmark-save');
 
+const normalQuickGrid = document.getElementById('normal-quick-grid');
+const incognitoQuickGrid = document.getElementById('incognito-quick-grid');
+
 let charProfiles = [];
 let historyEntries = [];
 let chromeUserProfiles = [];
@@ -51,13 +51,25 @@ let bookmarks = [];
 const CHROME_BOOKMARKS_KEY = 'sx_chrome_bookmarks';
 const CHROME_HISTORY_KEY = 'sx_chrome_history';
 
+const INCOGNITO_SITES = [
+  { id: 'nhentai', label: 'nhentai', icon: 'NH', query: 'nhentai 同人誌 漫畫', title: 'nhentai 同人誌' },
+  { id: 'av.com', label: 'av.com', icon: 'AV', query: 'av.com 成人影片', title: 'av.com 影片' },
+  { id: 'dreams', label: 'dreams', icon: 'DR', query: 'dreams 夢境 幻想', title: 'dreams 幻想世界' }
+];
+
+const USER_INTEREST_SITES = [
+  { id: 'user-interest-0', label: '為你推薦', icon: '推', type: 'recommend' },
+  { id: 'user-interest-1', label: '熱門內容', icon: '熱', type: 'trending' },
+  { id: 'user-interest-2', label: '新鮮事', icon: '新', type: 'fresh' },
+  { id: 'user-interest-3', label: '趣味發現', icon: '趣', type: 'fun' }
+];
+
 const saveChromeData = () => {
   try {
     localStorage.setItem('sx_chrome_user_profile', JSON.stringify(chromeUserProfiles));
     localStorage.setItem('sx_chrome_worldbooks', JSON.stringify(chromeWorldbookMounts));
     localStorage.setItem(CHROME_BOOKMARKS_KEY, JSON.stringify(bookmarks));
     localStorage.setItem(CHROME_HISTORY_KEY, JSON.stringify(historyEntries));
-    console.log("Chrome數據已保存至 localStorage");
   } catch (e) {
     console.error("保存Chrome數據失敗:", e);
   }
@@ -170,23 +182,6 @@ const escapeHTML = (str = '') => String(str)
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;');
 
-const saveToPersistentStorage = async () => {
-  saveChromeData();
-  if (typeof localforage !== 'undefined') {
-    try {
-      const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-      await localforage.setItem('sx_app_persisted_data', {
-        ...existingData,
-        sx_chrome_user_profile: chromeUserProfiles,
-        sx_chrome_worldbooks: chromeWorldbookMounts
-      });
-      console.log("Chrome數據已保存至 IndexedDB");
-    } catch (e) {
-      console.error("IndexedDB 保存失敗:", e);
-    }
-  }
-};
-
 window.addEventListener('pagehide', () => {
   saveChromeData();
 });
@@ -203,29 +198,6 @@ window.addEventListener('message', (event) => {
   }
 });
 
-const INCOGNITO_SITES = [
-  { label: 'nhentai', icon: 'NH' },
-  { label: 'av.com', icon: 'AV' },
-  { label: 'dreams', icon: 'DR' }
-];
-
-const storeQuickDefaults = () => {
-  quickTiles.forEach(tile => {
-    if (!tile.dataset.defaultTitle) {
-      tile.dataset.defaultTitle = tile.querySelector('.tile-title')?.textContent || '';
-    }
-    if (!tile.dataset.defaultIcon) {
-      tile.dataset.defaultIcon = tile.querySelector('.tile-icon')?.textContent || '';
-    }
-  });
-};
-
-const applyQuickTiles = (mode) => {
-  if (incognitoQuickGrid) {
-    incognitoQuickGrid.hidden = mode !== 'incognito';
-  }
-};
-
 const ADULT_EXPLICIT_KEYWORDS = ['成年', '中年', '大叔', '姐姐', '人妻', '成熟', '情慾', '成人', '18+', 'AV', '情色', '尺度', '慾望', '放縱', '激情'];
 
 const isIncognito = () => app?.dataset.mode === 'incognito';
@@ -236,6 +208,18 @@ const getAdultLevel = (char) => {
   const explicit = ADULT_EXPLICIT_KEYWORDS.some(key => persona.includes(key.toLowerCase()));
   return explicit ? 'explicit' : 'suggestive';
 };
+
+function getUserConfig() {
+  const userName = localStorage.getItem('sx_user_name') || 'User';
+  const userPersonality = localStorage.getItem('sx_user_personality') || '';
+  const userBackground = localStorage.getItem('sx_user_background') || '';
+  
+  return {
+    name: userName,
+    personality: userPersonality,
+    background: userBackground
+  };
+}
 
 function switchView(view) {
   app.dataset.view = view;
@@ -257,9 +241,230 @@ function toggleMode() {
   }
   const hero = document.getElementById('incognito-hero');
   if (hero) hero.hidden = next !== 'incognito';
-  applyQuickTiles(next);
-  const active = charSelect?.value || '';
-  if (active) generateHistoryForChar(active);
+  
+  if (normalQuickGrid) normalQuickGrid.hidden = next === 'incognito';
+  if (incognitoQuickGrid) incognitoQuickGrid.hidden = next !== 'incognito';
+  
+  bindQuickTileEvents();
+}
+
+function bindQuickTileEvents() {
+  if (!isIncognito()) {
+    const normalTiles = normalQuickGrid?.querySelectorAll('.quick-tile');
+    normalTiles?.forEach((tile, index) => {
+      tile.onclick = () => {
+        const site = USER_INTEREST_SITES[index];
+        if (site) {
+          openUserInterestSite(site);
+        }
+      };
+    });
+  } else {
+    const incognitoTiles = incognitoQuickGrid?.querySelectorAll('.quick-tile');
+    incognitoTiles?.forEach((tile, index) => {
+      tile.onclick = () => {
+        const site = INCOGNITO_SITES[index];
+        if (site) {
+          openIncognitoSite(site);
+        }
+      };
+    });
+  }
+}
+
+function getApiConfig() {
+  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+  const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
+  return apis[activeIndex] || apis[0];
+}
+
+async function openUserInterestSite(site) {
+  if (!site) return;
+  
+  const config = getApiConfig();
+  if (!config || !config.url) {
+    alert('請先設定 API 才能生成內容');
+    return;
+  }
+  
+  const userConfig = getUserConfig();
+  const userName = userConfig.name || 'User';
+  const userPersonality = userConfig.personality || '';
+  const userBackground = userConfig.background || '';
+  
+  switchView('history');
+  historyList.innerHTML = '<div class="status">正在載入內容...</div>';
+  
+  const url = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+  
+  const typePrompts = {
+    recommend: `根據用戶的興趣和個性，推薦他們可能感興趣的內容`,
+    trending: `生成目前熱門的話題和趨勢內容`,
+    fresh: `生成新穎、有趣、剛出現的新鮮事`,
+    fun: `生成趣味、娛樂性的發現和內容`
+  };
+  
+  const systemPrompt = `你是一個模擬瀏覽器內容生成器。請根據用戶的個性、興趣和背景，生成符合該用戶會感興趣的內容。
+
+用戶名稱：${userName}
+用戶個性：${userPersonality}
+用戶背景：${userBackground}
+
+內容類型：${typePrompts[site.type] || typePrompts.recommend}
+
+重要規則：
+1. 內容必須符合用戶的興趣和個性
+2. 內容應該多樣化，包含不同領域
+3. 每個項目都要有標題和簡短描述
+4. 可以包含新聞、娛樂、知識、生活等不同類型
+
+請用繁體中文輸出 JSON 陣列格式，每個項目包含：
+- title: 內容標題
+- description: 簡短描述（為什麼用戶會感興趣）
+- category: 分類（如：新聞、娛樂、知識、生活等）
+
+請生成 4-6 個內容項目，直接輸出 JSON 陣列，不要其他說明。`;
+
+  const userPrompt = `請為用戶「${userName}」生成${site.label}內容。`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': config.key ? `Bearer ${config.key}` : undefined
+      },
+      body: JSON.stringify({ 
+        model: config.model || 'gpt-3.5-turbo', 
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ], 
+        temperature: 0.9 
+      })
+    });
+    
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '生成內容失敗';
+    
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    let items = [];
+    
+    if (jsonMatch) {
+      try {
+        items = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        items = [];
+      }
+    }
+    
+    if (items.length > 0) {
+      historyList.innerHTML = `
+        <div class="incognito-content-page">
+          <div class="incognito-site-header">
+            <div class="site-icon">${site.icon}</div>
+            <div class="site-title">${site.label}</div>
+          </div>
+          <div class="interest-items">
+            ${items.map(item => `
+              <div class="interest-item">
+                <div class="interest-category">${item.category || '推薦'}</div>
+                <div class="interest-title">${item.title}</div>
+                <div class="interest-desc">${item.description}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      historyList.innerHTML = `
+        <div class="incognito-content-page">
+          <div class="incognito-site-header">
+            <div class="site-icon">${site.icon}</div>
+            <div class="site-title">${site.label}</div>
+          </div>
+          <div class="incognito-site-content">
+            ${content.replace(/\n/g, '<br>')}
+          </div>
+        </div>
+      `;
+    }
+    
+  } catch (err) {
+    historyList.innerHTML = `<div class="status error">載入失敗：${err.message}</div>`;
+  }
+}
+
+async function openIncognitoSite(site) {
+  if (!site) return;
+  
+  const config = getApiConfig();
+  if (!config || !config.url) {
+    alert('請先設定 API 才能生成內容');
+    return;
+  }
+  
+  const char = charProfiles[Number(charSelect?.value || 0)] || {};
+  const charName = char.name || '角色';
+  const charPersonality = char.personality || '';
+  
+  switchView('history');
+  historyList.innerHTML = '<div class="status">正在載入內容...</div>';
+  
+  const url = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
+  const adultLevel = getAdultLevel(char);
+  
+  const systemPrompt = `你正在扮演${charName}，請以${charName}的視角和口吻來描述。
+你是一個模擬成人內容頁面生成器。角色個性：${charPersonality}
+
+請用繁體中文輸出網頁內容，模擬真實網站的樣式，包含：
+1. 網站標題
+2. 分類或標籤
+3. 3-5 個內容項目（標題和簡短描述）
+4. 每個項目都要有以${charName}視角的評論或感受
+
+可以帶有情慾氛圍，根據角色性格決定程度。${adultLevel === 'explicit' ? '可以使用較露骨的描述。' : '保持情趣但不過度露骨。'}`;
+
+  const userPrompt = `請生成「${site.label}」網站的模擬內容。
+搜尋關鍵字：${site.query}
+
+請模擬一個成人向網站的首頁內容，以${charName}的視角呈現。${charName}正在瀏覽這個網站，請展現${charName}的反應和感受。`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': config.key ? `Bearer ${config.key}` : undefined
+      },
+      body: JSON.stringify({ 
+        model: config.model || 'gpt-3.5-turbo', 
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ], 
+        temperature: 0.9 
+      })
+    });
+    
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content || '生成內容失敗';
+    
+    historyList.innerHTML = `
+      <div class="incognito-content-page">
+        <div class="incognito-site-header">
+          <div class="site-icon">${site.icon}</div>
+          <div class="site-title">${site.label}</div>
+        </div>
+        <div class="incognito-site-content">
+          ${content.replace(/\n/g, '<br>')}
+        </div>
+      </div>
+    `;
+    
+  } catch (err) {
+    historyList.innerHTML = `<div class="status error">載入失敗：${err.message}</div>`;
+  }
 }
 
 function bindEvents() {
@@ -273,21 +478,17 @@ function bindEvents() {
     window.parent?.postMessage({ type: 'closeApp' }, '*');
   });
 
-  bottomBack?.addEventListener('click', () => {
-    window.parent?.postMessage({ type: 'closeApp' }, '*');
-  });
-
   historyRefresh?.addEventListener('click', () => {
-    const active = charSelect?.value || '';
-    if (active) generateHistoryForChar(active);
+    if (isIncognito()) {
+      const active = charSelect?.value || '';
+      if (active) generateHistoryForChar(active);
+    }
   });
 
   charSelect?.addEventListener('change', () => {
-    generateHistoryForChar(charSelect.value);
-  });
-
-  historyDetailBack?.addEventListener('click', () => {
-    switchView('history');
+    if (isIncognito()) {
+      generateHistoryForChar(charSelect.value);
+    }
   });
 
   newTabBtn?.addEventListener('click', () => {
@@ -307,8 +508,10 @@ function bindEvents() {
   });
 
   historyGenerateBtn?.addEventListener('click', () => {
-    const active = charSelect?.value || '';
-    if (active) generateHistoryForChar(active);
+    if (isIncognito()) {
+      const active = charSelect?.value || '';
+      if (active) generateHistoryForChar(active);
+    }
     if (historyModal) historyModal.hidden = true;
   });
 
@@ -331,7 +534,7 @@ function bindEvents() {
     };
     historyEntries.unshift(entry);
     renderHistoryList();
-    pushHistoryToMemory([entry], charProfiles[Number(charSelect?.value || 0)]);
+    saveChromeData();
     if (historyModal) historyModal.hidden = true;
     if (historyManualQuery) historyManualQuery.value = '';
     if (historyManualSummary) historyManualSummary.value = '';
@@ -402,14 +605,11 @@ function loadWorldbookMounts() {
     chromeWorldbookMounts = [];
   }
   
-  const toggle = document.getElementById('chrome-wb-toggle');
-  
   if (chromeWorldbookList) {
     const stored = JSON.parse(localStorage.getItem('sx_chrome_worldbooks') || '[]');
     
     if (chromeWorldbookMounts.length === 0) {
       chromeWorldbookList.innerHTML = '<div class="chrome-wb-empty">尚無可掛載的世界書</div>';
-      if (toggle) toggle.innerHTML = '尚無世界書 <i class="fas fa-chevron-down"></i>';
       return;
     }
     
@@ -418,41 +618,6 @@ function loadWorldbookMounts() {
       const checked = stored.includes(name) ? 'checked' : '';
       return `<div class="chrome-wb-item"><input type="checkbox" value="${name}" ${checked}><span>${name}</span></div>`;
     }).join('');
-    
-    updateWorldbookToggleText();
-  }
-  
-  if (toggle && chromeWorldbookList) {
-    toggle.onclick = (e) => {
-      e.stopPropagation();
-      chromeWorldbookList.classList.toggle('active');
-      toggle.classList.toggle('active');
-    };
-    
-    document.addEventListener('click', (e) => {
-      if (!chromeWorldbookList.contains(e.target) && !toggle.contains(e.target)) {
-        chromeWorldbookList.classList.remove('active');
-        toggle.classList.remove('active');
-      }
-    });
-    
-    chromeWorldbookList.addEventListener('change', () => {
-      updateWorldbookToggleText();
-    });
-  }
-}
-
-function updateWorldbookToggleText() {
-  const toggle = document.getElementById('chrome-wb-toggle');
-  if (!toggle || !chromeWorldbookList) return;
-  
-  const checkedCount = chromeWorldbookList.querySelectorAll('input[type="checkbox"]:checked').length;
-  const totalCount = chromeWorldbookList.querySelectorAll('input[type="checkbox"]').length;
-  
-  if (totalCount === 0) {
-    toggle.innerHTML = '尚無世界書 <i class="fas fa-chevron-down"></i>';
-  } else {
-    toggle.innerHTML = `已選擇 ${checkedCount} / ${totalCount} 個世界書 <i class="fas fa-chevron-down"></i>`;
   }
 }
 
@@ -486,59 +651,41 @@ async function generateHistoryForChar(index) {
   
   const panelTitle = document.querySelector('.history-panel .panel-title');
   if (panelTitle) {
-    panelTitle.textContent = `${charName} 的搜尋紀錄`;
+    panelTitle.textContent = `${charName} 的瀏覽紀錄`;
   }
   
-  historyList.innerHTML = '<div class="status">正在生成搜尋紀錄...</div>';
+  historyList.innerHTML = '<div class="status">正在生成瀏覽紀錄...</div>';
   
-  const recentChatHistory = getRecentChatHistory(10);
-  
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
-  const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
-  const config = apis[activeIndex] || apis[0];
-  
+  const config = getApiConfig();
   if (!config || !config.url) {
     generateFallbackHistory(char, charName, charPersonality, charBackground);
     return;
   }
   
   const url = config.url.endsWith('/chat/completions') ? config.url : config.url.replace(/\/$/, '') + '/chat/completions';
-  
-  const chatContext = recentChatHistory.length > 0 
-    ? recentChatHistory.map(m => `${m.role === 'user' ? '用戶' : charName}: ${m.content}`).join('\n')
-    : '尚無聊天紀錄';
-  
-  const isAdult = isIncognito();
   const adultLevel = getAdultLevel(char);
   
-  const systemPrompt = `你是一個模擬瀏覽器搜尋紀錄生成器。請根據角色的個性、背景和最近的聊天內容，生成符合該角色會感興趣並搜尋的內容。
+  const systemPrompt = `你是一個模擬瀏覽器搜尋紀錄生成器。請根據角色的個性、背景，生成符合該角色在無痕模式下會感興趣的成人向內容。
 
 角色名稱：${charName}
 角色個性：${charPersonality}
 角色背景：${charBackground}
-${isAdult ? `模式：無痕模式（成人向，等級：${adultLevel}）` : '模式：一般模式'}
+模式：無痕模式（成人向，等級：${adultLevel}）
 
 重要規則：
 1. 搜尋內容必須符合角色的興趣和個性
-2. 不要讓角色搜尋自己的名字
-3. 搜尋內容應該是角色會感興趣的事物，而不是角色本身
-4. 根據聊天內容推斷角色最近關注的話題
+2. 內容應該是角色在私密模式下會瀏覽的成人向內容
+3. 可以從三個網站類型來源：nhentai（同人誌）、av.com（影片）、dreams（幻想）
+4. 根據角色性格決定內容的露骨程度
 
 請用繁體中文輸出 JSON 陣列格式，每個項目包含：
-- query: 搜尋關鍵字（簡短，2-6字）
-- title: 搜尋標題（自然語句）
-- summary: 簡短摘要（為什麼角色會搜尋這個，以角色視角描述）
-- time: 時間（如「2 小時前」）
+- query: 搜尋關鍵字
+- title: 標題
+- summary: 簡短描述（為什麼角色會搜尋這個，以角色視角描述）
+- site: 網站來源（nhentai / av.com / dreams）
+- time: 時間
 
-範例輸出：
-[{"query":"古代文明研究","title":"古代文明研究資料","summary":"對歷史很感興趣，想了解更多古代文明的知識...","time":"2 小時前"}]
-
-請生成 5-8 個搜尋紀錄，直接輸出 JSON 陣列，不要其他說明。`;
-
-  const userPrompt = `最近的聊天內容：
-${chatContext}
-
-請根據以上聊天內容和角色個性，生成符合該角色會搜尋的瀏覽紀錄。`;
+請生成 5-8 個搜尋紀錄，直接輸出 JSON 陣列。`;
 
   try {
     const response = await fetch(url, {
@@ -551,7 +698,7 @@ ${chatContext}
         model: config.model || 'gpt-3.5-turbo', 
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: `請為${charName}生成無痕模式下的瀏覽紀錄。` }
         ], 
         temperature: 0.8 
       })
@@ -565,18 +712,17 @@ ${chatContext}
       const parsed = JSON.parse(jsonMatch[0]);
       historyEntries = parsed.map((item, i) => ({
         id: `history_${Date.now()}_${i}`,
-        title: item.title || `${item.query} 是什麼？`,
+        title: item.title || `${item.query} 相關`,
         query: item.query,
         time: item.time || `${i + 1} 小時前`,
-        summary: item.summary || `搜尋了「${item.query}」相關資訊。`,
-        incognito: isIncognito(),
+        summary: item.summary || `瀏覽了「${item.query}」`,
+        site: item.site || 'nhentai',
+        incognito: true,
         adultLevel,
-        charName,
-        perspective: `以${charName}的視角`
+        charName
       }));
       saveChromeData();
       renderHistoryList();
-      pushHistoryToMemory(historyEntries, char);
     } else {
       generateFallbackHistory(char, charName, charPersonality, charBackground);
     }
@@ -586,77 +732,29 @@ ${chatContext}
   }
 }
 
-function getRecentChatHistory(limit = 10) {
-  try {
-    const raw = localStorage.getItem('sx_chat_history');
-    if (!raw) return [];
-    const history = JSON.parse(raw);
-    if (!Array.isArray(history)) return [];
-    return history.slice(-limit);
-  } catch {
-    return [];
-  }
-}
-
 function generateFallbackHistory(char, charName, charPersonality, charBackground) {
   const adultLevel = getAdultLevel(char);
-  const isAdult = isIncognito();
   
-  const personaText = `${charPersonality} ${charBackground}`;
-  const keywords = personaText
-    .replace(/[，。、！？：「」『』（）【】\n\r]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length >= 2 && word.length <= 6)
-    .filter(word => !['喜歡', '興趣', '愛好', '喜愛', '擅長', '喜歡的', '興趣是'].includes(word))
-    .slice(0, 10);
+  const sites = ['nhentai', 'av.com', 'dreams'];
+  const topics = ['浪漫', '幻想', '故事', '藝術', '角色', '創作'];
   
-  const interests = [];
-  
-  if (keywords.length > 0) {
-    keywords.forEach(keyword => {
-      interests.push(keyword);
-    });
-  }
-  
-  if (interests.length < 5) {
-    const commonInterests = ['研究', '學習', '閱讀', '探索', '發現', '了解', '分析'];
-    commonInterests.forEach(interest => {
-      if (interests.length < 8 && !interests.includes(interest)) {
-        interests.push(interest);
-      }
-    });
-  }
-  
-  historyEntries = interests.slice(0, 8).map((topic, i) => {
-    const perspective = `以${charName}的視角`;
-    const queries = [
-      `${topic} 相關資訊`,
-      `${topic} 研究`,
-      `${topic} 介紹`,
-      `關於 ${topic}`,
-      `${topic} 是什麼`,
-      `${topic} 推薦`,
-      `${topic} 教學`,
-      `${topic} 應用`
-    ];
-    const query = queries[i % queries.length];
-    
+  historyEntries = topics.slice(0, 6).map((topic, i) => {
+    const site = sites[i % 3];
     return {
       id: `history_${Date.now()}_${i}`,
-      title: `${topic} 相關搜尋`,
-      query: query,
+      title: `${topic} 相關內容`,
+      query: `${topic} ${site}`,
       time: `${i + 1} 小時前`,
-      summary: `${perspective}對「${topic}」感興趣，搜尋了相關資訊。`,
-      incognito: isAdult,
+      summary: `${charName}在${site}瀏覽了${topic}相關內容`,
+      site,
+      incognito: true,
       adultLevel,
-      charName,
-      perspective
+      charName
     };
   });
   
   saveChromeData();
   renderHistoryList();
-  pushHistoryToMemory(historyEntries, char);
 }
 
 function renderHistoryList() {
@@ -666,8 +764,6 @@ function renderHistoryList() {
     return;
   }
   
-  const activeCharName = charProfiles[Number(charSelect?.value || 0)]?.name || '角色';
-  
   historyList.innerHTML = historyEntries.map(entry => `
     <div class="history-item" data-id="${entry.id}">
       <div class="history-item-icon">
@@ -675,7 +771,7 @@ function renderHistoryList() {
       </div>
       <div class="history-item-content">
         <div class="title">${entry.title}</div>
-        <div class="meta">${entry.time}</div>
+        <div class="meta">${entry.site ? `[${entry.site}] ` : ''}${entry.time}</div>
       </div>
       <div class="history-item-arrow">
         <i class="fas fa-chevron-right"></i>
@@ -705,16 +801,13 @@ function openHistoryDetail(entry) {
   `;
   
   switchView('history-detail');
-  
   fetchDetailContent(entry);
 }
 
 async function fetchDetailContent(entry) {
   if (!detailPageContent) return;
   
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
-  const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
-  const config = apis[activeIndex] || apis[0];
+  const config = getApiConfig();
   if (!config || !config.url) {
     detailPageContent.innerHTML = '<div class="page-error">未偵測到 API 配置，請先在控制中心設定。</div>';
     return;
@@ -740,10 +833,6 @@ ${adultLevel === 'explicit' ? '可使用露骨描述。' : '可以帶情慾氛�
 2. 簡短描述  
 3. 3-5 個相關連結或段落`;
 
-  const payload = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: userPrompt }
-  ];
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -751,7 +840,10 @@ ${adultLevel === 'explicit' ? '可使用露骨描述。' : '可以帶情慾氛�
         'Content-Type': 'application/json',
         'Authorization': config.key ? `Bearer ${config.key}` : undefined
       },
-      body: JSON.stringify({ model: config.model || 'gpt-3.5-turbo', messages: payload, temperature: 0.7 })
+      body: JSON.stringify({ model: config.model || 'gpt-3.5-turbo', messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], temperature: 0.7 })
     });
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content || '生成內容失敗。';
@@ -769,39 +861,16 @@ ${adultLevel === 'explicit' ? '可使用露骨描述。' : '可以帶情慾氛�
 bindEvents();
 switchView('home');
 statusText.textContent = '一般模式 • 已連線';
-storeQuickDefaults();
-applyQuickTiles(app?.dataset.mode || 'normal');
-const hero = document.getElementById('incognito-hero');
-if (hero) hero.hidden = app?.dataset.mode !== 'incognito';
 loadCharProfiles();
 loadUserProfiles();
 loadWorldbookMounts();
 loadBookmarks();
 loadHistoryEntries();
 renderBookmarks();
+bindQuickTileEvents();
+
 if (historyEntries.length > 0) {
   renderHistoryList();
-} else if (charProfiles.length > 0 && charSelect) {
-  charSelect.value = '0';
-  generateHistoryForChar('0');
 }
+
 console.log('Loaded app: chrome');
-const pushHistoryToMemory = (entries, char) => {
-  if (!entries || entries.length === 0) return;
-  const name = char?.name || '角色';
-  const topics = entries.map(item => item.query).join('、');
-  const content = `Chrome 搜尋紀錄：以${name}的視角瀏覽，包含 ${topics}。`;
-  window.parent?.postMessage({
-    type: 'MEMORY_REQUEST_SUMMARY',
-    payload: {
-      source: 'chrome-history',
-      messages: [{ role: 'user', content }],
-      extra: { 
-        topics: entries.map(item => item.query), 
-        incognito: isIncognito(),
-        charName: name,
-        perspective: `以${name}的視角`
-      }
-    }
-  }, '*');
-};
