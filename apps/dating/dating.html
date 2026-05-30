@@ -66,91 +66,6 @@
       <div class="scene-grid" id="scene-grid">
         <!-- 由 JS 動態生成 -->
       </div>
-      
-      <!-- 自定義地圖導入區域 -->
-      <div class="custom-map-section">
-        <div class="custom-map-divider">
-          <span>或</span>
-        </div>
-        <div class="custom-map-import">
-          <h3>自定義約會地圖導入</h3>
-          <p class="import-hint">支持 JSON 格式的地圖數據，可從場景編輯器導出</p>
-          <div class="import-options">
-            <button class="import-btn" onclick="openImportModal()">
-              <i data-lucide="upload"></i>
-              <span>導入地圖文件</span>
-            </button>
-            <button class="import-btn secondary" onclick="openSceneEditor()">
-              <i data-lucide="edit-3"></i>
-              <span>打開場景編輯器</span>
-            </button>
-          </div>
-          <div class="imported-maps" id="imported-maps">
-            <!-- 已導入的地圖列表 -->
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 地圖導入彈窗 -->
-    <div class="import-modal hidden" id="import-modal">
-      <div class="import-modal-content">
-        <div class="import-modal-header">
-          <h2>導入自定義地圖</h2>
-          <button class="close-btn" onclick="closeImportModal()">
-            <i data-lucide="x"></i>
-          </button>
-        </div>
-        <div class="import-modal-body">
-          <div class="import-tabs">
-            <button class="import-tab active" data-tab="file" onclick="switchImportTab('file')">
-              <i data-lucide="file-json"></i>
-              <span>文件導入</span>
-            </button>
-            <button class="import-tab" data-tab="paste" onclick="switchImportTab('paste')">
-              <i data-lucide="clipboard-paste"></i>
-              <span>粘貼數據</span>
-            </button>
-          </div>
-          
-          <div class="import-panel active" id="import-file-panel">
-            <div class="file-drop-zone" id="file-drop-zone">
-              <i data-lucide="upload-cloud"></i>
-              <p>拖拽 JSON 文件到這裡</p>
-              <span>或</span>
-              <button class="browse-btn" onclick="document.getElementById('map-file-input').click()">
-                瀏覽文件
-              </button>
-              <input type="file" id="map-file-input" accept=".json" hidden onchange="handleMapFileSelect(event)">
-            </div>
-          </div>
-          
-          <div class="import-panel" id="import-paste-panel">
-            <textarea id="map-json-input" placeholder="粘貼 JSON 格式的地圖數據..."></textarea>
-            <button class="parse-btn" onclick="parseMapJson()">
-              <i data-lucide="check"></i>
-              解析並導入
-            </button>
-          </div>
-          
-          <div class="import-preview hidden" id="import-preview">
-            <h3>地圖預覽</h3>
-            <div class="preview-info" id="preview-info"></div>
-            <div class="preview-actions">
-              <input type="text" id="import-map-name" placeholder="輸入地圖名稱">
-              <button class="confirm-import-btn" onclick="confirmMapImport()">
-                <i data-lucide="check-circle"></i>
-                確認導入
-              </button>
-            </div>
-          </div>
-          
-          <div class="import-error hidden" id="import-error">
-            <i data-lucide="alert-circle"></i>
-            <span id="import-error-msg"></span>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 約會設定畫面 -->
@@ -315,10 +230,6 @@
               <i data-lucide="sliders"></i>
               <span>一般設定</span>
             </button>
-            <button class="settings-tab" data-tab="scene" onclick="switchSettingsTab('scene')">
-              <i data-lucide="map"></i>
-              <span>場景編輯</span>
-            </button>
             <button class="settings-tab" data-tab="help" onclick="switchSettingsTab('help')">
               <i data-lucide="help-circle"></i>
               <span>操作說明</span>
@@ -361,17 +272,6 @@
               </div>
             </div>
 
-            <!-- 場景編輯 -->
-            <div class="settings-panel" id="scene-panel">
-              <div class="setting-item">
-                <p>點擊下方按鈕開啟場景編輯器</p>
-                <button class="action-btn" onclick="openSceneEditorFromSettings()">
-                  <i data-lucide="edit"></i>
-                  開啟場景編輯器
-                </button>
-              </div>
-            </div>
-
             <!-- 操作說明 -->
             <div class="settings-panel" id="help-panel">
               <div class="help-section-compact">
@@ -382,10 +282,9 @@
                 </ul>
               </div>
               <div class="help-section-compact">
-                <h3>💬 互動系統</h3>
+                <h3>🚪 其他操作</h3>
                 <ul>
-                  <li>靠近角色時按 E 鍵互動</li>
-                  <li>點擊螢幕上的互動按鈕</li>
+                  <li>按 ESC 返回場景選擇</li>
                 </ul>
               </div>
               <div class="help-section-compact">
@@ -440,7 +339,6 @@
             <h3>🚪 其他操作</h3>
             <ul>
               <li>按 ESC 返回場景選擇</li>
-              <li>點擊頂部編輯按鈕開啟場景編輯器</li>
             </ul>
           </div>
         </div>
@@ -451,7 +349,6 @@
   <script src="../scripts/shared-settings.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>
 <script src="../scripts/app-appearance-configs.js"></script>
-<script src="scene-renderer.js"></script>
   <script src="dating.js"></script>
   <script>
     // 確保 Lucide 圖示正確渲染
