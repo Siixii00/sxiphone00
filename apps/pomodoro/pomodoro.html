@@ -56,12 +56,33 @@
           <div class="companion-line" id="companion-line">開始後會定時給你鼓勵</div>
         </div>
       </div>
+      <div class="companion-chat" id="companion-chat"></div>
       <div class="companion-bubble hidden" id="companion-bubble"></div>
       <div class="companion-actions">
-        <button class="ghost" id="upload-avatar-btn">上傳夥伴頭像</button>
+        <button class="ghost" id="select-companion-btn">選擇夥伴</button>
+        <button class="ghost" id="upload-avatar-btn">上傳頭像</button>
         <input type="file" id="companion-upload" accept="image/*" hidden>
       </div>
     </section>
+
+    <section class="panel hidden" id="companion-select-panel">
+      <div class="panel-header">
+        <div>選擇夥伴</div>
+        <button class="ghost" id="close-companion-select"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="companion-list" id="companion-list"></div>
+    </section>
+
+    <div class="companion-dialog-overlay hidden" id="companion-dialog-overlay">
+      <div class="companion-dialog" id="companion-dialog">
+        <div class="companion-dialog-header">
+          <div class="companion-dialog-avatar" id="companion-dialog-avatar"></div>
+          <div class="companion-dialog-name" id="companion-dialog-name">夥伴</div>
+        </div>
+        <div class="companion-dialog-text" id="companion-dialog-text">鼓勵訊息</div>
+        <input type="text" class="companion-dialog-input" id="companion-dialog-input" placeholder="輸入回應...">
+      </div>
+    </div>
 
     <section class="panel hidden" id="settings-panel">
       <div class="panel-header">

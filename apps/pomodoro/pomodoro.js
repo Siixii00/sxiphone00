@@ -31,6 +31,7 @@
     long: 15,
     longGap: 4,
     companionInterval: 5,
+    companionCharId: null,
   };
 
   let config = {...defaultConfig, ...loadConfig()};
@@ -43,6 +44,7 @@
   let completed = 0;
   let cycle = 1;
   let companionTimer = null;
+  let currentCompanion = null;
 
   function loadConfig(){
     try {
@@ -61,6 +63,40 @@
     longMinInput.value = cfg.long;
     longGapInput.value = cfg.longGap;
     companionIntervalInput.value = cfg.companionInterval;
+  }
+
+  function loadSelectedCompanion(){
+    const savedId = config.companionCharId;
+    if (savedId) {
+      const raw = localStorage.getItem('sx_characters');
+      if (raw) {
+        try {
+          const chars = JSON.parse(raw);
+          const found = chars.find(c => c.id === savedId || c.name === savedId);
+          if (found) return { id: found.id || found.name, name: found.name, avatar: found.avatar || '' };
+        } catch (e) {
+          console.warn('[pomodoro] 解析 sx_characters 失敗:', e);
+        }
+      }
+    }
+    const charName = localStorage.getItem('sx_char_name');
+    if (charName) {
+      const raw = localStorage.getItem('sx_characters');
+      if (raw) {
+        try {
+          const chars = JSON.parse(raw);
+          const found = chars.find(c => c.name === charName);
+          if (found) return { id: found.id || found.name, name: found.name, avatar: found.avatar || '' };
+        } catch (e) {}
+      }
+      const charAvatar = localStorage.getItem('sx_char_avatar');
+      return { id: charName, name: charName, avatar: charAvatar || '' };
+    }
+    const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+    if (masks.length > 0 && masks[0] && masks[0].name) {
+      return { id: masks[0].name, name: masks[0].name, avatar: masks[0].avatar || '' };
+    }
+    return null;
   }
 
   function setMode(next){
@@ -174,10 +210,10 @@
   // --- 伴聊邏輯 ---
   function startCompanion(){
     stopCompanion();
+    currentCompanion = loadSelectedCompanion();
     showCompanionCard();
     companionTimer = setInterval(pushCompanionLine, (config.companionInterval || 5) * 60 * 1000);
-    // 立即推一句，避免等待間隔
-    pushCompanionLine();
+    setTimeout(pushCompanionLine, 2000);
   }
 
   function stopCompanion(){
@@ -186,6 +222,10 @@
   }
 
   function getActiveMask(){
+    if (currentCompanion) {
+      return { name: currentCompanion.name, avatar: currentCompanion.avatar || '' };
+    }
+    
     const charName = localStorage.getItem('sx_char_name');
     
     if (charName) {
@@ -246,13 +286,72 @@
     companionBubble.classList.add('hidden');
   }
 
+  let chatMessages = [];
+  const MAX_CHAT_MESSAGES = 10;
+
+  function addChatMessage(text, isCompanion = true){
+    chatMessages.push({ text, isCompanion, time: Date.now() });
+    if (chatMessages.length > MAX_CHAT_MESSAGES) {
+      chatMessages.shift();
+    }
+    renderChatMessages();
+  }
+
+  function renderChatMessages(){
+    const container = document.getElementById('companion-chat');
+    if (!container) return;
+    container.innerHTML = '';
+    chatMessages.forEach(msg => {
+      const div = document.createElement('div');
+      div.className = `chat-msg ${msg.isCompanion ? 'companion' : 'user'}`;
+      div.textContent = msg.text;
+      container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function showCompanionDialog(text){
+    const mask = getActiveMask();
+    const dialogOverlay = document.getElementById('companion-dialog-overlay');
+    const dialogAvatar = document.getElementById('companion-dialog-avatar');
+    const dialogName = document.getElementById('companion-dialog-name');
+    const dialogText = document.getElementById('companion-dialog-text');
+    const dialogInput = document.getElementById('companion-dialog-input');
+    
+    if (!dialogOverlay) {
+      addChatMessage(text, true);
+      companionLine.textContent = text;
+      return;
+    }
+    
+    dialogName.textContent = mask.name || 'AI 夥伴';
+    if (mask.avatar) {
+      dialogAvatar.style.backgroundImage = `url('${mask.avatar}')`;
+    } else {
+      dialogAvatar.style.backgroundImage = 'linear-gradient(135deg,#4f8bff,#8ec5ff)';
+    }
+    dialogText.textContent = text;
+    
+    addChatMessage(text, true);
+    
+    dialogOverlay.classList.remove('hidden');
+    dialogOverlay.classList.add('show');
+    
+    if (dialogInput) {
+      dialogInput.value = '';
+      dialogInput.focus();
+    }
+    
+    setTimeout(() => {
+      dialogOverlay.classList.remove('show');
+      setTimeout(() => dialogOverlay.classList.add('hidden'), 300);
+    }, 8000);
+  }
+
   function pushCompanionLine(){
     const line = pickLine();
-    companionLine.textContent = line;
     if (line) {
-      companionBubble.textContent = line;
-      companionBubble.classList.remove('hidden');
-      setTimeout(() => companionBubble.classList.add('hidden'), 5000);
+      showCompanionDialog(line);
     }
   }
 
@@ -272,6 +371,98 @@
     reader.readAsDataURL(file);
   });
 
+  const selectCompanionBtn = document.getElementById('select-companion-btn');
+  const companionSelectPanel = document.getElementById('companion-select-panel');
+  const companionList = document.getElementById('companion-list');
+  const closeCompanionSelect = document.getElementById('close-companion-select');
+
+  function loadAvailableCharacters(){
+    const chars = [];
+    const raw = localStorage.getItem('sx_characters');
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(c => {
+            if (c && c.name) {
+              chars.push({ id: c.id || c.name, name: c.name, avatar: c.avatar || '' });
+            }
+          });
+        }
+      } catch (e) {}
+    }
+    const charName = localStorage.getItem('sx_char_name');
+    if (charName && !chars.find(c => c.name === charName)) {
+      const charAvatar = localStorage.getItem('sx_char_avatar');
+      chars.push({ id: charName, name: charName, avatar: charAvatar || '' });
+    }
+    const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+    masks.forEach(m => {
+      if (m && m.name && !chars.find(c => c.name === m.name)) {
+        chars.push({ id: m.name, name: m.name, avatar: m.avatar || '' });
+      }
+    });
+    if (chars.length === 0) {
+      chars.push({ id: 'default', name: 'AI 夥伴', avatar: '' });
+    }
+    return chars;
+  }
+
+  function renderCompanionList(){
+    if (!companionList) return;
+    const chars = loadAvailableCharacters();
+    companionList.innerHTML = '';
+    chars.forEach(char => {
+      const item = document.createElement('div');
+      item.className = 'companion-select-item';
+      if (currentCompanion && currentCompanion.id === char.id) {
+        item.classList.add('selected');
+      }
+      item.innerHTML = `
+        <div class="companion-select-avatar" style="${char.avatar ? `background-image:url('${char.avatar}')` : 'background:linear-gradient(135deg,#4f8bff,#8ec5ff)'}"></div>
+        <div class="companion-select-name">${char.name}</div>
+      `;
+      item.addEventListener('click', () => {
+        currentCompanion = { id: char.id, name: char.name, avatar: char.avatar };
+        config.companionCharId = char.id;
+        saveConfig(config);
+        showCompanionCard();
+        if (companionSelectPanel) companionSelectPanel.classList.add('hidden');
+      });
+      companionList.appendChild(item);
+    });
+  }
+
+  selectCompanionBtn?.addEventListener('click', () => {
+    renderCompanionList();
+    if (companionSelectPanel) companionSelectPanel.classList.remove('hidden');
+  });
+  closeCompanionSelect?.addEventListener('click', () => {
+    if (companionSelectPanel) companionSelectPanel.classList.add('hidden');
+  });
+
+  const dialogInput = document.getElementById('companion-dialog-input');
+  dialogInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && dialogInput.value.trim()) {
+      addChatMessage(dialogInput.value.trim(), false);
+      dialogInput.value = '';
+      const dialogOverlay = document.getElementById('companion-dialog-overlay');
+      setTimeout(() => {
+        const responses = ['加油！繼續保持！', '你做得很棒！', '專注得很好！', '再堅持一下！', '太棒了！'];
+        const resp = responses[Math.floor(Math.random() * responses.length)];
+        addChatMessage(resp, true);
+      }, 800);
+    }
+  });
+
+  const dialogOverlay = document.getElementById('companion-dialog-overlay');
+  dialogOverlay?.addEventListener('click', (e) => {
+    if (e.target === dialogOverlay) {
+      dialogOverlay.classList.remove('show');
+      setTimeout(() => dialogOverlay.classList.add('hidden'), 300);
+    }
+  });
+
   // iOS Safari / Android Chrome 儲存保護
   const savePomodoroData = () => {
     try {
@@ -289,6 +480,9 @@
   window.addEventListener('message', (event) => {
     if (event.data?.type === 'APP_WILL_CLOSE') savePomodoroData();
   });
+
+  currentCompanion = loadSelectedCompanion();
+  showCompanionCard();
 
   setMode('focus');
   updateDisplay();
