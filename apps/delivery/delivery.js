@@ -16,8 +16,8 @@ const addressWrap = document.getElementById('address-wrap');
 const addressDisplay = document.getElementById('address-display');
 const addressPanel = document.getElementById('address-panel');
 const addressCloseBtn = document.getElementById('address-close-btn');
-const cityInput = document.getElementById('city-input');
-const districtInput = document.getElementById('district-input');
+const citySelect = document.getElementById('city-select');
+const districtSelect = document.getElementById('district-select');
 const streetInput = document.getElementById('street-input');
 const noteInput = document.getElementById('note-input');
 const addressSaveBtn = document.getElementById('address-save-btn');
@@ -1899,14 +1899,36 @@ renderStores();
 renderCart();
 
 // 地址功能
+function initCitySelect() {
+  if (!citySelect) return;
+  const cities = Object.keys(districts);
+  citySelect.innerHTML = '<option value="">請選擇城市</option>' + 
+    cities.map(city => `<option value="${city}">${city}</option>`).join('');
+}
+
+function updateDistrictSelect(city) {
+  if (!districtSelect) return;
+  const districtList = districts[city] || [];
+  districtSelect.innerHTML = '<option value="">請選擇行政區</option>' + 
+    districtList.map(d => `<option value="${d}">${d}</option>`).join('');
+}
+
+citySelect?.addEventListener('change', (e) => {
+  updateDistrictSelect(e.target.value);
+});
+
 function loadAddress() {
+  initCitySelect();
   const saved = localStorage.getItem('sx_delivery_address');
   if (saved) {
     try {
       const data = JSON.parse(saved);
       updateAddressDisplay(data);
-      if (data.city) cityInput.value = data.city;
-      if (data.district) districtInput.value = data.district;
+      if (data.city) {
+        citySelect.value = data.city;
+        updateDistrictSelect(data.city);
+        if (data.district) districtSelect.value = data.district;
+      }
       if (data.street) streetInput.value = data.street;
       if (data.note) noteInput.value = data.note;
       
@@ -1941,18 +1963,18 @@ function closeAddressPanel() {
 }
 
 function saveAddress() {
-  const city = cityInput?.value?.trim() || '';
-  const district = districtInput?.value?.trim() || '';
+  const city = citySelect?.value || '';
+  const district = districtSelect?.value || '';
   const street = streetInput?.value?.trim() || '';
   const note = noteInput?.value?.trim() || '';
   
   if (!city) {
-    alert('請輸入城市');
+    alert('請選擇城市');
     return;
   }
   
   if (!district) {
-    alert('請輸入行政區');
+    alert('請選擇行政區');
     return;
   }
   
