@@ -426,9 +426,108 @@ function getWeatherDescription(code) {
     return map[code] || '天氣不明';
 }
 
+let currentWeatherData = null;
+let currentPlaceName = null;
+
+const WEATHER_REMINDERS = {
+    hot: [
+        '今天好熱，出門記得防曬喔！',
+        '天氣炎熱，多喝水別中暑了～',
+        '高溫警報！待在涼爽的地方比較好',
+        '太陽很大，出門要帶傘或帽子喔'
+    ],
+    cold: [
+        '今天好冷，出門記得多穿點！',
+        '天氣冷冷的，別感冒了喔～',
+        '低溫來襲！圍巾手套準備好',
+        '好冷呀～來杯熱飲暖暖身子吧'
+    ],
+    rain: [
+        '今天會下雨，出門記得帶傘！',
+        '雨天出門要小心路滑喔～',
+        '下雨了，別淋濕了！',
+        '天氣濕濕的，注意別著涼'
+    ],
+    sunny: [
+        '天氣不錯呢！適合出門走走～',
+        '陽光普照，心情也跟著好起來了',
+        '今天天氣很棒，有什麼計畫嗎？',
+        '好天氣！適合出去曬曬太陽'
+    ],
+    cloudy: [
+        '多雲的天氣，說變就變呢',
+        '陰陰的天，可能要下雨喔',
+        '雲有點多，但還是挺舒適的',
+        '多雲時陰，出門帶件外套吧'
+    ],
+    storm: [
+        '雷雨天來了！盡量別出門喔',
+        '外面在打雷，待在室內比較安全',
+        '天氣惡劣，注意安全！',
+        '雷聲隆隆，別害怕，我陪著你'
+    ],
+    snow: [
+        '下雪了！好浪漫～',
+        '雪天路滑，走路要小心喔',
+        '白茫茫一片，好漂亮！',
+        '下雪天氣，保暖最重要'
+    ],
+    nice: [
+        '今天天氣剛剛好，很舒適呢',
+        '氣溫適中，很適合出門喔',
+        '天氣宜人，心情也變好了～',
+        '這種天氣最舒服了'
+    ]
+};
+
+function getWeatherType(data) {
+    if (!data || !data.daily || !data.current) return 'nice';
+    
+    const code = data.daily.weathercode?.[0] ?? 0;
+    const temp = data.current.temperature_2m;
+    
+    if ([95, 96, 99].includes(code)) return 'storm';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'rain';
+    if (temp >= 30) return 'hot';
+    if (temp <= 15) return 'cold';
+    if ([0, 1].includes(code)) return 'sunny';
+    if ([2, 3].includes(code)) return 'cloudy';
+    if ([45, 48].includes(code)) return 'cloudy';
+    
+    return 'nice';
+}
+
+function generateWeatherReminder(charName, data) {
+    const weatherType = getWeatherType(data);
+    const reminders = WEATHER_REMINDERS[weatherType] || WEATHER_REMINDERS.nice;
+    const randomIndex = Math.floor(Math.random() * reminders.length);
+    const reminder = reminders[randomIndex];
+    
+    if (charName && charName !== '尚未設定角色' && charName !== '未命名角色') {
+        return reminder;
+    }
+    return reminder;
+}
+
+function updateCharReminder() {
+    if (!elements.charNote) return;
+    
+    if (currentWeatherData) {
+        const charName = elements.charName?.textContent || '';
+        const reminder = generateWeatherReminder(charName, currentWeatherData);
+        elements.charNote.textContent = reminder;
+    } else {
+        elements.charNote.textContent = '查詢天氣後，這裡會顯示天氣提醒';
+    }
+}
+
 function renderCurrent(placeName, data) {
     const current = data.current;
     if (!current) return;
+    
+    currentWeatherData = data;
+    currentPlaceName = placeName;
 
     if (elements.locationDisplay) elements.locationDisplay.textContent = placeName;
     if (elements.updateTime) elements.updateTime.textContent = `更新 ${formatUpdateTime(Date.now())}`;
@@ -440,6 +539,8 @@ function renderCurrent(placeName, data) {
     if (elements.currentWind) elements.currentWind.textContent = `${Math.round(current.wind_speed_10m)} km/h`;
     if (elements.currentHumidity) elements.currentHumidity.textContent = `${Math.round(current.relative_humidity_2m)}%`;
     if (elements.currentPrecip) elements.currentPrecip.textContent = `${Math.round(current.precipitation)} mm`;
+    
+    updateCharReminder();
 }
 
 function renderDailyForecast(data) {
