@@ -326,6 +326,7 @@ class UnifiedStorageManager {
     const results = {
       github: null,
       supabase: null,
+      gdrive: null,
       success: false,
       errors: []
     };
@@ -353,7 +354,19 @@ class UnifiedStorageManager {
       }
     }
 
-    results.success = results.github === 'success' || results.supabase === 'success';
+    const gdriveToken = await this.getSetting('sx_gdrive_access_token');
+    const gdriveAutoBackup = await this.getSetting('sx_auto_backup_gdrive');
+    if (gdriveToken && gdriveAutoBackup === 'true') {
+      try {
+        const result = await this.backupToGDrive();
+        results.gdrive = result.success ? 'success' : 'failed';
+      } catch (e) {
+        results.gdrive = 'error';
+        results.errors.push(`Google Drive: ${e.message}`);
+      }
+    }
+
+    results.success = results.github === 'success' || results.supabase === 'success' || results.gdrive === 'success';
 
     if (results.success) {
       this.saveSetting('sx_last_nightly_backup', new Date().toDateString());
@@ -378,6 +391,161 @@ class UnifiedStorageManager {
   async getSupabaseBackupList(options = {}) {
     await this._ensureStorage();
     return this.sxStorage.getSupabaseBackupList(options);
+  }
+
+  async backupToGDrive(options = {}) {
+    await this._ensureStorage();
+    
+    const accessToken = options.accessToken || localStorage.getItem('sx_gdrive_access_token');
+    const fileName = options.fileName || localStorage.getItem('sx_gdrive_file_name') || 'sxiphone_backup.json';
+    const statusCallback = options.onStatus || (() => {});
+    
+    if (!accessToken) {
+      throw new Error('請先授權 Google Drive');
+    }
+
+    const tokenExpiry = parseInt(localStorage.getItem('sx_gdrive_token_expiry') || '0');
+    if (Date.now() >= tokenExpiry - 60000) {
+      throw new Error('Google Drive Token 已過期，請重新授權');
+    }
+
+    this.backupStatus.lastError = null;
+    statusCallback('正在收集資料...');
+
+    try {
+      const data = await this.sxStorage.exportAllData();
+      const payload = {
+        version: '3.0',
+        exportedAt: new Date().toISOString(),
+        device: navigator.userAgent,
+        data: data
+      };
+
+      const jsonStr = JSON.stringify(payload, null, 2);
+
+      statusCallback('正在上傳到 Google Drive...');
+
+      const boundary = 'sxiphone_backup_boundary';
+      const metadata = {
+        name: fileName,
+        mimeType: 'application/json'
+      };
+
+      const existingFileId = localStorage.getItem('sx_gdrive_backup_file_id');
+      let uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files';
+      let method = 'POST';
+      
+      if (existingFileId) {
+        try {
+          const checkResp = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFileId}?fields=id`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          if (checkResp.ok) {
+            uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}`;
+            method = 'PATCH';
+          }
+        } catch {}
+      }
+
+      const body = [
+        `--${boundary}`,
+        'Content-Type: application/json; charset=UTF-8',
+        '',
+        JSON.stringify(metadata),
+        `--${boundary}`,
+        'Content-Type: application/json',
+        '',
+        jsonStr,
+        `--${boundary}--`
+      ].join('\r\n');
+
+      const uploadResp = await fetch(uploadUrl, {
+        method: method,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`
+        },
+        body: body
+      });
+
+      if (!uploadResp.ok) {
+        const errText = await uploadResp.text();
+        let errMsg = `上傳失敗 (${uploadResp.status})`;
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error?.message || errMsg;
+        } catch {}
+        throw new Error(errMsg);
+      }
+
+      const uploadData = await uploadResp.json();
+      localStorage.setItem('sx_gdrive_backup_file_id', uploadData.id);
+      localStorage.setItem('sx_gdrive_last_sync', new Date().toLocaleString());
+
+      this.backupStatus.lastSuccess = new Date().toISOString();
+
+      return { success: true, fileId: uploadData.id };
+    } catch (e) {
+      this.backupStatus.lastError = e.message;
+      console.error('[UnifiedStorageManager] Google Drive 備份錯誤:', e);
+      throw e;
+    }
+  }
+
+  async restoreFromGDrive(options = {}) {
+    await this._ensureStorage();
+    
+    const accessToken = options.accessToken || localStorage.getItem('sx_gdrive_access_token');
+    const fileId = options.fileId || localStorage.getItem('sx_gdrive_backup_file_id');
+    const statusCallback = options.onStatus || (() => {});
+
+    if (!accessToken) {
+      throw new Error('請先授權 Google Drive');
+    }
+
+    if (!fileId) {
+      statusCallback('正在搜尋備份檔案...');
+      const searchResp = await fetch(
+        "https://www.googleapis.com/drive/v3/files?q=name='sxiphone_backup.json' and trashed=false&fields=files(id,name)",
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      
+      if (!searchResp.ok) {
+        throw new Error('無法搜尋備份檔案');
+      }
+      
+      const searchData = await searchResp.json();
+      if (!searchData.files || searchData.files.length === 0) {
+        throw new Error('找不到備份檔案');
+      }
+      
+      fileId = searchData.files[0].id;
+    }
+
+    statusCallback('正在下載備份...');
+
+    const downloadResp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (!downloadResp.ok) {
+      throw new Error(`下載失敗 (${downloadResp.status})`);
+    }
+
+    const content = await downloadResp.text();
+    const payload = JSON.parse(content);
+
+    if (!payload.data) {
+      throw new Error('備份格式不正確');
+    }
+
+    statusCallback('正在還原資料...');
+    await this.sxStorage.importAllData(payload.data);
+
+    localStorage.setItem('sx_gdrive_last_sync', new Date().toLocaleString());
+
+    return { success: true };
   }
 
   async backupToGitHub(options = {}) {

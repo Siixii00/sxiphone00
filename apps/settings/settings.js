@@ -1175,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateBackupPipelineStatus = () => {
         const migrateStatusEl = document.getElementById('pipeline-migrate-status');
         const supabaseStatusEl = document.getElementById('pipeline-supabase-status');
+        const gdriveStatusEl = document.getElementById('pipeline-gdrive-status');
         const nightlyStatusEl = document.getElementById('pipeline-nightly-status');
         const failWarningEl = document.getElementById('backup-fail-warning');
         const failMessageEl = document.getElementById('backup-fail-message');
@@ -1205,6 +1206,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             supabaseStatusEl.textContent = '⏳ 待執行';
             supabaseStatusEl.style.color = '#FF9500';
+        }
+
+        const lastGDriveSync = localStorage.getItem('sx_gdrive_last_sync');
+        const gdriveEnabled = localStorage.getItem('sx_auto_backup_gdrive') === 'true';
+        const gdriveConnected = localStorage.getItem('sx_gdrive_access_token');
+        if (gdriveStatusEl) {
+            if (gdriveEnabled && gdriveConnected) {
+                if (lastGDriveSync) {
+                    gdriveStatusEl.textContent = `✅ ${lastGDriveSync}`;
+                    gdriveStatusEl.style.color = '#34C759';
+                } else {
+                    gdriveStatusEl.textContent = '⏳ 待執行';
+                    gdriveStatusEl.style.color = '#FF9500';
+                }
+            } else if (!gdriveConnected) {
+                gdriveStatusEl.textContent = '⚠️ 未連接';
+                gdriveStatusEl.style.color = '#FF9500';
+            } else {
+                gdriveStatusEl.textContent = '⚠️ 未啟用';
+                gdriveStatusEl.style.color = '#FF9500';
+            }
         }
 
         const lastNightly = localStorage.getItem('sx_last_nightly_backup');
@@ -1441,15 +1463,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const collectAllStorageData = async () => {
         const data = {
             localStorage: {},
-            localforage: {}
+            localforage: {},
+            persistedData: null,
+            chatSessions: [],
+            keyValue: {}
         };
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (!key) continue;
-            // 只備份 sx_、api_、sxiphone 相關的 key
             if (!(key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone'))) continue;
-            // 排除原生方法名稱的 key（這些是污染）
             if (isNativeMethodKey(key)) {
                 console.warn('[GitHub 備份] 排除原生方法 key:', key);
                 continue;
@@ -1457,7 +1480,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const value = localStorage.getItem(key);
                 if (value === null) continue;
-                // 過濾掉被污染的函式字串
                 if (isFunctionString(value)) {
                     console.warn('[GitHub 備份] 排除函式字串 key:', key);
                     continue;
@@ -1471,8 +1493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof localforage !== 'undefined') {
             try {
                 await localforage.iterate((value, key) => {
-                    if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
-                        // 也檢查 localforage 資料是否為函式字串
+                    if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone') || key.startsWith('setting_')) {
                         if (typeof value === 'string' && isFunctionString(value)) {
                             console.warn('[GitHub 備份] 排除 localforage 函式字串 key:', key);
                             return;
@@ -1483,9 +1504,63 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (e) {
                 console.warn('無法讀取 localforage:', e);
             }
+
+            try {
+                const chatDataStore = localforage.createInstance({
+                    name: 'sxiphone',
+                    storeName: 'chatData'
+                });
+                const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+                if (persistedData) {
+                    data.persistedData = persistedData;
+                    if (persistedData.sx_chat_sessions && Array.isArray(persistedData.sx_chat_sessions)) {
+                        data.chatSessions = persistedData.sx_chat_sessions;
+                        console.log('[備份] 從 persistedData 取得聊天 sessions:', data.chatSessions.length, '個');
+                    }
+                    console.log('[備份] 收集 persistedData 完成，包含 keys:', Object.keys(persistedData));
+                }
+            } catch (e) {
+                console.warn('無法讀取 chatData persistedData:', e);
+            }
         }
 
-        console.log(`[GitHub 備份] 收集 localStorage ${Object.keys(data.localStorage).length} 筆, localforage ${Object.keys(data.localforage).length} 筆`);
+        if (typeof SXStorage !== 'undefined') {
+            try {
+                const sxStorage = new SXStorage();
+                await sxStorage.init();
+                
+                const chatSessionsFromDB = await sxStorage._getAllFromStore?.('chat_sessions');
+                if (chatSessionsFromDB && chatSessionsFromDB.length > 0) {
+                    data.chatSessions = chatSessionsFromDB;
+                    console.log('[備份] 從 IndexedDB chat_sessions 取得:', data.chatSessions.length, '個');
+                }
+
+                const kvData = await sxStorage._getAllFromStore?.('key_value');
+                if (kvData) {
+                    for (const item of kvData) {
+                        data.keyValue[item.key] = item.value;
+                    }
+                    console.log('[備份] 從 IndexedDB key_value 取得:', Object.keys(data.keyValue).length, '個');
+                }
+            } catch (e) {
+                console.warn('無法讀取 SXStorage:', e);
+            }
+        }
+
+        if (data.chatSessions.length === 0 && data.localStorage['sx_chat_sessions']) {
+            try {
+                data.chatSessions = JSON.parse(data.localStorage['sx_chat_sessions']);
+                console.log('[備份] 從 localStorage sx_chat_sessions 取得:', data.chatSessions.length, '個');
+            } catch (e) {}
+        }
+
+        console.log(`[備份] 收集完成:`, {
+            localStorage: Object.keys(data.localStorage).length,
+            localforage: Object.keys(data.localforage).length,
+            chatSessions: data.chatSessions.length,
+            keyValue: Object.keys(data.keyValue).length,
+            persistedData: data.persistedData ? Object.keys(data.persistedData).length : 0
+        });
         
         return data;
     };
@@ -1512,6 +1587,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (e) {
                     console.warn('無法還原 localforage:', key);
                 }
+            }
+        }
+
+        if (data.chatSessions && data.chatSessions.length > 0 && typeof localforage !== 'undefined') {
+            try {
+                const chatDataStore = localforage.createInstance({
+                    name: 'sxiphone',
+                    storeName: 'chatData'
+                });
+                const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                existingData.sx_chat_sessions = data.chatSessions;
+                await chatDataStore.setItem('sx_app_persisted_data', existingData);
+                localStorage.setItem('sx_chat_sessions', JSON.stringify(data.chatSessions));
+                console.log('[Restore] 聊天 sessions 已還原:', data.chatSessions.length, '個');
+                count++;
+            } catch (e) {
+                console.warn('[Restore] 聊天 sessions 還原失敗:', e);
+            }
+        }
+
+        if (data.keyValue && Object.keys(data.keyValue).length > 0 && typeof SXStorage !== 'undefined') {
+            try {
+                const sxStorage = new SXStorage();
+                await sxStorage.init();
+                for (const [key, value] of Object.entries(data.keyValue)) {
+                    try {
+                        await sxStorage.setItem(key, value);
+                    } catch (e) {
+                        console.warn('[Restore] keyValue 還原失敗:', key);
+                    }
+                }
+                console.log('[Restore] keyValue 已還原:', Object.keys(data.keyValue).length, '個');
+                count++;
+            } catch (e) {
+                console.warn('[Restore] keyValue 還原失敗:', e);
             }
         }
         
