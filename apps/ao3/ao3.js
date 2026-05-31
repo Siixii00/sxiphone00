@@ -1,4 +1,6 @@
 const STORAGE_KEY = 'ao3_drafts';
+const AO3_TROPES_KEY = 'sx_ao3_selected_tropes';
+const AO3_CHARACTERS_KEY = 'sx_ao3_selected_characters';
 
 const ratingMap = {
     G: 'General Audiences',
@@ -7,6 +9,58 @@ const ratingMap = {
     E: 'Explicit',
     NR: 'Not Rated'
 };
+
+const worldSettings = [
+    { title: 'ABO 設定', desc: 'Alpha/Beta/Omega 三種第二性別，基於信息素與生理本能的階級社會。包含標記、發情期、成結等機制。', tags: ['ABO', '世界觀'] },
+    { title: '哨兵嚮導', desc: '感官極端敏銳的哨兵與精神力量強大的嚮導。包含精神體、精神圖景、結合等設定。', tags: ['哨兵嚮導', '世界觀'] },
+    { title: '哈利波特', desc: '隱藏在現代倫敦之下的魔法世界。霍格華茲學院制、魔杖、血統歧視與黑魔法防禦。', tags: ['HP', '魔法校園'] },
+    { title: '日式高中校園', desc: '青春曖昧的校園生活。學長姐制度、社團活動、文化祭、屋頂告白。', tags: ['校園', '青春'] },
+    { title: '美國大學生活', desc: '兄弟會姊妹會文化、派對、校園運動賽事、宿舍生活與獨立探索。', tags: ['大學', '美式'] },
+    { title: '辦公室職場', desc: '權力等級與禁止戀愛的辦公室。上下級關係、茶水間八卦、加班與秘密戀情。', tags: ['職場', '辦公室'] },
+    { title: '韓國 Idol', desc: '華麗舞臺背後的殘酷。練習生制度、戀愛禁令、宿舍生活與私生飯困擾。', tags: ['K-Pop', '偶像'] },
+    { title: '現代搖滾樂團', desc: '叛逆與夢想的音樂世界。地下Live House、巡迴旅程、成員間的羈絆與矛盾。', tags: ['樂團', '搖滾'] },
+    { title: '歐洲中世紀宮廷', desc: '繁文縟節下的權力鬥爭。貴族等級、政治聯姻、舞會密謀與騎士精神。', tags: ['中世紀', '宮廷'] },
+    { title: '靈魂伴侶設定', desc: '每個人出生時就註定有一個完美的另一半。色盲模式、文字標記、傷痕共享、倒計時等表現形式。', tags: ['Soulmate', '宿命'] },
+    { title: '花吐症', desc: '單戀時肺部會生長出花朵，隨咳嗽吐出花瓣。唯有對方的愛能治癒，或手術移除但失去愛意。', tags: ['花吐症', '虐心'] },
+    { title: '賽博龐克', desc: '高科技但腐敗的未來世界。義體改造、神經連接、企業高層與底層傭兵的階級對立。', tags: ['賽博龐克', '科幻'] },
+    { title: '無限流', desc: '被拉入神秘副本，必須遵守特定規則才能生存。生存壓力下的信任與依賴。', tags: ['無限流', '生存'] },
+    { title: '荒島求生', desc: '文明毀滅後的世界或受困無人地帶。物資匱乏、高度依賴、在絕望中建立小小樂園。', tags: ['末世', '求生'] },
+    { title: '修仙世界', desc: '修煉成仙的奇幻世界。宗門、靈根、渡劫、師徒關係與千年羈絆。', tags: ['修仙', '仙俠'] },
+    { title: '武林江湖', desc: '俠義與恩怨的武俠世界。門派紛紛爭、絕世武功、復仇與救贖。', tags: ['武俠', '江湖'] }
+];
+
+const interactionTropes = [
+    { title: '重逢', desc: '多年後再次相遇，彼此都變了卻又沒變。', tags: ['重逢', '情感'] },
+    { title: '誤會解開', desc: '一直以來的誤會終於解開，但似乎太遲了。', tags: ['誤會', '虐心'] },
+    { title: '雨中', desc: '下雨天的偶遇，改變了兩個人的命運。', tags: ['雨', '浪漫'] },
+    { title: '告白', desc: '終於鼓起勇氣說出心意。', tags: ['告白', '甜'] },
+    { title: '分離', desc: '不得不分開，但約定會再見。', tags: ['分離', '約定'] },
+    { title: '守護', desc: '默默守護在身邊，不求回報。', tags: ['守護', '暗戀'] },
+    { title: '回憶', desc: '回憶起過去的點點滴滴。', tags: ['回憶', '過去'] },
+    { title: '契約關係', desc: '因利益被迫假扮情侶或夫妻。同居生活、公眾演出，日久生情的甜蜜過程。', tags: ['假戲真做', '契約'] },
+    { title: '死對頭', desc: '雙方處於完全對立的立場。針鋒相對的張力、被迫合作時的糾結、隱藏的吸引力。', tags: ['宿敵', '對立'] },
+    { title: '嚮往平凡的怪物', desc: '非人類（AI、吸血鬼、外星人、人魚）試圖理解人類情感。跨物種的溝通障礙與笨拙溫情。', tags: ['非人類', '跨物種'] },
+    { title: '身體互換', desc: '因意外或詛咒交換靈魂/身體。必須代替對方生活，發現隱藏的秘密與傷痛。', tags: ['身體互換', '靈魂'] },
+    { title: '只有一張床', desc: '旅店客滿或受困避難所，只剩一個房間一張床。誰睡地板？還是擠在一起？', tags: ['被迫近距離', '一張床'] },
+    { title: '狹小空間受困', desc: '電梯故障、躲避敵人的衣櫃、狹窄巷弄。必須緊貼對方，感受呼吸、心跳與體溫。', tags: ['被迫近距離', '密閉空間'] },
+    { title: '取暖', desc: '暴風雪受困、掉入冰冷湖水。為了生存必須緊擁傳遞體溫，從生存本能轉化為性張力。', tags: ['被迫近距離', '生存'] },
+    { title: '誰弄傷你的', desc: '一方受傷回來，另一方雖平時冷淡，看到傷口瞬間暴怒或極度心疼。包紮傷口的細膩與佔有欲。', tags: ['照顧', '保護欲'] },
+    { title: '病弱照顧', desc: '發高燒、意識模糊，平時強勢的角色變得像小孩一樣依樣依賴。餵藥、擦汗、半夢半醒間的真情流露。', tags: ['照顧', '脆弱'] },
+    { title: '噩夢與安撫', desc: '深夜因創傷驚醒。另一方給予擁抱、摸頭、輕聲安慰，展現只給對方的柔軟面。', tags: ['照顧', '安撫'] },
+    { title: '酒後吐真言', desc: '微醺或大醉。平時不敢說的話、不敢做的親暱行為全都爆發。隔天醒來後的尷尬期。', tags: ['失控', '告白'] },
+    { title: '真言劑/詛咒', desc: '被迫必須說真話，或必須進行親密舉動才能解除的詛咒。拼命忍耐但最終失敗的掙扎感。', tags: ['失控', '魔法'] },
+    { title: '那個「噢」的時刻', desc: '好友或死對頭在某個平凡瞬間（如陽光下回頭一笑），突然意識到：「糟了，我愛上他了。」', tags: ['失控', '覺醒'] },
+    { title: '手把手教學', desc: '教射箭、鋼琴、撞球、寫字。從背後環繞的姿勢，手掌覆蓋在手背上，耳邊的低聲指導。', tags: ['肢體張力', '教學'] },
+    { title: '整理衣物', desc: '出席正式場合前，幫對方打領帶、翻領子、撥開額前碎髮。極近距離的眼神交織，呼吸交錯。', tags: ['肢體張力', '親密'] },
+    { title: '身高差/體型差', desc: '拿不到高處東西、衣服太過寬大。高的一方從後方幫忙拿東西，或一方穿著另一方寬大的襯衫。', tags: ['肢體張力', '體型差'] },
+    { title: '雙向暗戀', desc: '兩個人都覺得對方不喜歡自己，都在瘋狂試探。刻意避開的眼神、對他人接近的微小嫉妒。', tags: ['暗潮洶湧', '暗戀'] },
+    { title: '秘密盟友', desc: '眾人面前裝作不熟或敵對，私底下卻有深厚聯繫。桌子底下的勾腳、只有兩人懂的暗號。', tags: ['暗潮洶湧', '秘密'] },
+    { title: '年上年下', desc: '年齡差距帶來的權力不對等。年長者的照顧與佔有、年下者的成長與反擊。', tags: ['年齡差', '權力'] },
+    { title: '師生關係', desc: '禁忌的師生之戀。知識傳承中的情感滋長，道德與慾望的掙扎。', tags: ['師生', '禁忌'] },
+    { title: '青梅竹馬', desc: '從小一起長大，最了解彼此的人。但友情何時變成愛情？', tags: ['青梅竹馬', '甜'] },
+    { title: '一見鍾情', desc: '第一眼就確定是那個人了。從此展開瘋狂追求或默默暗戀。', tags: ['一見鍾情', '甜'] },
+    { title: '破鏡重圓', desc: '曾經分手，現在重新開始。傷痕還在，但願意再試一次。', tags: ['破鏡重圓', '虐甜'] }
+];
 
 const languageOptions = [
     { code: 'en', label: 'English' },
@@ -97,7 +151,10 @@ const state = {
     },
     languages: [],
     drafts: loadDrafts(),
-    statusTimer: null
+    statusTimer: null,
+    selectedTropes: [],
+    selectedCharacters: [],
+    selectedWorldSettings: []
 };
 
 const els = {
@@ -491,6 +548,19 @@ function attachEvents() {
         }
     });
     bindTagInputs();
+    bindInspirationTabs();
+}
+
+function bindInspirationTabs() {
+    document.querySelectorAll('.inspiration-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.inspiration-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.inspiration-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const panelId = tab.dataset.tab + '-panel';
+            document.getElementById(panelId)?.classList.add('active');
+        });
+    });
 }
 
 function loadCharactersForInspiration() {
@@ -535,12 +605,192 @@ function loadCharactersForInspiration() {
 
 function init() {
     loadCharactersForInspiration();
+    loadSavedSelections();
     renderLanguageChips();
     renderAllTags();
     renderDrafts();
+    renderTropesPanel();
+    renderCharactersPanel();
+    renderWorldSettingsPanel();
     updateStats();
     updatePreview();
     attachEvents();
+}
+
+function loadSavedSelections() {
+    try {
+        const tropesRaw = localStorage.getItem(AO3_TROPES_KEY);
+        state.selectedTropes = tropesRaw ? JSON.parse(tropesRaw) : [];
+        
+        const charsRaw = localStorage.getItem(AO3_CHARACTERS_KEY);
+        state.selectedCharacters = charsRaw ? JSON.parse(charsRaw) : [];
+    } catch {
+        state.selectedTropes = [];
+        state.selectedCharacters = [];
+    }
+}
+
+function saveSelections() {
+    localStorage.setItem(AO3_TROPES_KEY, JSON.stringify(state.selectedTropes));
+    localStorage.setItem(AO3_CHARACTERS_KEY, JSON.stringify(state.selectedCharacters));
+}
+
+function getAllPersonas() {
+    if (typeof SxSettings === 'undefined') return [];
+    const settings = SxSettings.getSettingsSnapshot();
+    const personas = [];
+    
+    settings.characters.forEach(char => {
+        personas.push({
+            name: char.name,
+            type: 'character',
+            personality: char.personality || '',
+            background: char.background || '',
+            avatar: char.avatar || '',
+            description: char.description || ''
+        });
+    });
+    settings.users.forEach(user => {
+        personas.push({
+            name: user.name,
+            type: 'user',
+            personality: user.personality || '',
+            background: user.background || '',
+            avatar: user.avatar || '',
+            description: user.description || ''
+        });
+    });
+    settings.npcs.forEach(npc => {
+        personas.push({
+            name: npc.name,
+            type: 'npc',
+            personality: npc.personality || '',
+            background: npc.background || '',
+            avatar: npc.avatar || '',
+            description: npc.description || ''
+        });
+    });
+    
+    return personas;
+}
+
+function renderTropesPanel() {
+    const container = document.getElementById('ao3-tropes-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    interactionTropes.forEach((trope, index) => {
+        const item = document.createElement('div');
+        item.className = 'trope-item' + (state.selectedTropes.includes(index) ? ' selected' : '');
+        item.innerHTML = `
+            <div class="trope-header">
+                <span class="trope-title">${trope.title}</span>
+                <span class="trope-tags">${trope.tags.map(t => `#${t}`).join(' ')}</span>
+            </div>
+            <div class="trope-desc">${trope.desc}</div>
+        `;
+        item.addEventListener('click', () => toggleTrope(index));
+        container.appendChild(item);
+    });
+}
+
+function toggleTrope(index) {
+    if (state.selectedTropes.includes(index)) {
+        state.selectedTropes = state.selectedTropes.filter(i => i !== index);
+    } else {
+        state.selectedTropes.push(index);
+    }
+    saveSelections();
+    renderTropesPanel();
+}
+
+function renderCharactersPanel() {
+    const container = document.getElementById('ao3-characters-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const personas = getAllPersonas();
+    
+    if (personas.length === 0) {
+        container.innerHTML = '<div class="empty-hint">請先在 Settings 中添加角色</div>';
+        return;
+    }
+    
+    personas.forEach((persona, index) => {
+        const item = document.createElement('div');
+        const isSelected = state.selectedCharacters.some(c => c.name === persona.name);
+        item.className = 'char-item' + (isSelected ? ' selected' : '');
+        item.innerHTML = `
+            <div class="char-avatar">${persona.avatar ? `<img src="${persona.avatar}" alt="${persona.name}">` : `<span>${persona.name[0]}</span>`}</div>
+            <div class="char-info">
+                <div class="char-name">${persona.name}</div>
+                <div class="char-type">${persona.type === 'character' ? '角色' : persona.type === 'user' ? '使用者' : 'NPC'}</div>
+            </div>
+        `;
+        item.addEventListener('click', () => toggleCharacter(persona));
+        container.appendChild(item);
+    });
+}
+
+function toggleCharacter(persona) {
+    const exists = state.selectedCharacters.find(c => c.name === persona.name);
+    if (exists) {
+        state.selectedCharacters = state.selectedCharacters.filter(c => c.name !== persona.name);
+    } else {
+        state.selectedCharacters.push(persona);
+    }
+    saveSelections();
+    renderCharactersPanel();
+    updateSelectedCharactersTags();
+}
+
+function updateSelectedCharactersTags() {
+    state.selectedCharacters.forEach(char => {
+        if (!state.tags.characters.some(t => t.toLowerCase() === char.name.toLowerCase())) {
+            addTag('characters', char.name);
+        }
+    });
+}
+
+function renderWorldSettingsPanel() {
+    const container = document.getElementById('ao3-worldsettings-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    worldSettings.forEach((setting, index) => {
+        const item = document.createElement('div');
+        item.className = 'worldsetting-item' + (state.selectedWorldSettings.includes(index) ? ' selected' : '');
+        item.innerHTML = `
+            <div class="worldsetting-header">
+                <span class="worldsetting-title">${setting.title}</span>
+                <span class="worldsetting-tags">${setting.tags.map(t => `#${t}`).join(' ')}</span>
+            </div>
+            <div class="worldsetting-desc">${setting.desc}</div>
+        `;
+        item.addEventListener('click', () => toggleWorldSetting(index));
+        container.appendChild(item);
+    });
+}
+
+function toggleWorldSetting(index) {
+    if (state.selectedWorldSettings.includes(index)) {
+        state.selectedWorldSettings = state.selectedWorldSettings.filter(i => i !== index);
+    } else {
+        state.selectedWorldSettings.push(index);
+    }
+    renderWorldSettingsPanel();
+    updateWorldSettingTags();
+}
+
+function updateWorldSettingTags() {
+    state.selectedWorldSettings.forEach(idx => {
+        const setting = worldSettings[idx];
+        setting.tags.forEach(tag => {
+            if (!state.tags.additional.some(t => t.toLowerCase() === tag.toLowerCase())) {
+                addTag('additional', tag);
+            }
+        });
+    });
 }
 
 function getAO3WorldbookData() {
@@ -727,6 +977,35 @@ function buildAO3Context() {
     if (char.background) context += `背景: ${char.background}\n`;
   }
 
+  if (state.selectedCharacters.length > 0) {
+    context += `\n# 選擇的角色\n`;
+    state.selectedCharacters.forEach(c => {
+      context += `- ${c.name} (${c.type})\n`;
+      if (c.personality) context += `  性格: ${c.personality}\n`;
+      if (c.background) context += `  背景: ${c.background}\n`;
+    });
+  }
+
+  if (state.selectedTropes.length > 0) {
+    context += `\n# 選擇的梗\n`;
+    state.selectedTropes.forEach(idx => {
+      const trope = interactionTropes[idx];
+      if (trope) {
+        context += `- ${trope.title}: ${trope.desc}\n`;
+      }
+    });
+  }
+
+  if (state.selectedWorldSettings.length > 0) {
+    context += `\n# 世界設定\n`;
+    state.selectedWorldSettings.forEach(idx => {
+      const setting = worldSettings[idx];
+      if (setting) {
+        context += `- ${setting.title}: ${setting.desc}\n`;
+      }
+    });
+  }
+
   context += `\n# 世界書\n${worldbook}\n`;
 
   if (chatHistory !== '無聊天記錄') {
@@ -749,10 +1028,8 @@ async function generateAO3Content() {
   try {
     const context = buildAO3Context();
     
-    // 使用 AO3 應用內的語言選擇器
     const selectedLang = els.languagePrimary?.value || 'zh-Hant';
     
-    // 語言代碼轉換為 AI 可讀的名稱
     const langNames = {
       'en': 'English',
       'zh-Hant': '繁體中文',
@@ -771,21 +1048,51 @@ async function generateAO3Content() {
     const relationship = state.tags.relationship.join(', ') || '未指定';
     const characters = state.tags.characters.join(', ') || '未指定';
 
+    const tropeInfo = state.selectedTropes.map(idx => {
+      const trope = interactionTropes[idx];
+      return trope ? `${trope.title}: ${trope.desc}` : '';
+    }).filter(Boolean).join('\n');
+
+    const worldSettingInfo = state.selectedWorldSettings.map(idx => {
+      const setting = worldSettings[idx];
+      return setting ? `${setting.title}: ${setting.desc}` : '';
+    }).filter(Boolean).join('\n');
+
+    const selectedCharsInfo = state.selectedCharacters.map(c => 
+      `${c.name} (${c.type}): ${c.personality || ''} ${c.background || ''}`
+    ).join('\n');
+
     const systemPrompt = `你是一位專業的同人文作家，擅長根據角色設定和使用者背景創作符合人物性格的同人文。
-請使用 ${langName} 撰撰寫。
+請使用 ${langName} 撰寫。
 輸出格式為 JSON: {"title": "標題", "content": "正文內容", "tags": ["標籤1", "標籤2"]}`;
 
-    const prompt = `${context}
+    let prompt = `${context}
 
 Fandom: ${fandom}
 CP: ${relationship}
 角色: ${characters}
+`;
 
+    if (tropeInfo) {
+      prompt += `\n選擇的梗:\n${tropeInfo}\n`;
+    }
+
+    if (worldSettingInfo) {
+      prompt += `\n世界設定:\n${worldSettingInfo}\n`;
+    }
+
+    if (selectedCharsInfo) {
+      prompt += `\n參與角色:\n${selectedCharsInfo}\n`;
+    }
+
+    prompt += `
 請生成一篇同人文，要求：
 1. 符合角色性格和使用者設定
 2. 自然融入世界書設定
-3. 字數約 500-1000 字
-4. 包含標題和正文
+3. 如果有選擇梗，請將梗融入故事情節
+4. 如果有選擇世界設定，請遵循該世界的規則
+5. 字數約 500-1000 字
+6. 包含標題和正文
 
 輸出 JSON 格式。`;
 

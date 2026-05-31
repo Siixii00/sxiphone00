@@ -124,6 +124,34 @@
             </div>
         </section>
 
+        <section class="inspiration-card" aria-label="創作靈感">
+            <div class="inspiration-tabs">
+                <button class="inspiration-tab active" data-tab="tropes">梗庫</button>
+                <button class="inspiration-tab" data-tab="characters">角色</button>
+                <button class="inspiration-tab" data-tab="worldsettings">世界設定</button>
+            </div>
+            <div class="inspiration-content">
+                <div class="inspiration-panel active" id="tropes-panel">
+                    <div class="panel-header">
+                        <span>選擇互動梗來啟發創作靈感</span>
+                    </div>
+                    <div class="tropes-list" id="ao3-tropes-list"></div>
+                </div>
+                <div class="inspiration-panel" id="characters-panel">
+                    <div class="panel-header">
+                        <span>從 Settings 導入角色來寫作</span>
+                    </div>
+                    <div class="characters-list" id="ao3-characters-list"></div>
+                </div>
+                <div class="inspiration-panel" id="worldsettings-panel">
+                    <div class="panel-header">
+                        <span>選擇世界觀設定</span>
+                    </div>
+                    <div class="worldsettings-list" id="ao3-worldsettings-list"></div>
+                </div>
+            </div>
+        </section>
+
         <section class="editor-card" aria-label="內文編輯器">
             <div class="toolbar" id="format-toolbar">
                 <button type="button" data-format="bold" title="粗體 ( **text** )">B</button>
