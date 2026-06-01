@@ -925,7 +925,7 @@ class UnifiedStorageManager {
     const trimmed = base64.trim();
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       console.log('[UnifiedStorageManager] 內容已是 JSON，跳過解碼');
-      return base64;
+      return trimmed;
     }
     const cleaned = base64.replace(/\s/g, '');
     try {
@@ -934,10 +934,17 @@ class UnifiedStorageManager {
       for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
-      return new TextDecoder('utf-8').decode(bytes);
+      const decoded = new TextDecoder('utf-8').decode(bytes);
+      return decoded;
     } catch (e) {
-      console.error('[UnifiedStorageManager] Base64 解碼失敗:', e.message);
-      throw new Error('Base64 解碼失敗: ' + e.message);
+      console.warn('[UnifiedStorageManager] 標準 base64 解碼失敗，嘗試 UTF-16 方式:', e.message);
+      try {
+        const decoded = decodeURIComponent(escape(atob(cleaned)));
+        return decoded;
+      } catch (e2) {
+        console.error('[UnifiedStorageManager] Base64 解碼完全失敗:', e2.message);
+        throw new Error('Base64 解碼失敗: ' + e2.message);
+      }
     }
   }
 

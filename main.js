@@ -5213,10 +5213,28 @@ const handleEnd = (y) => {
         });
     };
 
+    const decodeBackupContent = (base64Content) => {
+        const cleaned = base64Content.replace(/\s/g, '');
+        if (cleaned.startsWith('eyJ') || /^[A-Za-z0-9+/=]+$/.test(cleaned)) {
+            try {
+                const decoded = decodeURIComponent(escape(atob(cleaned)));
+                if (decoded.trim().startsWith('{') || decoded.trim().startsWith('[')) {
+                    return decoded;
+                }
+            } catch (e) {
+                console.warn('[GitHub] 標準 base64 解碼失敗，嘗試其他方式:', e.message);
+            }
+        }
+        const trimmed = base64Content.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            return trimmed;
+        }
+        throw new Error('無法解析備份內容：格式不支援');
+    };
+
     const pullFromGitHub = async (token, username, repo) => {
         const file = await githubApi(token, `/repos/${username}/${repo}/contents/backup.json`);
-        const base64Content = file.content.replace(/\s/g, '');
-        const raw = decodeURIComponent(escape(atob(base64Content)));
+        const raw = decodeBackupContent(file.content);
         const data = JSON.parse(raw);
         const skipKeys = new Set([GITHUB_TOKEN_KEY, GITHUB_USER_KEY, GITHUB_REPO_KEY]);
         
