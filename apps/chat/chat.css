@@ -3954,3 +3954,111 @@ input[type="range"] {
 .arcade-invite-rejected {
     color: #ef4444;
 }
+
+.phone-check-dialog-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 16px;
+    max-width: 280px;
+    animation: phone-check-pulse 2s ease-in-out infinite;
+}
+
+.phone-check-dialog-card.phone-check-dialog-ended {
+    animation: none;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+@keyframes phone-check-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+    }
+}
+
+.phone-check-dialog-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-color: #ddd;
+    flex-shrink: 0;
+}
+
+.phone-check-dialog-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.phone-check-dialog-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.phone-check-dialog-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6366f1;
+    margin-bottom: 8px;
+}
+
+.phone-check-dialog-ended .phone-check-dialog-status {
+    color: #22c55e;
+}
+
+.phone-check-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.phone-check-status-icon i {
+    animation: phone-check-icon-bounce 1s ease-in-out infinite;
+}
+
+.phone-check-dialog-ended .phone-check-status-icon i {
+    animation: none;
+}
+
+@keyframes phone-check-icon-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.phone-check-dialog-message {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.phone-check-dialog-apps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.phone-check-app-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 10px;
+    font-size: 10px;
+    color: #6366f1;
+    font-weight: 500;
+}

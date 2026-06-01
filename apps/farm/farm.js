@@ -745,7 +745,9 @@ function endDay() {
 }
 
 function closeFarmApp() {
-    if (window.closeApp) {
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'closeApp' }, '*');
+    } else if (window.closeApp) {
         window.closeApp('farm');
     } else {
         window.history.back();

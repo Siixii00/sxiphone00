@@ -155,7 +155,9 @@
     carouselIndex: 0,
     sidebarOpen: false,
     searchOpen: false,
-    streamPageOpen: false
+    streamPageOpen: false,
+    isPlaying: false,
+    chatGenerationInterval: null
   };
 
   // ==================== DOM 元素 ====================
@@ -189,7 +191,10 @@
     streamerTitle: document.getElementById('streamerTitle'),
     streamerBio: document.getElementById('streamerBio'),
     viewerCount: document.getElementById('viewerCount'),
-    followerCount: document.getElementById('followerCount')
+    followerCount: document.getElementById('followerCount'),
+    playBtn: document.getElementById('playBtn'),
+    videoPlaceholder: document.getElementById('videoPlaceholder'),
+    progressFill: document.getElementById('progressFill')
   };
 
   // ==================== 工具函數 ====================
@@ -472,6 +477,121 @@
     elements.streamPage.classList.remove('open');
     state.streamPageOpen = false;
     state.currentStream = null;
+    stopLiveChatGeneration();
+  }
+
+  function togglePlay() {
+    state.isPlaying = !state.isPlaying;
+    
+    if (state.isPlaying) {
+      elements.videoPlaceholder.innerHTML = `
+        <div class="live-playing-indicator">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="animation: pulse 1s infinite;">
+            <circle cx="12" cy="12" r="8"/>
+          </svg>
+          <span>直播進行中</span>
+        </div>
+      `;
+      elements.playBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      `;
+      startLiveChatGeneration();
+    } else {
+      elements.videoPlaceholder.innerHTML = `
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      `;
+      elements.playBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      `;
+      stopLiveChatGeneration();
+    }
+  }
+
+  let isGeneratingChat = false;
+
+  async function generateLiveChatMessage() {
+    if (isGeneratingChat || !state.currentStream) return;
+    
+    isGeneratingChat = true;
+    
+    try {
+      const context = buildTwitchContext();
+      const stream = state.currentStream;
+      const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+
+      const systemPrompt = `你是直播間的觀眾，正在觀看 ${stream.streamer} 的直播。
+直播內容: ${stream.title}
+遊戲/類別: ${stream.game}
+請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 回應。
+輸出格式為 JSON: {"username": "觀眾名稱", "message": "聊天訊息", "type": "normal|subscriber|moderator"}`;
+
+      const prompt = `${context}
+
+請生成一條聊天室訊息，要求：
+1. 符合當前直播內容和氛圍
+2. 可以是支持、吐槽、提問或互動
+3. 自然融入角色設定
+4. 訊息簡短（1-3句）
+
+輸出 JSON 格式。`;
+
+      const result = await callTwitchAIAPI([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ], 0.9);
+
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result);
+      } catch {
+        const match = result.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      if (parsed?.message) {
+        addChatMessage(parsed.username || '觀眾', parsed.message, parsed.type || 'normal');
+      }
+    } catch (err) {
+      console.warn('[Twitch] 聊天生成失敗:', err);
+    } finally {
+      isGeneratingChat = false;
+    }
+  }
+
+  function addChatMessage(username, message, type = 'normal') {
+    const messageEl = document.createElement('div');
+    messageEl.className = 'chat-message';
+    messageEl.innerHTML = `
+      <span class="chat-username ${type}">${username}:</span>
+      <span class="chat-text">${message}</span>
+    `;
+    elements.chatMessages.appendChild(messageEl);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+  }
+
+  function startLiveChatGeneration() {
+    if (state.chatGenerationInterval) return;
+    
+    generateLiveChatMessage();
+    
+    state.chatGenerationInterval = setInterval(() => {
+      generateLiveChatMessage();
+    }, 5000 + Math.random() * 3000);
+  }
+
+  function stopLiveChatGeneration() {
+    if (state.chatGenerationInterval) {
+      clearInterval(state.chatGenerationInterval);
+      state.chatGenerationInterval = null;
+    }
+    state.isPlaying = false;
+    isGeneratingChat = false;
   }
 
   function toggleFollow() {
@@ -615,6 +735,9 @@
     elements.closeStreamBtn.addEventListener('click', closeStreamPage);
     elements.followBtn.addEventListener('click', toggleFollow);
     elements.sendChatBtn.addEventListener('click', sendChatMessage);
+    if (elements.playBtn) {
+      elements.playBtn.addEventListener('click', togglePlay);
+    }
     elements.chatInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         sendChatMessage();

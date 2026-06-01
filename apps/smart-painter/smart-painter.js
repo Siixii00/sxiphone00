@@ -274,6 +274,249 @@ function fakePreviewImage(styleId) {
   return svg;
 }
 
+const ImageGenerationService = {
+  async generateImage(params) {
+    const config = this.getApiConfig();
+    if (!config) {
+      throw new Error('尚未設定 API，請先在設定中配置 OpenAI API');
+    }
+
+    const apiType = config.type || 'openai';
+    
+    if (apiType === 'gemini') {
+      return this.generateWithGemini(config, params);
+    }
+    
+    if (apiType === 'novelai') {
+      return this.generateWithNovelAI(config, params);
+    }
+    
+    if (apiType === 'custom') {
+      return this.generateWithCustom(config, params);
+    }
+    
+    return this.generateWithOpenAI(config, params);
+  },
+
+  async generateWithNovelAI(config, params) {
+    const { prompt, negativePrompt, size, model, seed } = params;
+    
+    const sizeMap = {
+      '512x384': { width: 512, height: 384 },
+      '1024x768': { width: 1024, height: 768 },
+      '640x480': { width: 640, height: 480 }
+    };
+    const dimensions = sizeMap[size] || { width: 512, height: 384 };
+    
+    const steps = parseInt(stepsRange.value, 10) || 28;
+    const cfgScale = parseFloat(cfgRange.value) || 7.5;
+    const actualSeed = seed || Math.floor(Math.random() * 999999999);
+    
+    const apiUrl = config.baseUrl || 'https://api.novelai.net';
+    const endpoint = `${apiUrl}/ai/generate-image`;
+    
+    const requestBody = {
+      input: prompt,
+      model: model === 'turbo' ? 'nai-diffusion-3' : 'nai-diffusion',
+      action: 'generate',
+      parameters: {
+        width: dimensions.width,
+        height: dimensions.height,
+        scale: cfgScale,
+        sampler: 'k_euler_ancestral',
+        steps: steps,
+        seed: actualSeed,
+        n_samples: 1,
+        uc: negativePrompt || 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry',
+        qualityToggle: true,
+        sm: false,
+        sm_dyn: false,
+        dynamic_thresholding: false,
+        controlnet_strength: 1,
+        legacy_v3_extend: false,
+        add_original_image: false,
+        cfg_rescale: 0,
+        noise_schedule: 'native'
+      }
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.key}`
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => {});
+      const errorMsg = errorData?.message || errorData?.error?.message || `NovelAI API 錯誤 (${response.status})`;
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    
+    if (data.data) {
+      const base64Data = data.data;
+      const imageUrl = base64Data.startsWith('data:image') 
+        ? base64Data 
+        : `data:image/png;base64,${base64Data}`;
+      
+      return {
+        url: imageUrl,
+        revisedPrompt: prompt,
+        seed: actualSeed
+      };
+    }
+
+    throw new Error('NovelAI API 回應格式錯誤');
+  },
+
+  getApiConfig() {
+    try {
+      const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+      if (!apis || apis.length === 0) return null;
+      const activeIndex = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+      return apis[activeIndex] || apis[0];
+    } catch (e) {
+      console.warn('[ImageGeneration] 取得 API 配置失敗:', e);
+      return null;
+    }
+  },
+
+  async generateWithOpenAI(config, params) {
+    const { prompt, negativePrompt, size, model } = params;
+    
+    const sizeMap = {
+      '512x384': '512x512',
+      '1024x768': '1024x1024',
+      '640x480': '512x512'
+    };
+    const openaiSize = sizeMap[size] || '512x512';
+
+    const enhancedPrompt = this.buildPrompt(prompt, negativePrompt);
+    
+    const apiUrl = config.baseUrl || 'https://api.openai.com/v1';
+    const endpoint = `${apiUrl}/images/generations`;
+
+    const requestBody = {
+      model: model === 'turbo' ? 'dall-e-3' : 'dall-e-2',
+      prompt: enhancedPrompt,
+      n: 1,
+      size: openaiSize,
+      quality: model === 'turbo' ? 'standard' : 'standard',
+      response_format: 'url'
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.key}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => {});
+      const errorMsg = errorData?.error?.message || `API 錯誤 (${response.status})`;
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || !data.data[0]?.url) {
+      throw new Error('API 回應格式錯誤');
+    }
+
+    return {
+      url: data.data[0].url,
+      revisedPrompt: data.data[0]?.revised_prompt || prompt
+    };
+  },
+
+  async generateWithGemini(config, params) {
+    throw new Error('Gemini 目前不支援圖片生成，請使用 OpenAI 或 NovelAI API');
+  },
+
+  async generateWithCustom(config, params) {
+    const { prompt, negativePrompt, size } = params;
+    
+    const apiUrl = config.baseUrl || config.url;
+    if (!apiUrl) {
+      throw new Error('自訂 API 未設定 baseUrl');
+    }
+
+    const enhancedPrompt = this.buildPrompt(prompt, negativePrompt);
+    
+    const endpoint = apiUrl.endsWith('/') 
+      ? `${apiUrl}images/generations` 
+      : `${apiUrl}/images/generations`;
+
+    const requestBody = {
+      prompt: enhancedPrompt,
+      negative_prompt: negativePrompt,
+      size: size,
+      steps: 28,
+      cfg_scale: 7.5
+    };
+
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    if (config.key) {
+      headers['Authorization'] = `Bearer ${config.key}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => {});
+      throw new Error(errorData?.error?.message || `API 錯誤 (${response.status})`);
+    }
+
+    const data = await response.json();
+    
+    if (data.images && data.images[0]) {
+      return {
+        url: data.images[0],
+        revisedPrompt: prompt
+      };
+    }
+    
+    if (data.data && data.data[0]?.url) {
+      return {
+        url: data.data[0].url,
+        revisedPrompt: prompt
+      };
+    }
+
+    throw new Error('自訂 API 回應格式錯誤');
+  },
+
+  buildPrompt(prompt, negativePrompt) {
+    let enhanced = prompt;
+    
+    if (negativePrompt && negativePrompt.trim()) {
+      enhanced = `${prompt}. Avoid: ${negativePrompt}`;
+    }
+    
+    if (enhanced.length > 1000) {
+      enhanced = enhanced.slice(0, 1000);
+    }
+    
+    return enhanced;
+  }
+};
+
 const ImageHostService = {
     isEnabled() {
         return localStorage.getItem('sx_image_host_enabled') === 'true';
@@ -312,53 +555,77 @@ function simulateGeneration() {
   const promptText = promptInput.value.trim();
   if (!promptText) {
     promptInput.focus();
+    alert('請輸入提示詞');
     return;
   }
+
+  const selectedSize = document.querySelector('.chip.active')?.dataset.size || '512x384';
+  const selectedModel = modelSelect.value;
+  const seed = seedInput.value;
 
   const originalLabel = generateBtn.dataset.label || generateBtn.innerHTML;
   generateBtn.dataset.label = originalLabel;
   generateBtn.disabled = true;
   generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 合成中…';
 
-  setTimeout(async () => {
-    const preview = fakePreviewImage(activeStyle?.id);
-    const record = {
-      timestamp: Date.now(),
-      prompt: promptText,
-      preview,
-    };
-    history.push(record);
-    history = history.slice(-8);
-    saveToStorage(STORAGE_KEYS.history, history);
-    renderHistory();
-    
-    let imageUrl = preview;
-    if (ImageHostService.isEnabled()) {
-        const uploadedUrl = await ImageHostService.uploadToCatbox(preview);
-        if (uploadedUrl) {
+  ImageGenerationService.generateImage({
+    prompt: promptText,
+    negativePrompt: negativeInput.value.trim(),
+    size: selectedSize,
+    model: selectedModel,
+    seed: seed ? parseInt(seed, 10) : null
+  })
+    .then(async (result) => {
+      let imageUrl = result.url;
+      
+      if (ImageHostService.isEnabled()) {
+        try {
+          const uploadedUrl = await ImageHostService.uploadToCatbox(result.url);
+          if (uploadedUrl) {
             imageUrl = uploadedUrl;
             console.log('[SmartPainter] 圖片已上傳到圖床:', uploadedUrl);
+          }
+        } catch (e) {
+          console.warn('[SmartPainter] 圖床上傳失敗，使用原始 URL');
         }
-    }
-    
-    window.parent?.postMessage({
-      type: 'ALBUM_ADD_IMAGE',
-      url: imageUrl,
-      source: 'painter'
-    }, '*');
-    
-    // 發送付款通知到 kakaopay
-    window.parent?.postMessage({
-      type: 'KAKAOPAY_PAYMENT_REQUEST',
-      amount: 5,
-      itemName: `照相館生成：${promptText.slice(0, 20)}...`,
-      category: '應用',
-      source: 'smart-painter'
-    }, '*');
-    
-    generateBtn.disabled = false;
-    generateBtn.innerHTML = originalLabel;
-  }, 1400);
+      }
+
+      const record = {
+        timestamp: Date.now(),
+        prompt: promptText,
+        revisedPrompt: result.revisedPrompt,
+        preview: imageUrl,
+        model: selectedModel,
+        size: selectedSize
+      };
+      history.push(record);
+      history = history.slice(-12);
+      saveToStorage(STORAGE_KEYS.history, history);
+      renderHistory();
+      
+      window.parent?.postMessage({
+        type: 'ALBUM_ADD_IMAGE',
+        url: imageUrl,
+        source: 'painter'
+      }, '*');
+      
+      window.parent?.postMessage({
+        type: 'KAKAOPAY_PAYMENT_REQUEST',
+        amount: 5,
+        itemName: `照相館生成：${promptText.slice(0, 20)}...`,
+        category: '應用',
+        source: 'smart-painter'
+      }, '*');
+      
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = originalLabel;
+    })
+    .catch((error) => {
+      console.error('[SmartPainter] 生成失敗:', error);
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = originalLabel;
+      alert(`生成失敗: ${error.message}`);
+    });
 }
 
 function clearHistory() {

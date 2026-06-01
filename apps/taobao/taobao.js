@@ -1871,6 +1871,8 @@ function generateCharRecommendations() {
 }
 
 function renderBigdataRecommendations() {
+  const recommendationPools = {
+    gentle_spicy: [
       { title: '密碼鎖日記本', category: '其他', platform: 'shopee', priceRange: [100, 400], reason: '把秘密寫進去。我會看的。' },
       { title: '專屬項圈', category: '服飾', platform: 'coupang', priceRange: [200, 600], reason: '戴上。你是我的。' }
     ],

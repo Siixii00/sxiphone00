@@ -1090,6 +1090,21 @@ window.addEventListener('message', (event) => {
         console.log('[Chat] 收到懸浮窗截圖');
         handleFloatingScreenshot(data.dataUrl);
     }
+    
+    if (data.type === 'PHONE_CHECK_STARTED' && data.charName) {
+        console.log('[Chat] 收到查手機開始事件:', data.charName);
+        handlePhoneCheckStarted(data);
+    }
+    
+    if (data.type === 'PHONE_CHECK_MESSAGE' && data.message) {
+        console.log('[Chat] 收到查手機評論:', data.charName, data.message);
+        handlePhoneCheckMessage(data);
+    }
+    
+    if (data.type === 'PHONE_CHECK_ENDED' && data.charName) {
+        console.log('[Chat] 收到查手機結束事件:', data.charName);
+        handlePhoneCheckEnded(data);
+    }
 });
 
 function handleFloatingScreenshot(dataUrl) {
@@ -1105,6 +1120,90 @@ function handleFloatingScreenshot(dataUrl) {
     
     const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
     addMessage(`${charName} 已收到截圖，請稍等...`, 'ai', false);
+}
+
+let phoneCheckDialogVisible = false;
+
+function handlePhoneCheckStarted(data) {
+    const charName = data.charName || localStorage.getItem('sx_char_name') || '角色';
+    const message = data.message || `${charName}開始查看你的手機...`;
+    
+    const phoneCheckDialogHtml = `
+        <div class="phone-check-dialog-card" id="phone-check-dialog-card">
+            <div class="phone-check-dialog-avatar" style="background-image: url('${localStorage.getItem('sx_char_avatar') || ''}')"></div>
+            <div class="phone-check-dialog-content">
+                <div class="phone-check-dialog-name">${charName}</div>
+                <div class="phone-check-dialog-status">
+                    <span class="phone-check-status-icon"><i class="fas fa-mobile-alt"></i></span>
+                    <span class="phone-check-status-text">正在查看你的手機...</span>
+                </div>
+                <div class="phone-check-dialog-message" id="phone-check-dialog-message">${message}</div>
+                <div class="phone-check-dialog-apps" id="phone-check-dialog-apps"></div>
+            </div>
+        </div>
+    `;
+    
+    appendMsg('other', phoneCheckDialogHtml, { type: 'phone-check' });
+    appendHistoryAndSession('assistant', `[查手機事件] ${message}`);
+    phoneCheckDialogVisible = true;
+}
+
+function handlePhoneCheckMessage(data) {
+    const messageEl = document.getElementById('phone-check-dialog-message');
+    const appsEl = document.getElementById('phone-check-dialog-apps');
+    
+    if (messageEl) {
+        messageEl.textContent = data.message;
+    }
+    
+    if (appsEl && data.apps && data.apps.length > 0) {
+        const appsText = data.apps.slice(-3).map(app => {
+            const appNames = {
+                'facebook': 'Facebook',
+                'instagram': 'Instagram',
+                'twitter': 'Twitter',
+                'chat': '聊天',
+                'settings': '設定',
+                'album': '相簿',
+                'music': '音樂',
+                'weather': '天氣',
+                'kakaopay': 'KakaoPay',
+                'worldbook': '世界書',
+                'exchange-diary': '交換日記'
+            };
+            return `<span class="phone-check-app-tag">${appNames[app] || app}</span>`;
+        }).join(' ');
+        appsEl.innerHTML = appsText;
+    }
+    
+    appendHistoryAndSession('assistant', `[查手機評論] ${data.message}`);
+}
+
+function handlePhoneCheckEnded(data) {
+    const messageEl = document.getElementById('phone-check-dialog-message');
+    const statusEl = document.querySelector('.phone-check-dialog-status');
+    const cardEl = document.getElementById('phone-check-dialog-card');
+    
+    if (statusEl) {
+        statusEl.innerHTML = `
+            <span class="phone-check-status-icon"><i class="fas fa-check-circle"></i></span>
+            <span class="phone-check-status-text">查看完成</span>
+        `;
+    }
+    
+    if (messageEl && data.message) {
+        messageEl.textContent = data.message;
+    }
+    
+    if (cardEl) {
+        cardEl.classList.add('phone-check-dialog-ended');
+    }
+    
+    const charName = data.charName || localStorage.getItem('sx_char_name') || '角色';
+    const finalMessage = data.message || `${charName}看完了你的手機`;
+    appendHistoryAndSession('assistant', `[查手機結束] ${finalMessage}`);
+    
+    phoneCheckDialogVisible = false;
 }
 
 function getActiveChatId() {

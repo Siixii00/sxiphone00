@@ -1992,6 +1992,61 @@
         };
     };
 
+    const getPhoneCheckUserPhoneContent = () => {
+        const content = {};
+        
+        const chatHistoryRaw = localStorage.getItem('sx_chat_history');
+        if (chatHistoryRaw) {
+            try {
+                const history = JSON.parse(chatHistoryRaw);
+                if (Array.isArray(history) && history.length > 0) {
+                    content.recentChats = history.slice(-5).map(h => {
+                        const role = h.role === 'user' ? '用戶' : '角色';
+                        const text = (h.content || '').slice(0, 50);
+                        return `${role}: ${text}`;
+                    }).join('\n');
+                }
+            } catch {}
+        }
+        
+        const albumRaw = localStorage.getItem('sx_album_images');
+        if (albumRaw) {
+            try {
+                const images = JSON.parse(albumRaw);
+                if (Array.isArray(images) && images.length > 0) {
+                    content.albumCount = images.length;
+                    content.albumRecent = images.slice(0, 3).map(img => img.name || '照片').join(', ');
+                }
+            } catch {}
+        }
+        
+        const diaryRaw = localStorage.getItem('sx_exchange_diary_entries');
+        if (diaryRaw) {
+            try {
+                const entries = JSON.parse(diaryRaw);
+                if (Array.isArray(entries) && entries.length > 0) {
+                    content.diaryCount = entries.length;
+                    const lastEntry = entries[entries.length - 1];
+                    if (lastEntry && lastEntry.content) {
+                        content.diaryRecent = lastEntry.content.slice(0, 100);
+                    }
+                }
+            } catch {}
+        }
+        
+        const notesRaw = localStorage.getItem('sx_notes');
+        if (notesRaw) {
+            try {
+                const notes = JSON.parse(notesRaw);
+                if (Array.isArray(notes) && notes.length > 0) {
+                    content.notesCount = notes.length;
+                }
+            } catch {}
+        }
+        
+        return content;
+    };
+
     const getPhoneCheckWorldbookContext = () => {
         const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
         const entries = [];
@@ -2022,6 +2077,7 @@
         const char = getPhoneCheckCharacterData();
         const user = getPhoneCheckUserData();
         const worldbook = getPhoneCheckWorldbookContext();
+        const phoneContent = getPhoneCheckUserPhoneContent();
 
         const charName = char?.name || localStorage.getItem('sx_char_name') || '角色';
         const charPersonality = char?.personality || '';
@@ -2032,8 +2088,8 @@
 
         const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
 
-        const systemPrompt = `你是一個正在查看使用者手機的角色，請根據角色性格生成一句簡短的話。
-請使用 ${getAIReadableLangName(lang)} 撰寫。
+        const systemPrompt = `你是一個正在查看使用者手機的角色，請根據角色性格和看到的內容生成一句簡短的話。
+請使用 ${getAIReadableLangName(lang)} 撰撰寫。
 輸出格式為 JSON: {"message": "一句話"}`;
 
         let context = `# 角色設定\n名稱: ${charName}\n`;
@@ -2042,13 +2098,38 @@
         context += `\n# 使用者\n名稱: ${user.name}\n`;
         if (worldbook) context += `\n# 世界書\n${worldbook}\n`;
         context += `\n# 當前狀況\n正在查看: ${appsText}\n`;
+        
+        if (Object.keys(phoneContent).length > 0) {
+            context += `\n# 手機內容\n`;
+            if (phoneContent.recentChats) {
+                context += `最近聊天記錄:\n${phoneContent.recentChats}\n`;
+            }
+            if (phoneContent.albumCount) {
+                context += `相簿: ${phoneContent.albumCount} 張照片`;
+                if (phoneContent.albumRecent) {
+                    context += `（最近: ${phoneContent.albumRecent}）`;
+                }
+                context += `\n`;
+            }
+            if (phoneContent.diaryCount) {
+                context += `交換日記: ${phoneContent.diaryCount} 篇`;
+                if (phoneContent.diaryRecent) {
+                    context += `\n最新日記: ${phoneContent.diaryRecent}`;
+                }
+                context += `\n`;
+            }
+            if (phoneContent.notesCount) {
+                context += `筆記: ${phoneContent.notesCount} 則\n`;
+            }
+        }
 
         const prompt = `${context}
 
 請生成一句角色在查看手機時會說的話，要求：
-1. 符合角色性格
-2. 簡短自然（15-40字）
-3. 可以是評論、疑問或感想
+1. 根據看到的內容發表評論或感想
+2. 符合角色性格
+3. 簡短自然（15-40字）
+4. 可以是評論、疑問、驚訝或感想
 
 輸出 JSON 格式。`;
 
@@ -2105,6 +2186,17 @@
         if (aiMessage) {
             messageEl.textContent = aiMessage;
             phoneCheckAIMessages.push(aiMessage);
+            const frame = document.getElementById('app-frame');
+            if (frame?.contentWindow) {
+                const charName = localStorage.getItem('sx_char_name') || '角色';
+                const apps = Array.from(phoneCheckAppsSeen || []);
+                frame.contentWindow.postMessage({
+                    type: 'PHONE_CHECK_MESSAGE',
+                    charName: charName,
+                    message: aiMessage,
+                    apps: apps
+                }, '*');
+            }
         } else {
             const charName = localStorage.getItem('sx_char_name') || '角色';
             messageEl.textContent = `${charName}正在查看你的手機...`;
@@ -2185,6 +2277,18 @@
             extra: { durationMs, minutes, apps, evaluation, charName }
         });
         emitMemoryEvent('MEMORY_WRITE_RESULT', result);
+        
+        const frame = document.getElementById('app-frame');
+        if (frame?.contentWindow) {
+            frame.contentWindow.postMessage({
+                type: 'PHONE_CHECK_ENDED',
+                charName: charName,
+                message: evaluation,
+                apps: apps,
+                duration: minutes
+            }, '*');
+        }
+        
         phoneCheckLastEvaluation = '';
         phoneCheckAppsSeen = new Set();
         phoneCheckAIMessages = [];
@@ -2235,6 +2339,16 @@
         phoneCheckMessageTimer = setInterval(() => {
             updatePhoneCheckMessage();
         }, 5000 + randomBetween(0, 3000));
+        
+        const charName = localStorage.getItem('sx_char_name') || '角色';
+        const frame = document.getElementById('app-frame');
+        if (frame?.contentWindow) {
+            frame.contentWindow.postMessage({
+                type: 'PHONE_CHECK_STARTED',
+                charName: charName,
+                message: phoneCheckLastEvaluation || `${charName}開始查看你的手機...`
+            }, '*');
+        }
         
         cycleRandomApps();
         phoneCheckEndTimer = setTimeout(stopPhoneCheck, duration);
