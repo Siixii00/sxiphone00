@@ -5101,7 +5101,8 @@ const handleEnd = (y) => {
 
     const pullFromGitHub = async (token, username, repo) => {
         const file = await githubApi(token, `/repos/${username}/${repo}/contents/backup.json`);
-        const raw = decodeURIComponent(escape(atob(file.content)));
+        const base64Content = file.content.replace(/\s/g, '');
+        const raw = decodeURIComponent(escape(atob(base64Content)));
         const data = JSON.parse(raw);
         const skipKeys = new Set([GITHUB_TOKEN_KEY, GITHUB_USER_KEY, GITHUB_REPO_KEY]);
         
