@@ -1934,7 +1934,7 @@
     };
 
     // --- 4.2 手機檢查事件 ---
-    let phoneCheckEnabled = localStorage.getItem(PHONE_CHECK_KEY) === '1';
+    let phoneCheckEnabled = false;
     let phoneCheckTimer = null;
     let phoneCheckSwitchTimer = null;
     let phoneCheckEndTimer = null;
@@ -2849,19 +2849,9 @@
                 }
                 break;
             case 'PHONE_CHECK_TOGGLE':
-                phoneCheckEnabled = !!data.enabled;
-                localStorage.setItem(PHONE_CHECK_KEY, phoneCheckEnabled ? '1' : '0');
-                if (data.settings) {
-                    if (data.settings.minDelay) localStorage.setItem(PHONE_CHECK_MIN_DELAY_KEY, data.settings.minDelay);
-                    if (data.settings.maxDelay) localStorage.setItem(PHONE_CHECK_MAX_DELAY_KEY, data.settings.maxDelay);
-                    if (data.settings.minDuration) localStorage.setItem(PHONE_CHECK_MIN_DURATION_KEY, data.settings.minDuration);
-                    if (data.settings.maxDuration) localStorage.setItem(PHONE_CHECK_MAX_DURATION_KEY, data.settings.maxDuration);
-                }
-                if (!phoneCheckEnabled) {
-                    stopPhoneCheck();
-                } else {
-                    schedulePhoneCheck();
-                }
+                phoneCheckEnabled = false;
+                localStorage.setItem(PHONE_CHECK_KEY, '0');
+                stopPhoneCheck();
                 break;
             case 'MEMORY_CHAT_EVENT':
                 handleMemoryChatEvent(data.payload, event.source);
@@ -5503,10 +5493,9 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
     };
 
     const initPhoneCheckState = () => {
-        phoneCheckEnabled = localStorage.getItem(PHONE_CHECK_KEY) === '1';
-        if (phoneCheckEnabled) {
-            schedulePhoneCheck();
-        }
+        phoneCheckEnabled = false;
+        localStorage.setItem(PHONE_CHECK_KEY, '0');
+        stopPhoneCheck();
     };
 
     const isAndroid = () => /android/i.test(navigator.userAgent);
