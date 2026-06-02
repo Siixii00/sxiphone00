@@ -67,7 +67,6 @@ self.addEventListener('install', (event) => {
           STATIC_ASSETS.map((asset) =>
             cache.add(asset).catch((err) => {
               console.warn(`[SW] Failed to cache: ${asset}`, err.message);
-              throw err;
             })
           )
         );
@@ -76,9 +75,6 @@ self.addEventListener('install', (event) => {
         const failed = results.filter((r) => r.status === 'rejected');
         const succeeded = results.filter((r) => r.status === 'fulfilled');
         console.log(`[SW] Cached ${succeeded.length} assets, ${failed.length} failed`);
-        if (failed.length > 0) {
-          console.warn('[SW] Some assets failed to cache, but continuing installation');
-        }
         console.log('[SW] Skip waiting');
         return self.skipWaiting();
       })

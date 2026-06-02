@@ -1,4 +1,14 @@
 (function() {
+    window.addEventListener('error', (event) => {
+        console.error('[Global Error]', event.message, event.filename, event.lineno);
+        event.preventDefault();
+    });
+    
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('[Unhandled Rejection]', event.reason);
+        event.preventDefault();
+    });
+    
     // --- iOS 記憶體壓力保護 ---
     const IOSMemoryProtection = {
         lastSaveTime: 0,
@@ -2302,8 +2312,10 @@
         const current = currentAppId;
         let next = apps[randomBetween(0, apps.length - 1)];
         if (apps.length > 1) {
-            while (next === current) {
+            let safety = 0;
+            while (next === current && safety < 100) {
                 next = apps[randomBetween(0, apps.length - 1)];
+                safety++;
             }
         }
         window.launchApp(next);
@@ -2578,7 +2590,8 @@
             case 'SHOW_STATUS_BAR':
                 (function() {
                     const statusBar = document.querySelector('.status-bar');
-                    const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
+                    let themeConfig = {};
+                    try { themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}'); } catch {}
                     if (statusBar && !themeConfig.hideTopbar) {
                         statusBar.style.display = '';
                     }
@@ -3909,7 +3922,8 @@
     const updatePanelPosition = () => {
         if (!floatingPanel || !floatingBall) return;
         const ballRect = floatingBall.getBoundingClientRect();
-        const containerRect = document.getElementById('phone-container').getBoundingClientRect();
+        const containerRect = document.getElementById('phone-container')?.getBoundingClientRect();
+        if (!containerRect) return;
         const offsetX = ballRect.left - containerRect.left;
         const offsetY = ballRect.top - containerRect.top;
         const ballCenterX = offsetX + ballRect.width / 2;
@@ -3960,7 +3974,7 @@
         let cachedBallSize = null; // 快取球尺寸
         const MOVE_THRESHOLD = 5;
 
-        const getContainerRect = () => document.getElementById('phone-container').getBoundingClientRect();
+        const getContainerRect = () => document.getElementById('phone-container')?.getBoundingClientRect() || { left: 0, top: 0, width: 375, height: 812, right: 375, bottom: 812 };
 
         const onPointerDown = (event) => {
             dragging = true;
@@ -5483,7 +5497,8 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         if (currentAppId === 'home') {
             if (statusBar) statusBar.style.display = 'none';
         } else {
-            const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
+            let themeConfig = {};
+            try { themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}'); } catch {}
             if (themeConfig.hideTopbar) {
                 if (statusBar) statusBar.style.display = 'none';
             } else {
@@ -5564,7 +5579,8 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         currentAppId = '';
         
         const statusBar = document.querySelector('.status-bar');
-        const themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}');
+        let themeConfig = {};
+        try { themeConfig = JSON.parse(localStorage.getItem('sx_custom_theme_config') || '{}'); } catch {}
         if (statusBar) {
             if (themeConfig.hideTopbar) {
                 statusBar.style.display = 'none';
@@ -6013,8 +6029,8 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
             }
         } catch (_) {}
 
-        requestStoragePersistence();
-        checkStorageStatus();
+        requestStoragePersistence().catch(e => console.warn('Storage persistence failed:', e));
+        checkStorageStatus().catch(e => console.warn('Storage status check failed:', e));
 
         // 延遲執行圖片自動上傳遷移（base64 → 圖床 URL）
         setTimeout(_migrateBase64ToImageHost, 8000);
@@ -6098,9 +6114,12 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         
         // 初始化記憶系統
         setTimeout(async () => {
-            await initUnifiedMemorySystem();
+            try {
+                await initUnifiedMemorySystem();
+            } catch (e) {
+                console.error('[Init] Memory system init failed:', e);
+            }
             
-            // 延遲執行向量化，確保系統穩定
             setTimeout(autoVectorizeExistingMemories, 5000);
             
             // 檢查是否需要每日喚醒
