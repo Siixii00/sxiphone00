@@ -712,6 +712,9 @@ class SleepEngine {
       console.log(`[SleepEngine] Phase 7 - ChatMemories: ${chatSessions.length} 個聊天會話`);
 
       const allChatMemories = [];
+      let totalContentSize = 0;
+      const MAX_CHAT_MEMORY_SIZE = 500 * 1024;
+      
       for (const session of chatSessions) {
         if (!session.history || session.history.length === 0) continue;
 
@@ -719,6 +722,12 @@ class SleepEngine {
           try {
             const content = this._extractChatText(message.content);
             if (content.length < 10) continue;
+            
+            if (totalContentSize + content.length > MAX_CHAT_MEMORY_SIZE) {
+              console.warn('[SleepEngine] 聊天記憶大小超過限制，跳過剩餘訊息');
+              break;
+            }
+            totalContentSize += content.length;
 
             allChatMemories.push({
               id: `chat_${session.id}_${message.id || Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -733,6 +742,7 @@ class SleepEngine {
             console.warn('[SleepEngine] 提取聊天訊息失敗:', e);
           }
         }
+        if (totalContentSize > MAX_CHAT_MEMORY_SIZE) break;
       }
 
       if (allChatMemories.length === 0) {
@@ -1708,13 +1718,14 @@ class SleepEngine {
         timestamp: sleepReport.endTime
       };
 
-      const jsonStr = JSON.stringify(allData, null, 2);
-      const contentBase64 = btoa(unescape(encodeURIComponent(jsonStr)));
-
-      if (contentBase64.length > 1024 * 1024) {
-        console.warn('[SleepEngine] 備份資料過大，跳過 GitHub 備份');
+      const jsonStr = JSON.stringify(allData);
+      
+      if (jsonStr.length > 1024 * 1024) {
+        console.warn('[SleepEngine] 備份資料過大 (' + Math.round(jsonStr.length / 1024) + 'KB)，跳過 GitHub 備份');
         return false;
       }
+      
+      const contentBase64 = btoa(unescape(encodeURIComponent(jsonStr)));
 
       let sha = null;
       try {
@@ -1749,7 +1760,7 @@ class SleepEngine {
       return true;
     } catch (e) {
       console.error('[SleepEngine] GitHub 備份錯誤:', e);
-      throw e;
+      return false;
     }
   }
 
@@ -1777,6 +1788,12 @@ class SleepEngine {
         user_id: localStorage.getItem('sx_user_name') || 'default'
       };
 
+      const bodyStr = JSON.stringify(payload);
+      if (bodyStr.length > 1024 * 1024) {
+        console.warn('[SleepEngine] Supabase 備份資料過大 (' + Math.round(bodyStr.length / 1024) + 'KB)，跳過');
+        return false;
+      }
+
       const resp = await fetch(`${url}/rest/v1/${table}`, {
         method: 'POST',
         headers: {
@@ -1785,7 +1802,7 @@ class SleepEngine {
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify(payload)
+        body: bodyStr
       });
 
       if (!resp.ok) {
@@ -1796,7 +1813,7 @@ class SleepEngine {
       return true;
     } catch (e) {
       console.error('[SleepEngine] Supabase 備份錯誤:', e);
-      throw e;
+      return false;
     }
   }
 
@@ -1806,30 +1823,48 @@ class SleepEngine {
       sxStorage: {},
       memoryStats: null
     };
+    
+    let estimatedSize = 0;
+    const MAX_BACKUP_SIZE = 500 * 1024;
 
-    // 掃描原生 localStorage 中非 sx_* 的 legacy key
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
-      if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) continue; // 已遷移至 sxStorage
+      if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) continue;
       if (key === PWA_MANIFEST_KEY || key === PWA_ICON_KEY || key.startsWith('BOOT_ANIMATION')) continue;
       try {
         const value = localStorage.getItem(key);
         if (value && value.length < 512000) {
+          if (estimatedSize + value.length > MAX_BACKUP_SIZE) {
+            console.warn('[SleepEngine] 備份大小超過限制，跳過剩餘 localStorage');
+            break;
+          }
           data.localStorage[key] = value;
+          estimatedSize += value.length;
         }
       } catch {}
     }
 
-    // 從 sxStorage 取所有 sx_* key → 補入備份資料
     if (typeof sxStorage !== 'undefined' && sxStorage) {
       try {
         const keys = await sxStorage.getAllKeys();
         for (const key of keys) {
           if (key.startsWith('sx_')) {
+            if (estimatedSize > MAX_BACKUP_SIZE) {
+              console.warn('[SleepEngine] 備份大小超過限制，跳過剩餘 sxStorage');
+              break;
+            }
             try {
               const value = await sxStorage.getItem(key);
-              if (value) data.sxStorage[key] = value;
+              if (value) {
+                const valueSize = typeof value === 'string' ? value.length : JSON.stringify(value).length;
+                if (estimatedSize + valueSize > MAX_BACKUP_SIZE) {
+                  console.warn('[SleepEngine] 備份大小超過限制，跳過 key:', key);
+                  continue;
+                }
+                data.sxStorage[key] = value;
+                estimatedSize += valueSize;
+              }
             } catch {}
           }
         }
@@ -1848,6 +1883,7 @@ class SleepEngine {
       } catch {}
     }
 
+    console.log(`[SleepEngine] _collectBackupData 完成，預估大小: ${Math.round(estimatedSize / 1024)}KB`);
     return data;
   }
 

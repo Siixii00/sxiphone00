@@ -302,6 +302,18 @@ async function autoBackupToCloud() {
         user_id: localStorage.getItem('sx_user_name') || 'default'
     };
 
+    let bodyStr;
+    try {
+        bodyStr = JSON.stringify(payload);
+        if (bodyStr.length > 1024 * 1024) {
+            console.warn('[RealtimeBackup] 備份資料過大 (' + Math.round(bodyStr.length / 1024) + 'KB)，跳過');
+            return;
+        }
+    } catch (e) {
+        console.warn('[RealtimeBackup] JSON.stringify 失敗:', e);
+        return;
+    }
+
     // 根據選擇的 provider 執行備份
     if (realtimeProvider === 'supabase') {
         const url = localStorage.getItem('sx_supabase_url');
@@ -316,7 +328,7 @@ async function autoBackupToCloud() {
                         'Content-Type': 'application/json',
                         'Prefer': 'return=minimal'
                     },
-                    body: JSON.stringify(payload)
+                    body: bodyStr
                 });
                 if (resp.ok) {
                     localStorage.setItem('sx_backup_last_data_hash', dataHash);
@@ -386,10 +398,18 @@ const autoBackupToSupabase = autoBackupToCloud;
 
 async function collectAllStorageData() {
     const data = {};
+    let estimatedSize = 0;
+    const MAX_COLLECT_SIZE = 500 * 1024;
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('sx_')) {
             const value = localStorage.getItem(key);
+            if (!value) continue;
+            if (estimatedSize + value.length > MAX_COLLECT_SIZE) {
+                console.warn('[Chat] collectAllStorageData 超過大小限制，跳過剩餘');
+                break;
+            }
+            estimatedSize += value.length;
             try {
                 data[key] = JSON.parse(value);
             } catch {
@@ -665,18 +685,9 @@ async function saveChatSessionsToIndexedDB(sessions) {
             lastSaved: Date.now()
         };
         await chatDataStore.setItem('sx_app_persisted_data', newData);
-        
-        // 驗證寫入
-        const verify = await chatDataStore.getItem('sx_app_persisted_data');
-        if (verify && verify.sx_chat_sessions) {
-            console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
-            showDebugMessage('Sessions saved OK, verify: ' + verify.sx_chat_sessions.length + ' 個');
-        } else {
-            showDebugMessage('Sessions saved but verify FAILED');
-        }
+        console.log('[Chat] 已儲存 sessions 到 IndexedDB, history:', sessions[0]?.history?.length || 0, '條');
     } catch (e) {
         console.warn('[Chat] 儲存到 IndexedDB 失敗:', e);
-        showDebugMessage('IndexedDB save error: ' + e.message);
     }
 }
 
