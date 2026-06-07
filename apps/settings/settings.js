@@ -1304,22 +1304,119 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (manualBackupBtn) {
-            manualBackupBtn.onclick = () => {
-                if (typeof UnifiedStorageManager !== 'undefined') {
-                    const manager = new UnifiedStorageManager();
-                    manager.collectAllStorageData().then(data => {
-                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `sxiphone-backup-${new Date().toISOString().slice(0,10)}.json`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        manager.clearBackupNotification();
-                        updateBackupPipelineStatus();
-                        alert('✅ 本地備份已完成！');
+            manualBackupBtn.onclick = async () => {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                
+                const choiceModal = document.createElement('div');
+                choiceModal.id = 'export-choice-modal';
+                choiceModal.style.cssText = `
+                    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                    background: rgba(0,0,0,0.5); display: flex;
+                    justify-content: center; align-items: center; z-index: 10000;
+                `;
+                
+                const maxSizeOptions = isIOS ? [
+                    { label: '小型備份 (15 MB)', value: 15, desc: '最近 100 筆記憶、50 個聊天階段' },
+                    { label: '中型備份 (25 MB)', value: 25, desc: '最近 200 筆記憶、100 個聊天階段' }
+                ] : [
+                    { label: '小型備份 (20 MB)', value: 20, desc: '最近 150 筆記憶、80 個聊天階段' },
+                    { label: '中型備份 (30 MB)', value: 30, desc: '最近 300 筆記憶、150 個聊天階段' },
+                    { label: '完整備份 (50 MB)', value: 50, desc: '最近 500 筆記憶、200 個聊天階段' }
+                ];
+                
+                choiceModal.innerHTML = `
+                    <div style="background: var(--ios-primary-bg); border-radius: 12px; max-width: 380px; width: 90%; padding: 20px;">
+                        <h3 style="margin: 0 0 8px;">選擇備份大小</h3>
+                        ${isIOS ? '<p style="color: #FF9500; font-size: 12px; margin: 0 0 16px;">⚠️ iOS 儲存限制約 50MB，建議選擇較小備份</p>' : '<p style="font-size: 12px; margin: 0 0 16px; opacity: 0.7;">自動篩選最近資料，確保匯入時不超出空間</p>'}
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${maxSizeOptions.map(opt => `
+                                <button class="export-size-btn" data-size="${opt.value}" style="padding: 12px; text-align: left; background: var(--ios-secondary-bg); border: 1px solid var(--ios-border); border-radius: 8px;">
+                                    <div style="font-weight: 600;">${opt.label}</div>
+                                    <div style="font-size: 11px; opacity: 0.7;">${opt.desc}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                        <button onclick="document.getElementById('export-choice-modal').remove()" style="margin-top: 16px; width: 100%; padding: 10px; background: var(--ios-secondary-bg); border: none; border-radius: 8px;">取消</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(choiceModal);
+                
+                choiceModal.querySelectorAll('.export-size-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        choiceModal.remove();
+                        const maxSizeMB = parseInt(btn.dataset.size);
+                        
+                        const statusDiv = document.createElement('div');
+                        statusDiv.id = 'export-status-overlay';
+                        statusDiv.style.cssText = `
+                            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                            background: rgba(0,0,0,0.7); display: flex;
+                            justify-content: center; align-items: center; z-index: 10000;
+                            color: white; font-size: 16px; text-align: center; padding: 20px;
+                        `;
+                        statusDiv.textContent = '正在匯出備份...\n自動篩選最近資料';
+                        document.body.appendChild(statusDiv);
+                        
+                        try {
+                            if (typeof UnifiedStorageManager !== 'undefined') {
+                                const manager = new UnifiedStorageManager();
+                                
+                                const maxMemories = maxSizeMB <= 20 ? 150 : maxSizeMB <= 30 ? 300 : 500;
+                                const maxSessions = maxSizeMB <= 20 ? 80 : maxSizeMB <= 30 ? 150 : 200;
+                                
+                                const data = await manager.sxStorage.exportAllData({
+                                    maxSizeMB,
+                                    maxMemories,
+                                    maxChatSessions: maxSessions,
+                                    compress: true,
+                                    isIOS
+                                });
+                                
+                                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                const fileSizeMB = (blob.size / 1024 / 1024).toFixed(2);
+                                
+                                statusDiv.remove();
+                                
+                                let resultMsg = `✅ 備份匯出完成！\n\n`;
+                                resultMsg += `📦 檔案大小: ${fileSizeMB} MB\n\n`;
+                                resultMsg += `📊 匯出統計：\n`;
+                                resultMsg += `• 記憶: ${data.exportMeta.exportedMemories} 筆\n`;
+                                if (data.exportMeta.originalMemories > data.exportMeta.exportedMemories) {
+                                    resultMsg += `  (原 ${data.exportMeta.originalMemories} 筆，已篩選)\n`;
+                                }
+                                resultMsg += `• 聊天階段: ${data.exportMeta.exportedSessions} 個\n`;
+                                if (data.exportMeta.originalSessions > data.exportMeta.exportedSessions) {
+                                    resultMsg += `  (原 ${data.exportMeta.originalSessions} 個，已篩選)\n`;
+                                }
+                                resultMsg += `• 角色: ${data.characters?.length || 0} 個\n`;
+                                resultMsg += `• 媒體: ${data.media?.length || 0} 個\n`;
+                                if (data.exportMeta.skippedMedia > 0) {
+                                    resultMsg += `  (略過 ${data.exportMeta.skippedMedia} 個大型媒體)\n`;
+                                }
+                                
+                                if (data.exportMeta.compressed) {
+                                    resultMsg += `\n⚠️ 已自動壓縮以符合大小限制`;
+                                }
+                                
+                                alert(resultMsg);
+                                
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `sxiphone-backup-${new Date().toISOString().slice(0,10)}.json`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                
+                                manager.clearBackupNotification();
+                                updateBackupPipelineStatus();
+                            }
+                        } catch (e) {
+                            statusDiv.remove();
+                            alert('❌ 匯出失敗: ' + e.message);
+                        }
                     });
-                }
+                });
             };
         }
     };
@@ -4907,30 +5004,83 @@ initSettingsHandlers();
 function handleImport(e) {
     const file = e.target.files[0];
     if (!file) return;
+    
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    
+    if (isIOS && file.size > 30 * 1024 * 1024) {
+        alert(`⚠️ 備份檔案過大 (${fileSizeMB} MB)\n\niOS Safari 有約 50MB 儲存限制。\n建議：\n1. 先清理舊資料\n2. 使用較小的備份檔案\n3. 或改用 GitHub 雲端備份`);
+        e.target.value = '';
+        return;
+    }
+    
     const reader = new FileReader();
     reader.onload = async evt => {
         try {
             const data = JSON.parse(evt.target.result);
             
+            let msg = `正在匯入備份...\n檔案大小: ${fileSizeMB} MB\n`;
+            msg += isIOS ? '平台: iOS (儲存受限)\n\n' : '\n';
+            msg += '請稍候...';
+            
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'import-status-overlay';
+            statusDiv.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.7); display: flex;
+                justify-content: center; align-items: center; z-index: 10000;
+                color: white; font-size: 16px; text-align: center; padding: 20px;
+            `;
+            statusDiv.textContent = msg;
+            document.body.appendChild(statusDiv);
+            
+            let importedCount = 0;
+            let skippedCount = 0;
+            let errorCount = 0;
+            
             if (data.localStorage) {
-                for (const [key, value] of Object.entries(data.localStorage)) {
-                    if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
-                        if (typeof value === 'object') {
-                            localStorage.setItem(key, JSON.stringify(value));
-                        } else {
-                            localStorage.setItem(key, String(value));
+                const safeKeys = Object.keys(data.localStorage).filter(k => 
+                    k.startsWith('sx_') || k.startsWith('api_') || k.startsWith('sxiphone')
+                );
+                for (const key of safeKeys) {
+                    const value = data.localStorage[key];
+                    try {
+                        const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                        if (strValue.length > 4 * 1024 * 1024) {
+                            console.warn('[Import] 略過大型 localStorage 項目:', key);
+                            skippedCount++;
+                            continue;
                         }
+                        localStorage.setItem(key, strValue);
+                        importedCount++;
+                    } catch (e) {
+                        console.warn('[Import] localStorage 寫入失敗:', key, e.message);
+                        errorCount++;
                     }
                 }
             }
             
             if (data.localforage && typeof localforage !== 'undefined') {
                 try {
+                    await localforage.ready();
                     for (const [key, value] of Object.entries(data.localforage)) {
-                        await localforage.setItem(key, value);
+                        try {
+                            const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                            if (strValue.length > 10 * 1024 * 1024) {
+                                console.warn('[Import] 略過大型 localforage 項目:', key);
+                                skippedCount++;
+                                continue;
+                            }
+                            await localforage.setItem(key, value);
+                            importedCount++;
+                        } catch (e) {
+                            console.warn('[Import] localforage 寫入失敗:', key, e.message);
+                            errorCount++;
+                        }
                     }
                 } catch (lfErr) {
                     console.warn('[Import] localforage restore failed:', lfErr);
+                    errorCount++;
                 }
             }
 
@@ -4940,16 +5090,35 @@ function handleImport(e) {
                         name: 'sxiphone',
                         storeName: 'chatData'
                     });
-                    const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
-                    const mergedData = { ...existingData, ...data.persistedData };
-                    await chatDataStore.setItem('sx_app_persisted_data', mergedData);
-                    console.log('[Import] persistedData 匯入完成，包含 keys:', Object.keys(mergedData));
                     
+                    const persistedStr = JSON.stringify(data.persistedData);
+                    if (persistedStr.length > 15 * 1024 * 1024) {
+                        console.warn('[Import] persistedData 過大，只匯入核心資料');
+                        const essentialKeys = ['userName', 'userAvatar', 'charName', 'charAvatar', 'sx_characters', 'sx_users', 'masks', 'apis', 'sx_chat_sessions'];
+                        const essentialData = {};
+                        for (const k of essentialKeys) {
+                            if (data.persistedData[k]) essentialData[k] = data.persistedData[k];
+                        }
+                        await chatDataStore.setItem('sx_app_persisted_data', essentialData);
+                        skippedCount += Object.keys(data.persistedData).length - Object.keys(essentialData).length;
+                    } else {
+                        const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
+                        const mergedData = { ...existingData, ...data.persistedData };
+                        await chatDataStore.setItem('sx_app_persisted_data', mergedData);
+                    }
+                    
+                    const mergedData = data.persistedData;
+                    if (mergedData.userName) localStorage.setItem('sx_user_name', mergedData.userName);
+                    if (mergedData.userAvatar) localStorage.setItem('sx_user_avatar', mergedData.userAvatar);
+                    if (mergedData.userPersonality) localStorage.setItem('sx_user_personality', mergedData.userPersonality);
+                    if (mergedData.userBackground) localStorage.setItem('sx_user_background', mergedData.userBackground);
                     if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
                     if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
                     if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
+                    importedCount++;
                 } catch (pdErr) {
                     console.warn('[Import] persistedData restore failed:', pdErr);
+                    errorCount++;
                 }
             }
             
@@ -4960,11 +5129,20 @@ function handleImport(e) {
                         storeName: 'chatData'
                     });
                     const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
-                    existingData.sx_chat_sessions = data.chatSessions;
+                    
+                    const maxSessions = isIOS ? 100 : 500;
+                    const sessionsToImport = data.chatSessions.slice(-maxSessions);
+                    existingData.sx_chat_sessions = sessionsToImport;
                     await chatDataStore.setItem('sx_app_persisted_data', existingData);
-                    console.log('[Import] chatSessions 匯入完成:', data.chatSessions.length, '個');
+                    
+                    importedCount += sessionsToImport.length;
+                    if (data.chatSessions.length > maxSessions) {
+                        skippedCount += data.chatSessions.length - maxSessions;
+                        console.warn('[Import] 聊天階段過多，只匯入最近', maxSessions, '個');
+                    }
                 } catch (csErr) {
                     console.warn('[Import] chatSessions restore failed:', csErr);
+                    errorCount++;
                 }
             }
             
@@ -4980,13 +5158,44 @@ function handleImport(e) {
             renderMasks(); 
             renderApis(); 
             
-            alert('✅ 備份已導入！\n\n建議重新整理頁面以確保所有資料正確載入。');
+            statusDiv.remove();
+            
+            let resultMsg = `✅ 備份匯入完成！\n\n`;
+            resultMsg += `📊 匯入統計：\n`;
+            resultMsg += `• 成功: ${importedCount} 筆\n`;
+            if (skippedCount > 0) {
+                resultMsg += `• 略過: ${skippedCount} 筆 (過大項目)\n`;
+            }
+            if (errorCount > 0) {
+                resultMsg += `• 失敗: ${errorCount} 筆\n`;
+            }
+            
+            if (isIOS && navigator.storage && navigator.storage.estimate) {
+                const estimate = await navigator.storage.estimate();
+                const usedMB = Math.round(estimate.usage / 1024 / 1024);
+                const quotaMB = Math.round(estimate.quota / 1024 / 1024);
+                resultMsg += `\n📱 iOS 儲存空間：${usedMB} / ${quotaMB} MB`;
+                
+                if (estimate.usage / estimate.quota > 0.8) {
+                    resultMsg += `\n\n⚠️ 儲存空間使用率超過 80%！\n建議定期清理舊資料。`;
+                }
+            }
+            
+            resultMsg += `\n\n建議重新整理頁面以確保所有資料正確載入。`;
+            
+            alert(resultMsg);
         } catch (err) { 
             console.error('[Import] 解析失敗:', err);
+            const statusDiv = document.getElementById('import-status-overlay');
+            if (statusDiv) statusDiv.remove();
             alert('❌ 解析失敗：' + err.message); 
         }
     };
+    reader.onerror = () => {
+        alert('❌ 檔案讀取失敗');
+    };
     reader.readAsText(file);
+    e.target.value = '';
 }
 
 function saveEnv() { saveAll(); alert('✅ 設定已儲存！'); }

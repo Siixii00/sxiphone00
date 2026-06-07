@@ -659,8 +659,16 @@ class SXStorage {
     });
   }
 
-async exportAllData() {
+async exportAllData(options = {}) {
     await this.init();
+    
+    const {
+      maxSizeMB = 25,
+      maxMemories = 300,
+      maxChatSessions = 200,
+      compress = true,
+      isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    } = options;
     
     const data = {
       keyValue: {},
@@ -673,29 +681,90 @@ async exportAllData() {
       localforage: {},
       persistedData: null,
       exportedAt: new Date().toISOString(),
-      version: '3.0'
+      version: '3.0',
+      exportMeta: {
+        compressed: false,
+        originalMemories: 0,
+        exportedMemories: 0,
+        originalSessions: 0,
+        exportedSessions: 0,
+        skippedMedia: 0
+      }
     };
+
+    const estimateSize = (obj) => {
+      try {
+        return new Blob([JSON.stringify(obj)]).size;
+      } catch (e) {
+        return 0;
+      }
+    };
+    
+    const currentSize = () => estimateSize(data);
 
     const kvData = await this._getAllFromStore(STORES.KEY_VALUE);
     for (const item of kvData) {
       data.keyValue[item.key] = item.value;
     }
 
-    data.chatSessions = await this._getAllFromStore(STORES.CHAT_SESSIONS);
+    const allSessions = await this._getAllFromStore(STORES.CHAT_SESSIONS);
+    data.exportMeta.originalSessions = allSessions.length;
+    
+    const recentSessions = allSessions
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .slice(0, maxChatSessions);
+    
+    data.chatSessions = recentSessions;
+    data.exportMeta.exportedSessions = recentSessions.length;
+    
+    if (allSessions.length > maxChatSessions) {
+      console.log(`[SXStorage] 聊天階段從 ${allSessions.length} 篩選至 ${maxChatSessions} 個`);
+    }
+
     data.characters = await this._getAllFromStore(STORES.CHARACTERS);
-    data.memories = await this._getAllFromStore(STORES.MEMORIES);
+
+    const allMemories = await this._getAllFromStore(STORES.MEMORIES);
+    data.exportMeta.originalMemories = allMemories.length;
+    
+    const recentMemories = allMemories
+      .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
+      .slice(0, maxMemories);
+    
+    data.memories = recentMemories;
+    data.exportMeta.exportedMemories = recentMemories.length;
+    
+    if (allMemories.length > maxMemories) {
+      console.log(`[SXStorage] 記憶從 ${allMemories.length} 篩選至 ${maxMemories} 筆`);
+    }
     
     const settingsData = await this._getAllFromStore(STORES.SETTINGS);
     for (const item of settingsData) {
       data.settings[item.key] = item.value;
     }
     
-    data.media = await this._getAllFromStore(STORES.MEDIA);
+    const allMedia = await this._getAllFromStore(STORES.MEDIA);
+    const smallMedia = allMedia.filter(m => {
+      const size = estimateSize(m);
+      return size < 500 * 1024;
+    });
+    data.media = smallMedia;
+    data.exportMeta.skippedMedia = allMedia.length - smallMedia.length;
+    
+    if (allMedia.length > smallMedia.length) {
+      console.log(`[SXStorage] 媒體從 ${allMedia.length} 篩選至 ${smallMedia.length} 個 (略過大於 500KB)`);
+    }
     
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts' || key.startsWith('sxiphone'))) {
         const value = localStorage.getItem(key);
+        const itemSize = new Blob([value]).size;
+        
+        if (itemSize > 2 * 1024 * 1024) {
+          console.warn('[SXStorage] 略過大型 localStorage:', key, (itemSize / 1024).toFixed(2), 'KB');
+          continue;
+        }
+        
         try {
           data.localStorage[key] = JSON.parse(value);
         } catch (e) {
@@ -711,6 +780,13 @@ async exportAllData() {
         for (const key of keys) {
           if (key.startsWith('sx_') || key.startsWith('api_') || key === 'worldbookMounts' || key.startsWith('setting_')) {
             const value = await localforage.getItem(key);
+            const itemSize = estimateSize(value);
+            
+            if (itemSize > 5 * 1024 * 1024) {
+              console.warn('[SXStorage] 略過大型 localforage:', key, (itemSize / 1024).toFixed(2), 'KB');
+              continue;
+            }
+            
             data.localforage[key] = value;
           }
         }
@@ -725,22 +801,88 @@ async exportAllData() {
         });
         const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
         if (persistedData) {
-          data.persistedData = persistedData;
-          console.log('[SXStorage] 匯出 persistedData 完成，包含 keys:', Object.keys(persistedData));
+          const persistedSize = estimateSize(persistedData);
+          
+          if (persistedSize > 10 * 1024 * 1024) {
+            console.warn('[SXStorage] persistedData 過大，篩選核心資料');
+            
+            const essentialKeys = [
+              'userName', 'userAvatar', 'userPersonality', 'userBackground',
+              'userLikes', 'userTaboos', 'userStatus',
+              'charName', 'charAvatar', 'charPersonality', 'charBackground',
+              'sx_characters', 'sx_users', 'masks', 'apis'
+            ];
+            
+            const filteredData = {};
+            for (const key of essentialKeys) {
+              if (persistedData[key]) {
+                filteredData[key] = persistedData[key];
+              }
+            }
+            
+            if (persistedData.sx_chat_sessions) {
+              const sessions = persistedData.sx_chat_sessions;
+              const recentSessions = sessions
+                .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+                .slice(0, Math.min(100, maxChatSessions / 2));
+              filteredData.sx_chat_sessions = recentSessions;
+              console.log(`[SXStorage] persistedData 聊天階段從 ${sessions.length} 篩選至 ${recentSessions.length}`);
+            }
+            
+            data.persistedData = filteredData;
+            data.exportMeta.compressed = true;
+          } else {
+            data.persistedData = persistedData;
+          }
+          
+          console.log('[SXStorage] 匯出 persistedData 完成，包含 keys:', Object.keys(data.persistedData));
         }
       } catch (e) {
         console.warn('[SXStorage] 匯出 chatData persistedData 失敗:', e);
       }
     }
 
-    console.log('[SXStorage] 匯出完成，包含:', {
+    const finalSizeMB = currentSize() / 1024 / 1024;
+    
+    if (finalSizeMB > maxSizeMB) {
+      console.warn(`[SXStorage] 匯出資料 ${finalSizeMB.toFixed(2)} MB 超過限制 ${maxSizeMB} MB，進一步壓縮`);
+      
+      if (data.memories.length > 100) {
+        data.memories = data.memories.slice(0, 100);
+        data.exportMeta.exportedMemories = 100;
+        console.log('[SXStorage] 記憶進一步壓縮至 100 筆');
+      }
+      
+      if (data.chatSessions.length > 50) {
+        data.chatSessions = data.chatSessions.slice(0, 50);
+        data.exportMeta.exportedSessions = 50;
+        console.log('[SXStorage] 聊天階段進一步壓縮至 50 個');
+      }
+      
+      data.media = [];
+      data.exportMeta.skippedMedia = allMedia.length;
+      
+      const largeLfKeys = Object.keys(data.localforage)
+        .filter(k => estimateSize(data.localforage[k]) > 1 * 1024 * 1024);
+      
+      for (const key of largeLfKeys) {
+        delete data.localforage[key];
+        console.log('[SXStorage] 移除大型 localforage:', key);
+      }
+      
+      data.exportMeta.compressed = true;
+    }
+
+    console.log('[SXStorage] 匯出完成:', {
+      size: (currentSize() / 1024 / 1024).toFixed(2) + ' MB',
       keyValue: Object.keys(data.keyValue).length,
       chatSessions: data.chatSessions.length,
       characters: data.characters.length,
       memories: data.memories.length,
       localStorage: Object.keys(data.localStorage).length,
       localforage: Object.keys(data.localforage).length,
-      persistedData: data.persistedData ? Object.keys(data.persistedData).length : 0
+      persistedData: data.persistedData ? Object.keys(data.persistedData).length : 0,
+      meta: data.exportMeta
     });
 
     return data;
@@ -806,57 +948,163 @@ async exportAllData() {
     await this.init();
     
     let count = 0;
+    let errors = [];
+    let skippedLargeItems = [];
+    
+    const checkStorageSpace = async () => {
+      if (navigator.storage && navigator.storage.estimate) {
+        try {
+          const estimate = await navigator.storage.estimate();
+          const available = estimate.quota - estimate.usage;
+          const availableMB = available / 1024 / 1024;
+          console.log('[SXStorage] 可用空間:', availableMB.toFixed(2), 'MB');
+          return { available, quota: estimate.quota, usage: estimate.usage };
+        } catch (e) {
+          console.warn('[SXStorage] 空間檢測失敗:', e);
+          return { available: Infinity, quota: Infinity, usage: 0 };
+        }
+      }
+      return { available: Infinity, quota: Infinity, usage: 0 };
+    };
+    
+    const estimateItemSize = (value) => {
+      try {
+        const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return new Blob([str]).size;
+      } catch (e) {
+        return 1024;
+      }
+    };
+    
+    const safeSetItem = async (key, value, store = 'indexedDB') => {
+      const itemSize = estimateItemSize(value);
+      const MAX_LS_ITEM = 5 * 1024 * 1024;
+      const MAX_IDB_ITEM = 50 * 1024 * 1024;
+      
+      if (store === 'localStorage' && itemSize > MAX_LS_ITEM) {
+        console.warn('[SXStorage] 階段略過 localStorage 大項目:', key, '(', (itemSize / 1024).toFixed(2), 'KB)');
+        skippedLargeItems.push({ key, size: itemSize, store });
+        
+        if (typeof localforage !== 'undefined') {
+          try {
+            await localforage.setItem(`overflow_${key}`, value);
+            console.log('[SXStorage] 大項目已存至 localforage:', key);
+            return true;
+          } catch (e) {
+            errors.push({ key, error: e.message });
+            return false;
+          }
+        }
+        return false;
+      }
+      
+      try {
+        if (store === 'localStorage') {
+          localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
+        } else {
+          await this.setItem(key, value);
+        }
+        return true;
+      } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.message.includes('quota') || e.message.includes('超出')) {
+          console.warn('[SXStorage] 儲存空間不足，略過:', key);
+          skippedLargeItems.push({ key, size: itemSize, store, reason: 'quota_exceeded' });
+          errors.push({ key, error: '儲存空間不足', size: itemSize });
+          return false;
+        }
+        errors.push({ key, error: e.message });
+        console.warn('[SXStorage] 寫入失敗:', key, e.message);
+        return false;
+      }
+    };
+    
+    const initialSpace = await checkStorageSpace();
+    if (initialSpace.available < 10 * 1024 * 1024) {
+      console.warn('[SXStorage] 可用空間不足 10MB，嘗試清理...');
+      try {
+        await this.clearOldData({ keepDays: 7 });
+        const afterClean = await checkStorageSpace();
+        console.log('[SXStorage] 清理後可用:', (afterClean.available / 1024 / 1024).toFixed(2), 'MB');
+      } catch (e) {
+        console.warn('[SXStorage] 自動清理失敗:', e);
+      }
+    }
 
     if (data.keyValue) {
       for (const [key, value] of Object.entries(data.keyValue)) {
-        await this.setItem(key, value);
-        count++;
+        if (await safeSetItem(key, value, 'indexedDB')) count++;
       }
     }
 
     if (data.chatSessions) {
       for (const session of data.chatSessions) {
-        await this.saveChatSession(session);
-        count++;
+        try {
+          const sessionSize = estimateItemSize(session);
+          if (sessionSize > 5 * 1024 * 1024) {
+            console.warn('[SXStorage] 聊天階段過大，略過:', session.id, (sessionSize / 1024).toFixed(2), 'KB');
+            skippedLargeItems.push({ key: `session_${session.id}`, size: sessionSize, store: 'indexedDB' });
+            continue;
+          }
+          await this.saveChatSession(session);
+          count++;
+        } catch (e) {
+          errors.push({ key: `session_${session.id}`, error: e.message });
+        }
       }
     }
 
     if (data.characters) {
       for (const character of data.characters) {
-        await this.saveCharacter(character);
-        count++;
+        try {
+          await this.saveCharacter(character);
+          count++;
+        } catch (e) {
+          errors.push({ key: `character_${character.id}`, error: e.message });
+        }
       }
     }
 
     if (data.memories) {
-      for (const memory of data.memories) {
-        await this.saveMemory(memory);
-        count++;
+      const recentMemories = data.memories.slice(-500);
+      for (const memory of recentMemories) {
+        try {
+          await this.saveMemory(memory);
+          count++;
+        } catch (e) {
+          errors.push({ key: `memory_${memory.id}`, error: e.message });
+        }
+      }
+      if (data.memories.length > 500) {
+        console.warn('[SXStorage] 記憶資料過多，只匯入最近 500 筆，共', data.memories.length, '筆');
       }
     }
 
     if (data.settings) {
       for (const [key, value] of Object.entries(data.settings)) {
-        await this.saveSetting(key, value);
-        count++;
+        if (await safeSetItem(key, value, 'indexedDB')) count++;
       }
     }
 
     if (data.media) {
       for (const media of data.media) {
-        await this.saveMedia(media);
-        count++;
+        try {
+          const mediaSize = estimateItemSize(media);
+          if (mediaSize > 10 * 1024 * 1024) {
+            console.warn('[SXStorage] 媒體過大，略過:', media.id, (mediaSize / 1024 / 1024).toFixed(2), 'MB');
+            skippedLargeItems.push({ key: `media_${media.id}`, size: mediaSize, store: 'indexedDB' });
+            continue;
+          }
+          await this.saveMedia(media);
+          count++;
+        } catch (e) {
+          errors.push({ key: `media_${media.id}`, error: e.message });
+        }
       }
     }
     
     if (data.localStorage) {
       for (const [key, value] of Object.entries(data.localStorage)) {
-        if (typeof value === 'object') {
-          localStorage.setItem(key, JSON.stringify(value));
-        } else {
-          localStorage.setItem(key, String(value));
-        }
-        count++;
+        if (await safeSetItem(key, value, 'localStorage')) count++;
       }
     }
     
@@ -864,28 +1112,30 @@ async exportAllData() {
       try {
         await localforage.ready();
         for (const [key, value] of Object.entries(data.localforage)) {
-          await localforage.setItem(key, value);
-          count++;
+          if (await safeSetItem(key, value, 'localforage')) count++;
         }
       } catch (e) {
         console.warn('[SXStorage] 匯入 localforage 失敗:', e);
+        errors.push({ key: 'localforage_batch', error: e.message });
       }
     }
     
     if (data.charList) {
-      localStorage.setItem('sx_characters', JSON.stringify(data.charList));
+      if (await safeSetItem('sx_characters', data.charList, 'localStorage')) count++;
       if (typeof localforage !== 'undefined') {
-        await localforage.setItem('sx_characters', data.charList);
+        try {
+          await localforage.setItem('sx_characters', data.charList);
+        } catch (e) {}
       }
-      count++;
     }
     
     if (data.userList) {
-      localStorage.setItem('sx_users', JSON.stringify(data.userList));
+      if (await safeSetItem('sx_users', data.userList, 'localStorage')) count++;
       if (typeof localforage !== 'undefined') {
-        await localforage.setItem('sx_users', data.userList);
+        try {
+          await localforage.setItem('sx_users', data.userList);
+        } catch (e) {}
       }
-      count++;
     }
 
     if (data.persistedData && typeof localforage !== 'undefined') {
@@ -894,8 +1144,23 @@ async exportAllData() {
           name: 'sxiphone',
           storeName: 'chatData'
         });
-        await chatDataStore.setItem('sx_app_persisted_data', data.persistedData);
-        console.log('[SXStorage] 匯入 persistedData 完成，包含 keys:', Object.keys(data.persistedData));
+        
+        const persistedSize = estimateItemSize(data.persistedData);
+        if (persistedSize > 20 * 1024 * 1024) {
+          console.warn('[SXStorage] persistedData 過大，嘗試部分匯入');
+          const essentialKeys = ['userName', 'userAvatar', 'charName', 'charAvatar', 'sx_characters', 'sx_users', 'masks', 'apis'];
+          const essentialData = {};
+          for (const key of essentialKeys) {
+            if (data.persistedData[key]) {
+              essentialData[key] = data.persistedData[key];
+            }
+          }
+          await chatDataStore.setItem('sx_app_persisted_data', essentialData);
+          console.log('[SXStorage] 部分匯入 persistedData，包含 keys:', Object.keys(essentialData));
+        } else {
+          await chatDataStore.setItem('sx_app_persisted_data', data.persistedData);
+          console.log('[SXStorage] 匯入 persistedData 完成，包含 keys:', Object.keys(data.persistedData));
+        }
         
         if (data.persistedData.userName) localStorage.setItem('sx_user_name', data.persistedData.userName);
         if (data.persistedData.userAvatar) localStorage.setItem('sx_user_avatar', data.persistedData.userAvatar);
@@ -916,13 +1181,41 @@ async exportAllData() {
         count++;
       } catch (e) {
         console.warn('[SXStorage] 匯入 persistedData 失敗:', e);
+        errors.push({ key: 'persistedData', error: e.message });
       }
     }
 
     this._clearCache();
+    
+    const finalSpace = await checkStorageSpace();
+    
+    if (errors.length > 0 || skippedLargeItems.length > 0) {
+      console.warn('[SXStorage] 匯入警告:');
+      if (skippedLargeItems.length > 0) {
+        console.warn('  略過的大項目:', skippedLargeItems.length, '項');
+        skippedLargeItems.forEach(item => {
+          console.warn(`    - ${item.key}: ${(item.size / 1024).toFixed(2)} KB (${item.store})`);
+        });
+      }
+      if (errors.length > 0) {
+        console.warn('  匯入失敗項目:', errors.length, '項');
+        errors.forEach(item => {
+          console.warn(`    - ${item.key}: ${item.error}`);
+        });
+      }
+    }
+    
     console.log(`[SXStorage] 已匯入 ${count} 筆資料`);
     
-    return { success: true, count };
+    return { 
+      success: true, 
+      count,
+      skipped: skippedLargeItems.length,
+      errors: errors.length,
+      spaceBefore: (initialSpace.usage / 1024 / 1024).toFixed(2) + ' MB',
+      spaceAfter: (finalSpace.usage / 1024 / 1024).toFixed(2) + ' MB',
+      availableSpace: (finalSpace.available / 1024 / 1024).toFixed(2) + ' MB'
+    };
   }
 
   async backupToSupabase(options = {}) {
