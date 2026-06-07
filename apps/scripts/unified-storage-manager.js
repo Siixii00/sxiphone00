@@ -856,7 +856,7 @@ class UnifiedStorageManager {
       console.log('[UnifiedStorageManager] part', i, 'encoding:', partData.encoding, 'content preview:', partData.content?.substring(0, 100));
       
       let partContent = partData.content;
-      if (partData.encoding === 'base64') {
+      if (partData.encoding === 'base64' || /^[A-Za-z0-9+/=]+$/.test(partData.content?.trim())) {
         partContent = this._decodeBase64(partData.content);
       }
       parts.push(partContent);
@@ -880,7 +880,13 @@ class UnifiedStorageManager {
       }
     }
 
-    const payload = JSON.parse(jsonStr);
+    let payload;
+    try {
+      payload = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('[UnifiedStorageManager] JSON 解析失敗，內容預覽:', jsonStr.substring(0, 500));
+      throw new Error('備份內容解析失敗: JSON 格式錯誤 - ' + e.message);
+    }
     await this.sxStorage.importAllData(payload.data);
 
     return { success: true, restoredFrom: 'split', partCount: totalParts };
@@ -905,7 +911,13 @@ class UnifiedStorageManager {
       throw new Error('備份檔案格式錯誤: 無法解析 JSON');
     }
     const content = this._decodeBase64(fileData.content);
-    const payload = JSON.parse(content);
+    let payload;
+    try {
+      payload = JSON.parse(content);
+    } catch (e) {
+      console.error('[UnifiedStorageManager] JSON 解析失敗，內容預覽:', content.substring(0, 500));
+      throw new Error('備份內容解析失敗: JSON 格式錯誤 - ' + e.message);
+    }
 
     await this.sxStorage.importAllData(payload.data);
 

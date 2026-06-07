@@ -1050,17 +1050,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('cleanup-cache-btn')?.addEventListener('click', async () => {
             cleanupModal.remove();
             
-            if (typeof UnifiedStorageManager === 'undefined') {
-                alert('UnifiedStorageManager 未載入');
-                return;
-            }
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             
-            try {
-                const manager = new UnifiedStorageManager();
-                const result = await manager.cleanup({ clearCache: true });
-                alert(`快取清理完成！\n${result.cacheCleared ? '已清除 Service Worker 快取' : '無快取可清除'}`);
-            } catch (e) {
-                alert('清理失敗: ' + e.message);
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                try {
+                    const controller = navigator.serviceWorker.controller;
+                    
+                    if (isIOS) {
+                        controller.postMessage({ type: 'FORCE_CLEANUP_IOS' });
+                        
+                        await new Promise((resolve, reject) => {
+                            const timeout = setTimeout(() => reject(new Error('清理超時')), 30000);
+                            
+                            navigator.serviceWorker.addEventListener('message', (event) => {
+                                if (event.data && event.data.type === 'IOS_CLEANUP_COMPLETE') {
+                                    clearTimeout(timeout);
+                                    resolve(event.data);
+                                }
+                            }, { once: true });
+                            
+                            setTimeout(resolve, 10000);
+                        });
+                        
+                        if (navigator.storage && navigator.storage.estimate) {
+                            const estimate = await navigator.storage.estimate();
+                            const usageMB = Math.round(estimate.usage / 1024 / 1024);
+                            alert(`iOS 快取清理完成！\n\n目前使用: ${usageMB} MB\n\n建議：如果空間仍然不足，請前往 iOS Settings > Safari > Advanced > Website Data，手動清除 sxiphone 的資料。`);
+                        } else {
+                            alert('iOS 快取清理已執行！');
+                        }
+                    } else {
+                        controller.postMessage({ type: 'CLEAR_CACHE' });
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        alert('快取已清除！');
+                    }
+                } catch (e) {
+                    console.warn('[Settings] Service Worker cleanup failed:', e);
+                    
+                    if ('caches' in window) {
+                        try {
+                            const cacheNames = await caches.keys();
+                            await Promise.all(cacheNames.map(name => caches.delete(name)));
+                            alert('快取已強制清除！');
+                        } catch (e2) {
+                            alert('清理失敗: ' + e2.message);
+                        }
+                    } else {
+                        alert('此瀏覽器不支援快取清理 API');
+                    }
+                }
+            } else if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    alert('快取已清除！');
+                } catch (e) {
+                    alert('清理失敗: ' + e.message);
+                }
+            } else {
+                alert('Service Worker 未啟動，無法清理快取');
             }
         });
     });

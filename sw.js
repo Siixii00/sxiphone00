@@ -86,14 +86,44 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name.startsWith('sxiphone-') && name !== CACHE_NAME)
-            .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
-              return caches.delete(name);
-            })
+        const deletePromises = cacheNames
+          .filter((name) => name.startsWith('sxiphone-') && name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          });
+        
+        deletePromises.push(
+          caches.open(CACHE_NAME).then(async (cache) => {
+            const keys = await cache.keys();
+            console.log('[SW] Current cache has', keys.length, 'entries');
+            
+            const now = Date.now();
+            const ONE_DAY = 24 * 60 * 60 * 1000;
+            const ONE_WEEK = 7 * ONE_DAY;
+            
+            const staleKeys = keys.filter(req => {
+              const cached = cache.match(req);
+              return true;
+            });
+            
+            for (const key of keys) {
+              const response = await cache.match(key);
+              if (response) {
+                const dateHeader = response.headers.get('date');
+                if (dateHeader) {
+                  const cacheDate = new Date(dateHeader).getTime();
+                  if (now - cacheDate > ONE_WEEK) {
+                    console.log('[SW] Removing stale cache entry:', key.url);
+                    await cache.delete(key);
+                  }
+                }
+              }
+            }
+          }).catch(e => console.warn('[SW] Cache cleanup error:', e))
         );
+        
+        return Promise.all(deletePromises);
       })
       .then(() => {
         console.log('[SW] Claiming clients');
@@ -270,7 +300,115 @@ self.addEventListener('message', (event) => {
         );
       }).then(() => {
         console.log('[SW] All caches cleared');
+        if (event.source) {
+          event.source.postMessage({ type: 'CACHE_CLEARED', success: true });
+        }
       })
+    );
+  }
+  
+  if (event.data && event.data.type === 'CLEAN_OLD_ENTRIES') {
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const keys = await cache.keys();
+        const now = Date.now();
+        const maxAge = event.data.maxAge || (7 * 24 * 60 * 60 * 1000);
+        let cleaned = 0;
+        
+        for (const request of keys) {
+          try {
+            const response = await cache.match(request);
+            if (response) {
+              const dateHeader = response.headers.get('date');
+              if (dateHeader) {
+                const cacheDate = new Date(dateHeader).getTime();
+                if (now - cacheDate > maxAge) {
+                  await cache.delete(request);
+                  cleaned++;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[SW] Error checking cache entry:', e);
+          }
+        }
+        
+        console.log(`[SW] Cleaned ${cleaned} old cache entries`);
+        if (event.source) {
+          event.source.postMessage({ type: 'CACHE_CLEANED', cleaned });
+        }
+      })()
+    );
+  }
+  
+  if (event.data && event.data.type === 'FORCE_CLEANUP_IOS') {
+    event.waitUntil(
+      (async () => {
+        console.log('[SW] iOS force cleanup initiated');
+        
+        const allCaches = await caches.keys();
+        const currentCache = await caches.open(CACHE_NAME);
+        const essentialKeys = await currentCache.keys();
+        
+        const essentialUrls = new Set(
+          essentialKeys
+            .filter(req => STATIC_ASSETS.some(asset => req.url.includes(asset)))
+            .map(req => req.url)
+        );
+        
+        for (const cacheName of allCaches) {
+          if (cacheName !== CACHE_NAME) {
+            await caches.delete(cacheName);
+            console.log('[SW] Deleted cache:', cacheName);
+          }
+        }
+        
+        const cache = await caches.open(CACHE_NAME);
+        const allKeys = await cache.keys();
+        let deleted = 0;
+        
+        for (const request of allKeys) {
+          if (!essentialUrls.has(request.url)) {
+            const url = new URL(request.url);
+            const isCDN = CACHE_STRATEGIES.cacheFirst.some(pattern => request.url.includes(pattern));
+            
+            if (isCDN) {
+              const response = await cache.match(request);
+              if (response) {
+                const dateHeader = response.headers.get('date');
+                if (dateHeader) {
+                  const cacheDate = new Date(dateHeader).getTime();
+                  const age = Date.now() - cacheDate;
+                  if (age > 24 * 60 * 60 * 1000) {
+                    await cache.delete(request);
+                    deleted++;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        console.log(`[SW] iOS cleanup complete: deleted ${deleted} non-essential entries`);
+        
+        if (navigator.storage && navigator.storage.estimate) {
+          const estimate = await navigator.storage.estimate();
+          console.log('[SW] Storage estimate:', {
+            usage: Math.round(estimate.usage / 1024 / 1024) + 'MB',
+            quota: Math.round(estimate.quota / 1024 / 1024) + 'MB',
+            percent: Math.round(estimate.usage / estimate.quota * 100) + '%'
+          });
+        }
+        
+        if (event.source) {
+          event.source.postMessage({ 
+            type: 'IOS_CLEANUP_COMPLETE', 
+            deleted,
+            timestamp: Date.now()
+          });
+        }
+      })()
     );
   }
 });
