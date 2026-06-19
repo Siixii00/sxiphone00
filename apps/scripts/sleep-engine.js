@@ -23,6 +23,7 @@ class SleepEngine {
     this.isRunning = false;
     this.lastSleepTime = null;
     this.sleepCount = 0;
+    this._loadPersistedSleepCount();
     this.pendingQueue = [];
     this.sleepPhases = [
       'recall',
@@ -109,6 +110,7 @@ class SleepEngine {
 
       this.lastSleepTime = report.endTime;
       this.sleepCount++;
+      this._savePersistedSleepCount();
 
       this._markAwakeningNeeded();
 
@@ -1579,6 +1581,70 @@ class SleepEngine {
       }).catch(() => {});
     }
     console.log('[SleepEngine] 已標記需要喚醒');
+  }
+
+  _loadPersistedSleepCount() {
+    try {
+      const savedCount = localStorage.getItem('sx_sleep_engine_count');
+      if (savedCount) {
+        this.sleepCount = parseInt(savedCount) || 0;
+        console.log('[SleepEngine] 從 localStorage 載入 sleepCount:', this.sleepCount);
+      }
+      
+      const savedLastTime = localStorage.getItem('sx_sleep_last_time');
+      if (savedLastTime) {
+        this.lastSleepTime = savedLastTime;
+      }
+      
+      if (typeof sxStorage !== 'undefined' && sxStorage) {
+        sxStorage.getItem('sx_sleep_engine_count').then(count => {
+          if (count && parseInt(count) > this.sleepCount) {
+            this.sleepCount = parseInt(count);
+            localStorage.setItem('sx_sleep_engine_count', this.sleepCount.toString());
+            console.log('[SleepEngine] 從 sxStorage 更新 sleepCount:', this.sleepCount);
+          }
+        }).catch(() => {});
+        
+        sxStorage.getItem('sx_sleep_scheduler_state').then(stateRaw => {
+          if (stateRaw) {
+            try {
+              const state = JSON.parse(stateRaw);
+              if (state.totalSleeps && state.totalSleeps > this.sleepCount) {
+                this.sleepCount = state.totalSleeps;
+                localStorage.setItem('sx_sleep_engine_count', this.sleepCount.toString());
+                console.log('[SleepEngine] 從 scheduler state 更新 sleepCount:', this.sleepCount);
+              }
+              if (state.lastNightlySleep) {
+                this.lastSleepTime = state.lastNightlySleep;
+                localStorage.setItem('sx_sleep_last_time', this.lastSleepTime);
+              }
+            } catch (_) {}
+          }
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[SleepEngine] _loadPersistedSleepCount 失敗:', e);
+    }
+  }
+
+  _savePersistedSleepCount() {
+    try {
+      localStorage.setItem('sx_sleep_engine_count', this.sleepCount.toString());
+      if (this.lastSleepTime) {
+        localStorage.setItem('sx_sleep_last_time', this.lastSleepTime);
+      }
+      
+      if (typeof sxStorage !== 'undefined' && sxStorage) {
+        sxStorage.setItem('sx_sleep_engine_count', this.sleepCount.toString()).catch(() => {});
+        if (this.lastSleepTime) {
+          sxStorage.setItem('sx_sleep_last_time', this.lastSleepTime).catch(() => {});
+        }
+      }
+      
+      console.log('[SleepEngine] 已持久化 sleepCount:', this.sleepCount);
+    } catch (e) {
+      console.warn('[SleepEngine] _savePersistedSleepCount 失敗:', e);
+    }
   }
 
   async _autoBackup(sleepReport) {

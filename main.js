@@ -346,6 +346,218 @@
                     }
                 });
             });
+        },
+
+        isPWA() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.matchMedia('(display-mode: fullscreen)').matches ||
+                   window.matchMedia('(display-mode: minimal-ui)').matches ||
+                   window.navigator.standalone === true;
+        },
+
+        isAndroidWebAppShortcut() {
+            const browser = this.detect();
+            if (!browser.isAndroid) return false;
+            
+            const isPWA = this.isPWA();
+            if (isPWA) return false;
+            
+            const referrer = document.referrer || '';
+            const isFromHomescreen = referrer === '' || 
+                                     referrer.includes('android-app://') ||
+                                     window.performance?.navigation?.type === 0;
+            
+            const hasStandaloneDisplay = window.outerHeight > window.innerHeight * 0.9;
+            
+            return isFromHomescreen || hasStandaloneDisplay;
+        },
+
+        hideAndroidAddressBar() {
+            const browser = this.detect();
+            if (!browser.isAndroid) return;
+
+            const isPWA = this.isPWA();
+            if (isPWA) {
+                console.log('[BrowserCompat] Android PWA 模式，網址列已隱藏');
+                return;
+            }
+
+            const hideUrlBar = () => {
+                const scrollToHide = () => {
+                    if (document.body.scrollTop === 0 && document.documentElement.scrollTop === 0) {
+                        window.scrollTo(0, 1);
+                        setTimeout(() => {
+                            if (document.body.scrollTop === 1 || document.documentElement.scrollTop === 1) {
+                                window.scrollTo(0, 0);
+                            }
+                        }, 100);
+                    }
+                };
+
+                if (document.readyState === 'complete') {
+                    scrollToHide();
+                } else {
+                    window.addEventListener('load', scrollToHide);
+                }
+            };
+
+            const attemptHide = () => {
+                const viewportHeight = window.innerHeight;
+                const screenHeight = window.screen.height;
+                const urlBarHeight = screenHeight - viewportHeight;
+
+                if (urlBarHeight > 50 && urlBarHeight < 150) {
+                    console.log('[BrowserCompat] 檢測到 Android 網址列，嘗試隱藏');
+                    hideUrlBar();
+                }
+            };
+
+            attemptHide();
+
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(attemptHide, 100);
+            });
+
+            window.addEventListener('orientationchange', () => {
+                setTimeout(attemptHide, 300);
+            });
+
+            document.addEventListener('touchstart', () => {
+                if (document.body.scrollTop === 0 && document.documentElement.scrollTop === 0) {
+                    window.scrollTo(0, 1);
+                }
+            }, { passive: true, once: true });
+
+            console.log('[BrowserCompat] Android 網址列隱藏功能已啟用');
+        },
+
+        setupAndroidUrlBarHiding() {
+            const browser = this.detect();
+            if (!browser.isAndroid) return;
+
+            const isPWA = this.isPWA();
+            
+            if (isPWA) {
+                console.log('[BrowserCompat] Android PWA 模式，無需隱藏網址列');
+                document.body.classList.add('pwa-mode');
+                return;
+            }
+
+            this.hideAndroidAddressBar();
+            document.body.classList.add('android-browser-mode');
+
+            const showInstallTip = () => {
+                const dismissed = localStorage.getItem('sx_android_install_tip_dismissed');
+                if (dismissed) {
+                    const dismissedTime = parseInt(dismissed);
+                    if (Date.now() - dismissedTime < 7 * 24 * 60 * 60 * 1000) {
+                        return;
+                    }
+                }
+
+                const tip = document.createElement('div');
+                tip.id = 'android-install-tip';
+                tip.innerHTML = `
+                    <div class="tip-content">
+                        <div class="tip-header">
+                            <span class="tip-icon">📱</span>
+                            <span class="tip-title">安裝應用獲得最佳體驗</span>
+                        </div>
+                        <p class="tip-desc">安裝後將隱藏網址列，獲得全螢幕體驗</p>
+                        <div class="tip-steps">
+                            <span>1. 點擊瀏覽器選單 <strong>⋮</strong></span>
+                            <span>2. 選擇「安裝應用」或「添加到主屏幕」</span>
+                        </div>
+                        <div class="tip-actions">
+                            <button class="tip-dismiss">不再提示</button>
+                            <button class="tip-close">關閉</button>
+                        </div>
+                    </div>
+                `;
+                tip.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 999999;
+                    max-width: 90%;
+                    width: 360px;
+                `;
+                const content = tip.querySelector('.tip-content');
+                content.style.cssText = `
+                    background: linear-gradient(135deg, #1a1a2e, #16213e);
+                    border-radius: 16px;
+                    padding: 16px;
+                    color: white;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                `;
+                const header = tip.querySelector('.tip-header');
+                header.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 8px;
+                `;
+                const icon = tip.querySelector('.tip-icon');
+                icon.style.cssText = `font-size: 20px;`;
+                const title = tip.querySelector('.tip-title');
+                title.style.cssText = `font-weight: 600; font-size: 15px;`;
+                const desc = tip.querySelector('.tip-desc');
+                desc.style.cssText = `font-size: 13px; opacity: 0.8; margin: 0 0 10px;`;
+                const steps = tip.querySelector('.tip-steps');
+                steps.style.cssText = `
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    font-size: 12px;
+                    opacity: 0.9;
+                    background: rgba(255,255,255,0.1);
+                    padding: 10px;
+                    border-radius: 8px;
+                    margin-bottom: 12px;
+                `;
+                const actions = tip.querySelector('.tip-actions');
+                actions.style.cssText = `display: flex; gap: 8px;`;
+                
+                const dismissBtn = tip.querySelector('.tip-dismiss');
+                dismissBtn.style.cssText = `
+                    flex: 1;
+                    padding: 8px 12px;
+                    background: rgba(255,255,255,0.1);
+                    border: none;
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 13px;
+                    cursor: pointer;
+                `;
+                dismissBtn.onclick = () => {
+                    localStorage.setItem('sx_android_install_tip_dismissed', Date.now().toString());
+                    tip.remove();
+                };
+
+                const closeBtn = tip.querySelector('.tip-close');
+                closeBtn.style.cssText = `
+                    flex: 1;
+                    padding: 8px 12px;
+                    background: #0a84ff;
+                    border: none;
+                    border-radius: 8px;
+                    color: white;
+                    font-size: 13px;
+                    cursor: pointer;
+                `;
+                closeBtn.onclick = () => tip.remove();
+
+                document.body.appendChild(tip);
+
+                setTimeout(() => {
+                    if (tip.parentNode) tip.remove();
+                }, 15000);
+            };
+
+            setTimeout(showInstallTip, 3000);
         }
     };
 
@@ -353,10 +565,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             BrowserCompat.applyFixes();
             BrowserCompat.setupFullscreenPersistence();
+            BrowserCompat.setupAndroidUrlBarHiding();
         });
     } else {
         BrowserCompat.applyFixes();
         BrowserCompat.setupFullscreenPersistence();
+        BrowserCompat.setupAndroidUrlBarHiding();
     }
 
     window.SxBrowserCompat = BrowserCompat;
@@ -2862,9 +3076,11 @@
                 }
                 break;
             case 'PHONE_CHECK_TOGGLE':
-                phoneCheckEnabled = false;
-                localStorage.setItem(PHONE_CHECK_KEY, '0');
-                stopPhoneCheck();
+                phoneCheckEnabled = data.enabled === true;
+                localStorage.setItem(PHONE_CHECK_KEY, phoneCheckEnabled ? '1' : '0');
+                if (!phoneCheckEnabled) {
+                    stopPhoneCheck();
+                }
                 break;
             case 'MEMORY_CHAT_EVENT':
                 handleMemoryChatEvent(data.payload, event.source);
@@ -5508,9 +5724,16 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
     };
 
     const initPhoneCheckState = () => {
-        phoneCheckEnabled = false;
-        localStorage.setItem(PHONE_CHECK_KEY, '0');
-        stopPhoneCheck();
+        const storedValue = localStorage.getItem(PHONE_CHECK_KEY);
+        if (storedValue === null) {
+            phoneCheckEnabled = false;
+            localStorage.setItem(PHONE_CHECK_KEY, '0');
+        } else {
+            phoneCheckEnabled = storedValue === '1';
+        }
+        if (!phoneCheckEnabled) {
+            stopPhoneCheck();
+        }
     };
 
     const isAndroid = () => /android/i.test(navigator.userAgent);

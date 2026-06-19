@@ -731,8 +731,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const updateSleepStatus = () => {
         const schedulerState = JSON.parse(localStorage.getItem('sx_sleep_scheduler_state') || '{}');
-        const lastSleep = schedulerState.lastNightlySleep || localStorage.getItem('sx_sleep_completed_at');
-        const totalSleeps = schedulerState.totalSleeps || 0;
+        const lastSleep = schedulerState.lastNightlySleep || localStorage.getItem('sx_sleep_last_time') || localStorage.getItem('sx_sleep_completed_at');
+        const persistedCount = parseInt(localStorage.getItem('sx_sleep_engine_count') || '0');
+        const totalSleeps = Math.max(schedulerState.totalSleeps || 0, persistedCount);
         
         if (aiSleepLastTime) {
             aiSleepLastTime.textContent = `上次睡眠：${lastSleep ? new Date(lastSleep).toLocaleString() : '尚未執行'}`;
@@ -896,6 +897,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const totalKB = Math.round(detailed.total.size / 1024);
             const lsKB = Math.round(detailed.localStorage.size / 1024);
             const idbKB = Math.round(detailed.indexedDB.size / 1024);
+            const quotaMB = detailed.quota ? Math.round(detailed.quota / 1024 / 1024) : 0;
             
             const usageText = document.getElementById('storage-usage-text');
             const usageBar = document.getElementById('storage-usage-bar');
@@ -903,15 +905,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             const idbSize = document.getElementById('idb-size');
             const warningEl = document.getElementById('storage-warning');
             const iosAlertEl = document.getElementById('ios-storage-alert');
+            const quotaText = document.getElementById('storage-quota-text');
             
             if (usageText) {
-                usageText.textContent = `${totalKB} KB`;
+                if (detailed.isIOS && quotaMB > 0) {
+                    usageText.textContent = `${totalKB} KB / ${quotaMB} MB`;
+                } else {
+                    usageText.textContent = `${totalKB} KB`;
+                }
+            }
+            
+            if (quotaText && detailed.isIOS && quotaMB > 0) {
+                quotaText.textContent = `可用上限: ${quotaMB} MB`;
+                quotaText.classList.remove('hidden');
+            } else if (quotaText) {
+                quotaText.classList.add('hidden');
             }
             
             if (lsSize) lsSize.textContent = `${lsKB} KB`;
             if (idbSize) idbSize.textContent = `${idbKB} KB`;
             
-            if (iosWarning.isIOS && usageBar) {
+            if (detailed.isIOS && detailed.quota > 0 && usageBar) {
+                const percentage = Math.min((detailed.total.size / detailed.quota) * 100, 100);
+                usageBar.style.width = `${percentage}%`;
+                
+                if (percentage > 90) {
+                    usageBar.style.background = '#FF453A';
+                } else if (percentage > 70) {
+                    usageBar.style.background = '#FF9500';
+                } else if (percentage > 50) {
+                    usageBar.style.background = '#FFCC00';
+                } else {
+                    usageBar.style.background = 'var(--ios-blue)';
+                }
+            } else if (iosWarning.isIOS && usageBar) {
                 const percentage = Math.min(iosWarning.usagePercentage * 100, 100);
                 usageBar.style.width = `${percentage}%`;
                 
@@ -928,19 +955,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 usageBar.style.width = `${percentage}%`;
             }
             
-            if (warningEl && iosWarning.warning) {
-                warningEl.classList.remove('hidden');
-                if (iosWarning.warning === 'critical') {
-                    warningEl.textContent = '⚠️ 儲存空間嚴重不足，可能導致資料遺失！建議立即清理。';
+            if (warningEl) {
+                if (detailed.isIOS && detailed.quota > 0 && (detailed.total.size / detailed.quota) > 0.8) {
+                    warningEl.classList.remove('hidden');
+                    const ratio = detailed.total.size / detailed.quota;
+                    if (ratio > 0.9) {
+                        warningEl.textContent = '⚠️ iOS 儲存空間嚴重不足，可能導致資料遺失！建議立即清理。';
+                    } else {
+                        warningEl.textContent = `⚠️ iOS 儲存使用率 ${Math.round(ratio * 100)}%，建議清理舊資料。`;
+                    }
+                } else if (iosWarning.warning) {
+                    warningEl.classList.remove('hidden');
+                    if (iosWarning.warning === 'critical') {
+                        warningEl.textContent = '⚠️ 儲存空間嚴重不足，可能導致資料遺失！建議立即清理。';
+                    } else {
+                        warningEl.textContent = '⚠️ 儲存空間使用率較高，建議清理舊資料。';
+                    }
                 } else {
-                    warningEl.textContent = '⚠️ 儲存空間使用率較高，建議清理舊資料。';
+                    warningEl.classList.add('hidden');
                 }
-            } else if (warningEl) {
-                warningEl.classList.add('hidden');
             }
             
-            if (iosAlertEl && iosWarning.isIOS) {
-                if (lsKB > 500 || iosWarning.warning) {
+            if (iosAlertEl && detailed.isIOS) {
+                if (lsKB > 500 || iosWarning.warning || (detailed.quota > 0 && detailed.total.size / detailed.quota > 0.7)) {
                     iosAlertEl.classList.remove('hidden');
                     if (window.lucide) lucide.createIcons();
                 } else {

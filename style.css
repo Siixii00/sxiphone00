@@ -2221,3 +2221,29 @@ html[data-theme="light"] .appearance-option.active {
         color: rgba(255, 255, 255, 0.9);
     }
 }
+
+/* Android PWA 模式 */
+body.pwa-mode {
+    padding-top: 0 !important;
+}
+
+body.pwa-mode .status-bar {
+    padding-top: env(safe-area-inset-top, 15px);
+}
+
+/* Android 瀏覽器模式 - 網址列隱藏 */
+body.android-browser-mode {
+    overscroll-behavior: none;
+}
+
+body.android-browser-mode #phone-container {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+}
+
+@media screen and (max-width: 768px) {
+    body.android-browser-mode {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}

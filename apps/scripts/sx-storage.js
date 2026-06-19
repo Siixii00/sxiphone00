@@ -1051,6 +1051,23 @@ async exportAllData(options = {}) {
           errors.push({ key: `session_${session.id}`, error: e.message });
         }
       }
+      
+      if (typeof localforage !== 'undefined') {
+        try {
+          const chatDataStore = localforage.createInstance({
+            name: 'sxiphone',
+            storeName: 'chatData'
+          });
+          const existingPersisted = await chatDataStore.getItem('sx_app_persisted_data') || {};
+          existingPersisted.sx_chat_sessions = data.chatSessions;
+          await chatDataStore.setItem('sx_app_persisted_data', existingPersisted);
+          
+          localStorage.setItem('sx_chat_sessions', JSON.stringify(data.chatSessions));
+          console.log('[SXStorage] 聊天 sessions 已同步到 persistedData 和 localStorage:', data.chatSessions.length, '個');
+        } catch (e) {
+          console.warn('[SXStorage] 同步聊天 sessions 到 persistedData 失敗:', e);
+        }
+      }
     }
 
     if (data.characters) {

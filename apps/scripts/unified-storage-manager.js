@@ -579,12 +579,20 @@ class UnifiedStorageManager {
       await this._ensureRepoExists(owner, repoName, token);
 
       statusCallback('正在收集資料...');
-      const data = await this.sxStorage.exportAllData();
+      const exportOptions = {
+        maxSizeMB: 25,
+        maxMemories: 500,
+        maxChatSessions: 200,
+        compress: true,
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent)
+      };
+      const data = await this.sxStorage.exportAllData(exportOptions);
       const payload = {
         version: '1.0',
         exportedAt: new Date().toISOString(),
         device: navigator.userAgent,
-        data: data
+        data: data,
+        exportMeta: data.exportMeta || { compressed: true }
       };
 
       const jsonStr = JSON.stringify(payload);
@@ -1113,34 +1121,56 @@ class UnifiedStorageManager {
   async getDetailedEstimate() {
     await this._ensureStorage();
 
-    // localStorage 大小
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     let lsSize = 0;
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key) {
           const val = localStorage.getItem(key);
-          if (val) lsSize += (key.length + val.length) * 2; // UTF-16
+          if (val) lsSize += (key.length + val.length) * 2;
         }
       }
     } catch (_) {}
 
-    // IndexedDB 大小
     let idbSize = 0;
+    let totalSize = 0;
+    let quota = 0;
+    
     try {
       if (navigator.storage?.estimate) {
         const est = await navigator.storage.estimate();
-        idbSize = est.usage || 0;
+        quota = est.quota || 0;
+        const totalUsage = est.usage || 0;
+        
+        if (isIOS) {
+          idbSize = totalUsage > lsSize ? totalUsage - lsSize : 0;
+          totalSize = totalUsage;
+        } else {
+          if (this.sxStorage) {
+            const stats = await this.sxStorage.getStats();
+            idbSize = stats.estimatedSize || 0;
+          }
+          totalSize = lsSize + idbSize;
+        }
       } else if (this.sxStorage) {
         const est = await this.sxStorage.getStorageEstimate();
         idbSize = est.usage || 0;
+        totalSize = lsSize + idbSize;
+        quota = est.quota || 0;
       }
-    } catch (_) {}
+    } catch (_) {
+      totalSize = lsSize;
+    }
 
     return {
       localStorage: { size: lsSize, count: localStorage.length },
       indexedDB: { size: idbSize },
-      total: { size: lsSize + idbSize }
+      total: { size: totalSize },
+      quota: quota,
+      isIOS
     };
   }
 
@@ -1157,17 +1187,19 @@ class UnifiedStorageManager {
     const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
 
     if (!isIOS) {
-      return { isIOS: false, warning: null, usagePercentage: 0 };
+      return { isIOS: false, warning: null, usagePercentage: 0, quota: 0, usage: 0 };
     }
 
-    const result = { isIOS: true, isSafari, warning: null, usagePercentage: 0 };
+    const result = { isIOS: true, isSafari, warning: null, usagePercentage: 0, quota: 0, usage: 0 };
 
-    // 用 StorageManager API 計算使用率
     try {
       if (navigator.storage?.estimate) {
         const est = await navigator.storage.estimate();
         const quota = est.quota || 0;
         const usage = est.usage || 0;
+        result.quota = quota;
+        result.usage = usage;
+        
         if (quota > 0) {
           result.usagePercentage = usage / quota;
           if (result.usagePercentage > 0.9) {
@@ -1179,12 +1211,11 @@ class UnifiedStorageManager {
       }
     } catch (_) {}
 
-    // 檢查是否以 PWA 模式運行
     const isPWA = window.matchMedia?.('(display-mode: standalone)')?.matches ||
                   window.navigator?.standalone === true;
     result.isPWA = isPWA;
 
-    if (!isPWA) {
+    if (!isPWA && result.quota === 0) {
       result.warning = result.warning || 'warning';
     }
 
