@@ -782,7 +782,6 @@ async function initApp() {
     await wikiDB.init();
     applyLanguage();
     setupEventListeners();
-    loadWikiApiSettings();
     loadWikiBackupSettings();
     await loadUserSelectList();
     await loadChars();
@@ -2892,7 +2891,7 @@ async function generateWikiWithLLM() {
     const apiEndpoint = config.endpoint;
     const apiKey = config.key;
     const model = config.model;
-    const prompt = document.getElementById('wikiPrompt').value.trim();
+    const prompt = '根據以下記憶內容，生成一個結構化的 Wiki 條目，包含標題、分類、標籤和詳細內容：';
     
     const btn = document.querySelector('.btn-generate-wiki');
     const originalContent = btn.innerHTML;
@@ -3023,30 +3022,6 @@ async function generateWikiWithLLM() {
         btn.disabled = false;
         btn.innerHTML = originalContent;
     }
-}
-
-function loadWikiApiSettings() {
-    const savedEndpoint = localStorage.getItem('sx_wiki_api_endpoint');
-    const savedKey = localStorage.getItem('sx_wiki_api_key');
-    const savedModel = localStorage.getItem('sx_wiki_model');
-    const savedPrompt = localStorage.getItem('sx_wiki_prompt');
-    
-    if (savedEndpoint) document.getElementById('wikiApiEndpoint').value = savedEndpoint;
-    if (savedKey) document.getElementById('wikiApiKey').value = savedKey;
-    if (savedModel) document.getElementById('wikiModel').value = savedModel;
-    if (savedPrompt) document.getElementById('wikiPrompt').value = savedPrompt;
-}
-
-function saveWikiApiSettings() {
-    const endpoint = document.getElementById('wikiApiEndpoint').value.trim();
-    const key = document.getElementById('wikiApiKey').value.trim();
-    const model = document.getElementById('wikiModel').value.trim();
-    const prompt = document.getElementById('wikiPrompt').value.trim();
-    
-    localStorage.setItem('sx_wiki_api_endpoint', endpoint);
-    localStorage.setItem('sx_wiki_api_key', key);
-    localStorage.setItem('sx_wiki_model', model);
-    localStorage.setItem('sx_wiki_prompt', prompt);
 }
 
 async function generateCharWikiNow() {

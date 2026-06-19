@@ -137,28 +137,14 @@
                         <i class="fas fa-robot"></i>
                         <span data-i18n="llmWikiGenerator">LLM Wiki 生成器</span>
                     </h3>
-                    <div class="api-config">
-                        <div class="form-group">
-                            <label data-i18n="wikiApiEndpoint">API 端點</label>
-                            <input type="text" id="wikiApiEndpoint" placeholder="https://api.openai.com/v1/chat/completions">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="wikiApiKey">API Key</label>
-                            <input type="password" id="wikiApiKey" placeholder="sk-...">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="wikiModel">模型名稱</label>
-                            <input type="text" id="wikiModel" placeholder="gpt-4o" value="gpt-4o">
-                        </div>
-                        <div class="form-group">
-                            <label data-i18n="wikiPrompt">生成提示詞</label>
-                            <textarea id="wikiPrompt" rows="4" placeholder="輸入提示詞，讓 AI 根據記憶生成 Wiki 條目...">根據以下記憶內容，生成一個結構化的 Wiki 條目，包含標題、分類、標籤和詳細內容：</textarea>
-                        </div>
-                        <button class="btn-generate-wiki" onclick="generateWikiWithLLM()">
-                            <i class="fas fa-magic"></i>
-                            <span data-i18n="generateWikiNow">立刻生成 Wiki</span>
-                        </button>
-                    </div>
+                    <p style="font-size:13px;color:#888;margin-bottom:12px;">
+                        <i class="fas fa-info-circle"></i>
+                        使用設定頁面中的 API 配置來生成 Wiki。請先在設定中設定好 API。
+                    </p>
+                    <button class="btn-generate-wiki" onclick="generateWikiWithLLM()">
+                        <i class="fas fa-magic"></i>
+                        <span data-i18n="generateWikiNow">立刻生成 Wiki</span>
+                    </button>
                 </div>
 
                 <div class="wiki-categories">
@@ -284,6 +270,10 @@
                             <i class="fas fa-robot"></i>
                             <span>Char Wiki 生成器</span>
                         </h3>
+                        <p style="font-size:13px;color:#888;margin-bottom:12px;">
+                            <i class="fas fa-info-circle"></i>
+                            使用設定頁面中的 API 配置來生成 Wiki。
+                        </p>
                         <div class="api-config">
                             <div class="form-group">
                                 <label>生成範圍</label>
@@ -460,6 +450,10 @@
                         <i class="fas fa-robot"></i>
                         <span data-i18n="storyGenerator">故事生成器</span>
                     </h3>
+                    <p style="font-size:13px;color:#888;margin-bottom:12px;">
+                        <i class="fas fa-info-circle"></i>
+                        使用設定頁面中的 API 配置來生成故事。
+                    </p>
                     <div class="api-config">
                         <div class="form-group">
                             <label data-i18n="storyType">故事類型</label>
