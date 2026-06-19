@@ -1078,7 +1078,23 @@ function getUserFromSettings() {
     };
 }
 
-function getChatHistory() {
+async function getChatHistory() {
+    if (typeof localforage !== 'undefined') {
+        try {
+            const historyStore = localforage.createInstance({
+                name: 'sxiphone',
+                storeName: 'chatHistory'
+            });
+            const history = await historyStore.getItem('sx_chat_history');
+            if (history && Array.isArray(history) && history.length > 0) {
+                console.log('[PersonalWiki] 從 IndexedDB 載入聊天紀錄:', history.length, '筆');
+                return history;
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] 從 IndexedDB 讀取聊天紀錄失敗:', e);
+        }
+    }
+    
     try {
         const raw = localStorage.getItem('sx_chat_history');
         if (!raw) {
@@ -1090,7 +1106,7 @@ function getChatHistory() {
             console.warn('[PersonalWiki] sx_chat_history 不是陣列');
             return [];
         }
-        console.log('[PersonalWiki] 載入聊天紀錄:', history.length, '筆');
+        console.log('[PersonalWiki] 從 localStorage 載入聊天紀錄:', history.length, '筆');
         return history;
     } catch (e) {
         console.error('[PersonalWiki] 讀取聊天紀錄失敗:', e);
