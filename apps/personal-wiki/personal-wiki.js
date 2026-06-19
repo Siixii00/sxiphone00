@@ -518,26 +518,45 @@ const i18n = {
 
 function getApiConfig() {
     if (typeof SxSettings !== 'undefined' && SxSettings.getActiveApiWithFallback) {
-        const api = SxSettings.getActiveApiWithFallback();
-        if (api) {
-            return {
-                endpoint: api.url,
-                key: api.key,
-                model: api.model || 'gpt-4o'
-            };
+        try {
+            const api = SxSettings.getActiveApiWithFallback();
+            if (api && api.url && api.key) {
+                return {
+                    endpoint: api.url,
+                    key: api.key,
+                    model: api.model || 'gpt-4o'
+                };
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] SxSettings 讀取失敗:', e);
         }
     }
-    const configs = JSON.parse(localStorage.getItem('api_configs') || '[]');
-    if (configs.length > 0) {
+    try {
+        const raw = localStorage.getItem('api_configs');
+        if (!raw) {
+            console.warn('[PersonalWiki] api_configs 不存在');
+            return null;
+        }
+        const configs = JSON.parse(raw);
+        if (!Array.isArray(configs) || configs.length === 0) {
+            console.warn('[PersonalWiki] api_configs 空陣列');
+            return null;
+        }
         const idx = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
         const api = configs[idx] || configs[0];
+        if (!api || !api.url || !api.key) {
+            console.warn('[PersonalWiki] API 配置不完整:', api);
+            return null;
+        }
         return {
             endpoint: api.url,
             key: api.key,
             model: api.model || 'gpt-4o'
         };
+    } catch (e) {
+        console.error('[PersonalWiki] 解析 api_configs 失敗:', e);
+        return null;
     }
-    return null;
 }
 
 function getCurrentLang() {
@@ -981,98 +1000,73 @@ async function loadChars() {
 async function getCharsFromSettings() {
     const allChars = [];
     
-    // 從 sx_characters讀取角色 (支援 localStorage + localforage)
-    try {
-        let chars = [];
-        const raw = localStorage.getItem('sx_characters');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                chars = parsed;
-            }
-        }
-        
-        // localStorage沒有或為空，嘗試從 localforage讀取
-        if (chars.length === 0 && typeof localforage !== 'undefined') {
-            const idbData = await localforage.getItem('sx_characters');
-            if (idbData) {
-                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+    const loadFromStorage = async (key) => {
+        let data = [];
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw) {
+                const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    chars = parsed;
+                    data = parsed;
                 }
             }
-        }
-        
-        chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_characters 失敗:', e);
-    }
-    
-    // 從 sx_users 讀取用戶角色 (支援 localStorage + localforage)
-    try {
-        let users = [];
-        const raw = localStorage.getItem('sx_users');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                users = parsed;
-            }
-        }
-        
-        if (users.length === 0 && typeof localforage !== 'undefined') {
-            const idbData = await localforage.getItem('sx_users');
-            if (idbData) {
-                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    users = parsed;
+            
+            if (data.length === 0 && typeof localforage !== 'undefined') {
+                const idbData = await localforage.getItem(key);
+                if (idbData) {
+                    const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        data = parsed;
+                    }
                 }
             }
+        } catch (e) {
+            console.error(`[PersonalWiki] 讀取 ${key} 失敗:`, e);
         }
-        
-        users.forEach(u => allChars.push({ ...u, source: 'users' }));
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_users 失敗:', e);
+        return data;
+    };
+    
+    const chars = await loadFromStorage('sx_characters');
+    chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
+    
+    const users = await loadFromStorage('sx_users');
+    users.forEach(u => allChars.push({ ...u, source: 'users' }));
+    
+    const npcs = await loadFromStorage('sx_npcs');
+    npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
+    
+    const currentCharName = localStorage.getItem('sx_char_name');
+    const currentCharAvatar = localStorage.getItem('sx_char_avatar');
+    const currentCharPersonality = localStorage.getItem('sx_char_personality');
+    const currentCharBackground = localStorage.getItem('sx_char_background');
+    
+    if (currentCharName && !allChars.find(c => c.name === currentCharName)) {
+        allChars.push({
+            name: currentCharName,
+            avatar: currentCharAvatar || '',
+            personality: currentCharPersonality || '',
+            background: currentCharBackground || '',
+            source: 'current_char'
+        });
     }
     
-    // 從 sx_npcs 讀取 NPC 角色 (支援 localStorage + localforage)
-    try {
-        let npcs = [];
-        const raw = localStorage.getItem('sx_npcs');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                npcs = parsed;
-            }
-        }
-        
-        if (npcs.length === 0 && typeof localforage !== 'undefined') {
-            const idbData = await localforage.getItem('sx_npcs');
-            if (idbData) {
-                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    npcs = parsed;
-                }
-            }
-        }
-        
-        npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
-    } catch (e) {
-        console.error('[PersonalWiki] 讀取 sx_npcs 失敗:', e);
-    }
-    
-    // 如果有 SxSettings，使用它的 getAllPersonas 作為補充
     if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
         try {
             const personas = SxSettings.getAllPersonas();
-            if (Array.isArray(personas) && personas.length > allChars.length) {
-                return personas;
+            if (Array.isArray(personas) && personas.length > 0) {
+                personas.forEach(p => {
+                    if (!allChars.find(c => c.name === p.name)) {
+                        allChars.push({ ...p, source: 'sxsettings' });
+                    }
+                });
             }
         } catch (e) {
             console.error('[PersonalWiki] 從 SxSettings 讀取失敗:', e);
         }
     }
     
-return allChars;
+    console.log('[PersonalWiki] 載入角色列表:', allChars.length, '個角色');
+    return allChars;
 }
 
 function getUserFromSettings() {
@@ -1087,9 +1081,17 @@ function getUserFromSettings() {
 function getChatHistory() {
     try {
         const raw = localStorage.getItem('sx_chat_history');
-        if (!raw) return [];
+        if (!raw) {
+            console.log('[PersonalWiki] sx_chat_history 不存在');
+            return [];
+        }
         const history = JSON.parse(raw);
-        return Array.isArray(history) ? history : [];
+        if (!Array.isArray(history)) {
+            console.warn('[PersonalWiki] sx_chat_history 不是陣列');
+            return [];
+        }
+        console.log('[PersonalWiki] 載入聊天紀錄:', history.length, '筆');
+        return history;
     } catch (e) {
         console.error('[PersonalWiki] 讀取聊天紀錄失敗:', e);
         return [];
@@ -3008,9 +3010,10 @@ async function generateCharWikiNow() {
             console.warn('無法從統一記憶系統調取記憶:', e);
         }
         
-        const chatHistory = JSON.parse(localStorage.getItem('sx_chat_history') || '[]');
+        const chatHistory = getChatHistory();
         const recentChats = chatHistory.slice(-20).map(msg => {
-            return `${msg.role === 'user' ? 'User' : charInfo.name}: ${msg.content}`;
+            const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content || '');
+            return `${msg.role === 'user' ? 'User' : charInfo.name}: ${content.substring(0, 200)}`;
         }).join('\n');
         
         let scopePrompt = '';
