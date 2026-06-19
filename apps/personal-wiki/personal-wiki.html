@@ -88,6 +88,50 @@
                     </button>
                 </div>
 
+                <div class="wiki-backup-section">
+                    <h3 class="backup-section-title">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>自動雲端備份</span>
+                    </h3>
+                    <div class="backup-config">
+                        <div class="backup-toggle-row">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="wiki-auto-backup-toggle" onchange="toggleWikiAutoBackup(this.checked)">
+                                <span class="toggle-switch"></span>
+                                <span>啟用自動備份</span>
+                            </label>
+                        </div>
+                        <div class="backup-interval-row">
+                            <label>備份間隔</label>
+                            <select id="wiki-backup-interval" onchange="setWikiBackupInterval(this.value)">
+                                <option value="1800000">30 分鐘</option>
+                                <option value="3600000">1 小時</option>
+                                <option value="7200000">2 小時</option>
+                                <option value="14400000">4 小時</option>
+                                <option value="28800000">8 小時</option>
+                            </select>
+                        </div>
+                        <div class="backup-status-row">
+                            <span class="backup-status-label">上次備份：</span>
+                            <span id="wiki-last-backup-time">尚未備份</span>
+                        </div>
+                        <div class="backup-actions-row">
+                            <button class="btn-backup-now" onclick="backupWikiNow()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <span>立即備份</span>
+                            </button>
+                            <button class="btn-compress-wiki" onclick="compressWikiNow()">
+                                <i class="fas fa-compress-alt"></i>
+                                <span>壓縮資料</span>
+                            </button>
+                        </div>
+                        <p class="backup-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Wiki 資料會自動壓縮並備份到已設定的雲端服務（GitHub / Supabase / Google Drive），不會因刪除聊天紀錄而消失。
+                        </p>
+                    </div>
+                </div>
+
                 <div class="wiki-api-section">
                     <h3 class="api-section-title">
                         <i class="fas fa-robot"></i>

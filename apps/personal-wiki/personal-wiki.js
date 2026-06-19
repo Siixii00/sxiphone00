@@ -783,6 +783,7 @@ async function initApp() {
     applyLanguage();
     setupEventListeners();
     loadWikiApiSettings();
+    loadWikiBackupSettings();
     await loadUserSelectList();
     await loadChars();
     await loadUserWiki();
@@ -794,6 +795,80 @@ async function initApp() {
                 console.log(`[PersonalWiki] 已自動清理 ${result.cleaned} 筆過期資料`);
             }
         });
+    }
+}
+
+function loadWikiBackupSettings() {
+    const toggle = document.getElementById('wiki-auto-backup-toggle');
+    const intervalSelect = document.getElementById('wiki-backup-interval');
+    const lastBackupEl = document.getElementById('wiki-last-backup-time');
+    
+    const status = WikiAutoBackup.getBackupStatus();
+    
+    if (toggle) {
+        toggle.checked = status.enabled;
+    }
+    
+    if (intervalSelect) {
+        intervalSelect.value = status.interval.toString();
+    }
+    
+    if (lastBackupEl && status.lastBackup) {
+        const date = new Date(parseInt(status.lastBackup, 10));
+        lastBackupEl.textContent = date.toLocaleString();
+    }
+}
+
+function toggleWikiAutoBackup(enabled) {
+    WikiAutoBackup.setEnabled(enabled);
+    console.log('[PersonalWiki] 自動備份:', enabled ? '已啟用' : '已停用');
+}
+
+function setWikiBackupInterval(intervalMs) {
+    WikiAutoBackup.setBackupInterval(parseInt(intervalMs, 10));
+    console.log('[PersonalWiki] 備份間隔已設定為:', intervalMs, 'ms');
+}
+
+async function backupWikiNow() {
+    const btn = document.querySelector('.btn-backup-now');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>備份中...</span>';
+    
+    try {
+        const result = await WikiAutoBackup.performBackup();
+        
+        if (result.success) {
+            const lastBackupEl = document.getElementById('wiki-last-backup-time');
+            if (lastBackupEl) {
+                lastBackupEl.textContent = new Date().toLocaleString();
+            }
+            alert('備份成功！壓縮率: ' + result.compressed.ratio);
+        } else {
+            alert('備份失敗：' + (result.reason || result.error || '未知錯誤'));
+        }
+    } catch (e) {
+        alert('備份失敗：' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+}
+
+async function compressWikiNow() {
+    const btn = document.querySelector('.btn-compress-wiki');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>壓縮中...</span>';
+    
+    try {
+        const result = await WikiAutoBackup.compressWikiData();
+        alert('壓縮完成！\n原始大小: ' + result.originalSize + ' bytes\n壓縮後: ' + result.compressedSize + ' bytes\n壓縮率: ' + result.ratio);
+    } catch (e) {
+        alert('壓縮失敗：' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
     }
 }
 
@@ -4225,3 +4300,425 @@ async function compressWikiEntries() {
         return 0;
     }
 }
+
+// ==================== Wiki 自動雲端備份系統 ====================
+
+const WikiAutoBackup = {
+    _backupTimer: null,
+    _lastBackupKey: 'sx_wiki_last_backup',
+    _backupIntervalKey: 'sx_wiki_backup_interval',
+    _autoBackupEnabledKey: 'sx_wiki_auto_backup_enabled',
+    
+    defaultInterval: 30 * 60 * 1000, // 30 分鐘
+    
+    async init() {
+        const enabled = localStorage.getItem(this._autoBackupEnabledKey);
+        if (enabled === 'true') {
+            this.startAutoBackup();
+        }
+        
+        this._checkInitialBackup();
+    },
+    
+    async _checkInitialBackup() {
+        const lastBackup = localStorage.getItem(this._lastBackupKey);
+        if (!lastBackup) return;
+        
+        const lastTime = parseInt(lastBackup, 10);
+        const now = Date.now();
+        const hourAgo = now - (60 * 60 * 1000);
+        
+        if (lastTime < hourAgo) {
+            console.log('[WikiAutoBackup] 距離上次備份已超過 1 小時，執行備份');
+            await this.performBackup();
+        }
+    },
+    
+    startAutoBackup() {
+        if (this._backupTimer) {
+            clearInterval(this._backupTimer);
+        }
+        
+        const interval = parseInt(localStorage.getItem(this._backupIntervalKey), 10) || this.defaultInterval;
+        
+        this._backupTimer = setInterval(async () => {
+            await this.performBackup();
+        }, interval);
+        
+        console.log('[WikiAutoBackup] 自動備份已啟動，間隔:', interval / 60000, '分鐘');
+    },
+    
+    stopAutoBackup() {
+        if (this._backupTimer) {
+            clearInterval(this._backupTimer);
+            this._backupTimer = null;
+        }
+        console.log('[WikiAutoBackup] 自動備份已停止');
+    },
+    
+    setEnabled(enabled) {
+        localStorage.setItem(this._autoBackupEnabledKey, enabled ? 'true' : 'false');
+        if (enabled) {
+            this.startAutoBackup();
+        } else {
+            this.stopAutoBackup();
+        }
+    },
+    
+    setBackupInterval(intervalMs) {
+        localStorage.setItem(this._backupIntervalKey, intervalMs.toString());
+        if (localStorage.getItem(this._autoBackupEnabledKey) === 'true') {
+            this.startAutoBackup();
+        }
+    },
+    
+    async compressWikiData() {
+        try {
+            const userEntries = await wikiDB.getAllEntries('user_entries');
+            const charEntries = await wikiDB.getAllEntries('char_entries');
+            const sharedEntries = await wikiDB.getSharedEntries();
+            const chars = await wikiDB.getAllChars();
+            
+            const compressed = {
+                version: '2.0',
+                compressedAt: new Date().toISOString(),
+                entries: {
+                    user: userEntries.map(e => this._compressEntry(e)),
+                    char: charEntries.map(e => this._compressEntry(e)),
+                    shared: sharedEntries.map(e => this._compressEntry(e))
+                },
+                chars: chars.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    avatar: c.avatar ? c.avatar.substring(0, 100) + '...' : '',
+                    personality: c.personality || '',
+                    background: c.background || '',
+                    source: c.source || ''
+                })),
+                stats: {
+                    userCount: userEntries.length,
+                    charCount: charEntries.length,
+                    sharedCount: sharedEntries.length,
+                    charTotal: chars.length
+                }
+            };
+            
+            const jsonStr = JSON.stringify(compressed);
+            const compressedStr = this._simpleCompress(jsonStr);
+            
+            console.log('[WikiAutoBackup] 壓縮完成，原始大小:', jsonStr.length, '壓縮後:', compressedStr.length);
+            
+            return {
+                data: compressedStr,
+                originalSize: jsonStr.length,
+                compressedSize: compressedStr.length,
+                ratio: (compressedStr.length / jsonStr.length * 100).toFixed(1) + '%'
+            };
+        } catch (e) {
+            console.error('[WikiAutoBackup] 壓縮失敗:', e);
+            throw e;
+        }
+    },
+    
+    _compressEntry(entry) {
+        return {
+            id: entry.id,
+            title: entry.title,
+            category: entry.category,
+            content: entry.content ? entry.content.substring(0, 2000) : '',
+            tags: entry.tags || [],
+            charId: entry.charId || null,
+            createdAt: entry.createdAt,
+            importance: entry.importance || 0,
+            source: entry.source || 'manual'
+        };
+    },
+    
+    _simpleCompress(str) {
+        try {
+            const chars = [];
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                if (code < 128) {
+                    chars.push(String.fromCharCode(code + 1));
+                } else {
+                    chars.push(str[i]);
+                }
+            }
+            return btoa(unescape(encodeURIComponent(chars.join(''))));
+        } catch (e) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+    },
+    
+    _simpleDecompress(str) {
+        try {
+            const decoded = decodeURIComponent(escape(atob(str)));
+            const chars = [];
+            for (let i = 0; i < decoded.length; i++) {
+                const code = decoded.charCodeAt(i);
+                if (code < 129) {
+                    chars.push(String.fromCharCode(code - 1));
+                } else {
+                    chars.push(decoded[i]);
+                }
+            }
+            return chars.join('');
+        } catch (e) {
+            return decodeURIComponent(escape(atob(str)));
+        }
+    },
+    
+    async performBackup() {
+        console.log('[WikiAutoBackup] 開始執行備份...');
+        
+        try {
+            const compressed = await this.compressWikiData();
+            
+            const hasCloudBackup = await this._backupToCloud(compressed);
+            
+            if (hasCloudBackup) {
+                localStorage.setItem(this._lastBackupKey, Date.now().toString());
+                console.log('[WikiAutoBackup] 備份成功');
+                
+                await wikiDB.addLog({
+                    type: 'system',
+                    action: 'auto_backup',
+                    detail: `自動備份完成，壓縮率: ${compressed.ratio}`
+                });
+                
+                return { success: true, compressed };
+            } else {
+                console.warn('[WikiAutoBackup] 沒有可用的雲端備份服務');
+                return { success: false, reason: 'no_cloud_service' };
+            }
+        } catch (e) {
+            console.error('[WikiAutoBackup] 備份失敗:', e);
+            return { success: false, error: e.message };
+        }
+    },
+    
+    async _backupToCloud(compressedData) {
+        const results = [];
+        
+        const githubToken = localStorage.getItem('sx_github_token');
+        if (githubToken) {
+            try {
+                const result = await this._backupToGitHub(compressedData, githubToken);
+                results.push({ service: 'github', success: result.success });
+            } catch (e) {
+                console.warn('[WikiAutoBackup] GitHub 備份失敗:', e);
+                results.push({ service: 'github', success: false, error: e.message });
+            }
+        }
+        
+        const supabaseUrl = localStorage.getItem('sx_supabase_url');
+        const supabaseKey = localStorage.getItem('sx_supabase_key');
+        if (supabaseUrl && supabaseKey) {
+            try {
+                const result = await this._backupToSupabase(compressedData, supabaseUrl, supabaseKey);
+                results.push({ service: 'supabase', success: result.success });
+            } catch (e) {
+                console.warn('[WikiAutoBackup] Supabase 備份失敗:', e);
+                results.push({ service: 'supabase', success: false, error: e.message });
+            }
+        }
+        
+        const gdriveToken = localStorage.getItem('sx_gdrive_access_token');
+        if (gdriveToken) {
+            try {
+                const result = await this._backupToGDrive(compressedData, gdriveToken);
+                results.push({ service: 'gdrive', success: result.success });
+            } catch (e) {
+                console.warn('[WikiAutoBackup] Google Drive 備份失敗:', e);
+                results.push({ service: 'gdrive', success: false, error: e.message });
+            }
+        }
+        
+        const successCount = results.filter(r => r.success).length;
+        console.log('[WikiAutoBackup] 雲端備份結果:', results);
+        
+        return successCount > 0;
+    },
+    
+    async _backupToGitHub(compressedData, token) {
+        const repoName = localStorage.getItem('sx_github_repo_name') || 'sxiphone-backup';
+        const filePath = 'wiki/wiki_backup.json';
+        
+        const userResp = await fetch('https://api.github.com/user', {
+            headers: { Authorization: `token ${token}` }
+        });
+        
+        if (!userResp.ok) throw new Error('無法取得使用者資訊');
+        
+        const userData = await userResp.json();
+        const owner = userData.login;
+        
+        let sha = null;
+        try {
+            const existingResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
+                headers: { Authorization: `token ${token}` }
+            });
+            if (existingResp.ok) {
+                const existingData = await existingResp.json();
+                sha = existingData.sha;
+            }
+        } catch {}
+        
+        const payload = {
+            version: '2.0',
+            type: 'wiki_backup',
+            exportedAt: new Date().toISOString(),
+            data: compressedData.data,
+            stats: compressedData.stats
+        };
+        
+        const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+        
+        const uploadResp = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`, {
+            method: 'PUT',
+            headers: { 
+                Authorization: `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Wiki 備份 ${new Date().toLocaleString()}`,
+                content: contentBase64,
+                sha
+            })
+        });
+        
+        if (!uploadResp.ok) {
+            const errText = await uploadResp.text();
+            throw new Error(`GitHub 上傳失敗: ${uploadResp.status}`);
+        }
+        
+        console.log('[WikiAutoBackup] GitHub 備份成功');
+        return { success: true };
+    },
+    
+    async _backupToSupabase(compressedData, url, key) {
+        const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
+        const userId = localStorage.getItem('sx_user_name') || 'default';
+        
+        const payload = {
+            user_id: userId,
+            data_type: 'wiki_backup',
+            data: {
+                version: '2.0',
+                compressed: compressedData.data,
+                stats: compressedData.stats
+            },
+            exported_at: new Date().toISOString()
+        };
+        
+        const resp = await fetch(`${url}/rest/v1/${table}`, {
+            method: 'POST',
+            headers: {
+                'apikey': key,
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!resp.ok) {
+            throw new Error(`Supabase 上傳失敗: ${resp.status}`);
+        }
+        
+        console.log('[WikiAutoBackup] Supabase 備份成功');
+        return { success: true };
+    },
+    
+    async _backupToGDrive(compressedData, accessToken) {
+        const fileName = 'sxiphone_wiki_backup.json';
+        const mimeType = 'application/json';
+        
+        const payload = {
+            version: '2.0',
+            type: 'wiki_backup',
+            exportedAt: new Date().toISOString(),
+            data: compressedData.data,
+            stats: compressedData.stats
+        };
+        
+        const metadata = {
+            name: fileName,
+            mimeType: mimeType
+        };
+        
+        const boundary = 'wiki_backup_boundary';
+        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n${JSON.stringify(payload)}\r\n--${boundary}--`;
+        
+        const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': `multipart/related; boundary=${boundary}`
+            },
+            body: body
+        });
+        
+        if (!resp.ok) {
+            throw new Error(`Google Drive 上傳失敗: ${resp.status}`);
+        }
+        
+        console.log('[WikiAutoBackup] Google Drive 備份成功');
+        return { success: true };
+    },
+    
+    async restoreFromBackup(backupData) {
+        try {
+            const decompressedStr = this._simpleDecompress(backupData.data);
+            const data = JSON.parse(decompressedStr);
+            
+            if (data.entries) {
+                if (data.entries.user) {
+                    for (const entry of data.entries.user) {
+                        await wikiDB.addEntry('user_entries', entry);
+                    }
+                }
+                if (data.entries.char) {
+                    for (const entry of data.entries.char) {
+                        await wikiDB.addEntry('char_entries', entry);
+                    }
+                }
+                if (data.entries.shared) {
+                    for (const entry of data.entries.shared) {
+                        await wikiDB.addSharedEntry(entry);
+                    }
+                }
+            }
+            
+            if (data.chars) {
+                for (const char of data.chars) {
+                    await wikiDB.addChar(char);
+                }
+            }
+            
+            await wikiDB.addLog({
+                type: 'system',
+                action: 'restore',
+                detail: `從備份還原完成`
+            });
+            
+            console.log('[WikiAutoBackup] 還原成功');
+            return { success: true };
+        } catch (e) {
+            console.error('[WikiAutoBackup] 還原失敗:', e);
+            return { success: false, error: e.message };
+        }
+    },
+    
+    getBackupStatus() {
+        return {
+            enabled: localStorage.getItem(this._autoBackupEnabledKey) === 'true',
+            interval: parseInt(localStorage.getItem(this._backupIntervalKey), 10) || this.defaultInterval,
+            lastBackup: localStorage.getItem(this._lastBackupKey) || null
+        };
+    }
+};
+
+// 初始化自動備份
+WikiAutoBackup.init();
