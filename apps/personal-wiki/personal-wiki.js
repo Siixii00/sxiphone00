@@ -1104,6 +1104,100 @@ async function getCharsFromSettings() {
     chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
     
     const users = await loadFromStorage('sx_users');
+    users.forEach(u => allChars.push({ ...u, source: 'users', type: 'user' }));
+    
+    const npcs = await loadFromStorage('sx_npcs');
+    npcs.forEach(n => allChars.push({ ...n, source: 'npcs', type: 'npc' }));
+    
+    if (typeof localforage !== 'undefined') {
+        try {
+            const chatDataStore = localforage.createInstance({
+                name: 'sxiphone',
+                storeName: 'chatData'
+            });
+            const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+            if (persistedData) {
+                if (persistedData.sx_characters && Array.isArray(persistedData.sx_characters)) {
+                    persistedData.sx_characters.forEach(c => {
+                        if (!allChars.find(existing => existing.name === c.name || existing.char_name === c.name)) {
+                            allChars.push({ ...c, source: 'persisted_characters' });
+                        }
+                    });
+                }
+                if (persistedData.sx_users && Array.isArray(persistedData.sx_users)) {
+                    persistedData.sx_users.forEach(u => {
+                        if (!allChars.find(existing => existing.name === u.name)) {
+                            allChars.push({ ...u, source: 'persisted_users', type: 'user' });
+                        }
+                    });
+                }
+                if (persistedData.sx_npcs && Array.isArray(persistedData.sx_npcs)) {
+                    persistedData.sx_npcs.forEach(n => {
+                        if (!allChars.find(existing => existing.name === n.name || existing.char_name === n.name)) {
+                            allChars.push({ ...n, source: 'persisted_npcs', type: 'npc' });
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] 從 chatData store讀取角色失敗:', e);
+        }
+    }
+    
+    const currentCharName = localStorage.getItem('sx_char_name');
+    const currentCharAvatar = localStorage.getItem('sx_char_avatar');
+    const currentCharPersonality = localStorage.getItem('sx_char_personality');
+    const currentCharBackground = localStorage.getItem('sx_char_background');
+    
+    if (currentCharName && !allChars.find(c => c.name === currentCharName)) {
+        allChars.push({
+            name: currentCharName,
+            avatar: currentCharAvatar || '',
+            personality: currentCharPersonality || '',
+            background: currentCharBackground || '',
+            source: 'current_char'
+        });
+    }
+    
+    if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
+        try {
+            const personas = SxSettings.getAllPersonas();
+            if (Array.isArray(personas) && personas.length > 0) {
+                personas.forEach(p => {
+                    if (!allChars.find(c => c.name === p.name)) {
+                        allChars.push({ ...p, source: 'sxsettings' });
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('[PersonalWiki] 從 SxSettings讀取失敗:', e);
+        }
+    }
+    
+    console.log('[PersonalWiki]載入角色列表:', allChars.length, '個角色');
+    return allChars;
+}
+            }
+            
+            if (data.length === 0 && typeof localforage !== 'undefined') {
+                const idbData = await localforage.getItem(key);
+                if (idbData) {
+                    const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        data = parsed;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error(`[PersonalWiki] 讀取 ${key} 失敗:`, e);
+        }
+        return data;
+    };
+    
+    const chars = await loadFromStorage('sx_characters');
+    chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
+    
+    const users = await loadFromStorage('sx_users');
     users.forEach(u => allChars.push({ ...u, source: 'users' }));
     
     const npcs = await loadFromStorage('sx_npcs');
@@ -1254,13 +1348,19 @@ async function getAllMemoryData() {
 }
 
 async function importCharFromSettings(charIndex) {
+    console.log('[PersonalWiki] 開始導入角色, index:', charIndex);
+    
     const settingsChars = await getCharsFromSettings();
+    console.log('[PersonalWiki] settingsChars:', settingsChars.length, '個');
+    
     if (charIndex < 0 || charIndex >= settingsChars.length) {
         alert(t('importCharFailed'));
         return;
     }
     
     const settingsChar = settingsChars[charIndex];
+    console.log('[PersonalWiki] 要導入的角色:', settingsChar.name || settingsChar.char_name);
+    
     const sourceType = settingsChar.source || settingsChar.type || 'characters';
     
     const char = {
@@ -1274,7 +1374,18 @@ async function importCharFromSettings(charIndex) {
         source: sourceType
     };
     
-    await wikiDB.addChar(char);
+    console.log('[PersonalWiki] 新角色 ID:', char.id, 'name:', char.name);
+    
+    try {
+        await wikiDB.addChar(char);
+        console.log('[PersonalWiki] 角色已保存到 wikiDB');
+    } catch (e) {
+        console.error('[PersonalWiki] 保存角色失敗:', e);
+        alert('保存角色失敗: ' + e.message);
+        return;
+    }
+    
+    let entriesAdded = 0;
     
     if (settingsChar.personality || settingsChar.description) {
         const personalityEntry = {
@@ -1288,6 +1399,8 @@ async function importCharFromSettings(charIndex) {
             source: 'settings_import'
         };
         await wikiDB.addEntry('char_entries', personalityEntry);
+        entriesAdded++;
+        console.log('[PersonalWiki] 已添加性格條目');
     }
     
     if (settingsChar.background || settingsChar.backstory) {
@@ -1302,36 +1415,118 @@ async function importCharFromSettings(charIndex) {
             source: 'settings_import'
         };
         await wikiDB.addEntry('char_entries', backgroundEntry);
+        entriesAdded++;
+        console.log('[PersonalWiki] 已添加背景條目');
     }
+    
+    const chatHistory = await getChatHistory();
+    console.log('[PersonalWiki] chatHistory:', chatHistory ? chatHistory.length : 0, '條');
+    
+    if (chatHistory && chatHistory.length > 0) {
+        const charMessages = chatHistory.filter(msg => {
+            const isCharMsg = msg.role === 'assistant' || msg.role === 'char' || msg.is_char;
+            if (!isCharMsg) return false;
+            if (settingsChar.name && msg.char_name) {
+                return msg.char_name === settingsChar.name || 
+                       msg.char_name.includes(settingsChar.name) ||
+                       settingsChar.name.includes(msg.char_name);
+            }
+            return isCharMsg;
+        });
+        
+        console.log('[PersonalWiki] charMessages:', charMessages.length, '條');
+        
+        if (charMessages.length > 0) {
+            const user = getUserFromSettings();
+            const groupedByDate = {};
+            charMessages.forEach(msg => {
+                const dateKey = msg.timestamp ? new Date(msg.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+                groupedByDate[dateKey].push(msg);
+            });
+            
+            let entryCount = 0;
+            for (const [date, msgs] of Object.entries(groupedByDate)) {
+                if (entryCount >= 10) break;
+                
+                const userMsgs = chatHistory.filter(m => {
+                    const mDate = m.timestamp ? new Date(m.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                    return mDate === date && (m.role === 'user' || m.is_user);
+                });
+                
+                const conversationContent = msgs.map(msg => {
+                    const role = msg.role === 'assistant' || msg.role === 'char' ? char.name : user.name || 'User';
+                    return `【${role}】${msg.content || msg.text || ''}`;
+                }).join('\n\n');
+                
+                if (userMsgs.length > 0) {
+                    const userContent = userMsgs.map(msg => `【${user.name || 'User'}】${msg.content || msg.text || ''}`).join('\n\n');
+                    const fullContent = userContent + '\n\n---\n\n' + conversationContent;
+                    
+                    const conversationEntry = {
+                        id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_conv_${entryCount}`,
+                        title: `${date} 的對話`,
+                        content: fullContent.substring(0, 2000),
+                        category: 'conversations',
+                        tags: ['對話', '互動', date],
+                        charId: char.id,
+                        createdAt: new Date(date).toISOString(),
+                        source: 'settings_import_chat'
+                    };
+                    await wikiDB.addEntry('char_entries', conversationEntry);
+                    entryCount++;
+                    entriesAdded++;
+                } else if (msgs.length > 0) {
+                    const conversationEntry = {
+                        id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_conv_${entryCount}`,
+                        title: `${date} ${char.name} 的回應`,
+                        content: conversationContent.substring(0, 2000),
+                        category: 'conversations',
+                        tags: ['對話', '互動', date],
+                        charId: char.id,
+                        createdAt: new Date(date).toISOString(),
+                        source: 'settings_import_chat'
+                    };
+                    await wikiDB.addEntry('char_entries', conversationEntry);
+                    entryCount++;
+                    entriesAdded++;
+                }
+            }
+            console.log(`[PersonalWiki] 已導入 ${entryCount} 條對話紀錄`);
+        }
+    }
+    
+    console.log('[PersonalWiki] 共添加', entriesAdded, '個條目');
     
     await wikiDB.addLog({
         type: 'char',
         action: 'import_from_settings',
-        detail: `從設定導入角色: ${char.name} (來源: ${sourceType})`
+        detail: `從設定導入角色: ${char.name} (來源: ${sourceType}, ${entriesAdded} 條目)`
     });
     
     await loadChars();
-    await selectChar(char.id);
+    console.log('[PersonalWiki] loadChars 完成');
     
-    alert(t('importCharSuccess'));
+    currentCharId = char.id;
+    console.log('[PersonalWiki] currentCharId 已設為:', char.id);
+    
+    const charVerify = await wikiDB.getChar(char.id);
+    console.log('[PersonalWiki] 验证角色:', charVerify ? charVerify.name : '找不到');
+    
+    const entriesVerify = await wikiDB.getAllEntries('char_entries', 'charId', char.id);
+    console.log('[PersonalWiki] 验证條目:', entriesVerify ? entriesVerify.length : 0, '條');
+    
+    await selectCharInternal(char.id);
+    
+    alert(t('importCharSuccess') + ` (${entriesAdded} 條目)`);
 }
 
-async function selectChar(charId) {
-    if (!charId) {
-        document.getElementById('char-wiki-content').classList.add('hidden');
-        document.getElementById('char-empty-state').classList.remove('hidden');
-        currentCharId = null;
-        return;
-    }
-
-    if (charId.startsWith('settings_')) {
-        const charIndex = parseInt(charId.replace('settings_', ''));
-        await importCharFromSettings(charIndex);
-        return;
-    }
-
+async function selectCharInternal(charId) {
+    console.log('[PersonalWiki] selectCharInternal:', charId);
+    
     currentCharId = charId;
     const char = await wikiDB.getChar(charId);
+    console.log('[PersonalWiki] getChar結果:', char ? char.name : 'null');
     
     if (char) {
         document.getElementById('charName').textContent = char.name;
@@ -1367,8 +1562,87 @@ async function selectChar(charId) {
         document.getElementById('char-wiki-content').classList.remove('hidden');
         document.getElementById('char-empty-state').classList.add('hidden');
         
+        switchTab('char-wiki');
+        
+        console.log('[PersonalWiki] 調用 loadCharWiki:', charId);
         await loadCharWiki(charId);
+        console.log('[PersonalWiki] loadCharWiki 完成');
+    } else {
+        console.error('[PersonalWiki] 找不到角色:', charId);
     }
+}
+
+async function selectChar(charId) {
+    console.log('[PersonalWiki] selectChar:', charId);
+    
+    if (!charId) {
+        document.getElementById('char-wiki-content').classList.add('hidden');
+        document.getElementById('char-empty-state').classList.remove('hidden');
+        currentCharId = null;
+        return;
+    }
+
+    if (charId.startsWith('settings_')) {
+        const charIndex = parseInt(charId.replace('settings_', ''));
+        await importCharFromSettings(charIndex);
+        return;
+    }
+
+    currentCharId = charId;
+    const char = await wikiDB.getChar(charId);
+    console.log('[PersonalWiki] getChar result:', char ? char.name : 'null');
+    
+    if (char) {
+        document.getElementById('charName').textContent = char.name;
+        document.getElementById('charDesc').textContent = '';
+        
+        if (char.avatar) {
+            document.getElementById('charAvatar').innerHTML = `<img src="${char.avatar}" alt="${char.name}">`;
+        } else {
+            document.getElementById('charAvatar').innerHTML = `<i class="fas fa-user-circle"></i>`;
+        }
+        
+        const detailEl = document.getElementById('charProfileDetail');
+        detailEl.innerHTML = `
+            ${char.description ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">描述</div>
+                <div class="char-profile-detail-value">${char.description}</div>
+            </div>` : ''}
+            ${char.personality ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">性格</div>
+                <div class="char-profile-detail-value">${char.personality}</div>
+            </div>` : ''}
+            ${char.background ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">背景</div>
+                <div class="char-profile-detail-value">${char.background}</div>
+            </div>` : ''}
+            ${char.worldbook ? `<div class="char-profile-detail-section">
+                <div class="char-profile-detail-label">世界觀</div>
+                <div class="char-profile-detail-value">${char.worldbook}</div>
+            </div>` : ''}
+            ${!char.description && !char.personality && !char.background && !char.worldbook ? '<div class="char-profile-detail-section"><div class="char-profile-detail-value" style="color: var(--text-tertiary);">尚無詳細設定</div></div>' : ''}
+        `;
+        
+        document.getElementById('char-wiki-content').classList.remove('hidden');
+        document.getElementById('char-empty-state').classList.add('hidden');
+        
+        switchTab('char-wiki');
+        
+        console.log('[PersonalWiki] 調用 loadCharWiki:', charId);
+        await loadCharWiki(charId);
+        console.log('[PersonalWiki] loadCharWiki 完成');
+    } else {
+        console.warn('[PersonalWiki] 找不到角色:', charId);
+    }
+}
+
+    if (charId.startsWith('settings_')) {
+        const charIndex = parseInt(charId.replace('settings_', ''));
+        await importCharFromSettings(charIndex);
+        return;
+    }
+
+    await selectCharInternal(charId);
 }
 
 function toggleCharProfileDetail() {
