@@ -1153,6 +1153,8 @@ function getUserFromSettings() {
 }
 
 async function getChatHistory() {
+    const allHistory = [];
+    
     if (typeof localforage !== 'undefined') {
         try {
             const historyStore = localforage.createInstance({
@@ -1161,38 +1163,76 @@ async function getChatHistory() {
             });
             const history = await historyStore.getItem('sx_chat_history');
             if (history && Array.isArray(history) && history.length > 0) {
-                console.log('[PersonalWiki] 從 IndexedDB 載入聊天紀錄:', history.length, '筆');
-                return history;
+                console.log('[PersonalWiki] 從 chatHistory store 載入:', history.length, '筆');
+                allHistory.push(...history);
             }
         } catch (e) {
-            console.warn('[PersonalWiki] 從 IndexedDB 讀取聊天紀錄失敗:', e);
+            console.warn('[PersonalWiki] 從 chatHistory store 讀取失敗:', e);
+        }
+        
+        try {
+            const chatDataStore = localforage.createInstance({
+                name: 'sxiphone',
+                storeName: 'chatData'
+            });
+            const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+            if (persistedData && persistedData.sx_chat_sessions && Array.isArray(persistedData.sx_chat_sessions)) {
+                console.log('[PersonalWiki] 從 chatData store 找到 sessions:', persistedData.sx_chat_sessions.length, '個');
+                persistedData.sx_chat_sessions.forEach(session => {
+                    if (session.history && Array.isArray(session.history)) {
+                        allHistory.push(...session.history);
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] 從 chatData store 讀取失敗:', e);
         }
     }
     
     try {
         const raw = localStorage.getItem('sx_chat_history');
-        if (!raw) {
-            console.log('[PersonalWiki] sx_chat_history 不存在');
-            return [];
+        if (raw) {
+            const history = JSON.parse(raw);
+            if (Array.isArray(history) && history.length > 0) {
+                console.log('[PersonalWiki] 從 localStorage sx_chat_history 載入:', history.length, '筆');
+                allHistory.push(...history);
+            }
         }
-        const history = JSON.parse(raw);
-        if (!Array.isArray(history)) {
-            console.warn('[PersonalWiki] sx_chat_history 不是陣列');
-            return [];
-        }
-        console.log('[PersonalWiki] 從 localStorage 載入聊天紀錄:', history.length, '筆');
-        return history;
     } catch (e) {
-        console.error('[PersonalWiki] 讀取聊天紀錄失敗:', e);
-        return [];
+        console.warn('[PersonalWiki] 從 localStorage sx_chat_history 讀取失敗:', e);
     }
+    
+    try {
+        const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+        if (sessionsRaw) {
+            const sessions = JSON.parse(sessionsRaw);
+            if (Array.isArray(sessions)) {
+                console.log('[PersonalWiki] 從 localStorage sx_chat_sessions 載入:', sessions.length, '個');
+                sessions.forEach(session => {
+                    if (session.history && Array.isArray(session.history)) {
+                        allHistory.push(...session.history);
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('[PersonalWiki] 從 localStorage sx_chat_sessions 讀取失敗:', e);
+    }
+    
+    console.log('[PersonalWiki] 總共載入聊天紀錄:', allHistory.length, '筆');
+    return allHistory;
 }
 
 async function getAllMemoryData() {
+    const [chatHistory, chars] = await Promise.all([
+        getChatHistory(),
+        getCharsFromSettings()
+    ]);
+    
     const memories = {
         user: getUserFromSettings(),
-        chars: getCharsFromSettings(),
-        chatHistory: getChatHistory(),
+        chars: chars,
+        chatHistory: chatHistory,
         wikiEntries: {
             user: await wikiDB.getAllEntries('user_entries'),
             char: await wikiDB.getAllEntries('char_entries')
@@ -1645,8 +1685,32 @@ async function importChatHistoryToShared() {
 async function getAvailableInteractionSources() {
     const sources = [];
     
-    // Chat 應用程式
-    const chatSessions = JSON.parse(localStorage.getItem('sx_chat_sessions') || '[]');
+    const chatSessions = [];
+    
+    if (typeof localforage !== 'undefined') {
+        try {
+            const chatDataStore = localforage.createInstance({
+                name: 'sxiphone',
+                storeName: 'chatData'
+            });
+            const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
+            if (persistedData && persistedData.sx_chat_sessions && Array.isArray(persistedData.sx_chat_sessions)) {
+                console.log('[PersonalWiki] 從 IndexedDB chatData 找到 sessions:', persistedData.sx_chat_sessions.length, '個');
+                chatSessions.push(...persistedData.sx_chat_sessions);
+            }
+        } catch (e) {
+            console.warn('[PersonalWiki] 從 IndexedDB 讀取 sessions 失敗:', e);
+        }
+    }
+    
+    if (chatSessions.length === 0) {
+        const localStorageSessions = JSON.parse(localStorage.getItem('sx_chat_sessions') || '[]');
+        if (localStorageSessions.length > 0) {
+            console.log('[PersonalWiki] 從 localStorage 找到 sessions:', localStorageSessions.length, '個');
+            chatSessions.push(...localStorageSessions);
+        }
+    }
+    
     if (chatSessions.length > 0) {
         chatSessions.forEach(session => {
             if (session.history && session.history.length > 0) {
@@ -3076,7 +3140,7 @@ async function generateCharWikiNow() {
             console.warn('無法從統一記憶系統調取記憶:', e);
         }
         
-        const chatHistory = getChatHistory();
+        const chatHistory = await getChatHistory();
         const recentChats = chatHistory.slice(-20).map(msg => {
             const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content || '');
             return `${msg.role === 'user' ? 'User' : charInfo.name}: ${content.substring(0, 200)}`;
