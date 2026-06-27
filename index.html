@@ -488,10 +488,48 @@
                             (window.matchMedia('(display-mode: standalone)').matches || 
                              window.navigator.standalone === true);
             
+            console.log('[PWA Init] 檢測結果:', {
+                isIOSPWA,
+                userAgent: navigator.userAgent,
+                displayMode: window.matchMedia('(display-mode: standalone)').matches,
+                standalone: window.navigator.standalone,
+                currentUrl: window.location.href
+            });
+            
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js', { scope: './' })
+                navigator.serviceWorker.register('sw.js', { scope: '/' })
                     .then((registration) => {
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
+                        console.log('[PWA] Registration 狀態:', registration.active ? 'active' : registration.installing ? 'installing' : 'waiting');
+                        
+                        // iOS PWA 診斷：定期 ping Service Worker
+                        if (isIOSPWA) {
+                            console.log('[PWA] iOS PWA 模式，啟動診斷監控');
+                            
+                            // 每 30 秒 ping Service Worker 確認連接
+                            setInterval(() => {
+                                if (navigator.serviceWorker.controller) {
+                                    navigator.serviceWorker.controller.postMessage({ type: 'SW_PING' });
+                                }
+                            }, 30000);
+                            
+                            // 檢查現有 clients
+                            setTimeout(() => {
+                                if (navigator.serviceWorker.controller) {
+                                    navigator.serviceWorker.controller.postMessage({ type: 'SW_GET_CLIENTS' });
+                                }
+                            }, 2000);
+                            
+                            // 監聽 Service Worker 回應
+                            navigator.serviceWorker.addEventListener('message', (event) => {
+                                if (event.data.type === 'SW_PONG') {
+                                    console.log('[PWA 診斷] SW PONG 收到:', event.data.timestamp);
+                                }
+                                if (event.data.type === 'SW_CLIENTS_LIST') {
+                                    console.log('[PWA 診斷] Clients 狀態:', event.data.clients);
+                                }
+                            });
+                        }
                         
                         if (isIOSPWA) {
                             console.log('[PWA] iOS PWA 模式，確保 controller 存在');

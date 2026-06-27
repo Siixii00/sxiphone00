@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sxiphone-v21';
+const CACHE_NAME = 'sxiphone-v22';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -450,6 +450,79 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// === iOS PWA Client 匹配輔助函式 ===
+// iOS Safari 的 URL 比對需要更寬鬆的處理
+const normalizeUrl = (url) => {
+    try {
+        const parsed = new URL(url, self.registration.scope);
+        // 移除 query string 和 hash，只比對基本路徑
+        return parsed.origin + parsed.pathname.replace(/\/$/, '');
+    } catch (e) {
+        return url;
+    }
+};
+
+const isSameOriginClient = (clientUrl, scope) => {
+    try {
+        const clientOrigin = new URL(clientUrl).origin;
+        const scopeOrigin = new URL(scope).origin;
+        return clientOrigin === scopeOrigin;
+    } catch (e) {
+        return clientUrl.includes(self.location.origin);
+    }
+};
+
+// 改進的 client 匹配邏輯 - 支援 iOS PWA 的多種 URL 格式
+const findMatchingClient = async (url) => {
+    const clientList = await clients.matchAll({ 
+        type: 'window', 
+        includeUncontrolled: true 
+    });
+    
+    console.log('[SW] Client 匹配 - 目標 URL:', url);
+    console.log('[SW] Client 匹配 - 現有 clients:', clientList.length);
+    
+    // 優先尋找完全匹配的 client
+    for (const client of clientList) {
+        console.log('[SW] Client 匹配 - 檢查:', client.url);
+        if (client.url === url && 'focus' in client) {
+            console.log('[SW] Client 匹配 - 找到完全匹配');
+            return client;
+        }
+    }
+    
+    // iOS PWA: 尋找同源且路徑相似的 client（忽略 query string）
+    const targetPath = normalizeUrl(url);
+    for (const client of clientList) {
+        const clientPath = normalizeUrl(client.url);
+        if (clientPath === targetPath && 'focus' in client) {
+            console.log('[SW] Client 匹配 - 找到路徑匹配（忽略 query string）');
+            return client;
+        }
+    }
+    
+    // iOS PWA: 最寬鬆的匹配 - 只要同源且有 index.html
+    for (const client of clientList) {
+        if (isSameOriginClient(client.url, self.registration.scope) && 
+            client.url.includes('index.html') || 
+            client.url.endsWith('/')) {
+            console.log('[SW] Client 匹配 - 找到同源 client');
+            return client;
+        }
+    }
+    
+    // iOS PWA: 最後嘗試 - 任何同源的 client
+    for (const client of clientList) {
+        if (isSameOriginClient(client.url, self.registration.scope) && 'focus' in client) {
+            console.log('[SW] Client 匹配 - 找到同源 client（fallback）');
+            return client;
+        }
+    }
+    
+    console.log('[SW] Client 匹配 - 未找到匹配的 client');
+    return null;
+};
+
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event);
   
@@ -458,33 +531,43 @@ self.addEventListener('notificationclick', (event) => {
   const data = event.notification.data || {};
   const action = event.action;
   
+  // 如果有特定 action 且有對應 URL
   if (action && data.actions) {
     const actionData = data.actions.find(a => a.action === action);
     if (actionData?.url) {
       event.waitUntil(
-        clients.openWindow(actionData.url)
-      );
-      return;
-    }
-  }
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+        findMatchingClient(actionData.url).then((client) => {
+          if (client) {
             client.postMessage({
               type: 'NOTIFICATION_CLICKED',
               data: data
             });
             return client.focus();
           }
-        }
-        if (clients.openWindow) {
-          const url = data.url || self.registration.scope;
-          return clients.openWindow(url);
-        }
-      })
+          // 只在完全沒有 client 時才開新視窗
+          console.log('[SW] Notification click - 需要開啟新視窗:', actionData.url);
+          return clients.openWindow(actionData.url);
+        })
+      );
+      return;
+    }
+  }
+  
+  // 預設行為 - 嘗試 focus 現有視窗
+  event.waitUntil(
+    findMatchingClient(data.url || self.registration.scope).then((client) => {
+      if (client) {
+        client.postMessage({
+          type: 'NOTIFICATION_CLICKED',
+          data: data
+        });
+        return client.focus();
+      }
+      // 只在完全沒有 client 時才開新視窗
+      const url = data.url || self.registration.scope;
+      console.log('[SW] Notification click - 需要開啟新視窗:', url);
+      return clients.openWindow(url);
+    })
   );
 });
 
@@ -515,3 +598,52 @@ self.addEventListener('sync', (event) => {
 });
 
 console.log('[SW] Service Worker loaded with push notification support');
+
+// === iOS PWA 診斷與生命週期管理 ===
+self.addEventListener('message', (event) => {
+    // 回應 client 的狀態查詢
+    if (event.data && event.data.type === 'SW_PING') {
+        console.log('[SW] 收到 PING，回應 PONG');
+        if (event.source) {
+            event.source.postMessage({
+                type: 'SW_PONG',
+                timestamp: Date.now(),
+                scope: self.registration.scope
+            });
+        }
+    }
+    
+    // 返回 client 給診斷
+    if (event.data && event.data.type === 'SW_GET_CLIENTS') {
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clientList) => {
+                console.log('[SW] Client 狀態請求 - 回應:', clientList.length, '個 clients');
+                if (event.source) {
+                    event.source.postMessage({
+                        type: 'SW_CLIENTS_LIST',
+                        clients: clientList.map(c => ({
+                            id: c.id,
+                            url: c.url,
+                            focused: c.focused,
+                            visibilityState: c.visibilityState
+                        })),
+                        timestamp: Date.now()
+                    });
+                }
+            });
+    }
+});
+
+// iOS Safari 特殊處理：當 PWA 從背景恢復時確認 client 狀態
+self.addEventListener('activate', (event) => {
+    console.log('[SW] iOS 診斷 - Activate 事件');
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clientList) => {
+                console.log('[SW] iOS 診斷 - Activate後的 clients:', clientList.length);
+                clientList.forEach((client, index) => {
+                    console.log(`[SW] iOS 診斷 - Client ${index}:`, client.url);
+                });
+            })
+    );
+});

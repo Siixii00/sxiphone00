@@ -4443,6 +4443,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         
         await updateCharListUI();
         
+        // 同步到 localforage (IndexedDB)
+        await saveAll();
+        
         window.parent?.postMessage({ 
             type: 'CHARACTER_UPDATED', 
             payload: { name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, examples: payload.examples }
@@ -4491,6 +4494,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
         
         updateCharListUI();
+        
+        // 同步到 localforage (IndexedDB)
+        await saveAll();
         
         window.parent?.postMessage({ 
             type: 'USER_SETTINGS_UPDATED', 

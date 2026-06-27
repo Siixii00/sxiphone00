@@ -1,4 +1,128 @@
 (function() {
+    // === iOS PWA 單例檢測機制 ===
+    // 防止 iOS Safari 重複開啟 PWA 實例
+    const PWA_SINGLETON_KEY = '__sxiphone_pwa_singleton';
+    const PWA_INSTANCE_ID = `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // 檢測是否為 iOS PWA 模式
+    const isIOSPWA = (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+                     (window.matchMedia('(display-mode: standalone)').matches || 
+                      window.navigator.standalone === true);
+    
+    // 記錄啟動資訊（診斷用）
+    console.log('[PWA Singleton] 啟動時間:', new Date().toISOString());
+    console.log('[PWA Singleton] 當前 URL:', window.location.href);
+    console.log('[PWA Singleton] 是否為 iOS PWA:', isIOSPWA);
+    console.log('[PWA Singleton] 實例 ID:', PWA_INSTANCE_ID);
+    console.log('[PWA Singleton] Service Worker Controller:', navigator.serviceWorker?.controller ? '存在' : '不存在');
+    
+    if (isIOSPWA) {
+        // 檢查是否已有運行中的實例
+        const existingInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+        const existingGlobal = window[PWA_SINGLETON_KEY];
+        
+        if (existingInstance || existingGlobal) {
+            console.error('[PWA Singleton] 檢測到重複實例！');
+            console.error('[PWA Singleton] 已有實例:', existingInstance);
+            console.error('[PWA Singleton] 來源 URL:', window.location.href);
+            
+            // 顯示重複實例提示介面
+            const showError = () => {
+                document.body.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: linear-gradient(135deg, #12051f 0%, #1a0a2e 40%, #2b0f3f 100%);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        padding: 20px;
+                        text-align: center;
+                        z-index: 9999999;
+                    ">
+                        <div style="
+                            font-size: 48px;
+                            margin-bottom: 20px;
+                        ">📱</div>
+                        <h1 style="
+                            font-size: 24px;
+                            font-weight: 200;
+                            margin-bottom: 16px;
+                        ">應用程式已在運行中</h1>
+                        <p style="
+                            font-size: 14px;
+                            opacity: 0.8;
+                            max-width: 280px;
+                            line-height: 1.5;
+                            margin-bottom: 24px;
+                        ">請關閉此視窗並返回主畫面上的 sxiphone 應用程式繼續使用。</p>
+                        <button onclick="window.close()" style="
+                            padding: 12px 32px;
+                            background: rgba(255,255,255,0.1);
+                            border: 1px solid rgba(255,255,255,0.2);
+                            border-radius: 12px;
+                            color: white;
+                            font-size: 16px;
+                            cursor: pointer;
+                        ">關閉此視窗</button>
+                        <p style="
+                            font-size: 12px;
+                            opacity: 0.5;
+                            margin-top: 20px;
+                        ">實例 ID: ${PWA_INSTANCE_ID}</p>
+                    </div>
+                `;
+            };
+            
+            // 優先嘗試關閉當前視窗
+            if (window.opener || window.history.length <= 1) {
+                try {
+                    window.close();
+                } catch (e) {
+                    showError();
+                }
+            } else {
+                // 如果無法關閉，顯示提示
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', showError);
+                } else {
+                    showError();
+                }
+            }
+            
+            // 阻止後續程式碼執行
+            return;
+        }
+        
+        // 記錄當前實例
+        sessionStorage.setItem(PWA_SINGLETON_KEY, PWA_INSTANCE_ID);
+        window[PWA_SINGLETON_KEY] = PWA_INSTANCE_ID;
+        
+        // 監聽頁面卸載，清理標記（iOS 特殊處理）
+        window.addEventListener('pagehide', () => {
+            console.log('[PWA Singleton] pagehide - 清理單例標記');
+            sessionStorage.removeItem(PWA_SINGLETON_KEY);
+        });
+        
+        // visibilitychange 時確認實例狀態
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+                if (!currentInstance) {
+                    sessionStorage.setItem(PWA_SINGLETON_KEY, PWA_INSTANCE_ID);
+                    console.log('[PWA Singleton] visibilitychange - 重新設定實例標記');
+                }
+            }
+        });
+    }
+    
     window.addEventListener('error', (event) => {
         console.error('[Global Error]', event.message, event.filename, event.lineno);
         event.preventDefault();
@@ -581,14 +705,17 @@
 
     // 生成動態 manifest Blob URL
     const generateDynamicManifest = () => {
-        // 使用實際的部署路徑（支援子目錄部署，如 GitHub Pages）
-        const basePath = window.location.href.replace(/\/[^\/]*$/, '/');
+        // iOS PWA 重要：使用絕對路徑確保 URL 一致性
+        // 避免相對路徑導致 iOS Safari 誤判為不同實例
+        const baseOrigin = window.location.origin;
+        const basePath = baseOrigin + window.location.pathname.replace(/\/[^\/]*$/, '/');
         
         const defaultManifest = {
             name: "sxiphone",
             short_name: "sxiphone",
-            start_url: basePath,
-            scope: basePath,
+            // iOS PWA: start_url 必須與 scope 一致，且使用絕對路徑
+            start_url: baseOrigin + "/",
+            scope: baseOrigin + "/",
             display: "standalone",
             display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
             orientation: "portrait",
@@ -611,7 +738,10 @@
                 name: config.name || defaultManifest.name,
                 short_name: config.short_name || config.name || defaultManifest.short_name,
                 background_color: config.background_color || defaultManifest.background_color,
-                theme_color: config.theme_color || defaultManifest.theme_color
+                theme_color: config.theme_color || defaultManifest.theme_color,
+                // 確保 start_url 和 scope 保持一致
+                start_url: defaultManifest.start_url,
+                scope: defaultManifest.scope
             };
 
             // 如果有自訂圖標，使用 data URL 或圖床 URL
@@ -660,20 +790,20 @@
                 ];
             }
 
-            // 添加 shortcuts
+            // 添加 shortcuts - 使用統一的 URL 格式
             manifest.shortcuts = [
                 {
                     name: "聊天",
                     short_name: "聊天",
                     description: "開啟聊天應用",
-                    url: basePath + "index.html?app=chat",
+                    url: baseOrigin + "/?app=chat",
                     icons: [{ src: savedIcon || (basePath + "apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
                 },
                 {
                     name: "設定",
                     short_name: "設定",
                     description: "開啟設定",
-                    url: basePath + "index.html?app=settings",
+                    url: baseOrigin + "/?app=settings",
                     icons: [{ src: savedIcon || (basePath + "apps/screenshots/icon-192x192.png"), sizes: "192x192" }]
                 }
             ];

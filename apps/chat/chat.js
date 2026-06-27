@@ -984,17 +984,40 @@ window.addEventListener('message', (event) => {
     if (data.type === 'settingsUpdated') {
         console.log('[Chat] 收到 settings 更新，重新載入用戶資料');
         userConfig = getUserConfig();
+        charConfig = getActiveConfig();
         initUserUI();
         
         // 更新對話中的用戶名稱標籤
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = userConfig.name || 'User');
+        
+        // 更新對話中的用戶頭貼
+        const userAvatars = document.querySelectorAll('.mine .avatar');
+        const newUserAvatar = userConfig.avatar || 'default-user.png';
+        userAvatars.forEach(avatar => {
+            avatar.style.backgroundImage = `url('${newUserAvatar}')`;
+        });
+        
+        // 更新對話中的角色頭貼
+        const charAvatars = document.querySelectorAll('.other .avatar');
+        const newCharAvatar = charConfig.avatar || 'default-avatar.png';
+        charAvatars.forEach(avatar => {
+            avatar.style.backgroundImage = `url('${newCharAvatar}')`;
+        });
     }
     
     if (data.type === 'CHARACTER_UPDATED' && data.payload) {
         console.log('[Chat] 收到角色更新:', data.payload);
         
         const payload = data.payload;
+        
+        // 儲存角色資訊到 localStorage 以確保持久化
+        if (payload.name) localStorage.setItem('sx_char_name', payload.name);
+        if (payload.avatar !== undefined) localStorage.setItem('sx_char_avatar', payload.avatar);
+        if (payload.personality !== undefined) localStorage.setItem('sx_char_personality', payload.personality);
+        if (payload.background !== undefined) localStorage.setItem('sx_char_background', payload.background);
+        if (payload.examples !== undefined) localStorage.setItem('sx_char_examples', payload.examples);
+        
         charConfig = {
             name: payload.name || localStorage.getItem('sx_char_name') || "AI 助理",
             avatar: payload.avatar || localStorage.getItem('sx_char_avatar') || "",
@@ -1009,6 +1032,7 @@ window.addEventListener('message', (event) => {
         const charPersInput = document.getElementById('set-personality');
         const charBackInput = document.getElementById('set-background');
         const charNameInput = document.getElementById('set-name');
+        const charAvatarPreview = document.getElementById('preview-char-avatar');
         
         if (nameEl) nameEl.innerText = charConfig.name;
         if (chatTitleEl) chatTitleEl.innerText = charConfig.name;
@@ -1017,7 +1041,24 @@ window.addEventListener('message', (event) => {
         if (charBackInput) charBackInput.value = charConfig.background || "";
         if (charNameInput) charNameInput.value = charConfig.name || "";
         
-        console.log('[Chat] UI 已更新為:', charConfig.name);
+        // 更新角色頭貼預覽
+        if (charAvatarPreview && charConfig.avatar) {
+            charAvatarPreview.src = charConfig.avatar;
+            charAvatarPreview.style.background = '';
+        }
+        
+        // 更新對話中的角色頭貼
+        const charAvatars = document.querySelectorAll('.other .avatar');
+        const newCharAvatar = charConfig.avatar || 'default-avatar.png';
+        charAvatars.forEach(avatar => {
+            avatar.style.backgroundImage = `url('${newCharAvatar}')`;
+        });
+        
+        // 更新角色名稱標籤
+        const charLabels = document.querySelectorAll('.other .user-name');
+        charLabels.forEach(label => label.innerText = charConfig.name || 'AI 助理');
+        
+        console.log('[Chat] 角色 UI 已更新為:', charConfig.name, charConfig.avatar ? '有頭貼' : '無頭貼');
     }
     
     if (data.type === 'USER_SETTINGS_UPDATED' && data.payload) {
@@ -1048,6 +1089,13 @@ window.addEventListener('message', (event) => {
         
         const userLabels = document.querySelectorAll('.mine .user-name');
         userLabels.forEach(label => label.innerText = userConfig.name || 'User');
+        
+        // 更新對話中的用戶頭貼
+        const userAvatars = document.querySelectorAll('.mine .avatar');
+        const newUserAvatar = userConfig.avatar || 'default-user.png';
+        userAvatars.forEach(avatar => {
+            avatar.style.backgroundImage = `url('${newUserAvatar}')`;
+        });
         
         console.log('[Chat] 用戶 UI 已更新為:', userConfig.name, userConfig.avatar ? '有頭貼' : '無頭貼');
     }
