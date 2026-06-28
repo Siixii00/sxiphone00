@@ -437,11 +437,35 @@ body, html {
 .chat-detail {
     display: none;
     flex-direction: column;
-    position: fixed;
-    inset: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: var(--kakao-blue);
     z-index: 600;
     pointer-events: auto;
+    overflow: hidden;
+}
+
+.chat-detail .message-flow {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--kakao-blue);
+    padding-top: 100px;
+    padding-bottom: 80px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.chat-detail .input-area {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 610;
+    border-top: none;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 
 .chat-detail .message-flow {
@@ -504,7 +528,7 @@ body, html {
 .chat-detail-back,
 .chat-detail-menu {
     position: absolute;
-    top: 64px;
+    top: 14px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -514,7 +538,7 @@ body, html {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 120;
+    z-index: 620;
     cursor: pointer;
 }
 
@@ -528,14 +552,14 @@ body, html {
 
 .chat-detail-title {
     position: absolute;
-    top: 70px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 18px;
     font-weight: 700;
     color: #1c1c1e;
     display: none;
-    z-index: 120;
+    z-index: 620;
 }
 
 .chat-list-actions {
@@ -559,12 +583,12 @@ body, html {
 .chat-app.detail-active .chat-detail-back,
 .chat-app.detail-active .chat-detail-menu {
     display: flex;
-    z-index: 200;
+    z-index: 620;
 }
 
 .chat-app.detail-active .chat-detail-title {
     display: block;
-    z-index: 200;
+    z-index: 620;
 }
 
 /* --- 導航欄 --- */
