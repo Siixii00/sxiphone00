@@ -82,19 +82,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="apps/screenshots/icon-48x48.png">
     <link rel="shortcut icon" href="apps/screenshots/icon-192x192.png">
     
-    <style>
-        html, body {
-            background: #0b0c12 !important;
-        }
-        #phone-container {
-            background: #0b0c12 !important;
-        }
-        .splash-screen {
-            background: radial-gradient(circle at 20% 20%, rgba(120, 70, 200, 0.45), transparent 40%),
-                        radial-gradient(circle at 80% 30%, rgba(70, 45, 150, 0.35), transparent 45%),
-                        linear-gradient(135deg, #12051f 0%, #1a0a2e 40%, #2b0f3f 100%) !important;
-        }
-    </style>
+
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="dock.css">
     
@@ -148,15 +136,7 @@
         
         <div id="wallpaper-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.1); z-index:2; pointer-events:none;"></div>
 
-        <div id="splash-screen" class="splash-screen" aria-hidden="true">
-            <div class="splash-bg"></div>
-            <div class="splash-stars"></div>
-            <div class="splash-decorations" id="splash-decorations"></div>
-            <div class="splash-content">
-                <div class="splash-tagline">Meet you<br>in my world</div>
-                <div class="splash-signature">-Sxiphone-</div>
-            </div>
-        </div>
+
         
         <div class="status-bar">
             <span id="status-time">09:41</span>
@@ -502,18 +482,34 @@
                         console.log('[PWA] Service Worker 註冊成功:', registration.scope);
                         console.log('[PWA] Registration 狀態:', registration.active ? 'active' : registration.installing ? 'installing' : 'waiting');
                         
-                        // iOS PWA 診斷：定期 ping Service Worker
+                        // iOS PWA 診斷：定期 ping Service Worker（但在頁面隱藏時暫停）
                         if (isIOSPWA) {
                             console.log('[PWA] iOS PWA 模式，啟動診斷監控');
                             
-                            // 每 30 秒 ping Service Worker 確認連接
-                            setInterval(() => {
-                                if (navigator.serviceWorker.controller) {
-                                    navigator.serviceWorker.controller.postMessage({ type: 'SW_PING' });
-                                }
-                            }, 30000);
+                            let swPingInterval = null;
                             
-                            // 檢查現有 clients
+                            const startSwPing = () => {
+                                if (swPingInterval) return;
+                                swPingInterval = setInterval(() => {
+                                    if (document.visibilityState === 'visible' && navigator.serviceWorker.controller) {
+                                        navigator.serviceWorker.controller.postMessage({ type: 'SW_PING' });
+                                    }
+                                }, 60000); // 改為 60 秒，減少資源消耗
+                            };
+                            
+                            const stopSwPing = () => {
+                                if (swPingInterval) {
+                                    clearInterval(swPingInterval);
+                                    swPingInterval = null;
+                                }
+                            };
+                            
+                            // 只在頁面可見時啟動
+                            if (document.visibilityState === 'visible') {
+                                startSwPing();
+                            }
+                            
+                            // 檢查現有 clients（只執行一次）
                             setTimeout(() => {
                                 if (navigator.serviceWorker.controller) {
                                     navigator.serviceWorker.controller.postMessage({ type: 'SW_GET_CLIENTS' });
@@ -526,9 +522,21 @@
                                     console.log('[PWA 診斷] SW PONG 收到:', event.data.timestamp);
                                 }
                                 if (event.data.type === 'SW_CLIENTS_LIST') {
-                                    console.log('[PWA 診斷] Clients 狀態:', event.data.clients);
+                                    console.log('[PWA 診斷] Clients 瀯態:', event.data.clients);
                                 }
                             });
+                            
+                            // visibilitychange 時控制 ping
+                            document.addEventListener('visibilitychange', () => {
+                                if (document.visibilityState === 'visible') {
+                                    startSwPing();
+                                } else {
+                                    stopSwPing();
+                                }
+                            });
+                            
+                            // 頁面卸載時清理
+                            window.addEventListener('pagehide', stopSwPing);
                         }
                         
                         if (isIOSPWA) {

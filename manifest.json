@@ -117,6 +117,5 @@
       "url": "/?app=%s"
     }
   ],
-  "related_applications": [],
-  "id": "sxiphone-pwa"
+  "related_applications": []
 }

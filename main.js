@@ -2,13 +2,15 @@
     // === iOS PWA 單例檢測機制 ===
     // 防止 iOS Safari 重複開啟 PWA 實例
     const PWA_SINGLETON_KEY = '__sxiphone_pwa_singleton';
+    const PWA_INSTANCE_EXPIRY_KEY = '__sxiphone_pwa_singleton_expiry';
     const PWA_INSTANCE_ID = `instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const SINGLETON_EXPIRY_MS = 5000; // 5 秒過期，避免舊標記阻止新啟動
     
     // 檢測是否為 iOS PWA 模式
     const isIOSPWA = (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
-                     (window.matchMedia('(display-mode: standalone)').matches || 
-                      window.navigator.standalone === true);
+                      (window.matchMedia('(display-mode: standalone)').matches || 
+                       window.navigator.standalone === true);
     
     // 記錄啟動資訊（診斷用）
     console.log('[PWA Singleton] 啟動時間:', new Date().toISOString());
@@ -17,109 +19,131 @@
     console.log('[PWA Singleton] 實例 ID:', PWA_INSTANCE_ID);
     console.log('[PWA Singleton] Service Worker Controller:', navigator.serviceWorker?.controller ? '存在' : '不存在');
     
+    // 清理過期的實例標記
+    const cleanupExpiredInstance = () => {
+        try {
+            const expiry = sessionStorage.getItem(PWA_INSTANCE_EXPIRY_KEY);
+            if (expiry) {
+                const expiryTime = parseInt(expiry, 10);
+                if (Date.now() - expiryTime > SINGLETON_EXPIRY_MS) {
+                    console.log('[PWA Singleton] 發現過期標記，清理舊實例');
+                    sessionStorage.removeItem(PWA_SINGLETON_KEY);
+                    sessionStorage.removeItem(PWA_INSTANCE_EXPIRY_KEY);
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.warn('[PWA Singleton] 清理過期標記失敗:', e);
+        }
+        return false;
+    };
+    
     if (isIOSPWA) {
+        // 先清理過期標記
+        cleanupExpiredInstance();
+        
         // 檢查是否已有運行中的實例
         const existingInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
-        const existingGlobal = window[PWA_SINGLETON_KEY];
         
-        if (existingInstance || existingGlobal) {
-            console.error('[PWA Singleton] 檢測到重複實例！');
-            console.error('[PWA Singleton] 已有實例:', existingInstance);
-            console.error('[PWA Singleton] 來源 URL:', window.location.href);
-            
-            // 顯示重複實例提示介面
-            const showError = () => {
-                document.body.innerHTML = `
-                    <div style="
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: linear-gradient(135deg, #12051f 0%, #1a0a2e 40%, #2b0f3f 100%);
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                        color: white;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                        padding: 20px;
-                        text-align: center;
-                        z-index: 9999999;
-                    ">
-                        <div style="
-                            font-size: 48px;
-                            margin-bottom: 20px;
-                        ">📱</div>
-                        <h1 style="
-                            font-size: 24px;
-                            font-weight: 200;
-                            margin-bottom: 16px;
-                        ">應用程式已在運行中</h1>
-                        <p style="
-                            font-size: 14px;
-                            opacity: 0.8;
-                            max-width: 280px;
-                            line-height: 1.5;
-                            margin-bottom: 24px;
-                        ">請關閉此視窗並返回主畫面上的 sxiphone 應用程式繼續使用。</p>
-                        <button onclick="window.close()" style="
-                            padding: 12px 32px;
-                            background: rgba(255,255,255,0.1);
-                            border: 1px solid rgba(255,255,255,0.2);
-                            border-radius: 12px;
-                            color: white;
-                            font-size: 16px;
-                            cursor: pointer;
-                        ">關閉此視窗</button>
-                        <p style="
-                            font-size: 12px;
-                            opacity: 0.5;
-                            margin-top: 20px;
-                        ">實例 ID: ${PWA_INSTANCE_ID}</p>
-                    </div>
-                `;
-            };
-            
-            // 優先嘗試關閉當前視窗
-            if (window.opener || window.history.length <= 1) {
-                try {
-                    window.close();
-                } catch (e) {
-                    showError();
-                }
-            } else {
-                // 如果無法關閉，顯示提示
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', showError);
-                } else {
-                    showError();
+        // 如果有現有實例，先檢查是否真的是另一個實例（不是自己）
+        if (existingInstance && existingInstance !== PWA_INSTANCE_ID) {
+            // 給予短暫的等待時間，讓舊實例有機會更新時間戳
+            const expiry = sessionStorage.getItem(PWA_INSTANCE_EXPIRY_KEY);
+            if (expiry) {
+                const expiryTime = parseInt(expiry, 10);
+                // 如果時間戳在 2 秒內更新過，表示舊實例還活著
+                if (Date.now() - expiryTime < 2000) {
+                    console.warn('[PWA Singleton] 檢測到活著的舊實例，跳過此次啟動');
+                    // 不阻止執行，因為 iOS PWA 可能會在切換 app時觸發多次
+                    // 只是記錄但不阻止，讓正常的 PWA 啟動流程繼續
                 }
             }
-            
-            // 阻止後續程式碼執行
-            return;
         }
         
-        // 記錄當前實例
+        // 記錄當前實例（無論是否有舊實例，都更新為當前）
         sessionStorage.setItem(PWA_SINGLETON_KEY, PWA_INSTANCE_ID);
+        sessionStorage.setItem(PWA_INSTANCE_EXPIRY_KEY, Date.now().toString());
         window[PWA_SINGLETON_KEY] = PWA_INSTANCE_ID;
         
+        // 定期更新時間戳，表示實例還活著（但在頁面隱藏時暫停以節省資源）
+        let heartbeatInterval = null;
+        let isHeartbeatActive = true;
+        
+        const startHeartbeat = () => {
+            if (heartbeatInterval) return; // 避免重複啟動
+            isHeartbeatActive = true;
+            heartbeatInterval = setInterval(() => {
+                // 只有在頁面可見時才更新時間戳
+                if (document.visibilityState === 'visible') {
+                    try {
+                        const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+                        if (currentInstance === PWA_INSTANCE_ID) {
+                            sessionStorage.setItem(PWA_INSTANCE_EXPIRY_KEY, Date.now().toString());
+                        }
+                    } catch (e) {}
+                }
+            }, 2000); // 改為 2 秒，減少 CPU 使用
+        };
+        
+        const stopHeartbeat = () => {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            isHeartbeatActive = false;
+        };
+        
+        // 只在頁面可見時啟動心跳
+        if (document.visibilityState === 'visible') {
+            startHeartbeat();
+        }
+        
         // 監聽頁面卸載，清理標記（iOS 特殊處理）
-        window.addEventListener('pagehide', () => {
+        window.addEventListener('pagehide', (e) => {
             console.log('[PWA Singleton] pagehide - 清理單例標記');
-            sessionStorage.removeItem(PWA_SINGLETON_KEY);
+            stopHeartbeat();
+            try {
+                const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+                if (currentInstance === PWA_INSTANCE_ID) {
+                    sessionStorage.removeItem(PWA_SINGLETON_KEY);
+                    sessionStorage.removeItem(PWA_INSTANCE_EXPIRY_KEY);
+                }
+            } catch (e) {}
         });
         
-        // visibilitychange 時確認實例狀態
+        // visibilitychange 時確認實例狀態並控制心跳
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
-                if (!currentInstance) {
-                    sessionStorage.setItem(PWA_SINGLETON_KEY, PWA_INSTANCE_ID);
-                    console.log('[PWA Singleton] visibilitychange - 重新設定實例標記');
-                }
+                try {
+                    const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+                    if (!currentInstance || currentInstance === PWA_INSTANCE_ID) {
+                        sessionStorage.setItem(PWA_SINGLETON_KEY, PWA_INSTANCE_ID);
+                        sessionStorage.setItem(PWA_INSTANCE_EXPIRY_KEY, Date.now().toString());
+                        console.log('[PWA Singleton] visibilitychange visible - 更新實例標記');
+                    }
+                } catch (e) {}
+                // 頁面可見時啟動心跳
+                startHeartbeat();
+            } else if (document.visibilityState === 'hidden') {
+                // 頁面變隱藏時，停止心跳以節省資源
+                stopHeartbeat();
+                // 更新最後時間戳
+                try {
+                    const currentInstance = sessionStorage.getItem(PWA_SINGLETON_KEY);
+                    if (currentInstance === PWA_INSTANCE_ID) {
+                        sessionStorage.setItem(PWA_INSTANCE_EXPIRY_KEY, Date.now().toString());
+                    }
+                } catch (e) {}
             }
+        });
+        
+        // iOS 特殊處理：beforeunload 時清理（雖然 iOS 可能不觸發）
+        window.addEventListener('beforeunload', () => {
+            stopHeartbeat();
+            try {
+                sessionStorage.removeItem(PWA_SINGLETON_KEY);
+                sessionStorage.removeItem(PWA_INSTANCE_EXPIRY_KEY);
+            } catch (e) {}
         });
     }
     
@@ -1127,7 +1151,6 @@
     const THEME_ICON_BORDER_KEY = 'sx_theme_icon_border_color';
     const THEME_APP_BG_KEY = 'sx_theme_app_bg_color';
     const THEME_APP_BG_ALPHA_KEY = 'sx_theme_app_bg_alpha';
-    const BOOT_ANIMATION_KEY = 'sx_boot_animation_config';
 
     const PHONE_CHECK_KEY = 'sx_phone_check_enabled';
     const PHONE_CHECK_MIN_DELAY_KEY = 'sx_phone_check_min_delay';
@@ -2195,87 +2218,6 @@
         });
     };
 
-    const SPLASH_MOTION_OPTIONS = ['float', 'spin', 'pulse', 'sway', 'drift', 'twinkle', 'none'];
-
-    const getDefaultBootAnimationConfig = () => ({
-        enabled: true,
-        tagline: 'Meet you\nin my world',
-        signature: '-Sxiphone-',
-        textColor: '#F4ECFF',
-        bgStart: '#12051F',
-        bgEnd: '#2B0F3F',
-        decorations: []
-    });
-
-    const applyBootAnimationConfig = (configInput = null) => {
-        const defaults = getDefaultBootAnimationConfig();
-        let parsed = configInput;
-        if (!parsed) {
-            try {
-                parsed = JSON.parse(localStorage.getItem(BOOT_ANIMATION_KEY) || 'null');
-            } catch {
-                parsed = null;
-            }
-        }
-        const config = {
-            enabled: parsed?.enabled !== false,
-            tagline: String(parsed?.tagline || defaults.tagline),
-            signature: String(parsed?.signature || defaults.signature),
-            textColor: String(parsed?.textColor || defaults.textColor),
-            bgStart: String(parsed?.bgStart || defaults.bgStart),
-            bgEnd: String(parsed?.bgEnd || defaults.bgEnd),
-            decorations: Array.isArray(parsed?.decorations)
-                ? parsed.decorations.map((d) => ({
-                    id: String(d.id || `deco_${Date.now()}`),
-                    image: String(d.image || ''),
-                    motion: SPLASH_MOTION_OPTIONS.includes(d.motion) ? d.motion : 'float',
-                    x: Math.max(0, Math.min(100, Number(d.x) || 75)),
-                    y: Math.max(0, Math.min(100, Number(d.y) || 18)),
-                    size: Math.max(24, Math.min(180, Number(d.size) || 72)),
-                    opacity: Math.max(10, Math.min(100, Number(d.opacity) || 62))
-                }))
-                : []
-        };
-
-        const splash = document.getElementById('splash-screen');
-        const tagline = splash?.querySelector('.splash-tagline');
-        const signature = splash?.querySelector('.splash-signature');
-
-        if (tagline) tagline.textContent = config.tagline;
-        if (signature) signature.textContent = config.signature;
-        document.documentElement.style.setProperty('--sx-boot-text', config.textColor);
-        document.documentElement.style.setProperty('--sx-boot-bg-start', config.bgStart);
-        document.documentElement.style.setProperty('--sx-boot-bg-end', config.bgEnd);
-
-        let decoContainer = splash?.querySelector('#splash-decorations');
-        if (splash && !decoContainer) {
-            decoContainer = document.createElement('div');
-            decoContainer.className = 'splash-decorations';
-            decoContainer.id = 'splash-decorations';
-            splash.insertBefore(decoContainer, splash.querySelector('.splash-content') || splash.firstChild);
-        }
-        if (decoContainer) {
-            decoContainer.innerHTML = '';
-            config.decorations.forEach((deco) => {
-                if (!deco.image) return;
-                const el = document.createElement('div');
-                el.className = `splash-deco-item motion-${deco.motion || 'float'}`;
-                el.style.left = `${deco.x}%`;
-                el.style.top = `${deco.y}%`;
-                el.style.width = `${deco.size}px`;
-                el.style.height = `${deco.size}px`;
-                el.style.opacity = String(deco.opacity / 100);
-                el.style.setProperty('--deco-opacity', String(deco.opacity / 100));
-                el.style.backgroundImage = `url('${deco.image}')`;
-                decoContainer.appendChild(el);
-            });
-        }
-
-        if (splash) splash.classList.add('hidden');
-
-        return config;
-    };
-
     const loadCustomIcons = () => {
         try {
             const raw = localStorage.getItem(CUSTOM_ICON_KEY);
@@ -2881,7 +2823,6 @@
                 window.syncFromGitHub?.().then((count) => {
                     event.source?.postMessage({ type: 'GITHUB_SYNC_RESULT', success: true, direction: 'pull', count }, '*');
                     applyThemeFromStorage();
-                    applyBootAnimationConfig();
                     applyCustomIcons();
                 }).catch((err) => {
                     event.source?.postMessage({ type: 'GITHUB_SYNC_RESULT', success: false, direction: 'pull', error: err.message }, '*');
@@ -2890,7 +2831,6 @@
             case 'DATA_RESTORED':
                 console.log('[Main] 收到資料還原通知，刷新 UI...');
                 applyThemeFromStorage();
-                applyBootAnimationConfig();
                 applyCustomIcons();
                 applyLanguageToUI();
                 window.dispatchEvent(new Event('sx-app-layout-updated'));
@@ -3138,12 +3078,6 @@
                 break;
             case 'THEME_APP_BG_CHANGED':
                 if (data.color) applyRootTheme(null, null, { appBgColor: data.color, appBgAlpha: data.alpha });
-                break;
-            case 'BOOT_ANIMATION_UPDATED':
-                if (data.config && typeof data.config === 'object') {
-                    localStorage.setItem(BOOT_ANIMATION_KEY, JSON.stringify(data.config));
-                    applyBootAnimationConfig(data.config);
-                }
                 break;
             case 'settingsUpdated':
                 applyLanguageToUI();
@@ -6397,7 +6331,6 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         const root = document.documentElement;
         root.style.setProperty('--phone-width', (localStorage.getItem('sx_setting_w') || '375') + 'px');
         root.style.setProperty('--phone-height', (localStorage.getItem('sx_setting_h') || '812') + 'px');
-        const bootConfig = applyBootAnimationConfig();
         
         // 優先讀取 userWallpaper
         const saved = localStorage.getItem('userWallpaper');
@@ -6501,11 +6434,6 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
                 }
             }, 3000);
         }, 2000);
-
-        const splash = document.getElementById('splash-screen');
-        if (splash) {
-            splash.classList.add('hidden');
-        }
     }
     
     init();

@@ -4,7 +4,6 @@
     const CUSTOM_ICON_KEY = 'sx_custom_icons';
     const THEME_IMAGE_KEY = 'sx_theme_image';
     const PATTERN_WALLPAPER_KEY = 'sx_pattern_wallpaper';
-    const BOOT_ANIMATION_KEY = 'sx_boot_animation_config';
 
     const saveAppearanceData = () => {
         try {
@@ -364,51 +363,6 @@
         window.parent?.postMessage({ type: 'CLEAR_CUSTOM_ICON', appId }, '*');
     };
 
-    const defaultBootConfig = () => ({
-        enabled: true,
-        tagline: 'Meet you\nin my world',
-        signature: '-Sxiphone-',
-        textColor: '#F4ECFF',
-        bgStart: '#12051F',
-        bgEnd: '#2B0F3F',
-        decorations: []
-    });
-
-    const MOTION_OPTIONS = ['float', 'spin', 'pulse', 'sway', 'drift', 'twinkle', 'none'];
-    const MOTION_LABELS = { float: '漂浮', spin: '旋轉', pulse: '脈動', sway: '搖擺', drift: '滑移', twinkle: '閃爍', none: '靜止' };
-
-    const loadBootConfig = () => {
-        const base = defaultBootConfig();
-        try {
-            const raw = localStorage.getItem(BOOT_ANIMATION_KEY);
-            if (!raw) return base;
-            const parsed = JSON.parse(raw);
-            if (!parsed || typeof parsed !== 'object') return base;
-            const decos = Array.isArray(parsed.decorations)
-                ? parsed.decorations.map((d) => ({
-                    id: String(d.id || `deco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
-                    image: String(d.image || ''),
-                    motion: MOTION_OPTIONS.includes(d.motion) ? d.motion : 'float',
-                    x: clamp(Number(d.x) || 75, 0, 100),
-                    y: clamp(Number(d.y) || 18, 0, 100),
-                    size: clamp(Number(d.size) || 72, 24, 180),
-                    opacity: clamp(Number(d.opacity) || 62, 10, 100)
-                }))
-                : [];
-            return {
-                enabled: parsed.enabled !== false,
-                tagline: String(parsed.tagline || base.tagline),
-                signature: String(parsed.signature || base.signature),
-                textColor: String(parsed.textColor || base.textColor),
-                bgStart: String(parsed.bgStart || base.bgStart),
-                bgEnd: String(parsed.bgEnd || base.bgEnd),
-                decorations: decos
-            };
-        } catch {
-            return base;
-        }
-    };
-
     const init = () => {
         const state = loadState();
 
@@ -570,34 +524,6 @@
         const patternAngleToggle = document.getElementById('pattern-angle-toggle');
         let patternImageDataUrl = '';
         let patternWallpaperDataUrl = '';
-
-        const bootEnabled = document.getElementById('boot-enabled');
-        const bootTagline = document.getElementById('boot-tagline');
-        const bootSignature = document.getElementById('boot-signature');
-        const bootTextColor = document.getElementById('boot-text-color');
-        const bootBgStart = document.getElementById('boot-bg-start');
-        const bootBgEnd = document.getElementById('boot-bg-end');
-        const bootPreview = document.getElementById('boot-preview');
-        const bootPreviewTagline = document.getElementById('boot-preview-tagline');
-        const bootPreviewSignature = document.getElementById('boot-preview-signature');
-        const bootPreviewDecos = document.getElementById('boot-preview-decos');
-        const bootApplyBtn = document.getElementById('boot-apply-btn');
-        const bootResetBtn = document.getElementById('boot-reset-btn');
-        const bootDecoList = document.getElementById('boot-deco-list');
-        const bootDecoEditor = document.getElementById('boot-deco-editor');
-        const bootDecoAddBtn = document.getElementById('boot-deco-add-btn');
-        const bootDecoImageInput = document.getElementById('boot-deco-image-input');
-        const bootDecoThumb = document.getElementById('boot-deco-thumb');
-        const bootDecoSize = document.getElementById('boot-deco-size');
-        const bootDecoOpacity = document.getElementById('boot-deco-opacity');
-        const bootDecoX = document.getElementById('boot-deco-x');
-        const bootDecoY = document.getElementById('boot-deco-y');
-        const bootDecoMotion = document.getElementById('boot-deco-motion');
-        const bootDecoSaveBtn = document.getElementById('boot-deco-save-btn');
-        const bootDecoCancelBtn = document.getElementById('boot-deco-cancel-btn');
-        let bootDecos = [];
-        let bootEditingId = null;
-        let bootEditorImageUrl = '';
 
         saveBtn?.addEventListener('click', () => {
             const appId = idInput.value.trim();
@@ -1285,214 +1211,6 @@
             setPatternPreview(savedPattern);
         }
 
-        const fillBootInputs = (config) => {
-            if (bootEnabled) bootEnabled.checked = config.enabled !== false;
-            if (bootTagline) bootTagline.value = config.tagline || '';
-            if (bootSignature) bootSignature.value = config.signature || '';
-            if (bootTextColor) bootTextColor.value = config.textColor || '#F4ECFF';
-            if (bootBgStart) bootBgStart.value = config.bgStart || '#12051F';
-            if (bootBgEnd) bootBgEnd.value = config.bgEnd || '#2B0F3F';
-            bootDecos = Array.isArray(config.decorations) ? config.decorations.slice() : [];
-        };
-
-        const collectBootConfig = () => ({
-            enabled: !!bootEnabled?.checked,
-            tagline: (bootTagline?.value || '').trim() || 'Meet you\nin my world',
-            signature: (bootSignature?.value || '').trim() || '-Sxiphone-',
-            textColor: bootTextColor?.value || '#F4ECFF',
-            bgStart: bootBgStart?.value || '#12051F',
-            bgEnd: bootBgEnd?.value || '#2B0F3F',
-            decorations: bootDecos.slice()
-        });
-
-        const renderBootPreview = () => {
-            const config = collectBootConfig();
-            if (bootPreview) {
-                bootPreview.style.background = `linear-gradient(135deg, ${config.bgStart} 0%, ${config.bgEnd} 100%)`;
-                bootPreview.style.color = config.textColor;
-                bootPreview.style.opacity = config.enabled ? '1' : '0.45';
-            }
-            if (bootPreviewTagline) bootPreviewTagline.textContent = config.tagline;
-            if (bootPreviewSignature) bootPreviewSignature.textContent = config.signature;
-            if (bootPreviewDecos) {
-                bootPreviewDecos.innerHTML = '';
-                bootDecos.forEach((deco) => {
-                    if (!deco.image) return;
-                    const el = document.createElement('div');
-                    el.className = `boot-preview-deco-item motion-${deco.motion || 'float'}`;
-                    el.style.left = `${deco.x}%`;
-                    el.style.top = `${deco.y}%`;
-                    el.style.width = `${deco.size}px`;
-                    el.style.height = `${deco.size}px`;
-                    el.style.opacity = String(deco.opacity / 100);
-                    el.style.setProperty('--deco-opacity', String(deco.opacity / 100));
-                    el.style.backgroundImage = `url('${deco.image}')`;
-                    bootPreviewDecos.appendChild(el);
-                });
-            }
-        };
-
-        const renderDecoList = () => {
-            if (!bootDecoList) return;
-            bootDecoList.innerHTML = '';
-            bootDecos.forEach((deco, idx) => {
-                const item = document.createElement('div');
-                item.className = 'boot-deco-item';
-                const thumb = document.createElement('div');
-                thumb.className = 'boot-deco-item-thumb';
-                if (deco.image) thumb.style.backgroundImage = `url('${deco.image}')`;
-                const info = document.createElement('div');
-                info.className = 'boot-deco-item-info';
-                const motionSpan = document.createElement('span');
-                motionSpan.className = 'boot-deco-item-motion';
-                motionSpan.textContent = MOTION_LABELS[deco.motion] || deco.motion;
-                const posSpan = document.createElement('span');
-                posSpan.className = 'boot-deco-item-pos';
-                posSpan.textContent = `${deco.size}px · ${deco.opacity}% · (${deco.x}%, ${deco.y}%)`;
-                info.appendChild(motionSpan);
-                info.appendChild(posSpan);
-                const actions = document.createElement('div');
-                actions.className = 'boot-deco-item-actions';
-                const editBtn = document.createElement('button');
-                editBtn.type = 'button';
-                editBtn.className = 'boot-deco-item-btn';
-                editBtn.textContent = '✎';
-                editBtn.title = '編輯';
-                editBtn.addEventListener('click', () => openDecoEditor(deco.id));
-                const delBtn = document.createElement('button');
-                delBtn.type = 'button';
-                delBtn.className = 'boot-deco-item-btn';
-                delBtn.textContent = '✕';
-                delBtn.title = '刪除';
-                delBtn.addEventListener('click', () => {
-                    bootDecos = bootDecos.filter((d) => d.id !== deco.id);
-                    renderDecoList();
-                    renderBootPreview();
-                });
-                actions.appendChild(editBtn);
-                actions.appendChild(delBtn);
-                item.appendChild(thumb);
-                item.appendChild(info);
-                item.appendChild(actions);
-                bootDecoList.appendChild(item);
-            });
-        };
-
-        const setBootDecoMotion = (motion) => {
-            const resolved = MOTION_OPTIONS.includes(motion) ? motion : 'float';
-            if (!bootDecoMotion) return;
-            bootDecoMotion.dataset.motion = resolved;
-            bootDecoMotion.querySelectorAll('.mode-pill').forEach((btn) => {
-                btn.classList.toggle('active', btn.dataset.motion === resolved);
-            });
-        };
-
-        const getBootDecoMotion = () => bootDecoMotion?.dataset.motion || 'float';
-
-        const resetDecoEditor = () => {
-            bootEditingId = null;
-            bootEditorImageUrl = '';
-            if (bootDecoThumb) bootDecoThumb.style.backgroundImage = '';
-            if (bootDecoSize) bootDecoSize.value = '72';
-            if (bootDecoOpacity) bootDecoOpacity.value = '62';
-            if (bootDecoX) bootDecoX.value = '75';
-            if (bootDecoY) bootDecoY.value = '18';
-            setBootDecoMotion('float');
-            if (bootDecoImageInput) bootDecoImageInput.value = '';
-        };
-
-        const openDecoEditor = (decoId) => {
-            const deco = bootDecos.find((d) => d.id === decoId);
-            if (deco) {
-                bootEditingId = deco.id;
-                bootEditorImageUrl = deco.image;
-                if (bootDecoThumb) bootDecoThumb.style.backgroundImage = deco.image ? `url('${deco.image}')` : '';
-                if (bootDecoSize) bootDecoSize.value = String(deco.size);
-                if (bootDecoOpacity) bootDecoOpacity.value = String(deco.opacity);
-                if (bootDecoX) bootDecoX.value = String(deco.x);
-                if (bootDecoY) bootDecoY.value = String(deco.y);
-                setBootDecoMotion(deco.motion);
-            } else {
-                resetDecoEditor();
-            }
-            bootDecoEditor?.classList.remove('hidden');
-        };
-
-        const saveBootConfig = () => {
-            const config = collectBootConfig();
-            localStorage.setItem(BOOT_ANIMATION_KEY, JSON.stringify(config));
-            window.parent?.postMessage({ type: 'BOOT_ANIMATION_UPDATED', config }, '*');
-            // 同步到雲端
-            window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
-        };
-
-        const setupBootInputs = () => {
-            [bootEnabled, bootTagline, bootSignature, bootTextColor, bootBgStart, bootBgEnd].forEach((el) => {
-                el?.addEventListener('input', renderBootPreview);
-                el?.addEventListener('change', renderBootPreview);
-            });
-
-            bootDecoAddBtn?.addEventListener('click', () => {
-                resetDecoEditor();
-                bootDecoEditor?.classList.remove('hidden');
-            });
-
-            bootDecoCancelBtn?.addEventListener('click', () => {
-                bootDecoEditor?.classList.add('hidden');
-                resetDecoEditor();
-            });
-
-            bootDecoImageInput?.addEventListener('change', async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                const dataUrl = await readImageAsDataURL(file);
-                bootEditorImageUrl = dataUrl;
-                if (bootDecoThumb) bootDecoThumb.style.backgroundImage = `url('${dataUrl}')`;
-            });
-
-            bootDecoMotion?.addEventListener('click', (event) => {
-                const btn = event.target.closest('.mode-pill');
-                if (!btn) return;
-                setBootDecoMotion(btn.dataset.motion || 'float');
-            });
-
-            bootDecoSaveBtn?.addEventListener('click', () => {
-                if (!bootEditorImageUrl) return;
-                const deco = {
-                    id: bootEditingId || `deco_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-                    image: bootEditorImageUrl,
-                    motion: getBootDecoMotion(),
-                    x: clamp(Number(bootDecoX?.value || 75), 0, 100),
-                    y: clamp(Number(bootDecoY?.value || 18), 0, 100),
-                    size: clamp(Number(bootDecoSize?.value || 72), 24, 180),
-                    opacity: clamp(Number(bootDecoOpacity?.value || 62), 10, 100)
-                };
-                if (bootEditingId) {
-                    const idx = bootDecos.findIndex((d) => d.id === bootEditingId);
-                    if (idx >= 0) bootDecos[idx] = deco;
-                } else {
-                    bootDecos.push(deco);
-                }
-                bootDecoEditor?.classList.add('hidden');
-                resetDecoEditor();
-                renderDecoList();
-                renderBootPreview();
-            });
-
-            bootApplyBtn?.addEventListener('click', saveBootConfig);
-            bootResetBtn?.addEventListener('click', () => {
-                fillBootInputs(defaultBootConfig());
-                renderDecoList();
-                renderBootPreview();
-                saveBootConfig();
-            });
-            fillBootInputs(loadBootConfig());
-            renderDecoList();
-            renderBootPreview();
-        };
-
-        setupBootInputs();
-
         const CUSTOM_THEME_KEY = 'sx_custom_theme_config';
 
         const defaultCustomTheme = () => ({
@@ -1529,7 +1247,6 @@
             batteryLowColor: '#FF3B30',
             fontPrimary: "'SF Pro Display', sans-serif",
             fontLockTime: "'SF Pro Display', sans-serif",
-            fontBoot: "'Great Vibes', cursive",
             fontChat: "'SF Pro Display', sans-serif",
             fontAppTitle: "'SF Pro Display', sans-serif",
             fontCustomUrl: '',
@@ -1848,7 +1565,6 @@
 
             const fontPrimary = document.getElementById('font-primary');
             const fontLockTime = document.getElementById('font-lock-time');
-            const fontBoot = document.getElementById('font-boot');
             const fontChat = document.getElementById('font-chat');
             const fontAppTitle = document.getElementById('font-app-title');
             const fontCustomUrl = document.getElementById('font-custom-url');
@@ -1856,7 +1572,6 @@
 
             if (fontPrimary) fontPrimary.value = config.fontPrimary;
             if (fontLockTime) fontLockTime.value = config.fontLockTime;
-            if (fontBoot) fontBoot.value = config.fontBoot;
             if (fontChat) fontChat.value = config.fontChat;
             if (fontAppTitle) fontAppTitle.value = config.fontAppTitle;
             if (fontCustomUrl) fontCustomUrl.value = config.fontCustomUrl;
@@ -1869,7 +1584,6 @@
                 const newConfig = loadCustomTheme();
                 newConfig.fontPrimary = fontPrimary?.value || "'SF Pro Display', sans-serif";
                 newConfig.fontLockTime = fontLockTime?.value || "'SF Pro Display', sans-serif";
-                newConfig.fontBoot = fontBoot?.value || "'Great Vibes', cursive";
                 newConfig.fontChat = fontChat?.value || "'SF Pro Display', sans-serif";
                 newConfig.fontAppTitle = fontAppTitle?.value || "'SF Pro Display', sans-serif";
                 newConfig.fontCustomUrl = fontCustomUrl?.value || '';
@@ -1882,7 +1596,6 @@
                 const def = defaultCustomTheme();
                 if (fontPrimary) fontPrimary.value = def.fontPrimary;
                 if (fontLockTime) fontLockTime.value = def.fontLockTime;
-                if (fontBoot) fontBoot.value = def.fontBoot;
                 if (fontChat) fontChat.value = def.fontChat;
                 if (fontAppTitle) fontAppTitle.value = def.fontAppTitle;
                 if (fontCustomUrl) fontCustomUrl.value = def.fontCustomUrl;

@@ -513,14 +513,6 @@
               </select>
             </label>
             <label class="field-inline">
-              <span>開機動畫</span>
-              <select id="font-boot">
-                <option value="'Great Vibes', cursive">Great Vibes</option>
-                <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
-                <option value="system-ui, sans-serif">系統預設</option>
-              </select>
-            </label>
-            <label class="field-inline">
               <span>聊天訊息</span>
               <select id="font-chat">
                 <option value="'SF Pro Display', sans-serif">SF Pro Display</option>
@@ -615,92 +607,6 @@
               <button class="primary-btn" id="apply-background-btn" type="button">套用</button>
             </div>
             <p class="hint">調整應用背景顏色、透明度及模糊效果。</p>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="card-title">開機動畫</div>
-          <div class="boot-theme">
-            <label class="toggle-row" for="boot-enabled">
-              <span>啟用開機動畫</span>
-              <input id="boot-enabled" type="checkbox" checked>
-            </label>
-            <div class="field">
-              <label for="boot-tagline">主文字</label>
-              <textarea id="boot-tagline" rows="2" placeholder="例：Meet you&#10;in my world"></textarea>
-            </div>
-            <div class="field">
-              <label for="boot-signature">簽名文字</label>
-              <input id="boot-signature" type="text" placeholder="例：-Sxiphone-">
-            </div>
-            <div class="boot-color-grid">
-              <label class="field-inline" for="boot-text-color">
-                <span>文字色</span>
-                <input id="boot-text-color" type="color" value="#F4ECFF">
-              </label>
-              <label class="field-inline" for="boot-bg-start">
-                <span>背景起點</span>
-                <input id="boot-bg-start" type="color" value="#12051F">
-              </label>
-              <label class="field-inline" for="boot-bg-end">
-                <span>背景終點</span>
-                <input id="boot-bg-end" type="color" value="#2B0F3F">
-              </label>
-            </div>
-            <div class="boot-deco-section">
-              <div class="boot-deco-header">
-                <span class="boot-deco-header-label">小裝飾</span>
-                <button class="primary-btn boot-deco-add-btn" id="boot-deco-add-btn" type="button">+ 新增</button>
-              </div>
-              <div class="boot-deco-list" id="boot-deco-list"></div>
-              <div class="boot-deco-editor hidden" id="boot-deco-editor">
-                <label class="upload-btn" for="boot-deco-image-input">上傳裝飾圖片</label>
-                <input id="boot-deco-image-input" type="file" accept="image/*" hidden>
-                <div class="boot-deco-thumb" id="boot-deco-thumb"></div>
-                <label class="field-inline" for="boot-deco-size">
-                  <span>大小</span>
-                  <input id="boot-deco-size" type="range" min="24" max="180" step="1" value="72">
-                </label>
-                <label class="field-inline" for="boot-deco-opacity">
-                  <span>透明度</span>
-                  <input id="boot-deco-opacity" type="range" min="10" max="100" step="1" value="62">
-                </label>
-                <label class="field-inline" for="boot-deco-x">
-                  <span>水平位置</span>
-                  <input id="boot-deco-x" type="range" min="0" max="100" step="1" value="75">
-                </label>
-                <label class="field-inline" for="boot-deco-y">
-                  <span>垂直位置</span>
-                  <input id="boot-deco-y" type="range" min="0" max="100" step="1" value="18">
-                </label>
-                <div class="ai-mode-toggle" id="boot-deco-motion" role="group" aria-label="裝飾動態">
-                  <button class="mode-pill active" type="button" data-motion="float">漂浮</button>
-                  <button class="mode-pill" type="button" data-motion="spin">旋轉</button>
-                  <button class="mode-pill" type="button" data-motion="pulse">脈動</button>
-                  <button class="mode-pill" type="button" data-motion="sway">搖擺</button>
-                  <button class="mode-pill" type="button" data-motion="drift">滑移</button>
-                  <button class="mode-pill" type="button" data-motion="twinkle">閃爍</button>
-                  <button class="mode-pill" type="button" data-motion="none">靜止</button>
-                </div>
-                <div class="icon-actions">
-                  <button class="ghost-btn" id="boot-deco-cancel-btn" type="button">取消</button>
-                  <button class="primary-btn" id="boot-deco-save-btn" type="button">儲存裝飾</button>
-                </div>
-              </div>
-            </div>
-            <div class="boot-preview" id="boot-preview">
-              <div class="boot-preview-decos" id="boot-preview-decos"></div>
-              <div class="boot-preview-content">
-                <div class="boot-preview-tagline" id="boot-preview-tagline">Meet you
-in my world</div>
-                <div class="boot-preview-signature" id="boot-preview-signature">-Sxiphone-</div>
-              </div>
-            </div>
-            <div class="ai-actions">
-              <button class="ghost-btn" id="boot-reset-btn" type="button">恢復預設</button>
-              <button class="primary-btn" id="boot-apply-btn" type="button">套用開機動畫</button>
-            </div>
-            <p class="hint">可關閉開機動畫，或自訂顯示文字與背景配色。</p>
           </div>
         </section>
 

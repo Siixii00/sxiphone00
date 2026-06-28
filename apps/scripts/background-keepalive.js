@@ -919,10 +919,22 @@ const BackgroundKeepalive = (function() {
     }
 
     function enterBackground() {
+        // iOS PWA 特殊處理：在背景中暫停所有 timer 以避免過熱
+        const isIOSPWA = (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+                         (window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone === true);
+        
         state.isInBackground = true;
         
         if (typeof sxStorage !== 'undefined' && sxStorage) {
             sxStorage.setItem('sx_keepalive_background_time', String(Date.now())).catch(() => {});
+        }
+        
+        // iOS PWA: 在背景中不啟動 timer，避免過熱
+        if (isIOSPWA) {
+            console.log('[Keepalive] iOS PWA 模式，背景中暫停 timer');
+            return;
         }
         
         if (state.enabled) {
