@@ -1059,6 +1059,11 @@ window.addEventListener('message', (event) => {
         charLabels.forEach(label => label.innerText = charConfig.name || 'AI 助理');
         
         console.log('[Chat] 角色 UI 已更新為:', charConfig.name, charConfig.avatar ? '有頭貼' : '無頭貼');
+        
+        if (typeof renderHistory === 'function') {
+            console.log('[Chat] 重新渲染歷史訊息以更新頭貼');
+            renderHistory();
+        }
     }
     
     if (data.type === 'USER_SETTINGS_UPDATED' && data.payload) {
@@ -1098,6 +1103,11 @@ window.addEventListener('message', (event) => {
         });
         
         console.log('[Chat] 用戶 UI 已更新為:', userConfig.name, userConfig.avatar ? '有頭貼' : '無頭貼');
+        
+        if (typeof renderHistory === 'function') {
+            console.log('[Chat] 重新渲染歷史訊息以更新用戶頭貼');
+            renderHistory();
+        }
     }
     
     // 處理語言變更
