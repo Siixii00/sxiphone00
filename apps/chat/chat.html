@@ -122,17 +122,16 @@
     <button class="action-btn btn-danger" id="chat-delete-btn">刪除</button>
 </div>
 
-<button class="chat-detail-back" id="back-to-list">
-    <i class="fas fa-chevron-left"></i>
-</button>
-
-<div class="chat-detail-title" id="chat-detail-title"></div>
-
-<button class="chat-detail-menu" id="open-menu">
-    <i class="fas fa-bars"></i>
-</button>
-
 <section class="chat-detail hidden" id="chat-detail-view">
+    <div class="chat-detail-header-bar">
+        <button class="chat-detail-back" id="back-to-list">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="chat-detail-title" id="chat-detail-title"></div>
+        <button class="chat-detail-menu" id="open-menu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
     <main class="message-flow" id="chat-flow">
         <div class="system-notice">現在正與 <span id="hint-name">null</span> 對話中</div>
     </main>

@@ -480,10 +480,8 @@ body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--kakao-blue);
-    padding-top: calc(50px + var(--safe-area-top, 0px));
+    padding: 12px;
     padding-bottom: calc(70px + var(--safe-area-bottom, 0px));
-    padding-left: 12px;
-    padding-right: 12px;
 }
 
 .chat-detail .input-area {
@@ -523,7 +521,7 @@ body {
 .chat-detail-back,
 .chat-detail-menu,
 .chat-detail-title {
-    backdrop-filter: blur(6px);
+    /* 共用：不再單獨設 backdrop-filter，由標題列統一處理 */
 }
 
 .chat-app.detail-active .chat-detail {
@@ -537,8 +535,9 @@ body {
 
 .chat-detail-back,
 .chat-detail-menu {
-    position: fixed;
-    top: calc(8px + var(--safe-area-top, 0px));
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -550,7 +549,7 @@ body {
     justify-content: center;
     z-index: 1021;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
 .chat-detail-back {
@@ -562,24 +561,21 @@ body {
 }
 
 .chat-detail-title {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 56px;
+    right: 56px;
     text-align: center;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 600;
     color: #1c1c1e;
     display: none;
     z-index: 1020;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 12px 60px;
-    padding-top: calc(12px + var(--safe-area-top, 0px));
-    background: var(--kakao-blue);
-    backdrop-filter: blur(10px);
-    max-height: 44px;
+    line-height: 1;
 }
 
 .chat-list-actions {
@@ -603,12 +599,26 @@ body {
 .chat-app.detail-active .chat-detail-back,
 .chat-app.detail-active .chat-detail-menu {
     display: flex;
-    z-index: 1020;
 }
 
 .chat-app.detail-active .chat-detail-title {
     display: block;
+}
+
+/* 聊天室頂部 header bar - 包含返回、標題、三明治按鈕 */
+.chat-detail-header-bar {
+    position: relative;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    height: 44px;
+    background: var(--kakao-blue);
     z-index: 1020;
+}
+
+.chat-app.detail-active .chat-detail-header-bar {
+    display: flex;
 }
 
 /* --- 導航欄 --- */
