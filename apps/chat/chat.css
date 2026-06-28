@@ -480,7 +480,7 @@ body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--kakao-blue);
-    padding-top: calc(60px + var(--safe-area-top, 0px));
+    padding-top: calc(50px + var(--safe-area-top, 0px));
     padding-bottom: calc(70px + var(--safe-area-bottom, 0px));
     padding-left: 12px;
     padding-right: 12px;
@@ -537,10 +537,10 @@ body {
 
 .chat-detail-back,
 .chat-detail-menu {
-    position: absolute;
-    top: calc(40px + var(--safe-area-top, 0px));
-    width: 40px;
-    height: 40px;
+    position: fixed;
+    top: calc(8px + var(--safe-area-top, 0px));
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     border: none;
     background: rgba(255, 255, 255, 0.9);
@@ -548,7 +548,7 @@ body {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 1020;
+    z-index: 1021;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
@@ -562,10 +562,10 @@ body {
 }
 
 .chat-detail-title {
-    position: absolute;
-    top: 46px;
-    left: 60px;
-    right: 60px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     text-align: center;
     font-size: 18px;
     font-weight: 700;
@@ -575,6 +575,11 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding: 12px 60px;
+    padding-top: calc(12px + var(--safe-area-top, 0px));
+    background: var(--kakao-blue);
+    backdrop-filter: blur(10px);
+    max-height: 44px;
 }
 
 .chat-list-actions {
