@@ -95,11 +95,11 @@ body {
 @supports (-webkit-touch-callout: none) {
     @media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
         .kakao-header {
-            padding-top: max(63px, calc(48px + env(safe-area-inset-top, 47px)));
+            padding-top: max(68px, calc(48px + env(safe-area-inset-top, 47px) + 5px));
         }
         
         .chat-detail-header-bar {
-            padding-top: max(15px, env(safe-area-inset-top, 47px));
+            padding-top: max(20px, calc(env(safe-area-inset-top, 47px) + 5px));
         }
     }
 }
