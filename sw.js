@@ -292,6 +292,17 @@ self.addEventListener('message', (event) => {
     self.showNotification(title, options);
   }
   
+  // 版本查詢 - 用於診斷目前運行的 Service Worker 版本
+  if (event.data && event.data.type === 'GET_VERSION') {
+    if (event.source) {
+      event.source.postMessage({ 
+        type: 'VERSION_INFO', 
+        version: CACHE_NAME,
+        timestamp: Date.now()
+      });
+    }
+  }
+  
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(
       caches.keys().then((cacheNames) => {
