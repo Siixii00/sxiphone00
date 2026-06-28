@@ -538,7 +538,7 @@ body {
 .chat-detail-back,
 .chat-detail-menu {
     position: absolute;
-    top: calc(16px + var(--safe-area-top, 0px));
+    top: calc(40px + var(--safe-area-top, 0px));
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -563,7 +563,7 @@ body {
 
 .chat-detail-title {
     position: absolute;
-    top: calc(22px + var(--safe-area-top, 0px));
+    top: calc(46px + var(--safe-area-top, 0px));
     left: 60px;
     right: 60px;
     text-align: center;
