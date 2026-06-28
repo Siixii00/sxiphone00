@@ -91,6 +91,19 @@ body {
     flex-shrink: 0;
 }
 
+/* iOS PWA standalone 模式 - 確保 header 有足夠的 safe area 間距 */
+@supports (-webkit-touch-callout: none) {
+    @media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+        .kakao-header {
+            padding-top: max(63px, calc(48px + env(safe-area-inset-top, 47px)));
+        }
+        
+        .chat-detail-header-bar {
+            padding-top: max(15px, env(safe-area-inset-top, 47px));
+        }
+    }
+}
+
 .kakao-title {
     font-size: 20px;
     font-weight: 700;
@@ -613,6 +626,7 @@ body {
     justify-content: center;
     flex-shrink: 0;
     height: 44px;
+    padding-top: var(--safe-area-top, 0px);
     background: var(--kakao-blue);
     z-index: 1020;
 }

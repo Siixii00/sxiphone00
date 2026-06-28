@@ -1692,6 +1692,14 @@ async function loadUserSettingsFromIndexedDB() {
         });
         const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
         if (persistedData) {
+            if (persistedData.apis && Array.isArray(persistedData.apis)) {
+                localStorage.setItem('api_configs', JSON.stringify(persistedData.apis));
+                console.log('[Chat] 從 IndexedDB 載入 API 配置:', persistedData.apis.length, '個');
+            }
+            if (persistedData.activeApiIndex !== undefined) {
+                localStorage.setItem('sx_active_api', persistedData.activeApiIndex.toString());
+                console.log('[Chat] 從 IndexedDB 載入 activeApiIndex:', persistedData.activeApiIndex);
+            }
             return {
                 name: persistedData.userName,
                 avatar: persistedData.userAvatar,
@@ -2722,6 +2730,11 @@ function checkBlockStatus() {
 }
 // --- 2. DOMContentLoaded 初始化 (整合去重版) ---
 document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof __localStorageMirror !== 'undefined' && __localStorageMirror.awaitSxStorage) {
+        await __localStorageMirror.awaitSxStorage();
+        console.log('[Chat] sxStorage 已就緒');
+    }
+    
     // 先從 IndexedDB 回填用戶資料到 localStorage
     const persistedUserData = await loadUserSettingsFromIndexedDB();
     if (persistedUserData) {
