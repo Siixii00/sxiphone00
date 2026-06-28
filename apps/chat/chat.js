@@ -1430,6 +1430,90 @@ function bindWorldbookEvents() {
             }
         });
     }
+
+    // 診斷世界書按鈕
+    const diagnoseBtn = document.getElementById('diagnose-worldbook');
+    if (diagnoseBtn) {
+        diagnoseBtn.onclick = diagnoseWorldbookStatus;
+    }
+}
+
+// --- 世界書診斷功能 ---
+function diagnoseWorldbookStatus() {
+    const diagnosisDiv = document.getElementById('worldbook-diagnosis');
+    if (!diagnosisDiv) return;
+
+    const worldbookData = getWorldbookData();
+    const mounts = getWorldbookMounts();
+    
+    let report = '<b>📊 世界書診斷報告</b><br><br>';
+    
+    // 1. localStorage 中的世界書資料
+    report += '<b>1. localStorage 資料:</b><br>';
+    const categories = ['sx_worldbook_core', 'sx_worldbook_theater', 'sx_worldbook_conditional', 
+                        'sx_worldbook_cot', 'sx_worldbook_style', 'sx_worldbook_global', 
+                        'sx_worldbook_keywords', 'sx_worldbook_backend'];
+    
+    categories.forEach(cat => {
+        const data = localStorage.getItem(cat);
+        if (data) {
+            try {
+                const parsed = JSON.parse(data);
+                const count = Array.isArray(parsed) ? parsed.length : 
+                             (parsed && parsed.entries ? parsed.entries.length : 
+                             Object.keys(parsed).length);
+                report += `✅ ${cat}: ${count} 條<br>`;
+            } catch (e) {
+                report += `⚠️ ${cat}: 解析失敗<br>`;
+            }
+        } else {
+            report += `❌ ${cat}: 空<br>`;
+        }
+    });
+    
+    // 2. 掛載設定
+    report += '<br><b>2. 掛載設定:</b><br>';
+    if (mounts && mounts.length > 0) {
+        mounts.forEach(m => {
+            report += `${m.enabled ? '✅' : '❌'} ${m.name} (${m.position})<br>`;
+        });
+    } else {
+        report += '⚠️ 未設定任何掛載<br>';
+    }
+    
+    // 3. 角色設定
+    report += '<br><b>3. 角色設定:</b><br>';
+    const charName = localStorage.getItem('sx_char_name') || '未設定';
+    const charPersonality = localStorage.getItem('sx_char_personality') || '未設定';
+    report += `名字: ${charName}<br>`;
+    report += `性格: ${charPersonality?.substring(0, 50)}...<br>`;
+    
+    // 4. 用戶設定
+    report += '<br><b>4. 用戶設定:</b><br>';
+    const userName = localStorage.getItem('sx_user_name') || '未設定';
+    const userBackground = localStorage.getItem('sx_user_background') || '未設定';
+    report += `名字: ${userName}<br>`;
+    report += `背景: ${userBackground?.substring(0, 50)}...<br>`;
+    
+    // 5. 測試觸發
+    report += '<br><b>5. 測試觸發 (輸入 "測試"): </b><br>';
+    const testContent = WorldInfoEngine.scanAndGetContent('測試', worldbookData);
+    if (testContent) {
+        report += `✅ 有內容觸發<br>`;
+        report += `<pre style="max-height:100px;overflow:auto;background:#fff;padding:5px;border-radius:4px;">${testContent.substring(0, 200)}...</pre>`;
+    } else {
+        report += '❌ 無內容觸發<br>';
+        report += '<small>提示：世界書條目需要觸發詞才能被啟動，請確認條目的觸發詞設定</small><br>';
+    }
+    
+    diagnosisDiv.innerHTML = report;
+    diagnosisDiv.style.display = 'block';
+    
+    console.log('[Worldbook Diagnosis]', {
+        worldbookData,
+        mounts,
+        testContent
+    });
 }
 
 // --- 5. 保存世界書掛載設定 ---
@@ -6867,28 +6951,94 @@ function closeContextMenu() {
 
 // --- 5. 世界書引擎 (新架構) ---
 const WorldInfoEngine = {
+    // 全局世界書清單 - 這些條目永遠啟用，不需要觸發詞
+    globalWorldbooks: [],
+    
+    /**
+     * 初始化全局世界書
+     */
+    initGlobalWorldbooks() {
+        // 從 localStorage 讀取全局世界書設定
+        const globalSettings = localStorage.getItem('sx_global_worldbooks');
+        if (globalSettings) {
+            try {
+                this.globalWorldbooks = JSON.parse(globalSettings);
+                console.log('[WorldInfoEngine] 全局世界書已載入:', this.globalWorldbooks.length, '個');
+            } catch (e) {
+                console.warn('[WorldInfoEngine] 解析全局世界書失敗:', e);
+            }
+        }
+    },
+    
+    /**
+     * 添加全局世界書
+     * @param {string} worldbookId - 世界書 ID
+     * @param {string} category - 分類 (core, theater, conditional 等)
+     */
+    addGlobalWorldbook(worldbookId, category = 'global') {
+        if (!this.globalWorldbooks.find(w => w.id === worldbookId)) {
+            this.globalWorldbooks.push({ id: worldbookId, category, enabled: true });
+            localStorage.setItem('sx_global_worldbooks', JSON.stringify(this.globalWorldbooks));
+            console.log('[WorldInfoEngine] 已添加全局世界書:', worldbookId);
+        }
+    },
+    
+    /**
+     * 移除全局世界書
+     * @param {string} worldbookId - 世界書 ID
+     */
+    removeGlobalWorldbook(worldbookId) {
+        this.globalWorldbooks = this.globalWorldbooks.filter(w => w.id !== worldbookId);
+        localStorage.setItem('sx_global_worldbooks', JSON.stringify(this.globalWorldbooks));
+        console.log('[WorldInfoEngine] 已移除全局世界書:', worldbookId);
+    },
+    
     /**
      * @param {string} latestText - 用戶最新的輸入文字
      * @param {object} allWorldsData - 包含所有世界書的物件包
      * @param {string} currentBookTitle - (可選) 當前 UI 選中的書名
      */
     scanAndGetContent(latestText, allWorldsData, currentBookTitle = "") {
-        if (!allWorldsData) return "";
+        if (!allWorldsData) {
+            console.log('[WorldInfoEngine] allWorldsData 為空');
+            return "";
+        }
+        
+        console.log('[WorldInfoEngine] 開始掃描，用戶輸入:', latestText?.substring(0, 100));
         
         let activeContent = "";
         
         // --- 第一步：讀取已保存的世界書掛載設定 ---
         const mounts = getWorldbookMounts();
+        console.log('[WorldInfoEngine] 掛載設定:', mounts?.length || 0, '個');
+        
+        // --- 全局世界書處理 (最高優先級) ---
+        // 全局世界書永遠啟用，不需要觸發詞匹配
+        this.globalWorldbooks.forEach(gw => {
+            if (!gw.enabled) return;
+            const key = `sx_worldbook_${gw.category}`;
+            const entries = allWorldsData[key];
+            if (entries && Array.isArray(entries)) {
+                entries.forEach(entry => {
+                    if (entry.title === gw.id || entry.enabled) {
+                        activeContent += `<GLOBAL title="${entry.title}">\n${entry.content}\n</GLOBAL>\n`;
+                        console.log('[WorldInfoEngine] 全局條目已載入:', entry.title);
+                    }
+                });
+            }
+        });
         
         // --- 第二步：處理禁止詞 (最高優先權) ---
         const forbiddenList = allWorldsData.sx_detected_forbidden || [];
         if (forbiddenList.length > 0) {
             activeContent += `\n<CRITICAL_RULE>\n絕對禁止在回覆中出現以下詞彙：[${forbiddenList.join(', ')}]\n</CRITICAL_RULE>\n`;
+            console.log('[WorldInfoEngine] 禁止詞:', forbiddenList);
         }
 
         // --- 新架構：處理核心內容 (全局掛載) ---
         if (allWorldsData.core && allWorldsData.core.sx_worldbook_core) {
             const coreEntries = allWorldsData.core.sx_worldbook_core;
+            console.log('[WorldInfoEngine] 核心內容條目:', coreEntries?.length || 0, '個');
             if (Array.isArray(coreEntries)) {
                 coreEntries.forEach(entry => {
                     if (!entry.enabled) return;
@@ -6899,6 +7049,7 @@ const WorldInfoEngine = {
                     
                     if (!hasTriggers || triggerMatch) {
                         activeContent += `<CORE title="${entry.title}">\n${entry.content}\n</CORE>\n`;
+                        console.log('[WorldInfoEngine] 核心條目觸發:', entry.title);
                     }
                 });
             }
@@ -7620,17 +7771,23 @@ ${examples}
 你現在要扮演 ${activeChar.name || "AI 助理"} 這個角色。請完全沉浸在這個角色中，用角色的視角和語氣來思考和回應。
 ${examplesSection}
 # USER_CONTEXT
+## 用戶基本資訊
 - 用戶名稱: ${userName}
 - 用戶背景: ${userBio || "未知"}
 - 所在地區: ${region}
+
+## 用戶偏好設定
+${this.getUserPreferencesSection()}
 ${envContextSection}
+# RELATIONSHIP_CONTEXT
+${relationshipPrompt}
+${this.getDetailedRelationshipInfo()}
 # WORLD_INFORMATION
 ${dynamicWI || "（無觸發的世界書內容）"}
 ${worldbookContext}
 ${awakeningContext}
 ${fortuneMemorySection}
 ${cloudContextSection}
-${relationshipPrompt}
 ${modeEmphasis}
 ${modeInstructions}
 # RESPONSE_GUIDELINES
@@ -7649,6 +7806,57 @@ ${modeInstructions}
 8. **標點符號**: 根據語言使用正確標點，禁止連續句號或刪節號
 
 請記住：你的回應應該完全由角色設定和世界書內容來引導，而不是固定的格式。`.trim();
+    },
+    
+    /**
+     * 獲取用戶偏好設定區段
+     */
+    getUserPreferencesSection() {
+        const likes = localStorage.getItem('sx_user_likes') || '';
+        const taboos = localStorage.getItem('sx_user_taboos') || '';
+        const status = localStorage.getItem('sx_user_status') || '';
+        
+        let section = '';
+        if (likes) section += `- 偏好與愛好: ${likes}\n`;
+        if (taboos) section += `- 禁忌與限制: ${taboos}\n`;
+        if (status) section += `- 目前狀態: ${status}\n`;
+        
+        return section || '- （未設定額外偏好）';
+    },
+    
+    /**
+     * 獲取詳細關係資訊
+     */
+    getDetailedRelationshipInfo() {
+        const relationshipType = localStorage.getItem('sx_relationship_type') || 'friends';
+        const relationshipDuration = localStorage.getItem('sx_relationship_duration') || '';
+        const relationshipNotes = localStorage.getItem('sx_relationship_notes') || '';
+        const meetupEnabled = localStorage.getItem('sx_meetup_mention_enabled') !== 'false';
+        
+        const typeNames = {
+            'friends': '朋友',
+            'close_friends': '密友',
+            'dating': '戀人',
+            'family': '家人',
+            'colleagues': '同事',
+            'strangers': '陌生人',
+            'complex': '複雜關係'
+        };
+        
+        let info = `## 關係類型\n`;
+        info += `- 目前關係: ${typeNames[relationshipType] || relationshipType}\n`;
+        
+        if (relationshipDuration) {
+            info += `- 認識時間: ${relationshipDuration}\n`;
+        }
+        
+        if (relationshipNotes) {
+            info += `- 關係備註: ${relationshipNotes}\n`;
+        }
+        
+        info += `- 可提及線下見面: ${meetupEnabled ? '是' : '否'}\n`;
+        
+        return info;
     },
     assembleSystemPromptSync(latestUserInput) {
         let activeChar = null;

@@ -160,9 +160,36 @@
                     <label class="cell-label" for="user-background-input">背景 (可留空)</label>
                     <textarea id="user-background-input" class="ios-textarea-minimal" rows="2"></textarea>
                 </div>
+                
+                <!-- 關係設定區域 -->
+                <div class="ios-cell-v" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ios-separator);">
+                    <label class="cell-label">關係設定</label>
+                    <div class="ios-cell">
+                        <label class="cell-label" for="relationship-type-select">與角色關係</label>
+                        <select id="relationship-type-select" class="ios-input-minimal">
+                            <option value="friends">朋友</option>
+                            <option value="close_friends">密友</option>
+                            <option value="dating">戀人</option>
+                            <option value="family">家人</option>
+                            <option value="colleagues">同事</option>
+                            <option value="strangers">陌生人</option>
+                            <option value="complex">複雜關係</option>
+                        </select>
+                    </div>
+                    <div class="ios-cell">
+                        <label class="cell-label" for="relationship-duration-input">認識時間</label>
+                        <input id="relationship-duration-input" class="ios-input-minimal" placeholder="例如：三個月、兩年">
+                    </div>
+                    <div class="ios-cell-v">
+                        <label class="cell-label" for="relationship-notes-input">關係備註</label>
+                        <textarea id="relationship-notes-input" class="ios-textarea-minimal" rows="2" placeholder="關係的特殊設定或備註..."></textarea>
+                    </div>
+                </div>
+                
                 <div class="btn-row">
                     <button class="ios-btn primary" id="user-save-btn">保存 / 更新</button>
                     <button class="ios-btn" id="user-cancel-btn">取消編輯</button>
+                    <button class="ios-btn danger" id="user-delete-btn" style="display: none;">刪除此用戶</button>
                 </div>
             </div>
         </div>

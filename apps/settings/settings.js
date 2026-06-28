@@ -4219,10 +4219,32 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         const personalityInput = document.getElementById('user-personality-input');
         const backgroundInput = document.getElementById('user-background-input');
         
+        // 關係設定欄位
+        const relationshipTypeSelect = document.getElementById('relationship-type-select');
+        const relationshipDurationInput = document.getElementById('relationship-duration-input');
+        const relationshipNotesInput = document.getElementById('relationship-notes-input');
+        
         if (nameInput) nameInput.value = user.name || '';
         if (avatarInput) avatarInput.value = user.avatar || '';
         if (personalityInput) personalityInput.value = user.personality || '';
         if (backgroundInput) backgroundInput.value = user.background || '';
+        
+        // 載入關係設定
+        if (relationshipTypeSelect) {
+            relationshipTypeSelect.value = user.relationshipType || localStorage.getItem('sx_relationship_type') || 'friends';
+        }
+        if (relationshipDurationInput) {
+            relationshipDurationInput.value = user.relationshipDuration || localStorage.getItem('sx_relationship_duration') || '';
+        }
+        if (relationshipNotesInput) {
+            relationshipNotesInput.value = user.relationshipNotes || localStorage.getItem('sx_relationship_notes') || '';
+        }
+        
+        // 顯示/隱藏刪除按鈕
+        const deleteBtn = document.getElementById('user-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.style.display = user.name ? 'inline-block' : 'none';
+        }
         
         try {
             // 只有在 user.name 有值時才覆蓋，避免清空或跳回 'User'
@@ -4461,6 +4483,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
     userAddBtn?.addEventListener('click', () => {
         applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
+        // 隱藏刪除按鈕
+        const deleteBtn = document.getElementById('user-delete-btn');
+        if (deleteBtn) deleteBtn.style.display = 'none';
     });
 
     userSaveBtn?.addEventListener('click', async () => {
@@ -4468,13 +4493,27 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         const avatar = document.getElementById('user-avatar-input')?.value.trim() || '';
         const personality = document.getElementById('user-personality-input')?.value.trim() || '';
         const background = document.getElementById('user-background-input')?.value.trim() || '';
+        
+        // 關係設定
+        const relationshipType = document.getElementById('relationship-type-select')?.value || 'friends';
+        const relationshipDuration = document.getElementById('relationship-duration-input')?.value.trim() || '';
+        const relationshipNotes = document.getElementById('relationship-notes-input')?.value.trim() || '';
+        
         if (!name && !avatar) {
             alert('請輸入用戶名稱或頭貼');
             return;
         }
         const list = loadUserList();
         const existingIdx = list.findIndex(item => item.name === name && name);
-        const payload = { name, avatar, personality, background };
+        const payload = { 
+            name, 
+            avatar, 
+            personality, 
+            background,
+            relationshipType,
+            relationshipDuration,
+            relationshipNotes
+        };
         if (existingIdx >= 0) list[existingIdx] = payload;
         else list.unshift(payload);
         saveUserList(list);
@@ -4493,6 +4532,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             localStorage.setItem('sx_user_background', payload.background);
         }
         
+        // 保存關係設定到 localStorage
+        localStorage.setItem('sx_relationship_type', relationshipType);
+        if (relationshipDuration) {
+            localStorage.setItem('sx_relationship_duration', relationshipDuration);
+        }
+        if (relationshipNotes) {
+            localStorage.setItem('sx_relationship_notes', relationshipNotes);
+        }
+        
         updateCharListUI();
         
         // 同步到 localforage (IndexedDB)
@@ -4508,6 +4556,57 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
     userCancelBtn?.addEventListener('click', () => {
         applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
+        // 隱藏刪除按鈕
+        const deleteBtn = document.getElementById('user-delete-btn');
+        if (deleteBtn) deleteBtn.style.display = 'none';
+    });
+    
+    // 用戶刪除按鈕
+    const userDeleteBtn = document.getElementById('user-delete-btn');
+    userDeleteBtn?.addEventListener('click', async () => {
+        const name = document.getElementById('user-name-input')?.value.trim() || '';
+        
+        if (!name) {
+            alert('請先選擇要刪除的用戶');
+            return;
+        }
+        
+        const list = loadUserList();
+        if (list.length <= 1) {
+            alert('至少需要保留一個用戶');
+            return;
+        }
+        
+        if (!confirm(`確定要刪除用戶「${name}」嗎？\n\n此操作無法復原。`)) {
+            return;
+        }
+        
+        // 從清單中移除
+        const newList = list.filter(u => u.name !== name);
+        await saveUserList(newList);
+        
+        // 如果刪除的是當前用戶，切換到第一個用戶
+        const currentName = localStorage.getItem('sx_user_name');
+        if (currentName === name && newList.length > 0) {
+            const newUser = newList[0];
+            localStorage.setItem('sx_user_name', newUser.name || '');
+            localStorage.setItem('sx_user_avatar', newUser.avatar || '');
+            localStorage.setItem('sx_user_personality', newUser.personality || '');
+            localStorage.setItem('sx_user_background', newUser.background || '');
+        }
+        
+        // 清空表單
+        applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
+        
+        // 隱藏刪除按鈕
+        userDeleteBtn.style.display = 'none';
+        
+        // 更新 UI
+        updateCharListUI();
+        
+        await saveAll();
+        
+        alert('✅ 用戶已刪除');
     });
 
     npcAddBtn?.addEventListener('click', () => {
