@@ -438,18 +438,18 @@ body, html {
     background: var(--kakao-blue);
     z-index: 100;
     pointer-events: auto;
+    overflow: hidden;
 }
 
 .chat-detail .message-flow {
-    padding-top: 90px;
-    padding-bottom: 80px;
-    background: var(--kakao-blue);
     flex: 1;
     overflow-y: auto;
+    background: var(--kakao-blue);
+    padding: 0 12px;
 }
 
 .chat-detail .input-area {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
@@ -498,7 +498,7 @@ body, html {
 .chat-detail-back,
 .chat-detail-menu {
     position: absolute;
-    top: 64px;
+    top: max(48px, env(safe-area-inset-top, 48px));
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -522,7 +522,7 @@ body, html {
 
 .chat-detail-title {
     position: absolute;
-    top: 70px;
+    top: max(54px, env(safe-area-inset-top, 54px));
     left: 50%;
     transform: translateX(-50%);
     font-size: 18px;

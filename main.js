@@ -5700,6 +5700,18 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
         const lockScreen = document.getElementById('lock-screen');
         if (!viewport || !frame) return;
 
+        const appIdRaw = appId || '';
+        const [appIdBase, queryStringRaw] = appIdRaw.split('?');
+        const queryString = queryStringRaw ? `?${queryStringRaw}` : '';
+        
+        // 避免重複開啟同一個 app
+        const currentSrc = frame.src || '';
+        const targetSrc = `apps/${appIdBase}/${appIdBase}.html${queryString}`;
+        if (currentAppId === appIdBase && currentSrc.includes(targetSrc) && viewport.classList.contains('active')) {
+            console.log('[launchApp] 已經在', appIdBase, '中，跳過重複開啟');
+            return;
+        }
+
         if (appId === 'chat' && window.FloatingMessenger) {
             window.FloatingMessenger.clearBadge();
         }
@@ -5709,12 +5721,9 @@ if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.use
             updatePhoneCheckOverlay();
         }
 
-        const appIdRaw = appId || '';
-        const [appIdBase, queryStringRaw] = appIdRaw.split('?');
-        const queryString = queryStringRaw ? `?${queryStringRaw}` : '';
         currentAppId = appIdBase;
         ensureAppFolder(currentAppId);
-        frame.src = `apps/${appIdBase}/${appIdBase}.html${queryString}`;
+        frame.src = targetSrc;
         frame.onload = () => {
             trackAppStorageForFrame(frame, currentAppId);
             syncAppFolderSnapshot(currentAppId);
