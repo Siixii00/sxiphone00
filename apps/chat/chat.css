@@ -10,40 +10,57 @@
     --success-green: #34c759;
     --null-gray: #e0e0e0;
     --chat-font-size: 14px;
+    
+    /* iOS Safe Area 變數 */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
 /* --- 基礎佈局 --- */
-body, html {
+html {
+    height: -webkit-fill-available;
+}
+
+body {
     margin: 0; 
-    padding: 0; 
-    height: 100%;
+    padding: 0;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--kakao-blue);
     overflow: hidden;
+    /* iOS PWA 防止彈性滾動 */
+    position: fixed;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .chat-app {
     display: flex;
     flex-direction: column;
     height: 100%;
+    width: 100%;
     position: relative;
     overflow: hidden;
 }
 
 .chat-app > .kakao-header {
-    order: 1;
     flex-shrink: 0;
+    z-index: 10;
 }
 
 .chat-app > .chat-tab-panel {
-    order: 2;
     flex: 1;
     min-height: 0;
+    z-index: 5;
 }
 
 .chat-app > .kakao-bottom-tabs {
-    order: 3;
     flex-shrink: 0;
+    z-index: 10;
 }
 
 .nav-title {
@@ -59,7 +76,10 @@ body, html {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 48px 16px 12px;
+    padding-top: calc(48px + var(--safe-area-top, 0px));
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 12px;
     background: var(--kakao-yellow);
     color: var(--kakao-dark);
     position: relative;
@@ -108,13 +128,12 @@ body, html {
 .kakao-bottom-tabs {
     display: flex;
     justify-content: space-around;
-    padding: 8px 0 14px;
+    padding: 8px 0;
+    padding-bottom: calc(14px + var(--safe-area-bottom, 0px));
     background: #fff;
     border-top: 1px solid #e5e5e5;
-    z-index: 500;
     flex-shrink: 0;
     pointer-events: auto;
-    order: 3;
 }
 
 .chat-app.detail-active .kakao-bottom-tabs {
@@ -442,18 +461,21 @@ body, html {
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100%;
+    height: 100%;
     background: var(--kakao-blue);
-    z-index: 600;
+    z-index: 1000;
     pointer-events: auto;
     overflow: hidden;
 }
 
 .chat-detail .message-flow {
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background: var(--kakao-blue);
-    padding-top: 100px;
-    padding-bottom: 80px;
+    padding-top: calc(60px + var(--safe-area-top, 0px));
+    padding-bottom: calc(70px + var(--safe-area-bottom, 0px));
     padding-left: 12px;
     padding-right: 12px;
 }
@@ -463,29 +485,11 @@ body, html {
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 610;
+    z-index: 1010;
     border-top: none;
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
-}
-
-.chat-detail .message-flow {
-    flex: 1;
-    overflow-y: auto;
-    background: var(--kakao-blue);
-    padding-top: 100px;
-    padding-bottom: 80px;
-    padding-left: 12px;
-    padding-right: 12px;
-}
-
-.chat-detail .input-area {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 610;
-    border-top: none;
-    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding: 10px;
+    padding-bottom: calc(20px + var(--safe-area-bottom, 20px));
+    background: #fff;
 }
 
 .chat-detail .bubble {
@@ -528,7 +532,7 @@ body, html {
 .chat-detail-back,
 .chat-detail-menu {
     position: absolute;
-    top: 14px;
+    top: 12px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -538,7 +542,7 @@ body, html {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 620;
+    z-index: 1020;
     cursor: pointer;
 }
 
@@ -552,14 +556,18 @@ body, html {
 
 .chat-detail-title {
     position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 18px;
+    left: 60px;
+    right: 60px;
+    text-align: center;
     font-size: 18px;
     font-weight: 700;
     color: #1c1c1e;
     display: none;
-    z-index: 620;
+    z-index: 1020;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chat-list-actions {
@@ -583,12 +591,12 @@ body, html {
 .chat-app.detail-active .chat-detail-back,
 .chat-app.detail-active .chat-detail-menu {
     display: flex;
-    z-index: 620;
+    z-index: 1020;
 }
 
 .chat-app.detail-active .chat-detail-title {
     display: block;
-    z-index: 620;
+    z-index: 1020;
 }
 
 /* --- 導航欄 --- */
