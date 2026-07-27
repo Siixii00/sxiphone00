@@ -1,0 +1,40 @@
+[    2077ms] [LOG] Running frontend commit 019e221ead515e151e8ab8a8e145ba8d6d85702a @ https://www.figma.com/design/l0z3tT3eO8cfpUfIMzFwaT/html.to.design-%E2%80%94-by-%E2%80%B9div%E2%80%BARIOTS-%E2%80%94-Import-websites-to-Figma-designs--web-html-css---Community-?node-id=22-5389&m=dev:646
+[   25561ms] [WARNING] Statsig is not ready to log exposures, will retry in 1 seconds @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   25562ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://browser-intake-datadoghq.com/api/v2/rum:0
+[   25709ms] [LOG] Loaded 194 scripts (10607880b), 63 from cache (786443b) @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   28074ms] [WARNING] Statsig is not ready to log exposures, will retry in 1 seconds @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   33109ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://www.figma.com/api/statsig/v1_ruleset:0
+[   33110ms] [ERROR] Failed to fetch v1 ruleset: S: XHR for "/api/statsig/v1_ruleset" failed with status 401
+    at k (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1337:11504)
+    at async Object.R [as get] (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1337:11891)
+    at async https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:992:212386
+    at async p.validate (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1317:4810)
+    at async y (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1298:268907)
+    at async f (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1298:268111)
+    at async Object.write (https://www.figma.com/webpack-artifacts/assets/1048-8d219bef842ee6be.min.js.br:1298:267730) @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   34374ms] [LOG] [import] git: 019e221ead515e151e8ab8a8e145ba8d6d85702a, stamp: 20396B2D5623C878 @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   40789ms] [WARNING] pixel already configured. @ https://pixel.byspotify.com/ping.min.js:0
+[   43009ms] [INFO] [Fullscreen] Booting... (emscripten version 4.0.21) @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   43703ms] [INFO] [GPU] graphicsAPI:"WebGL 2", vendor:"Google Inc. (NVIDIA)", renderer:"ANGLE (NVIDIA, NVIDIA GeForce GTX 950 (0x00001402) Direct3D11 vs_5_0 ps_5_0, D3D11)" version:"OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))" @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   43777ms] [LOG] [Fullscreen] Ready in 15762.6ms @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   43845ms] [WARNING] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127 @ https://www.figma.com/webpack-artifacts/assets/4426-53d84accacffded2.min.js.br:26
+[   43846ms] [WARNING] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127 @ https://www.figma.com/webpack-artifacts/assets/4426-53d84accacffded2.min.js.br:26
+[   44412ms] [INFO] [FullscreenApp] calling setEditorTheme and setting preference light @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   44632ms] [INFO] [MultiplayerSession] connecting to wss://www.figma.com/api/multiplayer/l0z3tT3eO8cfpUfIMzFwaT?role=editor&tracking_session_id=LDKC3vxdE394M2fC&version=195&recentReload=0&file-load-streaming-compression&scenegraph-queries-initial-nodes=22:5389&client_release=019e221ead515e151e8ab8a8e145ba8d6d85702a @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   44708ms] [INFO] [MultiplayerSession] Joining file version 106 (initial load) @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   46609ms] [WARNING] Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true. See: https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently @ https://static.figma.com/fullscreen/15e7d25e93a0c07d3fa2d95fd04d405c087c8811/fullscreen-harfbuzz-12-3-0/compiled_wasm.js.br:1
+[   46645ms] [INFO] afterJoinEnd PageSyncing: Loaded incrementally {loaded_pages: 7:4981} @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   46658ms] [INFO] [FullscreenApp] calling setEditorTheme and setting preference light @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   47695ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://www.figma.com/api/files/batch:0
+[   48616ms] [LOG] [Fullscreen] loadtime=46.62s maxmem=10930440 @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   49163ms] [WARNING] [GSI_LOGGER]: Your client application uses one of the Google One Tap prompt UI status methods that may stop functioning when FedCM becomes mandatory. Refer to the migration guide to update your code accordingly and opt-in to FedCM to test your changes. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#display_moment and https://developers.google.com/identity/gsi/web/guides/fedcm-migration?s=dc#skipped_moment @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   49192ms] [ERROR] Not signed in with the identity provider. @ https://www.figma.com/design/l0z3tT3eO8cfpUfIMzFwaT/html.to.design-%E2%80%94-by-%E2%80%B9div%E2%80%BARIOTS-%E2%80%94-Import-websites-to-Figma-designs--web-html-css---Community-?node-id=22-5389:0
+[   49266ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://www.figma.com/api/design_systems/libraries_by_library_keys:0
+[   50491ms] [ERROR] [GSI_LOGGER]: FedCM get() rejects with NetworkError: Error retrieving a token. @ https://www.figma.com/webpack-artifacts/assets/vendor-core-c62607e1644d1565.min.js.br:53
+[   50495ms] [LOG] [esbuild-wasm] Initializing from URL: /webpack-artifacts/assets/23e258424348bc39.wasm @ https://www.figma.com/webpack-artifacts/assets/devtools_worker-624e03364da6ca66.min.js.br:1217
+[   52782ms] [LOG] [esbuild-wasm] Initialized @ https://www.figma.com/webpack-artifacts/assets/devtools_worker-624e03364da6ca66.min.js.br:1217
+[   53753ms] [WARNING] Removing intrinsics.%MapPrototype%.getOrInsert @ https://562c4194-9233-43d4-acb5-d3567ea4963e-v3-r-figmaiframepreview.figma.site/__iframe-proxy/webpack-artifacts/assets/untrusted_code_iframe_gen_effect_worker-de2006603d482fbe.min.js.br:20
+[   53753ms] [WARNING] Removing intrinsics.%MapPrototype%.getOrInsertComputed @ https://562c4194-9233-43d4-acb5-d3567ea4963e-v3-r-figmaiframepreview.figma.site/__iframe-proxy/webpack-artifacts/assets/untrusted_code_iframe_gen_effect_worker-de2006603d482fbe.min.js.br:20
+[   53753ms] [WARNING] Removing intrinsics.%WeakMapPrototype%.getOrInsert @ https://562c4194-9233-43d4-acb5-d3567ea4963e-v3-r-figmaiframepreview.figma.site/__iframe-proxy/webpack-artifacts/assets/untrusted_code_iframe_gen_effect_worker-de2006603d482fbe.min.js.br:20
+[   53753ms] [WARNING] Removing intrinsics.%WeakMapPrototype%.getOrInsertComputed @ https://562c4194-9233-43d4-acb5-d3567ea4963e-v3-r-figmaiframepreview.figma.site/__iframe-proxy/webpack-artifacts/assets/untrusted_code_iframe_gen_effect_worker-de2006603d482fbe.min.js.br:20
+[   53754ms] [WARNING] Removing intrinsics.%DatePrototype%.toTemporalInstant @ https://562c4194-9233-43d4-acb5-d3567ea4963e-v3-r-figmaiframepreview.figma.site/__iframe-proxy/webpack-artifacts/assets/untrusted_code_iframe_gen_effect_worker-de2006603d482fbe.min.js.br:20

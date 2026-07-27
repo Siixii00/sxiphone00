@@ -1,0 +1,21 @@
+- generic [ref=e225]:
+  - banner [ref=e226]:
+    - generic [ref=e227]:
+      - heading "Chat" [level=1] [ref=e228]
+      - button "add_circle" [ref=e230] [cursor=pointer]
+  - main [ref=e232]:
+    - generic [ref=e233]:
+      - generic [ref=e234]: chat_bubble
+      - heading "沒有對話" [level=3] [ref=e235]
+      - paragraph [ref=e236]: 點擊右下角按鈕開始新對話
+      - button "開始對話" [ref=e237] [cursor=pointer]
+  - navigation [ref=e238]:
+    - link "person" [ref=e239] [cursor=pointer]:
+      - /url: /chats
+    - link "chat_bubble" [ref=e241] [cursor=pointer]:
+      - /url: /chats
+    - link "settings" [ref=e243] [cursor=pointer]:
+      - /url: /settings
+    - link "more_horiz" [ref=e245] [cursor=pointer]:
+      - /url: /settings
+  - button "add_comment" [ref=e247] [cursor=pointer]

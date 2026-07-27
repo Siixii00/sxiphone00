@@ -1,0 +1,93 @@
+- generic [ref=f8e1]:
+  - generic [ref=f8e5]:
+    - generic [ref=f8e6]:
+      - generic [ref=f8e7]:
+        - generic [ref=f8e10]:
+          - application "Figma Design" [active] [ref=f8e18]
+          - status [ref=f8e19]: Screenreader support for the board is currently disabled. To enable it via Accessibility settings, press Ctrl+K, type Accessibility Settings, and press Enter. To see available keyboard shortcuts, enter Ctrl+Shift+Question mark .
+          - status [ref=f8e21]
+          - generic:
+            - generic:
+              - generic:
+                - region "Comments on canvas":
+                  - button "Create new comment"
+          - generic: XII
+          - generic:
+            - region "Left sidebar":
+              - generic [ref=f8e22]:
+                - button "Main menu" [ref=f8e23]
+                - button "Expand UI for file named html.to.design — by ‹div›RIOTS — Import websites to Figma designs (web,html,css) (Community)" [ref=f8e24]:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - button "html.to.design — by ‹div›RIOTS — Import websites to Figma designs (web,html,css) (Community), file name": html.to.design — by ‹div›RIOTS — Import websites to Figma designs (web,html,css) (Community)
+                        - generic: File name
+                  - generic:
+                    - generic:
+                      - status
+          - generic [ref=f8e27]:
+            - generic [ref=f8e29]:
+              - button "Multiplayer tools" [ref=f8e31]
+              - generic:
+                - generic:
+                  - button "Follow XII" [ref=f8e38]
+                  - button "Follow XII" [ref=f8e48]
+            - button "24%, zoom and view options" [ref=f8e58]:
+              - generic [ref=f8e59]: 24%
+            - generic [ref=f8e65]:
+              - generic [ref=f8e66]:
+                - button "Present" [ref=f8e67]
+                - button "Prototype view" [ref=f8e68]
+              - button "Share" [ref=f8e70]
+        - generic:
+          - generic:
+            - generic:
+              - region "Application toolbar":
+                - generic [ref=f8e71]:
+                  - toolbar "Editor" [ref=f8e73]:
+                    - generic [ref=f8e75]:
+                      - generic:
+                        - generic [ref=f8e78]:
+                          - generic [ref=f8e79]:
+                            - button "Move" [ref=f8e80]
+                            - button "Hand tool" [pressed] [ref=f8e81]
+                            - button "Comment" [ref=f8e82]
+                          - group "Frame" [ref=f8e84]:
+                            - button "Frame" [ref=f8e85]
+                            - button "Region tools" [ref=f8e86]
+                          - group "Rectangle" [ref=f8e87]:
+                            - button "Rectangle" [ref=f8e88]
+                            - button "Shape tools" [ref=f8e89]
+                          - group "Pen" [ref=f8e90]:
+                            - button "Pen" [ref=f8e91]
+                            - button "Creation tools" [ref=f8e92]
+                          - button "Text" [ref=f8e93]
+                          - button "Actions" [ref=f8e94]
+                        - text: Request sent
+                    - radiogroup "Toolbelt Mode" [ref=f8e98]:
+                      - generic [ref=f8e100]:
+                        - generic [ref=f8e102]:
+                          - radio "Design" [checked] [ref=f8e103]
+                          - generic [ref=f8e107]: Design
+                        - generic [ref=f8e108]:
+                          - radio "Motion" [ref=f8e109]
+                          - generic [ref=f8e113]: Motion
+                        - generic [ref=f8e114]:
+                          - radio "Dev Mode" [ref=f8e115]
+                          - generic [ref=f8e119]: Dev Mode
+                  - generic [ref=f8e120]:
+                    - generic [ref=f8e121]: Sign up to comment, edit, inspect and more.
+                    - generic [ref=f8e122]:
+                      - button "Sign up" [ref=f8e123]
+                      - button "Continue with Google" [ref=f8e126]:
+                        - generic: Continue
+      - region "Help/zoom toolbar" [ref=f8e129]:
+        - toolbar "Help/zoom toolbar" [ref=f8e131]:
+          - button "Help" [ref=f8e133]
+    - generic:
+      - status
+      - group [ref=f8e135]:
+        - alert [ref=f8e137]
+        - alert [ref=f8e139]
+  - iframe [ref=f8e141]:
+    

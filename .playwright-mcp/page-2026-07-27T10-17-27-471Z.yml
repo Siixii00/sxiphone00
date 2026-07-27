@@ -1,0 +1,12 @@
+- generic [ref=f17e237]:
+  - banner [ref=f17e238]:
+    - button "chevron_left 返回" [ref=f17e239] [cursor=pointer]:
+      - generic [ref=f17e240]: chevron_left
+      - generic [ref=f17e241]: 返回
+    - heading "AI" [level=1] [ref=f17e242]
+    - button "menu" [ref=f17e243] [cursor=pointer]
+  - main [ref=f17e245]
+  - generic [ref=f17e247]:
+    - button [ref=f17e248] [cursor=pointer]
+    - textbox "輸入訊息" [ref=f17e251]
+    - button "傳送" [disabled] [ref=f17e252]

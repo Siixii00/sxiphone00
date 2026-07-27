@@ -1,0 +1,141 @@
+- generic [ref=f1e11]:
+  - generic [ref=f1e13]:
+    - generic [ref=f1e15]:
+      - generic [ref=f1e16] [cursor=pointer]:
+        - generic [ref=f1e17]: chat_bubble
+        - generic [ref=f1e19]: Chats
+      - generic [ref=f1e20] [cursor=pointer]:
+        - generic [ref=f1e21]: menu_book
+        - generic [ref=f1e23]: World Info
+      - generic [ref=f1e24] [cursor=pointer]:
+        - generic [ref=f1e25]: settings
+        - generic [ref=f1e27]: Settings
+      - generic [ref=f1e28] [cursor=pointer]:
+        - generic [ref=f1e29]: psychology
+        - generic [ref=f1e31]: Memory
+      - generic [ref=f1e32] [cursor=pointer]:
+        - generic [ref=f1e33]: play_circle
+        - generic [ref=f1e35]: Bilibili
+      - generic [ref=f1e36] [cursor=pointer]:
+        - generic [ref=f1e37]: tag
+        - generic [ref=f1e39]: Twitter
+      - generic [ref=f1e40] [cursor=pointer]:
+        - generic [ref=f1e41]: photo_library
+        - generic [ref=f1e43]: 相簿
+      - generic [ref=f1e44] [cursor=pointer]:
+        - generic [ref=f1e45]: public
+        - generic [ref=f1e47]: Chrome
+    - generic [ref=f1e49]:
+      - generic [ref=f1e50] [cursor=pointer]:
+        - generic [ref=f1e51]: article
+        - generic [ref=f1e53]: LOFTER
+      - generic [ref=f1e54] [cursor=pointer]:
+        - generic [ref=f1e55]: music_note
+        - generic [ref=f1e57]: 音樂
+      - generic [ref=f1e58] [cursor=pointer]:
+        - generic [ref=f1e59]: phone
+        - generic [ref=f1e61]: 電話
+      - generic [ref=f1e62] [cursor=pointer]:
+        - generic [ref=f1e63]: live_tv
+        - generic [ref=f1e65]: Twitch
+      - generic [ref=f1e66] [cursor=pointer]:
+        - generic [ref=f1e67]: play_circle
+        - generic [ref=f1e69]: YouTube
+      - generic [ref=f1e70] [cursor=pointer]:
+        - generic [ref=f1e71]: create
+        - generic [ref=f1e73]: AO3
+      - generic [ref=f1e74] [cursor=pointer]:
+        - generic [ref=f1e75]: photo_camera
+        - generic [ref=f1e77]: Instagram
+      - generic [ref=f1e78] [cursor=pointer]:
+        - generic [ref=f1e79]: timer
+        - generic [ref=f1e81]: 番茄鐘
+    - generic [ref=f1e83]:
+      - generic [ref=f1e84] [cursor=pointer]:
+        - generic [ref=f1e85]: cloud
+        - generic [ref=f1e87]: 天氣
+      - generic [ref=f1e88] [cursor=pointer]:
+        - generic [ref=f1e89]: groups
+        - generic [ref=f1e91]: Weverse
+      - generic [ref=f1e92] [cursor=pointer]:
+        - generic [ref=f1e93]: gamepad
+        - generic [ref=f1e95]: 街機廳
+      - generic [ref=f1e96] [cursor=pointer]:
+        - generic [ref=f1e97]: extension
+        - generic [ref=f1e99]: 消消樂
+      - generic [ref=f1e100] [cursor=pointer]:
+        - generic [ref=f1e101]: chat_bubble
+        - generic [ref=f1e103]: Bubble
+      - generic [ref=f1e104] [cursor=pointer]:
+        - generic [ref=f1e105]: theater_comedy
+        - generic [ref=f1e107]: 劇場
+      - generic [ref=f1e108] [cursor=pointer]:
+        - generic [ref=f1e109]: heart
+        - generic [ref=f1e111]: 約會
+      - generic [ref=f1e112] [cursor=pointer]:
+        - generic [ref=f1e113]: book
+        - generic [ref=f1e115]: 交換日記
+    - generic [ref=f1e117]:
+      - generic [ref=f1e118] [cursor=pointer]:
+        - generic [ref=f1e119]: water_bottle
+        - generic [ref=f1e121]: 漂流瓶
+      - generic [ref=f1e122] [cursor=pointer]:
+        - generic [ref=f1e123]: restaurant
+        - generic [ref=f1e125]: 外送
+      - generic [ref=f1e126] [cursor=pointer]:
+        - generic [ref=f1e127]: soup_kitchen
+        - generic [ref=f1e129]: 每日食譜
+      - generic [ref=f1e130] [cursor=pointer]:
+        - generic [ref=f1e131]: shopping_bag
+        - generic [ref=f1e133]: 購物
+      - generic [ref=f1e134] [cursor=pointer]:
+        - generic [ref=f1e135]: wallet
+        - generic [ref=f1e137]: 支付
+      - generic [ref=f1e138] [cursor=pointer]:
+        - generic [ref=f1e139]: qr_code_2
+        - generic [ref=f1e141]: 付款碼
+      - generic [ref=f1e142] [cursor=pointer]:
+        - generic [ref=f1e143]: calendar_month
+        - generic [ref=f1e145]: 時間樹
+      - generic [ref=f1e146] [cursor=pointer]:
+        - generic [ref=f1e147]: couch
+        - generic [ref=f1e149]: 宅家
+    - generic [ref=f1e151]:
+      - generic [ref=f1e152] [cursor=pointer]:
+        - generic [ref=f1e153]: seedling
+        - generic [ref=f1e155]: 農場
+      - generic [ref=f1e156] [cursor=pointer]:
+        - generic [ref=f1e157]: import_contacts
+        - generic [ref=f1e159]: 角色 Wiki
+      - generic [ref=f1e160] [cursor=pointer]:
+        - generic [ref=f1e161]: camera
+        - generic [ref=f1e163]: 照相館
+      - generic [ref=f1e164] [cursor=pointer]:
+        - generic [ref=f1e165]: bookmark
+        - generic [ref=f1e167]: 谷子圖鑑
+      - generic [ref=f1e168] [cursor=pointer]:
+        - generic [ref=f1e169]: palette
+        - generic [ref=f1e171]: 外觀
+      - generic [ref=f1e172] [cursor=pointer]:
+        - generic [ref=f1e173]: store
+        - generic [ref=f1e175]: 主題商店
+      - generic [ref=f1e176] [cursor=pointer]:
+        - generic [ref=f1e177]: mood
+        - generic [ref=f1e179]: 表情商店
+      - generic [ref=f1e180] [cursor=pointer]:
+        - generic [ref=f1e181]: redeem
+        - generic [ref=f1e183]: 禮物商店
+    - generic [ref=f1e185]:
+      - generic [ref=f1e186] [cursor=pointer]:
+        - generic [ref=f1e187]: key
+        - generic [ref=f1e189]: Passkey
+      - generic [ref=f1e190] [cursor=pointer]:
+        - generic [ref=f1e191]: touch_app
+        - generic [ref=f1e193]: 輔助觸控
+      - generic [ref=f1e194] [cursor=pointer]:
+        - generic [ref=f1e195]: grid_view
+        - generic [ref=f1e197]: 小工具
+  - generic [ref=f1e205]:
+    - generic [ref=f1e206] [cursor=pointer]: chat_bubble
+    - generic [ref=f1e209] [cursor=pointer]: menu_book
+    - generic [ref=f1e212] [cursor=pointer]: settings

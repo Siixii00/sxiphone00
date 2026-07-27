@@ -1,0 +1,4 @@
+[     402ms] [WARNING] cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation @ https://cdn.tailwindcss.com/?plugins=forms,container-queries:63
+[     922ms] [WARNING] Error while trying to use the following icon from the Manifest: http://localhost:3000/assets/icons/icon-192.png (Download error or resource isn't a valid image) @ http://localhost:3000/:0
+[    1079ms] [LOG] [DB] 已刪除舊資料庫: ios-classic-ai @ http://localhost:3000/js/db.js:12
+[    1402ms] [LOG] ServiceWorker registered: http://localhost:3000/ @ http://localhost:3000/js/app.js:175

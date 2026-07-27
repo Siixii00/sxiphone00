@@ -1,0 +1,76 @@
+- generic [ref=f17e7]:
+  - generic [ref=f17e237]:
+    - banner [ref=f17e238]:
+      - button "chevron_left 返回" [ref=f17e239] [cursor=pointer]:
+        - generic [ref=f17e240]: chevron_left
+        - generic [ref=f17e241]: 返回
+      - heading "AI" [level=1] [ref=f17e242]
+      - button "menu" [ref=f17e243] [cursor=pointer]
+    - main [ref=f17e245]
+    - generic [ref=f17e247]:
+      - button [active] [ref=f17e248] [cursor=pointer]
+      - textbox "輸入訊息" [ref=f17e251]
+      - button "傳送" [disabled] [ref=f17e252]
+  - generic [ref=f17e254]:
+    - generic [ref=f17e256]: 功能選單
+    - generic [ref=f17e257]:
+      - generic [ref=f17e258] [cursor=pointer]:
+        - generic [ref=f17e259]: photo_library
+        - generic [ref=f17e261]: 相簿
+      - generic [ref=f17e262] [cursor=pointer]:
+        - generic [ref=f17e263]: photo_camera
+        - generic [ref=f17e265]: 拍照
+      - generic [ref=f17e266] [cursor=pointer]:
+        - generic [ref=f17e267]: videocam
+        - generic [ref=f17e269]: 影片
+      - generic [ref=f17e270] [cursor=pointer]:
+        - generic [ref=f17e271]: mic
+        - generic [ref=f17e273]: 語音
+      - generic [ref=f17e274] [cursor=pointer]:
+        - generic [ref=f17e275]: location_on
+        - generic [ref=f17e277]: 位置
+      - generic [ref=f17e278] [cursor=pointer]:
+        - generic [ref=f17e279]: contact_page
+        - generic [ref=f17e281]: 名片
+      - generic [ref=f17e282] [cursor=pointer]:
+        - generic [ref=f17e283]: attach_file
+        - generic [ref=f17e285]: 檔案
+      - generic [ref=f17e286] [cursor=pointer]:
+        - generic [ref=f17e287]: schedule
+        - generic [ref=f17e289]: 日程
+      - generic [ref=f17e290] [cursor=pointer]:
+        - generic [ref=f17e291]: poll
+        - generic [ref=f17e293]: 投票
+      - generic [ref=f17e294] [cursor=pointer]:
+        - generic [ref=f17e295]: emoji_emotions
+        - generic [ref=f17e297]: 表情
+      - generic [ref=f17e298] [cursor=pointer]:
+        - generic [ref=f17e299]: gift
+        - generic [ref=f17e301]: 禮物
+      - generic [ref=f17e302] [cursor=pointer]:
+        - generic [ref=f17e303]: payments
+        - generic [ref=f17e305]: 轉帳
+      - generic [ref=f17e306] [cursor=pointer]:
+        - generic [ref=f17e307]: shopping_bag
+        - generic [ref=f17e309]: 購物
+      - generic [ref=f17e310] [cursor=pointer]:
+        - generic [ref=f17e311]: restaurant
+        - generic [ref=f17e313]: 外送
+      - generic [ref=f17e314] [cursor=pointer]:
+        - generic [ref=f17e315]: map
+        - generic [ref=f17e317]: 地圖
+      - generic [ref=f17e318] [cursor=pointer]:
+        - generic [ref=f17e319]: music_note
+        - generic [ref=f17e321]: 音樂
+      - generic [ref=f17e322] [cursor=pointer]:
+        - generic [ref=f17e323]: article
+        - generic [ref=f17e325]: 筆記
+      - generic [ref=f17e326] [cursor=pointer]:
+        - generic [ref=f17e327]: qr_code_2
+        - generic [ref=f17e329]: QR Code
+      - generic [ref=f17e330] [cursor=pointer]:
+        - generic [ref=f17e331]: share
+        - generic [ref=f17e333]: 分享
+      - generic [ref=f17e334] [cursor=pointer]:
+        - generic [ref=f17e335]: more_horiz
+        - generic [ref=f17e337]: 更多
