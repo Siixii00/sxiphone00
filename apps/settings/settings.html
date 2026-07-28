@@ -114,6 +114,17 @@
                                 </select>
                                 <p class="ios-caption" style="margin-top:4px;">若介意 API 消耗，可選擇其他 API 專門用於記憶向量化與總結。</p>
                             </div>
+
+                            <div class="ios-cell-v" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ios-separator);">
+                                <label class="cell-label">綁定用戶面具</label>
+                                <p class="ios-caption" style="margin-top:4px;">選擇此角色對話時預設使用的用戶面具（身份）</p>
+                                <div class="ios-cell" style="margin-top:8px;">
+                                    <label class="cell-label" for="char-bound-user-select">綁定用戶</label>
+                                    <select id="char-bound-user-select" class="ios-select">
+                                        <option value="">不綁定（使用預設用戶）</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div style="padding: 16px; display: flex; justify-content: center; gap: 12px;">
@@ -267,14 +278,14 @@
                     <span class="cell-label">API 網址</span>
                     <input id="newApiUrl" class="ios-input"
                            placeholder="https://api.openai.com/v1"
-                           oninput="localStorage.setItem('sx_new_api_url', this.value)">
+                           oninput="(async () => { await sxSetItem('sx_new_api_url', this.value); })()">
                 </div>
 
                 <div class="cell-v">
                     <span class="cell-label">API Key（可留空）</span>
                     <input id="newApiKey" class="ios-input"
                            placeholder="若不需要可不填"
-                           oninput="localStorage.setItem('sx_new_api_key', this.value)">
+                           oninput="(async () => { await sxSetItem('sx_new_api_key', this.value); })()">
                 </div>
 
                 <div class="btn-row">
@@ -2070,6 +2081,8 @@
 </div> <!-- settingsModal -->
 
 <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
+<script src="../scripts/sx-storage.js"></script>
+<script src="../scripts/sx-helper.js"></script>
 <script src="../scripts/shared-settings.js"></script>
 <script src="../scripts/unified-storage-manager.js"></script>
 <script src="../scripts/app-appearance-settings.js"></script>

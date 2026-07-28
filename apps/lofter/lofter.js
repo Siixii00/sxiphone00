@@ -314,35 +314,11 @@ function toggleCollapsible(headerEl) {
 window.toggleCollapsible = toggleCollapsible;
 
 async function getStorageItem(key) {
-  if (typeof localforage !== 'undefined') {
-    try {
-      const value = await localforage.getItem(key);
-      if (value !== null) return value;
-    } catch (e) {
-      console.warn('[Lofter] localforage 讀取失敗，使用 localStorage:', e);
-    }
-  }
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return await sxGetJSON(key);
 }
 
 async function setStorageItem(key, value) {
-  if (typeof localforage !== 'undefined') {
-    try {
-      await localforage.setItem(key, value);
-    } catch (e) {
-      console.warn('[Lofter] localforage 寫入失敗:', e);
-    }
-  }
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.warn('[Lofter] localStorage 寫入失敗:', e);
-  }
+  return await sxSetJSON(key, value);
 }
 
 let bookmarksCache = null;
@@ -401,7 +377,7 @@ async function renderFeed() {
 
   const bookmarks = await getBookmarks();
   const bookmarkIds = new Set(bookmarks.map(b => b.id));
-  const followList = loadListFromStorage(FOLLOW_POST_KEY);
+  const followList = await loadListFromStorage(FOLLOW_POST_KEY);
   const followSet = new Set(followList.map(item => `${item.title}-${item.author}`));
 
   feedEl.innerHTML = list.map((post, index) => {
@@ -590,7 +566,7 @@ function bindFeedEvents() {
 }
 
 function bindFollowEvents(container) {
-  container?.addEventListener('click', (event) => {
+  container?.addEventListener('click', async (event) => {
     const followBtn = event.target.closest('.follow-action');
     if (!followBtn) return;
     const card = event.target.closest('.post-card');
@@ -601,21 +577,19 @@ function bindFollowEvents(container) {
     const fullContent = card.querySelector('.post-full-content')?.textContent || '';
     const category = card.querySelector('.meta')?.textContent?.split('·')[0]?.trim() || '同人文';
     
-    const list = loadListFromStorage(FOLLOW_POST_KEY);
+    const list = await loadListFromStorage(FOLLOW_POST_KEY);
     const exists = list.find(item => item.title === title && item.author === author);
     
     if (exists) {
-      // 已追蹤，取消追蹤
       const index = list.findIndex(item => item.title === title && item.author === author);
       if (index >= 0) {
         list.splice(index, 1);
-        localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
+        await setStorageItem(FOLLOW_POST_KEY, list);
         followBtn.classList.remove('is-followed');
         followBtn.querySelector('i').className = 'far fa-star';
         followBtn.querySelector('span').textContent = '追蹤';
       }
     } else {
-      // 新增追蹤
       list.unshift({ 
         title, 
         author, 
@@ -624,25 +598,25 @@ function bindFollowEvents(container) {
         fullContent,
         category
       });
-      localStorage.setItem(FOLLOW_POST_KEY, JSON.stringify(list));
+      await setStorageItem(FOLLOW_POST_KEY, list);
       followBtn.classList.add('is-followed');
       followBtn.querySelector('i').className = 'fas fa-star';
       followBtn.querySelector('span').textContent = '已追蹤';
     }
     
-    renderFollowFeed();
+    await renderFollowFeed();
   });
 }
 
 async function callAIAPI(payload) {
-  const apisRaw = localStorage.getItem('api_configs');
+  const apisRaw = await sxGetItem('api_configs');
   console.log('[Lofter] api_configs raw:', apisRaw);
   
   const apis = JSON.parse(apisRaw || '[]');
   console.log('[Lofter] parsed apis:', apis);
   console.log('[Lofter] apis count:', apis.length);
   
-  const activeIndex = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+  const activeIndex = parseInt(await sxGetItem('sx_active_api') || '0', 10);
   console.log('[Lofter] active index:', activeIndex);
   
   const config = apis[activeIndex] || apis[0];
@@ -826,19 +800,18 @@ URL: ${targetUrl}
   throw new Error(`${lastError?.message || '未知錯誤'}（已嘗試 ${maxRetries} 次）`);
 }
 
-function getWorldbookData() {
-  const selectedIds = getSelectedWorldbookIds();
+async function getWorldbookData() {
+  const selectedIds = await getSelectedWorldbookIds();
   const selectedSet = new Set(selectedIds);
   
   const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
   const result = {};
   
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
+    const list = await sxGetJSON(key);
+    if (!list) continue;
     try {
-      const list = JSON.parse(raw);
       if (Array.isArray(list)) {
         const filteredList = list.filter(item => {
           const id = `${cat}-${item.title}`;
@@ -849,12 +822,12 @@ function getWorldbookData() {
         }
       }
     } catch (e) {}
-  });
+  }
   return result;
 }
 
-function getWorldbookDataForPrompt() {
-  const worldbook = getWorldbookData();
+async function getWorldbookDataForPrompt() {
+  const worldbook = await getWorldbookData();
   const result = {};
   
   for (const [cat, entries] of Object.entries(worldbook)) {
@@ -869,13 +842,12 @@ function getWorldbookDataForPrompt() {
   return result;
 }
 
-function getCotDataForPrompt() {
+async function getCotDataForPrompt() {
   const key = 'sx_worldbook_cot';
-  const raw = localStorage.getItem(key);
-  if (!raw) return '';
+  const list = await sxGetJSON(key);
+  if (!list) return '';
   
   try {
-    const list = JSON.parse(raw);
     if (!Array.isArray(list) || list.length === 0) return '';
     
     let cotContent = '\n# 思考參考（以下內容僅供你思考參考，嚴禁在文章中提及或引用）\n';
@@ -892,32 +864,31 @@ function getCotDataForPrompt() {
   }
 }
 
-function getCharacterData(name) {
-  const raw = localStorage.getItem('sx_characters');
-  if (!raw) {
-    const charName = localStorage.getItem('sx_char_name');
+async function getCharacterData(name) {
+  const list = await sxGetJSON('sx_characters');
+  if (!list) {
+    const charName = await sxGetItem('sx_char_name');
     if (name === charName || !name) {
       return {
         name: charName || 'AI 助理',
-        personality: localStorage.getItem('sx_char_personality') || '',
-        background: localStorage.getItem('sx_char_background') || '',
-        avatar: localStorage.getItem('sx_char_avatar') || ''
+        personality: await sxGetItem('sx_char_personality') || '',
+        background: await sxGetItem('sx_char_background') || '',
+        avatar: await sxGetItem('sx_char_avatar') || ''
       };
     }
     return null;
   }
   try {
-    const list = JSON.parse(raw);
     const found = list.find(c => c.name === name);
     if (found) return found;
     
-    const charName = localStorage.getItem('sx_char_name');
+    const charName = await sxGetItem('sx_char_name');
     if (name === charName || !name) {
       return {
         name: charName || 'AI 助理',
-        personality: localStorage.getItem('sx_char_personality') || '',
-        background: localStorage.getItem('sx_char_background') || '',
-        avatar: localStorage.getItem('sx_char_avatar') || ''
+        personality: await sxGetItem('sx_char_personality') || '',
+        background: await sxGetItem('sx_char_background') || '',
+        avatar: await sxGetItem('sx_char_avatar') || ''
       };
     }
     return null;
@@ -926,35 +897,34 @@ function getCharacterData(name) {
   }
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || ''
   };
 }
 
-function getChatHistory(limit = 20) {
-  const raw = localStorage.getItem('sx_chat_history');
-  if (!raw) return [];
+async function getChatHistory(limit = 20) {
+  const history = await sxGetJSON('sx_chat_history');
+  if (!history) return [];
   try {
-    const history = JSON.parse(raw);
     return history.slice(-limit);
   } catch {
     return [];
   }
 }
 
-function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
+async function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
   const [topName, bottomName] = cp.split(' × ');
-  const topChar = getCharacterData(topName);
-  const bottomChar = getCharacterData(bottomName);
-  const user = getUserData();
-  const worldbook = getWorldbookDataForPrompt();
-  const cotContent = getCotDataForPrompt();
-  const chatHistory = getChatHistory(20);
+  const topChar = await getCharacterData(topName);
+  const bottomChar = await getCharacterData(bottomName);
+  const user = await getUserData();
+  const worldbook = await getWorldbookDataForPrompt();
+  const cotContent = await getCotDataForPrompt();
+  const chatHistory = await getChatHistory(20);
   
-  const memoryRaw = localStorage.getItem('sx_memory_tables') || localStorage.getItem('sx_chat_memory');
+  const memoryRaw = await sxGetItem('sx_memory_tables') || await sxGetItem('sx_chat_memory');
   let memoryContext = '';
   if (memoryRaw) {
     try {
@@ -1084,7 +1054,7 @@ function buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRe
     interactionList = '\n# 互動梗\n' + interactions.map(i => `- ${i.title}: ${i.desc}`).join('\n');
   }
 
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
   const contentLength = getCurrentContentLength();
   
   let lengthInstruction = '';
@@ -1183,7 +1153,7 @@ ${styleRef ? `- 參考文風: ${styleRef}` : ''}
 }
 
 async function generateFanfic(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
-  const prompt = buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
+  const prompt = await buildFanficPrompt(cp, worldSettings, interactions, npcs, style, styleRef, isR18, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
   const payload = [
     { role: 'system', content: '你是一位專業的同人文作家，擅長根據角色設定和世界觀創作符合人物性格的同人文。' },
     { role: 'user', content: prompt }
@@ -1236,7 +1206,7 @@ async function handleGenerateFanfic() {
     return;
   }
 
-  const selectedCpList = getSelectedCpList();
+  const selectedCpList = await getSelectedCpList();
   console.log('[Lofter] 選擇的 CP:', selectedCpList);
   
   if (selectedCpList.length === 0) {
@@ -1244,8 +1214,8 @@ async function handleGenerateFanfic() {
     return;
   }
 
-  const selectedWorldSettings = getSelectedWorldSettings();
-  const selectedInteractions = getSelectedInteractions();
+  const selectedWorldSettings = await getSelectedWorldSettings();
+  const selectedInteractions = await getSelectedInteractions();
   console.log('[Lofter] 選擇的世界觀:', selectedWorldSettings);
   console.log('[Lofter] 選擇的互動梗:', selectedInteractions);
   
@@ -1254,21 +1224,21 @@ async function handleGenerateFanfic() {
     return;
   }
 
-  const selectedNpcs = getSelectedNpcs();
+  const selectedNpcs = await getSelectedNpcs();
   console.log('[Lofter] 選擇的 NPC:', selectedNpcs);
 
   const style = likesStyleSelect?.value || '細膩';
   let styleRef = likesStyleRef?.value.trim();
 
   if (style === 'custom-worldbook') {
-    const entries = loadListFromStorage('sx_worldbook_style');
+    const entries = await loadListFromStorage('sx_worldbook_style');
     const selectedIndex = parseInt(worldbookStyleSelect?.value, 10);
     if (entries[selectedIndex]) {
       styleRef = entries[selectedIndex].content || styleRef;
     }
   }
 
-  const isR18 = getCurrentContentRating() === 'r18';
+  const isR18 = await getCurrentContentRating() === 'r18';
   
   const topBodytype = topBodytypeSelect?.value || '';
   const bottomBodytype = bottomBodytypeSelect?.value || '';
@@ -1279,7 +1249,7 @@ async function handleGenerateFanfic() {
   const topGender = topGenderSelect?.value || '';
   const bottomGender = bottomGenderSelect?.value || '';
   
-  saveCurrentCpBodytypes();
+  await saveCurrentCpBodytypes();
 
   isGenerating = true;
   if (likesGenerateBtn) {
@@ -1296,11 +1266,11 @@ async function handleGenerateFanfic() {
 
   try {
     const generatedPosts = [];
-    const contentLength = getCurrentContentLength();
+    const contentLength = await getCurrentContentLength();
     const lengthLabel = contentLength === 'short' ? '短篇' : (contentLength === 'medium' ? '長篇' : '連載');
     
     for (const cp of selectedCpList) {
-      const cpBodytypeData = getCpBodytypes(cp);
+      const cpBodytypeData = await getCpBodytypes(cp);
       const effectiveTopBodytype = topBodytype || cpBodytypeData?.topBodytype || '';
       const effectiveBottomBodytype = bottomBodytype || cpBodytypeData?.bottomBodytype || '';
       const effectiveBodytypeNote = bodytypeNote || cpBodytypeData?.bodytypeNote || '';
@@ -1384,9 +1354,9 @@ const originalLikesGenerateHandler = likesGenerateBtn?.onclick;
 likesGenerateBtn?.removeEventListener('click', originalLikesGenerateHandler);
 likesGenerateBtn?.addEventListener('click', handleGenerateFanfic);
 
-function renderFollowFeed() {
+async function renderFollowFeed() {
   if (!followFeedEl) return;
-  const list = loadListFromStorage(FOLLOW_POST_KEY);
+  const list = await loadListFromStorage(FOLLOW_POST_KEY);
   if (list.length === 0) {
     followFeedEl.innerHTML = '<div class="empty-state"><i class="far fa-star"></i><p>尚未追蹤任何文章</p><p class="empty-hint">在文章中點擊「追蹤」按鈕即可追蹤</p></div>';
     return;
@@ -1449,18 +1419,18 @@ function renderInteractionTropes() {
   bindInteractionEvents();
 }
 
-function renderLikesIdeas() {
+async function renderLikesIdeas() {
   renderWorldSettings();
   renderInteractionTropes();
-  renderNpcCheckboxList();
+  await renderNpcCheckboxList();
 }
 
-function renderNpcCheckboxList() {
+async function renderNpcCheckboxList() {
   const npcList = document.getElementById('lofter-npc-checkbox-list');
   if (!npcList) return;
   
-  const npcPool = loadListFromStorage('sx_npcs') || [];
-  const characters = loadListFromStorage('sx_characters') || [];
+  const npcPool = await loadListFromStorage('sx_npcs') || [];
+  const characters = await loadListFromStorage('sx_characters') || [];
   const allNpcs = [...npcPool, ...characters.filter(c => c.isNpc)];
   
   if (allNpcs.length === 0) {
@@ -1468,7 +1438,7 @@ function renderNpcCheckboxList() {
     return;
   }
   
-  const selectedNpcs = loadListFromStorage('sx_lofter_selected_npcs') || [];
+  const selectedNpcs = await loadListFromStorage('sx_lofter_selected_npcs') || [];
   const selectedSet = new Set(selectedNpcs.map(n => n.name));
   
   npcList.innerHTML = allNpcs.map((npc, index) => {
@@ -1490,10 +1460,10 @@ function bindWorldSettingEvents() {
   if (!worldGrid) return;
   
   worldGrid.querySelectorAll('.idea-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', async () => {
       card.classList.toggle('selected');
       card.setAttribute('aria-pressed', card.classList.contains('selected'));
-      saveWorldSettingSelection();
+      await saveWorldSettingSelection();
     });
     
     card.addEventListener('keydown', (e) => {
@@ -1512,10 +1482,10 @@ function bindInteractionEvents() {
   if (!interactionGrid) return;
   
   interactionGrid.querySelectorAll('.idea-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', async () => {
       card.classList.toggle('selected');
       card.setAttribute('aria-pressed', card.classList.contains('selected'));
-      saveInteractionSelection();
+      await saveInteractionSelection();
     });
     
     card.addEventListener('keydown', (e) => {
@@ -1534,23 +1504,23 @@ function bindNpcCheckboxEvents() {
   if (!npcList) return;
   
   npcList.querySelectorAll('.cp-checkbox-item').forEach(item => {
-    item.addEventListener('click', (e) => {
+    item.addEventListener('click', async (e) => {
       if (e.target.tagName === 'INPUT') return;
       const checkbox = item.querySelector('input[type="checkbox"]');
       checkbox.checked = !checkbox.checked;
       item.classList.toggle('selected', checkbox.checked);
-      saveNpcSelection();
+      await saveNpcSelection();
     });
     
     const checkbox = item.querySelector('input[type="checkbox"]');
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener('change', async () => {
       item.classList.toggle('selected', checkbox.checked);
-      saveNpcSelection();
+      await saveNpcSelection();
     });
   });
 }
 
-function saveWorldSettingSelection() {
+async function saveWorldSettingSelection() {
   const worldGrid = document.getElementById('worldsetting-grid');
   if (!worldGrid) return;
   
@@ -1560,14 +1530,14 @@ function saveWorldSettingSelection() {
     selected.push(index);
   });
   
-  localStorage.setItem('sx_lofter_worldsetting_selection', JSON.stringify(selected));
+  await sxSetJSON('sx_lofter_worldsetting_selection', selected);
 }
 
-function loadWorldSettingSelection() {
+async function loadWorldSettingSelection() {
   const worldGrid = document.getElementById('worldsetting-grid');
   if (!worldGrid) return;
   
-  const selected = JSON.parse(localStorage.getItem('sx_lofter_worldsetting_selection') || '[]');
+  const selected = await sxGetJSON('sx_lofter_worldsetting_selection') || [];
   const selectedSet = new Set(selected);
   
   worldGrid.querySelectorAll('.idea-card').forEach(card => {
@@ -1579,7 +1549,7 @@ function loadWorldSettingSelection() {
   });
 }
 
-function saveInteractionSelection() {
+async function saveInteractionSelection() {
   const interactionGrid = document.getElementById('interaction-grid');
   if (!interactionGrid) return;
   
@@ -1589,14 +1559,14 @@ function saveInteractionSelection() {
     selected.push(index);
   });
   
-  localStorage.setItem('sx_lofter_interaction_selection', JSON.stringify(selected));
+  await sxSetJSON('sx_lofter_interaction_selection', selected);
 }
 
-function loadInteractionSelection() {
+async function loadInteractionSelection() {
   const interactionGrid = document.getElementById('interaction-grid');
   if (!interactionGrid) return;
   
-  const selected = JSON.parse(localStorage.getItem('sx_lofter_interaction_selection') || '[]');
+  const selected = await sxGetJSON('sx_lofter_interaction_selection') || [];
   const selectedSet = new Set(selected);
   
   interactionGrid.querySelectorAll('.idea-card').forEach(card => {
@@ -1608,12 +1578,12 @@ function loadInteractionSelection() {
   });
 }
 
-function saveNpcSelection() {
+async function saveNpcSelection() {
   const npcList = document.getElementById('lofter-npc-checkbox-list');
   if (!npcList) return;
   
-  const npcPool = loadListFromStorage('sx_npcs') || [];
-  const characters = loadListFromStorage('sx_characters') || [];
+  const npcPool = await loadListFromStorage('sx_npcs') || [];
+  const characters = await loadListFromStorage('sx_characters') || [];
   const allNpcs = [...npcPool, ...characters.filter(c => c.isNpc)];
   
   const selected = [];
@@ -1627,21 +1597,21 @@ function saveNpcSelection() {
     }
   });
   
-  localStorage.setItem('sx_lofter_selected_npcs', JSON.stringify(selected));
+  await sxSetJSON('sx_lofter_selected_npcs', selected);
 }
 
-function getSelectedWorldSettings() {
-  const selected = JSON.parse(localStorage.getItem('sx_lofter_worldsetting_selection') || '[]');
+async function getSelectedWorldSettings() {
+  const selected = await sxGetJSON('sx_lofter_worldsetting_selection') || [];
   return selected.map(index => worldSettings[index]).filter(Boolean);
 }
 
-function getSelectedInteractions() {
-  const selected = JSON.parse(localStorage.getItem('sx_lofter_interaction_selection') || '[]');
+async function getSelectedInteractions() {
+  const selected = await sxGetJSON('sx_lofter_interaction_selection') || [];
   return selected.map(index => interactionTropes[index]).filter(Boolean);
 }
 
-function getSelectedNpcs() {
-  return JSON.parse(localStorage.getItem('sx_lofter_selected_npcs') || '[]');
+async function getSelectedNpcs() {
+  return await sxGetJSON('sx_lofter_selected_npcs') || [];
 }
 
 function updateIdeaSelection(targetCard, selected) {
@@ -1649,20 +1619,20 @@ function updateIdeaSelection(targetCard, selected) {
   targetCard.setAttribute('aria-pressed', String(selected));
 }
 
-function getStoredIdeaSelection() {
-  const list = loadListFromStorage(IDEA_SELECTION_KEY);
+async function getStoredIdeaSelection() {
+  const list = await loadListFromStorage(IDEA_SELECTION_KEY);
   return Array.isArray(list) ? list.map(item => Number(item)).filter(Number.isFinite) : [];
 }
 
-function setStoredIdeaSelection(selection) {
+async function setStoredIdeaSelection(selection) {
   const normalized = Array.from(new Set(selection))
     .map(item => Number(item))
     .filter(index => Number.isFinite(index) && index >= 0 && index < ideaData.length);
-  localStorage.setItem(IDEA_SELECTION_KEY, JSON.stringify(normalized));
+  await sxSetJSON(IDEA_SELECTION_KEY, normalized);
 }
 
-function applyIdeaSelection() {
-  const selectedSet = new Set(getStoredIdeaSelection());
+async function applyIdeaSelection() {
+  const selectedSet = new Set(await getStoredIdeaSelection());
   [ideaGridEl, likesIdeaGridEl].forEach((grid) => {
     if (!grid) return;
     grid.querySelectorAll('.idea-card').forEach(card => {
@@ -1672,49 +1642,49 @@ function applyIdeaSelection() {
   });
 }
 
-function syncIdeaSelectionFromGrid(grid) {
+async function syncIdeaSelectionFromGrid(grid) {
   if (!grid) return;
   const selected = Array.from(grid.querySelectorAll('.idea-card.selected'))
     .map(card => Number(card.dataset.index))
     .filter(Number.isFinite);
-  setStoredIdeaSelection(selected);
-  applyIdeaSelection();
+  await setStoredIdeaSelection(selected);
+  await applyIdeaSelection();
 }
 
-function setAllIdeaSelection(selected) {
+async function setAllIdeaSelection(selected) {
   if (selected) {
-    setStoredIdeaSelection(ideaData.map((_, index) => index));
+    await setStoredIdeaSelection(ideaData.map((_, index) => index));
   } else {
-    setStoredIdeaSelection([]);
+    await setStoredIdeaSelection([]);
   }
-  applyIdeaSelection();
+  await applyIdeaSelection();
 }
 
 function bindIdeaEvents() {
-  ideaGridEl?.addEventListener('click', (event) => {
+  ideaGridEl?.addEventListener('click', async (event) => {
     const card = event.target.closest('.idea-card');
     if (!card) return;
     const isSelected = card.classList.contains('selected');
     updateIdeaSelection(card, !isSelected);
-    syncIdeaSelectionFromGrid(ideaGridEl);
+    await syncIdeaSelectionFromGrid(ideaGridEl);
   });
 
-  ideaGridEl?.addEventListener('keydown', (event) => {
+  ideaGridEl?.addEventListener('keydown', async (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     const card = event.target.closest('.idea-card');
     if (!card) return;
     event.preventDefault();
     const isSelected = card.classList.contains('selected');
     updateIdeaSelection(card, !isSelected);
-    syncIdeaSelectionFromGrid(ideaGridEl);
+    await syncIdeaSelectionFromGrid(ideaGridEl);
   });
 
-  ideaSelectAllBtn?.addEventListener('click', () => {
-    setAllIdeaSelection(true);
+  ideaSelectAllBtn?.addEventListener('click', async () => {
+    await setAllIdeaSelection(true);
   });
 
-  ideaClearBtn?.addEventListener('click', () => {
-    setAllIdeaSelection(false);
+  ideaClearBtn?.addEventListener('click', async () => {
+    await setAllIdeaSelection(false);
   });
 
   ideaGenerateBtn?.addEventListener('click', () => {
@@ -1727,8 +1697,8 @@ function bindIdeaEvents() {
   });
 }
 
-function bindLikesIdeaEvents() {
-  likesSelectAllBtn?.addEventListener('click', () => {
+async function bindLikesIdeaEvents() {
+  likesSelectAllBtn?.addEventListener('click', async () => {
     const worldGrid = document.getElementById('worldsetting-grid');
     const interactionGrid = document.getElementById('interaction-grid');
     
@@ -1742,11 +1712,11 @@ function bindLikesIdeaEvents() {
       card.setAttribute('aria-pressed', 'true');
     });
     
-    saveWorldSettingSelection();
-    saveInteractionSelection();
+    await saveWorldSettingSelection();
+    await saveInteractionSelection();
   });
 
-  likesClearBtn?.addEventListener('click', () => {
+  likesClearBtn?.addEventListener('click', async () => {
     const worldGrid = document.getElementById('worldsetting-grid');
     const interactionGrid = document.getElementById('interaction-grid');
     
@@ -1760,25 +1730,24 @@ function bindLikesIdeaEvents() {
       card.setAttribute('aria-pressed', 'false');
     });
     
-    saveWorldSettingSelection();
-    saveInteractionSelection();
+    await saveWorldSettingSelection();
+    await saveInteractionSelection();
   });
 }
 
 const WORLDBOOK_SELECTION_KEY = 'sx_lofter_worldbook_selection';
 
-function renderWorldbookCheckboxList() {
+async function renderWorldbookCheckboxList() {
   if (!worldbookCheckboxList) return;
   
   const categories = ['style', 'global', 'keywords', 'backend'];
   const allEntries = [];
   
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
+    const list = await sxGetJSON(key);
+    if (!list) continue;
     try {
-      const list = JSON.parse(raw);
       if (Array.isArray(list)) {
         list.forEach(item => {
           if (!item || !item.title) return;
@@ -1790,14 +1759,14 @@ function renderWorldbookCheckboxList() {
         });
       }
     } catch (e) {}
-  });
+  }
   
   if (allEntries.length === 0) {
     worldbookCheckboxList.innerHTML = '<div class="cp-empty">尚無世界書條目，請先到世界書頁面新增</div>';
     return;
   }
   
-  const selectedWorldbooks = loadListFromStorage(WORLDBOOK_SELECTION_KEY);
+  const selectedWorldbooks = await loadListFromStorage(WORLDBOOK_SELECTION_KEY);
   const selectedSet = new Set(selectedWorldbooks);
   
   worldbookCheckboxList.innerHTML = allEntries.map((entry, index) => {
@@ -1813,7 +1782,7 @@ function renderWorldbookCheckboxList() {
 }
 
 function bindWorldbookCheckboxEvents() {
-  worldbookCheckboxList?.addEventListener('click', (event) => {
+  worldbookCheckboxList?.addEventListener('click', async (event) => {
     const item = event.target.closest('.cp-checkbox-item');
     if (!item) return;
     
@@ -1825,34 +1794,33 @@ function bindWorldbookCheckboxEvents() {
     
     item.classList.toggle('selected', checkbox.checked);
     
-    saveWorldbookSelection();
+    await saveWorldbookSelection();
   });
 }
 
-function saveWorldbookSelection() {
+async function saveWorldbookSelection() {
   const checkboxes = worldbookCheckboxList?.querySelectorAll('input[type="checkbox"]:checked') || [];
   const selected = Array.from(checkboxes).map(cb => {
     const item = cb.closest('.cp-checkbox-item');
     return item?.dataset.worldbookId;
   }).filter(Boolean);
   
-  localStorage.setItem(WORLDBOOK_SELECTION_KEY, JSON.stringify(selected));
+  await sxSetJSON(WORLDBOOK_SELECTION_KEY, selected);
 }
 
-function getSelectedWorldbookIds() {
-  return loadListFromStorage(WORLDBOOK_SELECTION_KEY);
+async function getSelectedWorldbookIds() {
+  return await loadListFromStorage(WORLDBOOK_SELECTION_KEY);
 }
 
-function loadWorldbookEntries() {
+async function loadWorldbookEntries() {
   const categories = ['style', 'global', 'keywords', 'backend'];
   const entries = [];
 
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
+    const list = await sxGetJSON(key);
+    if (!list) continue;
     try {
-      const list = JSON.parse(raw);
       if (Array.isArray(list)) {
         list.forEach(item => {
           if (!item || !item.title) return;
@@ -1866,7 +1834,7 @@ function loadWorldbookEntries() {
     } catch (e) {
       console.warn('worldbook parse failed', key, e);
     }
-  });
+  }
 
   if (!worldbookListEl) return;
   if (entries.length === 0) {
@@ -1882,18 +1850,17 @@ function loadWorldbookEntries() {
   `).join('');
 }
 
-function loadListFromStorage(key) {
+async function loadListFromStorage(key) {
   try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
+    const parsed = await sxGetJSON(key);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function getWorldbookStyleSample() {
-  const entries = loadListFromStorage('sx_worldbook_style');
+async function getWorldbookStyleSample() {
+  const entries = await loadListFromStorage('sx_worldbook_style');
   if (!entries.length) return null;
   const pick = entries[Math.floor(Math.random() * entries.length)];
   const title = pick?.title || '世界書文風';
@@ -1904,8 +1871,8 @@ function getWorldbookStyleSample() {
   };
 }
 
-function loadWorldbookStyleOptions() {
-  const entries = loadListFromStorage('sx_worldbook_style');
+async function loadWorldbookStyleOptions() {
+  const entries = await loadListFromStorage('sx_worldbook_style');
   if (!worldbookStyleSelect) return;
   
   if (entries.length === 0) {
@@ -1918,14 +1885,14 @@ function loadWorldbookStyleOptions() {
   ).join('');
 }
 
-function bindStyleSelectEvents() {
-  likesStyleSelect?.addEventListener('change', () => {
+async function bindStyleSelectEvents() {
+  likesStyleSelect?.addEventListener('change', async () => {
     const value = likesStyleSelect.value;
     if (value === 'custom-worldbook') {
       if (worldbookStyleContainer) {
         worldbookStyleContainer.style.display = 'grid';
       }
-      loadWorldbookStyleOptions();
+      await loadWorldbookStyleOptions();
     } else {
       if (worldbookStyleContainer) {
         worldbookStyleContainer.style.display = 'none';
@@ -1933,9 +1900,9 @@ function bindStyleSelectEvents() {
     }
   });
   
-  worldbookStyleSelect?.addEventListener('change', () => {
+  worldbookStyleSelect?.addEventListener('change', async () => {
     const index = parseInt(worldbookStyleSelect.value, 10);
-    const entries = loadListFromStorage('sx_worldbook_style');
+    const entries = await loadListFromStorage('sx_worldbook_style');
     if (entries[index] && likesStyleRef) {
       likesStyleRef.value = entries[index].content || '';
     }
@@ -1952,16 +1919,16 @@ function renderSelectOptions(selectEl, list, placeholder) {
   selectEl.innerHTML = options.join('');
 }
 
-function renderCpCheckboxList() {
+async function renderCpCheckboxList() {
   if (!likesCpCheckboxList) return;
-  const list = loadListFromStorage(CP_FOLLOW_KEY);
+  const list = await loadListFromStorage(CP_FOLLOW_KEY);
   
   if (list.length === 0) {
     likesCpCheckboxList.innerHTML = '<div class="cp-empty">尚未設定關注 CP，請先到「發現」頁面設定</div>';
     return;
   }
   
-  const selectedCp = loadListFromStorage(SELECTED_CP_KEY);
+  const selectedCp = await loadListFromStorage(SELECTED_CP_KEY);
   const selectedSet = new Set(selectedCp);
   
   likesCpCheckboxList.innerHTML = list.map((item, index) => {
@@ -1976,13 +1943,13 @@ function renderCpCheckboxList() {
   }).join('');
 }
 
-function getCpBodytypes(cpName) {
-  const allBodytypes = loadListFromStorage(CP_BODYTYPES_KEY);
+async function getCpBodytypes(cpName) {
+  const allBodytypes = await loadListFromStorage(CP_BODYTYPES_KEY);
   return allBodytypes.find(item => item.cp === cpName) || null;
 }
 
-function saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
-  const allBodytypes = loadListFromStorage(CP_BODYTYPES_KEY);
+async function saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender) {
+  const allBodytypes = await loadListFromStorage(CP_BODYTYPES_KEY);
   const existingIndex = allBodytypes.findIndex(item => item.cp === cpName);
   
   const bodytypeData = {
@@ -2001,11 +1968,11 @@ function saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topG
     allBodytypes.push(bodytypeData);
   }
   
-  localStorage.setItem(CP_BODYTYPES_KEY, JSON.stringify(allBodytypes));
+  await sxSetJSON(CP_BODYTYPES_KEY, allBodytypes);
 }
 
-function loadCpBodytypeToUI(cpName) {
-  const bodytypeData = getCpBodytypes(cpName);
+async function loadCpBodytypeToUI(cpName) {
+  const bodytypeData = await getCpBodytypes(cpName);
   
   if (bodytypeData) {
     if (topBodytypeSelect) topBodytypeSelect.value = bodytypeData.topBodytype || '';
@@ -2028,8 +1995,8 @@ function loadCpBodytypeToUI(cpName) {
   }
 }
 
-function saveCurrentCpBodytypes() {
-  const selectedCpList = getSelectedCpList();
+async function saveCurrentCpBodytypes() {
+  const selectedCpList = await getSelectedCpList();
   if (selectedCpList.length === 0) return;
   
   const cpName = selectedCpList[0];
@@ -2042,11 +2009,11 @@ function saveCurrentCpBodytypes() {
   const topGender = topGenderSelect?.value || '';
   const bottomGender = bottomGenderSelect?.value || '';
   
-  saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
+  await saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
 }
 
 function bindCpCheckboxEvents() {
-  likesCpCheckboxList?.addEventListener('click', (event) => {
+  likesCpCheckboxList?.addEventListener('click', async (event) => {
     const item = event.target.closest('.cp-checkbox-item');
     if (!item) return;
     
@@ -2059,99 +2026,112 @@ function bindCpCheckboxEvents() {
     
     item.classList.toggle('selected', checkbox.checked);
     
-    saveSelectedCp();
+    await saveSelectedCp();
     
     if (checkbox.checked) {
-      loadCpBodytypeToUI(cpName);
+      await loadCpBodytypeToUI(cpName);
     }
   });
 }
 
-function saveSelectedCp() {
+async function saveSelectedCp() {
   const checkboxes = likesCpCheckboxList?.querySelectorAll('input[type="checkbox"]:checked') || [];
   const selected = Array.from(checkboxes).map(cb => {
     const item = cb.closest('.cp-checkbox-item');
     return item?.dataset.cp;
   }).filter(Boolean);
   
-  localStorage.setItem(SELECTED_CP_KEY, JSON.stringify(selected));
+  await sxSetJSON(SELECTED_CP_KEY, selected);
 }
 
-function getSelectedCpList() {
-  return loadListFromStorage(SELECTED_CP_KEY);
+async function getSelectedCpList() {
+  return await loadListFromStorage(SELECTED_CP_KEY);
 }
 
-function getCurrentContentRating() {
-  return localStorage.getItem(CONTENT_RATING_KEY) || 'general';
+async function getCurrentContentRating() {
+  return await sxGetItem(CONTENT_RATING_KEY) || 'general';
 }
 
-function setContentRating(rating) {
-  localStorage.setItem(CONTENT_RATING_KEY, rating);
+async function setContentRating(rating) {
+  await sxSetItem(CONTENT_RATING_KEY, rating);
 }
 
-function getCurrentContentLength() {
-  return localStorage.getItem(CONTENT_LENGTH_KEY) || 'medium';
+async function getCurrentContentLength() {
+  return await sxGetItem(CONTENT_LENGTH_KEY) || 'medium';
 }
 
-function setContentLength(length) {
-  localStorage.setItem(CONTENT_LENGTH_KEY, length);
+async function setContentLength(length) {
+  await sxSetItem(CONTENT_LENGTH_KEY, length);
 }
 
-function bindRatingEvents() {
+async function bindRatingEvents() {
   const ratingBtns = document.querySelectorAll('.rating-btn');
   
   ratingBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       ratingBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      setContentRating(btn.dataset.rating);
+      await setContentRating(btn.dataset.rating);
     });
   });
   
-  const savedRating = getCurrentContentRating();
+  const savedRating = await getCurrentContentRating();
   ratingBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.rating === savedRating);
   });
 }
 
 function bindBodytypeEvents() {
-  topBodytypeSelect?.addEventListener('change', saveCurrentCpBodytypes);
-  bottomBodytypeSelect?.addEventListener('change', saveCurrentCpBodytypes);
-  bodytypeNoteInput?.addEventListener('blur', saveCurrentCpBodytypes);
+  topBodytypeSelect?.addEventListener('change', async () => {
+    await saveCurrentCpBodytypes();
+  });
+  bottomBodytypeSelect?.addEventListener('change', async () => {
+    await saveCurrentCpBodytypes();
+  });
+  bodytypeNoteInput?.addEventListener('blur', async () => {
+    await saveCurrentCpBodytypes();
+  });
   
   const topGenderSelect = document.getElementById('lofter-top-gender');
   const bottomGenderSelect = document.getElementById('lofter-bottom-gender');
-  topGenderSelect?.addEventListener('change', saveCurrentCpBodytypes);
-  bottomGenderSelect?.addEventListener('change', saveCurrentCpBodytypes);
+  topGenderSelect?.addEventListener('change', async () => {
+    await saveCurrentCpBodytypes();
+  });
+  bottomGenderSelect?.addEventListener('change', async () => {
+    await saveCurrentCpBodytypes();
+  });
 }
 
-function bindLengthEvents() {
+async function bindLengthEvents() {
   const lengthBtns = document.querySelectorAll('.length-btn');
   
   lengthBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       lengthBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      setContentLength(btn.dataset.length);
+      await setContentLength(btn.dataset.length);
     });
   });
   
-  const savedLength = getCurrentContentLength();
+  const savedLength = await getCurrentContentLength();
   lengthBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.length === savedLength);
   });
 }
 
-function renderCpList() {
+async function renderCpList() {
   if (!cpListEl) return;
-  const list = loadListFromStorage(CP_FOLLOW_KEY);
+  const list = await loadListFromStorage(CP_FOLLOW_KEY);
   if (list.length === 0) {
     cpListEl.innerHTML = '<div class="cp-item">尚未設定關注 CP</div>';
     return;
   }
-  cpListEl.innerHTML = list.map((item, index) => {
+  
+  const htmlParts = [];
+  for (let index = 0; index < list.length; index++) {
+    const item = list[index];
     const cpName = `${item.top} × ${item.bottom}`;
-    const bodytypeData = getCpBodytypes(cpName);
+    const bodytypeData = await getCpBodytypes(cpName);
     let infoText = '';
     if (bodytypeData) {
       const parts = [];
@@ -2161,16 +2141,18 @@ function renderCpList() {
       if (bodytypeData.bottomBodytype) parts.push(`受體型:${bodytypeData.bottomBodytype}`);
       if (parts.length > 0) infoText = ` <small>(${parts.join('、')})</small>`;
     }
-    return `
+    htmlParts.push(`
     <div class="cp-item">
       <span>${escapeHTML(item.top)} × ${escapeHTML(item.bottom)}${infoText}</span>
       <button type="button" data-remove-index="${index}">移除</button>
     </div>
-  `}).join('');
+  `);
+  }
+  cpListEl.innerHTML = htmlParts.join('');
 }
 
-function bindCpEvents() {
-  cpAddBtn?.addEventListener('click', () => {
+async function bindCpEvents() {
+  cpAddBtn?.addEventListener('click', async () => {
     const topName = cpTopSelect?.value || '';
     const bottomName = cpBottomSelect?.value || '';
     if (!topName || !bottomName) {
@@ -2192,13 +2174,13 @@ function bindCpEvents() {
     
     const cpName = `${topName} × ${bottomName}`;
     
-    saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
+    await saveCpBodytypes(cpName, topBodytype, bottomBodytype, bodytypeNote, topGender, bottomGender);
     
-    const list = loadListFromStorage(CP_FOLLOW_KEY);
+    const list = await loadListFromStorage(CP_FOLLOW_KEY);
     list.unshift({ top: topName, bottom: bottomName });
-    localStorage.setItem(CP_FOLLOW_KEY, JSON.stringify(list));
-    renderCpList();
-    renderCpCheckboxList();
+    await sxSetJSON(CP_FOLLOW_KEY, list);
+    await renderCpList();
+    await renderCpCheckboxList();
     
     if (discoverTopGender) discoverTopGender.value = '';
     if (discoverBottomGender) discoverBottomGender.value = '';
@@ -2207,16 +2189,16 @@ function bindCpEvents() {
     if (discoverBodytypeNote) discoverBodytypeNote.value = '';
   });
 
-  cpListEl?.addEventListener('click', (event) => {
+  cpListEl?.addEventListener('click', async (event) => {
     const btn = event.target.closest('button[data-remove-index]');
     if (!btn) return;
     const index = Number(btn.dataset.removeIndex);
-    const list = loadListFromStorage(CP_FOLLOW_KEY);
+    const list = await loadListFromStorage(CP_FOLLOW_KEY);
     if (Number.isNaN(index)) return;
     list.splice(index, 1);
-    localStorage.setItem(CP_FOLLOW_KEY, JSON.stringify(list));
-    renderCpList();
-    renderCpCheckboxList();
+    await sxSetJSON(CP_FOLLOW_KEY, list);
+    await renderCpList();
+    await renderCpCheckboxList();
   });
 }
 
@@ -2234,56 +2216,60 @@ function bindNavEvents() {
   });
 }
 
-updateViewToggleUI();
-updatePageView();
-initPostData().then(() => renderFeed());
-renderRandomCpFeed();
-loadWorldbookEntries();
-renderIdeas();
-renderLikesIdeas();
-const cpPool = [
-  ...loadListFromStorage('sx_users'),
-  ...loadListFromStorage('sx_characters'),
-  ...loadListFromStorage('sx_npcs')
-];
-renderSelectOptions(cpTopSelect, cpPool, '選擇攻方角色');
-renderSelectOptions(cpBottomSelect, cpPool, '選擇受方角色');
-renderCpList();
-renderCpCheckboxList();
-loadWorldbookStyleOptions();
-bindTabs();
-bindViewToggle();
-bindFeedEvents();
-bindNavEvents();
-bindIdeaEvents();
-bindLikesIdeaEvents();
-bindCpEvents();
-bindCpCheckboxEvents();
-bindWorldbookCheckboxEvents();
-bindStyleSelectEvents();
-bindRatingEvents();
-bindLengthEvents();
-bindBodytypeEvents();
-bindFollowEvents(feedEl);
-bindFollowEvents(likesFeedEl);
-bindFollowEvents(followFeedEl);
-renderWorldbookCheckboxList();
-console.log('Loaded app: lofter');
+async function initApp() {
+  updateViewToggleUI();
+  updatePageView();
+  await initPostData().then(() => renderFeed());
+  renderRandomCpFeed();
+  await loadWorldbookEntries();
+  renderIdeas();
+  await renderLikesIdeas();
+  const cpPool = [
+    ...(await loadListFromStorage('sx_users')),
+    ...(await loadListFromStorage('sx_characters')),
+    ...(await loadListFromStorage('sx_npcs'))
+  ];
+  renderSelectOptions(cpTopSelect, cpPool, '選擇攻方角色');
+  renderSelectOptions(cpBottomSelect, cpPool, '選擇受方角色');
+  await renderCpList();
+  await renderCpCheckboxList();
+  await loadWorldbookStyleOptions();
+  bindTabs();
+  bindViewToggle();
+  bindFeedEvents();
+  bindNavEvents();
+  bindIdeaEvents();
+  await bindLikesIdeaEvents();
+  await bindCpEvents();
+  bindCpCheckboxEvents();
+  bindWorldbookCheckboxEvents();
+  bindStyleSelectEvents();
+  await bindRatingEvents();
+  await bindLengthEvents();
+  bindBodytypeEvents();
+  bindFollowEvents(feedEl);
+  bindFollowEvents(likesFeedEl);
+  bindFollowEvents(followFeedEl);
+  await renderWorldbookCheckboxList();
+  console.log('Loaded app: lofter');
+}
 
-window.addEventListener('message', (event) => {
+initApp();
+
+window.addEventListener('message', async (event) => {
   const data = event.data;
   if (!data || typeof data !== 'object') return;
   if (data.type === 'WORLD_BOOK_UPDATED' || data.type === 'WORLD_BOOK_SYNC_READY') {
-    loadWorldbookEntries();
+    await loadWorldbookEntries();
   }
   if (data.type === 'settingsUpdated') {
     console.log('[Lofter] 收到 settingsUpdated 事件，重新讀取 API 設定');
-    reloadApiConfig();
+    await reloadApiConfig();
   }
 });
 
-function reloadApiConfig() {
-  const apisRaw = localStorage.getItem('api_configs');
+async function reloadApiConfig() {
+  const apisRaw = await sxGetItem('api_configs');
   console.log('[Lofter] 重新載入 api_configs:', apisRaw);
   
   if (apisRaw) {
@@ -2305,17 +2291,17 @@ if (window.parent && window.parent !== window) {
   window.parent.postMessage({ type: 'REQUEST_WORLD_BOOK_SYNC' }, '*');
 }
 
-window.addEventListener('storage', (event) => {
+window.addEventListener('storage', async (event) => {
   if (event.key === 'api_configs' || event.key === 'sx_active_api') {
     console.log('[Lofter] storage 事件觸發，key:', event.key);
     console.log('[Lofter] 新值:', event.newValue);
-    reloadApiConfig();
+    await reloadApiConfig();
   }
 });
 
 // 初始化時檢查 API 配置
-setTimeout(() => {
-  reloadApiConfig();
+setTimeout(async () => {
+  await reloadApiConfig();
 }, 500);
 
 renderFollowFeed();
@@ -2331,7 +2317,7 @@ document.addEventListener('click', (event) => {
 
 const publishBtn = document.querySelector('.publish-btn');
 publishBtn?.addEventListener('click', async () => {
-  const selectedCpList = getSelectedCpList();
+  const selectedCpList = await getSelectedCpList();
   if (selectedCpList.length === 0) {
     alert('請先到「喜歡」頁面選擇要生成的 CP');
     currentPage = 'likes';
@@ -2380,10 +2366,10 @@ const profileSaveBtn = document.querySelector('.page-profile .idea-primary');
 const profileNicknameInput = document.querySelector('.page-profile input[type="text"]');
 const profileAuthorEl = document.querySelector('.page-profile .author');
 
-profileSaveBtn?.addEventListener('click', () => {
+profileSaveBtn?.addEventListener('click', async () => {
   const nickname = profileNicknameInput?.value.trim();
   if (nickname) {
-    localStorage.setItem('sx_lofter_nickname', nickname);
+    await sxSetItem('sx_lofter_nickname', nickname);
     if (profileAuthorEl) {
       profileAuthorEl.textContent = nickname;
     }
@@ -2391,32 +2377,34 @@ profileSaveBtn?.addEventListener('click', () => {
   }
 });
 
-const savedNickname = localStorage.getItem('sx_lofter_nickname');
-if (savedNickname && profileAuthorEl) {
-  profileAuthorEl.textContent = savedNickname;
-}
-if (savedNickname && profileNicknameInput) {
-  profileNicknameInput.value = savedNickname;
-}
+(async () => {
+  const savedNickname = await sxGetItem('sx_lofter_nickname');
+  if (savedNickname && profileAuthorEl) {
+    profileAuthorEl.textContent = savedNickname;
+  }
+  if (savedNickname && profileNicknameInput) {
+    profileNicknameInput.value = savedNickname;
+  }
+})();
 
 // 監聽資料還原事件
-window.addEventListener('sxiphone-data-restored', (event) => {
+window.addEventListener('sxiphone-data-restored', async (event) => {
   console.log('[Lofter] 收到資料還原通知，刷新 UI...');
   
   const cpPool = [
-    ...loadListFromStorage('sx_users'),
-    ...loadListFromStorage('sx_characters'),
-    ...loadListFromStorage('sx_npcs')
+    ...(await loadListFromStorage('sx_users')),
+    ...(await loadListFromStorage('sx_characters')),
+    ...(await loadListFromStorage('sx_npcs'))
   ];
   renderSelectOptions(cpTopSelect, cpPool, '選擇攻方角色');
   renderSelectOptions(cpBottomSelect, cpPool, '選擇受方角色');
-  renderCpList();
-  renderCpCheckboxList();
-  loadWorldbookEntries();
-  renderFollowFeed();
-  initPostData().then(() => renderFeed());
+  await renderCpList();
+  await renderCpCheckboxList();
+  await loadWorldbookEntries();
+  await renderFollowFeed();
+  await initPostData().then(() => renderFeed());
   
-  const nickname = localStorage.getItem('sx_lofter_nickname');
+  const nickname = await sxGetItem('sx_lofter_nickname');
   if (nickname && profileAuthorEl) {
     profileAuthorEl.textContent = nickname;
   }

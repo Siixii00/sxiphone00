@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="../scripts/sx-storage.js"></script>
+    <script src="../scripts/sx-helper.js"></script>
     <script src="../scripts/localStorage-mirror.js"></script>
     <script src="../scripts/storage-adapter.js"></script>
     <script type="module">
@@ -877,6 +878,30 @@
     </div>
     <iframe class="more-panel-frame" src="../emoji-shop/emoji-shop.html" title="表情包商店" scrolling="no"></iframe>
 </div>
+
+<div class="add-contact-panel" id="add-contact-panel">
+    <div class="add-contact-modal">
+        <div class="add-contact-header">
+            <i class="fas fa-user-plus"></i>
+            <span>新增聯絡人</span>
+            <button class="add-contact-close" id="add-contact-close">&times;</button>
+        </div>
+        <div class="add-contact-content">
+            <div class="add-contact-hint">選擇要加入的角色聯絡人</div>
+            <div class="add-contact-char-list" id="add-contact-char-list">
+                <div class="loading-tip">載入中...</div>
+            </div>
+            <div class="add-contact-bound-user hidden" id="add-contact-bound-user">
+                <div class="bound-user-header">已綁定用戶面具</div>
+                <div class="bound-user-info" id="bound-user-info"></div>
+            </div>
+        </div>
+        <div class="add-contact-actions">
+            <button class="action-btn secondary" id="add-contact-cancel">取消</button>
+            <button class="action-btn primary" id="add-contact-confirm" disabled>確認加入</button>
+        </div>
+    </div>
+</div>
 </div>
 <link rel="stylesheet" href="dating-invitation.css">
 <link rel="stylesheet" href="../scripts/app-appearance-settings.css">
@@ -888,6 +913,7 @@
 <script src="../scripts/app-appearance-settings.js"></script>
 <script src="../scripts/app-appearance-configs.js"></script>
 <script src="dating-invitation.js"></script>
+<script src="add-contact.js"></script>
 <script src="chat.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

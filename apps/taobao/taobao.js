@@ -176,15 +176,12 @@ function randomPick(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function loadFromStorage() {
+async function loadFromStorage() {
   try {
-    const savedProducts = localStorage.getItem(STORAGE_KEY_PRODUCTS);
-    if (savedProducts) {
-      const parsed = JSON.parse(savedProducts);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        products = parsed;
-        return;
-      }
+    const parsed = await sxGetJSON(STORAGE_KEY_PRODUCTS);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      products = parsed;
+      return;
     }
   } catch (e) {
     console.warn('Failed to load products', e);
@@ -215,31 +212,28 @@ function generateDefaultProducts() {
   }));
 }
 
-function saveToStorage() {
+async function saveToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(products));
+    await sxSetJSON(STORAGE_KEY_PRODUCTS, products);
   } catch (e) {
     console.warn('Failed to save products', e);
   }
 }
 
-function loadCartFromStorage() {
+async function loadCartFromStorage() {
   try {
-    const savedCart = localStorage.getItem(STORAGE_KEY_CART);
-    if (savedCart) {
-      const parsed = JSON.parse(savedCart);
-      if (Array.isArray(parsed)) {
-        cart = new Map(parsed.map(item => [item.id, item]));
-      }
+    const parsed = await sxGetJSON(STORAGE_KEY_CART);
+    if (Array.isArray(parsed)) {
+      cart = new Map(parsed.map(item => [item.id, item]));
     }
   } catch (e) {
     console.warn('Failed to load cart', e);
   }
 }
 
-function saveCartToStorage() {
+async function saveCartToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY_CART, JSON.stringify([...cart.values()]));
+    await sxSetJSON(STORAGE_KEY_CART, [...cart.values()]);
   } catch (e) {
     console.warn('Failed to save cart', e);
   }
@@ -641,22 +635,19 @@ function hideHelpModal() {
   helpModal?.classList.add('hidden');
 }
 
-function loadChars() {
+async function loadChars() {
   try {
-    const raw = localStorage.getItem(CHAR_LIST_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = await sxGetJSON(CHAR_LIST_KEY);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function loadShopSettings() {
+async function loadShopSettings() {
   try {
-    const raw = localStorage.getItem(SHOP_SETTINGS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
+    const parsed = await sxGetJSON(SHOP_SETTINGS_KEY);
+    if (parsed) {
       shopSettings = { ...shopSettings, ...parsed };
     }
   } catch {}
@@ -666,19 +657,19 @@ function loadShopSettings() {
   if (allowAdultRecommend) allowAdultRecommend.checked = shopSettings.allowAdultRecommend === true;
 }
 
-function saveShopSettings() {
+async function saveShopSettings() {
   shopSettings.adviceFrequency = parseInt(adviceFrequency?.value || 15000, 10);
   shopSettings.showAdultContent = showAdultContent?.checked === true;
   shopSettings.allowAdultRecommend = allowAdultRecommend?.checked === true;
   
   try {
-    localStorage.setItem(SHOP_SETTINGS_KEY, JSON.stringify(shopSettings));
+    await sxSetJSON(SHOP_SETTINGS_KEY, shopSettings);
   } catch {}
   
   renderProducts();
 }
 
-function getWorldbookData() {
+async function getWorldbookData() {
   const result = {
     global: [],
     cot: [],
@@ -688,34 +679,36 @@ function getWorldbookData() {
   };
   
   const categories = ['global', 'cot', 'style', 'keywords', 'backend'];
-  categories.forEach(cat => {
-    const key = `sx_worldbook_${cat}`;
+  for (const cat of categories) {
+    const key = `sx_worldBook_${cat}`;
     try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        result[cat] = JSON.parse(raw);
+      const data = await sxGetJSON(key);
+      if (data) {
+        result[cat] = data;
       }
+    } catch {}
+  }
+  
+  return result;
+}
     } catch {}
   });
   
   return result;
 }
 
-function getUserForbiddenWords() {
+async function getUserForbiddenWords() {
   const forbiddenWords = [];
   
   try {
-    const detectedForbidden = localStorage.getItem('sx_detected_forbidden');
-    if (detectedForbidden) {
-      const parsed = JSON.parse(detectedForbidden);
-      if (Array.isArray(parsed)) {
-        forbiddenWords.push(...parsed);
-      }
+    const parsed = await sxGetJSON('sx_detected_forbidden');
+    if (Array.isArray(parsed)) {
+      forbiddenWords.push(...parsed);
     }
   } catch {}
   
   try {
-    const worldbook = getWorldbookData();
+    const worldbook = await getWorldbookData();
     const categories = ['global', 'cot', 'style', 'keywords', 'backend'];
     
     categories.forEach(cat => {
@@ -753,14 +746,11 @@ function getUserForbiddenWords() {
   return [...new Set(forbiddenWords.map(w => w.toLowerCase()))];
 }
 
-function getUserDislikesFromChat() {
+async function getUserDislikesFromChat() {
   const dislikes = [];
   
   try {
-    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
-    if (!raw) return dislikes;
-    
-    const history = JSON.parse(raw);
+    const history = await sxGetJSON(CHAT_HISTORY_KEY);
     if (!Array.isArray(history)) return dislikes;
     
     const dislikePatterns = [
@@ -811,15 +801,15 @@ function isProductForbidden(product, forbiddenWords, dislikes) {
   return false;
 }
 
-function filterRecommendationsByUserPreference(recommendations) {
-  const forbiddenWords = getUserForbiddenWords();
-  const dislikes = getUserDislikesFromChat();
+async function filterRecommendationsByUserPreference(recommendations) {
+  const forbiddenWords = await getUserForbiddenWords();
+  const dislikes = await getUserDislikesFromChat();
   
   return recommendations.filter(product => !isProductForbidden(product, forbiddenWords, dislikes));
 }
 
-function getWorldbookContextForChar(char) {
-  const worldbook = getWorldbookData();
+async function getWorldbookContextForChar(char) {
+  const worldbook = await getWorldbookData();
   const charName = char?.name || '';
   const charPersonality = char?.personality || '';
   const searchTerms = [charName, ...charPersonality.split(/[,，、]/)].filter(t => t.trim());
@@ -846,12 +836,9 @@ function getWorldbookContextForChar(char) {
   return relevantEntries.slice(0, 3).join('\n');
 }
 
-function getChatHistoryForChar(char) {
+async function getChatHistoryForChar(char) {
   try {
-    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
-    if (!raw) return '';
-    
-    const history = JSON.parse(raw);
+    const history = await sxGetJSON(CHAT_HISTORY_KEY);
     if (!Array.isArray(history) || history.length === 0) return '';
     
     const charName = char?.name || '';
@@ -878,7 +865,7 @@ function getCharPersonality(char) {
   return char?.personality || char?.background || '';
 }
 
-function generateContextAwareAdvice(char) {
+async function generateContextAwareAdvice(char) {
   const personality = getCharPersonality(char);
   const charName = char?.name || '角色';
   const cartTotal = getCartTotal();
@@ -886,8 +873,8 @@ function generateContextAwareAdvice(char) {
   const filteredProducts = getFilteredProducts();
   const randomProduct = filteredProducts.length > 0 ? randomPick(filteredProducts) : null;
   
-  const worldbookContext = getWorldbookContextForChar(char);
-  const chatContext = getChatHistoryForChar(char);
+  const worldbookContext = await getWorldbookContextForChar(char);
+  const chatContext = await getChatHistoryForChar(char);
   
   const contextInfo = {
     cartCount,
@@ -1010,16 +997,16 @@ function generateContextAwareAdvice(char) {
   return baseAdvices[Math.floor(Math.random() * baseAdvices.length)];
 }
 
-function renderCharSelect() {
-  renderCharSelectGrid();
+async function renderCharSelect() {
+  await renderCharSelectGrid();
   renderCharCompanionList();
 }
 
-function renderCharSelectGrid() {
+async function renderCharSelectGrid() {
   const grid = document.getElementById('char-select-grid');
   if (!grid) return;
   
-  const chars = loadChars();
+  const chars = await loadChars();
   if (chars.length === 0) {
     grid.innerHTML = '<p style="color:var(--shop-muted);font-size:12px;padding:10px;">沒有可用的角色，請先在設定中建立角色</p>';
     return;
@@ -1045,8 +1032,8 @@ function renderCharSelectGrid() {
   });
 }
 
-function toggleCharSelection(index) {
-  const chars = loadChars();
+async function toggleCharSelection(index) {
+  const chars = await loadChars();
   const char = chars[index];
   if (!char) return;
   
@@ -1100,7 +1087,7 @@ function renderCharCompanionList() {
   });
 }
 
-function selectChar(index) {
+async function selectChar(index) {
   if (index === '' || index === null) {
     currentChars = [];
     charAdvice?.setAttribute('hidden', '');
@@ -1108,7 +1095,7 @@ function selectChar(index) {
     return;
   }
   
-  const chars = loadChars();
+  const chars = await loadChars();
   const char = chars[parseInt(index, 10)];
   if (!char) return;
   
@@ -1117,7 +1104,7 @@ function selectChar(index) {
   startCharAdviceTimer();
 }
 
-function showCharAdvice(text, charName = null) {
+async function showCharAdvice(text, charName = null) {
   if (currentChars.length === 0) return;
   
   const displayChar = charName ? currentChars.find(c => c.name === charName) : currentChars[0];
@@ -1143,20 +1130,21 @@ function showMultiCharAdvice(texts) {
   charAdvice?.removeAttribute('hidden');
 }
 
-function startCharAdviceTimer() {
+async function startCharAdviceTimer() {
   stopCharAdviceTimer();
   if (currentChars.length === 0) return;
   
   const frequency = parseInt(adviceFrequency?.value || shopSettings.adviceFrequency || 15000, 10);
   if (frequency <= 0) return;
   
-  charAdviceTimer = setInterval(() => {
+  charAdviceTimer = setInterval(async () => {
     if (currentChars.length === 0) {
       stopCharAdviceTimer();
       return;
     }
     const randomChar = currentChars[Math.floor(Math.random() * currentChars.length)];
-    showCharAdvice(generateContextAwareAdvice(randomChar), randomChar.name);
+    const advice = await generateContextAwareAdvice(randomChar);
+    await showCharAdvice(advice, randomChar.name);
   }, frequency);
 }
 
@@ -1327,11 +1315,9 @@ function hideBudgetModal() {
   budgetModal?.classList.add('hidden');
 }
 
-function getMonthlySpent() {
+async function getMonthlySpent() {
   try {
-    const raw = localStorage.getItem(KAKAOPAY_STORAGE_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw);
+    const parsed = await sxGetJSON(KAKAOPAY_STORAGE_KEY);
     const transactions = parsed?.transactions || [];
     
     const now = new Date();
@@ -1350,7 +1336,7 @@ function getMonthlySpent() {
   }
 }
 
-function syncToKakaopay() {
+async function syncToKakaopay() {
   const cartTotal = getCartTotal();
   if (cartTotal <= 0) {
     alert('購物車是空的');
@@ -1358,8 +1344,7 @@ function syncToKakaopay() {
   }
   
   try {
-    const raw = localStorage.getItem(KAKAOPAY_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : { budget: 30000, transactions: [] };
+    const parsed = await sxGetJSON(KAKAOPAY_STORAGE_KEY) || { budget: 30000, transactions: [] };
     
     const items = [...cart.values()];
     const note = items.map(item => item.title).join(', ').slice(0, 40);
@@ -1377,7 +1362,7 @@ function syncToKakaopay() {
     parsed.transactions = parsed.transactions || [];
     parsed.transactions.unshift(newTx);
     
-    localStorage.setItem(KAKAOPAY_STORAGE_KEY, JSON.stringify(parsed));
+    await sxSetJSON(KAKAOPAY_STORAGE_KEY, parsed);
     
     alert(`已同步到 KakaoPay：${fmt(cartTotal)}`);
     hideBudgetModal();
@@ -1533,7 +1518,7 @@ function calculateGrandTotal() {
   return totalSubtotal + totalShipping;
 }
 
-function syncToKakaopayWithDetails(amount) {
+async function syncToKakaopayWithDetails(amount) {
   try {
     const items = [...cart.values()].map(item => item.title).join(', ');
     const platformCount = new Set([...cart.values()].map(item => item.platform)).size;
@@ -1555,11 +1540,10 @@ function syncToKakaopayWithDetails(amount) {
       date: toYMD(new Date())
     };
     
-    const raw = localStorage.getItem(KAKAOPAY_STORAGE_KEY);
-    const data = raw ? JSON.parse(raw) : { budget: 30000, transactions: [] };
+    const data = await sxGetJSON(KAKAOPAY_STORAGE_KEY) || { budget: 30000, transactions: [] };
     data.transactions = data.transactions || [];
     data.transactions.unshift(tx);
-    localStorage.setItem(KAKAOPAY_STORAGE_KEY, JSON.stringify(data));
+    await sxSetJSON(KAKAOPAY_STORAGE_KEY, data);
   } catch (e) {
     console.error('Sync failed', e);
   }
@@ -1669,9 +1653,9 @@ function hideSearchModal() {
   searchModal?.classList.add('hidden');
 }
 
-function generateRecommendations() {
-  const forbiddenWords = getUserForbiddenWords();
-  const dislikes = getUserDislikesFromChat();
+async function generateRecommendations() {
+  const forbiddenWords = await getUserForbiddenWords();
+  const dislikes = await getUserDislikesFromChat();
   
   if (forbiddenWords.length > 0 || dislikes.length > 0) {
     console.log('已讀取使用者偏好 - 禁止詞:', forbiddenWords.length, '個, 討厭:', dislikes.length, '個');
@@ -1731,14 +1715,14 @@ function generateBigdataRecommendations() {
     recommendSource: '大數據'
   }));
   
-  generated = filterRecommendationsByUserPreference(generated);
+  generated = await filterRecommendationsByUserPreference(generated);
   
   bigdataProducts = generated.slice(0, 4);
   
   renderBigdataRecommendations();
 }
 
-function generateCharRecommendations() {
+async function generateCharRecommendations() {
   if (currentChars.length === 0) return;
   
   const randomChar = currentChars[Math.floor(Math.random() * currentChars.length)];
@@ -2128,7 +2112,7 @@ function hidePersistModal() {
   pendingPersistData = null;
 }
 
-function handlePersistSave() {
+async function handlePersistSave() {
   if (!pendingPersistData) return;
   
   const checkboxes = persistList?.querySelectorAll('input[type="checkbox"]') || [];
@@ -2158,11 +2142,11 @@ function handlePersistSave() {
   });
   
   try {
-    localStorage.setItem(STORAGE_KEY_CART, JSON.stringify(savedCart));
+    await sxSetJSON(STORAGE_KEY_CART, savedCart);
     
-    const existingProducts = JSON.parse(localStorage.getItem(STORAGE_KEY_PRODUCTS) || '[]');
+    const existingProducts = await sxGetJSON(STORAGE_KEY_PRODUCTS) || [];
     const newProducts = [...savedProducts, ...existingProducts.filter(p => !p.recommendType)];
-    localStorage.setItem(STORAGE_KEY_PRODUCTS, JSON.stringify(newProducts));
+    await sxSetJSON(STORAGE_KEY_PRODUCTS, newProducts);
   } catch {}
   
   hidePersistModal();
@@ -2174,18 +2158,18 @@ function handlePersistDiscard() {
   location.reload();
 }
 
-function checkAndShowPersistModal() {
-  const pendingData = localStorage.getItem('sx_shop_pending_persist');
+async function checkAndShowPersistModal() {
+  const pendingData = await sxGetItem('sx_shop_pending_persist');
   if (pendingData) {
     try {
       const data = JSON.parse(pendingData);
-      localStorage.removeItem('sx_shop_pending_persist');
+      await sxRemoveItem('sx_shop_pending_persist');
       showPersistModal(data);
     } catch {}
   }
 }
 
-function savePendingDataBeforeRefresh() {
+async function savePendingDataBeforeRefresh() {
   const cartItems = [...cart.values()];
   const bigdataItems = bigdataProducts.filter(p => p.recommendType === 'bigdata');
   const charItems = charProducts.filter(p => p.recommendType === 'char');
@@ -2196,7 +2180,7 @@ function savePendingDataBeforeRefresh() {
       bigdataProducts: bigdataItems,
       charProducts: charItems
     };
-    localStorage.setItem('sx_shop_pending_persist', JSON.stringify(pendingData));
+    await sxSetJSON('sx_shop_pending_persist', pendingData);
   }
 }
 

@@ -47,11 +47,11 @@ const BUILTIN_WORLDBOOKS = [
 
 let selectedWorldbooks = [];
 
-function loadSelectedWorldbooks() {
+async function loadSelectedWorldbooks() {
     try {
-        const saved = localStorage.getItem('sx_worldbook_selected_builtins');
+        const saved = await sxGetJSON('sx_worldbook_selected_builtins');
         if (saved) {
-            selectedWorldbooks = JSON.parse(saved);
+            selectedWorldbooks = saved;
         }
     } catch (e) {
         selectedWorldbooks = [];
@@ -59,17 +59,17 @@ function loadSelectedWorldbooks() {
     return selectedWorldbooks;
 }
 
-function saveSelectedWorldbooks(selections) {
+async function saveSelectedWorldbooks(selections) {
     selectedWorldbooks = selections;
-    localStorage.setItem('sx_worldbook_selected_builtins', JSON.stringify(selections));
+    await sxSetJSON('sx_worldbook_selected_builtins', selections);
 }
 
-window.openImportModal = function() {
+window.openImportModal = async function() {
     const modal = document.getElementById('import-modal');
     const list = document.getElementById('builtin-list');
     if (!modal || !list) return;
     
-    loadSelectedWorldbooks();
+    await loadSelectedWorldbooks();
     
     list.innerHTML = BUILTIN_WORLDBOOKS.map(wb => {
         const isSelected = selectedWorldbooks.includes(wb.id);
@@ -119,7 +119,7 @@ window.confirmImportSelection = async function() {
         return;
     }
     
-    saveSelectedWorldbooks(selectedIds);
+    await saveSelectedWorldbooks(selectedIds);
     
     const categories = ['cot', 'style', 'global', 'keywords', 'backend', 'theater'];
     const mergedData = {
@@ -175,15 +175,15 @@ window.confirmImportSelection = async function() {
     const parts = window.getSerializedWorldbookParts();
     
     // 保存世界書資料到 localStorage（這是關鍵！）
-    Object.keys(parts).forEach(key => {
+    Object.keys(parts).forEach(async (key) => {
         if (key !== 'sx_detected_forbidden') {
-            localStorage.setItem(key, JSON.stringify(parts[key]));
+            await sxSetJSON(key, parts[key]);
         }
     });
     
     // 同時保存禁止詞
     if (parts.sx_detected_forbidden) {
-        localStorage.setItem('sx_detected_forbidden', JSON.stringify(parts.sx_detected_forbidden));
+        await sxSetJSON('sx_detected_forbidden', parts.sx_detected_forbidden);
     }
     
     // 保存索引
@@ -372,8 +372,8 @@ const i18n = {
     }
 };
 
-function getCurrentLang() {
-    const rawLang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+async function getCurrentLang() {
+    const rawLang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
     const aliasMap = {
         'zh-TW': 'zh-Hant', 'zh-HK': 'zh-Hant', 'zh-MO': 'zh-Hant',
         'zh-CN': 'zh-Hans', 'zh-SG': 'zh-Hans'
@@ -382,38 +382,38 @@ function getCurrentLang() {
     return i18n[normalized] ? normalized : 'zh-Hant';
 }
 
-function t(key) {
-    const lang = getCurrentLang();
+async function t(key) {
+    const lang = await getCurrentLang();
     return i18n[lang]?.[key] || i18n['zh-Hant'][key] || key;
 }
 
-function applyLanguageToUI() {
-    document.querySelector('.nav-title').textContent = t('worldbook');
-    document.querySelector('.btn-back').innerHTML = `<i class="fas fa-chevron-left"></i> ${t('back')}`;
+async function applyLanguageToUI() {
+    document.querySelector('.nav-title').textContent = await t('worldbook');
+    document.querySelector('.btn-back').innerHTML = `<i class="fas fa-chevron-left"></i> ${await t('back')}`;
     
-    document.querySelectorAll('.tab-item').forEach((tab, idx) => {
+    document.querySelectorAll('.tab-item').forEach(async (tab, idx) => {
         const keys = ['cot', 'style', 'global', 'keywords', 'backend'];
-        if (keys[idx]) tab.textContent = t(keys[idx]);
+        if (keys[idx]) tab.textContent = await t(keys[idx]);
     });
     
     const fabImport = document.querySelector('.fab-import');
-    if (fabImport) fabImport.title = t('selectBuiltin');
+    if (fabImport) fabImport.title = await t('selectBuiltin');
     
     const importModalTitle = document.getElementById('import-modal-title');
-    if (importModalTitle) importModalTitle.textContent = t('selectBuiltin');
+    if (importModalTitle) importModalTitle.textContent = await t('selectBuiltin');
     
     const modelLabel = document.querySelector('.model-selector-label');
-    if (modelLabel) modelLabel.textContent = t('modelSelector');
+    if (modelLabel) modelLabel.textContent = await t('modelSelector');
     
     const optgroups = document.querySelectorAll('#modelSelector optgroup');
     if (optgroups.length >= 3) {
-        optgroups[0].label = t('largeModel');
-        optgroups[1].label = t('mediumModel');
-        optgroups[2].label = t('localModel');
+        optgroups[0].label = await t('largeModel');
+        optgroups[1].label = await t('mediumModel');
+        optgroups[2].label = await t('localModel');
     }
     
     const customOption = document.querySelector('#modelSelector option[value="custom"]');
-    if (customOption) customOption.textContent = t('custom');
+    if (customOption) customOption.textContent = await t('custom');
 }
 
 /**
@@ -492,15 +492,15 @@ window.buildWorldbookIndexFromParts = function(parts) {
     return index;
 };
 
-window.persistWorldbookIndex = function(parts) {
+window.persistWorldbookIndex = async function(parts) {
     const index = window.buildWorldbookIndexFromParts(parts || {});
-    localStorage.setItem('sx_worldbook_index', JSON.stringify(index));
+    await sxSetJSON('sx_worldbook_index', index);
     return index;
 };
 
-window.getWorldbookIndex = function() {
+window.getWorldbookIndex = async function() {
     const parts = window.getSerializedWorldbookParts ? window.getSerializedWorldbookParts() : {};
-    return window.persistWorldbookIndex(parts);
+    return await window.persistWorldbookIndex(parts);
 };
 /**
  * 產生條目 HTML 模板 (包含刪除按鈕與 iOS 風格結構)
@@ -544,7 +544,7 @@ async function hydrateWorldbookUI() {
         } catch (e) { console.error("LocalForage 讀取失敗", e); }
     }
 
-    const savedSelections = loadSelectedWorldbooks();
+    const savedSelections = await loadSelectedWorldbooks();
     let hasExistingData = false;
     
     for (const cat of categories) {
@@ -553,7 +553,7 @@ async function hydrateWorldbookUI() {
             hasExistingData = true;
             break;
         }
-        const raw = localStorage.getItem(key);
+        const raw = await sxGetItem(key);
         if (raw) {
             try {
                 const parsed = JSON.parse(raw);
@@ -597,23 +597,23 @@ async function hydrateWorldbookUI() {
         for (const cat of categories) {
             const key = `sx_worldbook_${cat}`;
             if (mergedData[key] && mergedData[key].length > 0) {
-                localStorage.setItem(key, JSON.stringify(mergedData[key]));
+                await sxSetJSON(key, mergedData[key]);
                 hasExistingData = true;
             }
         }
     }
 
     if (!hasExistingData) {
-        const importFlag = localStorage.getItem('sx_worldbook_ivory_imported');
+        const importFlag = await sxGetItem('sx_worldbook_ivory_imported');
         if (!importFlag) {
-            console.log(t('noDataImport'));
+            console.log(await t('noDataImport'));
             await window.importIvoryTower(true);
-            localStorage.setItem('sx_worldbook_ivory_imported', 'true');
+            await sxSetItem('sx_worldbook_ivory_imported', 'true');
         }
         return;
     }
     
-    localStorage.setItem('sx_worldbook_ivory_imported', 'true');
+    await sxSetItem('sx_worldbook_ivory_imported', 'true');
 
     for (const cat of categories) {
         const key = `sx_worldbook_${cat}`;
@@ -622,7 +622,7 @@ async function hydrateWorldbookUI() {
         if (persistedData && persistedData[key]) {
             entries = persistedData[key];
         } else {
-            const raw = localStorage.getItem(key);
+            const raw = await sxGetItem(key);
             if (raw) {
                 try { entries = JSON.parse(raw); } catch(e) {}
             }
@@ -637,7 +637,7 @@ async function hydrateWorldbookUI() {
             });
         }
     }
-    console.log(t('uiRestored') + " (環境: " + UserEnv.envName() + ")");
+    console.log(await t('uiRestored') + " (環境: " + UserEnv.envName() + ")");
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -648,32 +648,32 @@ document.addEventListener('DOMContentLoaded', () => {
         window.persistWorldbookIndex?.(parts);
     });
 
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
         const data = event.data;
         if (!data || typeof data !== 'object') return;
         if (data.type === 'REQUEST_WORLD_BOOK_SYNC') {
             const parts = window.getSerializedWorldbookParts();
-            window.persistWorldbookIndex?.(parts);
+            await window.persistWorldbookIndex?.(parts);
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'WORLD_BOOK_SYNC_READY' }, '*');
             }
         }
         if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
-            localStorage.setItem('sxiphone_lang', data.lang);
+            await sxSetItem('sxiphone_lang', data.lang);
             if (document.documentElement) {
                 document.documentElement.lang = data.lang;
             }
-            applyLanguageToUI();
+            await applyLanguageToUI();
         }
         if (data.type === 'WORLD_BOOK_UPDATED') {
             const parts = window.getSerializedWorldbookParts();
-            window.persistWorldbookIndex?.(parts);
+            await window.persistWorldbookIndex?.(parts);
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'WORLD_BOOK_SYNC_READY' }, '*');
             }
         }
         if (data.type === 'APP_WILL_CLOSE') {
-            saveWorldbookData();
+            await saveWorldbookData();
         }
     });
 
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 2. 抽屜展開與刪除 (事件委託)
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         const header = e.target.closest('.drawer-header');
         const deleteBtn = e.target.closest('.btn-delete');
         const toggleBtn = e.target.closest('.btn-toggle');
@@ -707,12 +707,12 @@ document.addEventListener('DOMContentLoaded', () => {
             icon.className = isEnabled ? 'fas fa-toggle-off' : 'fas fa-toggle-on';
             
             const parts = window.getSerializedWorldbookParts();
-            Object.keys(parts).forEach(key => {
+            for (const key of Object.keys(parts)) {
                 if (key !== 'sx_detected_forbidden') {
-                    localStorage.setItem(key, JSON.stringify(parts[key]));
+                    await sxSetJSON(key, parts[key]);
                 }
-            });
-            window.persistWorldbookIndex?.(parts);
+            }
+            await window.persistWorldbookIndex?.(parts);
             
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
@@ -720,13 +720,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 處理刪除
-        if (deleteBtn && confirm(t('confirmDelete'))) {
+        if (deleteBtn && confirm(await t('confirmDelete'))) {
             const item = deleteBtn.closest('.drawer-item');
             item.style.opacity = '0';
             setTimeout(async () => {
                 item.remove();
-                // 刪除後連動 saveAll 更新持久層
                 if (window.parent && typeof window.parent.saveAll === 'function') {
                     await window.parent.saveAll();
                 }
@@ -734,7 +732,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 處理展開/收合
         if (header) {
             header.parentElement.classList.toggle('open');
         }
@@ -743,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. 懸浮新增 (FAB)
     const fabAdd = document.querySelector('.fab-add');
     if (fabAdd) {
-        fabAdd.addEventListener('click', () => {
+        fabAdd.addEventListener('click', async () => {
             const activeList = document.querySelector('.page-content.active .list-container');
             if (activeList) {
                 const tempDiv = document.createElement('div');
@@ -752,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newItem.classList.add('open');
                 activeList.prepend(newItem);
                 const parts = window.getSerializedWorldbookParts();
-                window.persistWorldbookIndex?.(parts);
+                await window.persistWorldbookIndex?.(parts);
                 if (window.parent && window.parent !== window) {
                     window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
                 }
@@ -760,21 +757,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. 保存按鈕：連動全域 saveAll 或獨立存儲
     document.addEventListener('click', async (e) => {
         if (e.target.classList.contains('btn-save')) {
             const btn = e.target;
             
-            // 優先執行全域保存 (會觸發 IndexedDB 寫入)
             if (window.parent && typeof window.parent.saveAll === 'function') {
                 await window.parent.saveAll();
             } else {
-                // 獨立運行時的保險邏輯
                 const parts = window.getSerializedWorldbookParts();
-                Object.keys(parts).forEach(key => {
-                    localStorage.setItem(key, JSON.stringify(parts[key]));
-                });
-                window.persistWorldbookIndex?.(parts);
+                for (const key of Object.keys(parts)) {
+                    await sxSetJSON(key, parts[key]);
+                }
+                await window.persistWorldbookIndex?.(parts);
             }
 
             if (window.parent && window.parent !== window) {
@@ -783,34 +777,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, '*');
             }
 
-            // UI 反饋
-            btn.innerText = t('syncSuccess');
+            btn.innerText = await t('syncSuccess');
             btn.style.backgroundColor = '#30D158';
-            setTimeout(() => {
-                btn.innerText = t('saveChanges');
+            setTimeout(async () => {
+                btn.innerText = await t('saveChanges');
                 btn.style.backgroundColor = '';
                 btn.closest('.drawer-item').classList.remove('open');
             }, 800);
         }
     });
 });
-const saveWorldbookData = () => {
+const saveWorldbookData = async () => {
     try {
         const parts = window.getSerializedWorldbookParts();
-        Object.keys(parts).forEach(key => {
+        for (const key of Object.keys(parts)) {
             if (key !== 'sx_detected_forbidden') {
-                localStorage.setItem(key, JSON.stringify(parts[key]));
+                await sxSetJSON(key, parts[key]);
             }
-        });
-        window.persistWorldbookIndex?.(parts);
-        console.log("世界書數據已保存至 localStorage");
+        }
+        await window.persistWorldbookIndex?.(parts);
+        console.log("世界書數據已保存");
     } catch (e) {
         console.error("保存世界書數據失敗:", e);
     }
 };
 
 const saveToPersistentStorage = async () => {
-    saveWorldbookData();
+    await saveWorldbookData();
     
     if (typeof localforage !== 'undefined') {
         try {
@@ -831,13 +824,17 @@ const saveToPersistentStorage = async () => {
     }
 };
 
-window.addEventListener('pagehide', (event) => {
-    saveWorldbookData();
+window.addEventListener('pagehide', () => {
+    (async () => {
+        await saveWorldbookData();
+    })();
 });
 
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-        saveWorldbookData();
+        (async () => {
+            await saveWorldbookData();
+        })();
     }
 });
 
@@ -880,13 +877,13 @@ async function handleBack() {
 }
 
 window.importIvoryTower = async function(silent = false) {
-    if (!silent && !confirm(t('confirmImport'))) {
+    if (!silent && !confirm(await t('confirmImport'))) {
         return;
     }
     
     try {
         const response = await fetch('ivory_tower_worldbook.json');
-        if (!response.ok) throw new Error(t('cannotLoad'));
+        if (!response.ok) throw new Error(await t('cannotLoad'));
         
         const data = await response.json();
         const categories = ['cot', 'style', 'global', 'keywords', 'backend', 'theater'];
@@ -911,21 +908,21 @@ window.importIvoryTower = async function(silent = false) {
         });
         
         const parts = window.getSerializedWorldbookParts();
-        window.persistWorldbookIndex?.(parts);
+        await window.persistWorldbookIndex?.(parts);
         
         if (window.parent && typeof window.parent.saveAll === 'function') {
             await window.parent.saveAll();
         }
         
         if (!silent) {
-            alert(t('importSuccess'));
+            alert(await t('importSuccess'));
         } else {
-            console.log(t('autoImportSuccess'));
+            console.log(await t('autoImportSuccess'));
         }
     } catch (error) {
-        console.error(t('importFailed'), error);
+        console.error(await t('importFailed'), error);
         if (!silent) {
-            alert(t('importFailed') + error.message);
+            alert(await t('importFailed') + error.message);
         }
     }
 };
@@ -942,28 +939,27 @@ window.setModelSelector = function(model) {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    applyLanguageToUI();
+document.addEventListener('DOMContentLoaded', async () => {
+    await applyLanguageToUI();
     
     const modelSelector = document.getElementById('modelSelector');
     if (modelSelector) {
-        const savedModel = localStorage.getItem('sx_worldbook_model');
+        const savedModel = await sxGetItem('sx_worldbook_model');
         if (savedModel) {
             modelSelector.value = savedModel;
         }
         
-        modelSelector.addEventListener('change', () => {
-            localStorage.setItem('sx_worldbook_model', modelSelector.value);
+        modelSelector.addEventListener('change', async () => {
+            await sxSetItem('sx_worldbook_model', modelSelector.value);
         });
     }
 });
 
-// 監聽資料還原事件
 window.addEventListener('sxiphone-data-restored', async (event) => {
     console.log('[Worldbook] 收到資料還原通知，刷新 UI...');
     setTimeout(async () => {
         await hydrateWorldbookUI();
         const parts = window.getSerializedWorldbookParts();
-        window.persistWorldbookIndex?.(parts);
+        await window.persistWorldbookIndex?.(parts);
     }, 100);
 });

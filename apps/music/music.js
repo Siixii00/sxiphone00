@@ -170,18 +170,18 @@ let isPlaying = false;
 let danmakuTimer = null;
 let activePlatform = 'spotify';
 
-const saveMusicData = () => {
+const saveMusicData = async () => {
     try {
-        localStorage.setItem('sx_music_playlist', JSON.stringify(playlist));
-        localStorage.setItem('sx_music_platform', activePlatform);
-        console.log("音樂數據已保存至 localStorage");
+        await sxSetJSON('sx_music_playlist', playlist);
+        await sxSetItem('sx_music_platform', activePlatform);
+        console.log("音樂數據已保存");
     } catch (e) {
         console.error("保存音樂數據失敗:", e);
     }
 };
 
 const saveToPersistentStorage = async () => {
-    saveMusicData();
+    await saveMusicData();
     if (typeof localforage !== 'undefined') {
         try {
             const existingData = await localforage.getItem('sx_app_persisted_data') || {};
@@ -198,18 +198,24 @@ const saveToPersistentStorage = async () => {
 };
 
 window.addEventListener('pagehide', () => {
-    saveMusicData();
+    (async () => {
+        await saveMusicData();
+    })();
 });
 
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
-        saveMusicData();
+        (async () => {
+            await saveMusicData();
+        })();
     }
 });
 
 window.addEventListener('message', (event) => {
     if (event.data?.type === 'APP_WILL_CLOSE') {
-        saveMusicData();
+        (async () => {
+            await saveMusicData();
+        })();
     }
 });
 
@@ -234,18 +240,18 @@ function normalizeProfile(raw, fallbackId = 'custom') {
   };
 }
 
-function loadProfilesFromSettings() {
+async function loadProfilesFromSettings() {
   const profiles = [];
   const seen = new Set();
 
-  const masks = parseJSON(localStorage.getItem('sx_masks') || '[]', []);
+  const masks = parseJSON(await sxGetItem('sx_masks') || '[]', []);
   const activeMask = normalizeProfile(masks[0], 'mask');
   if (activeMask && !seen.has(activeMask.name)) {
     profiles.push(activeMask);
     seen.add(activeMask.name);
   }
 
-  const chars = parseJSON(localStorage.getItem('sx_characters') || '[]', []);
+  const chars = parseJSON(await sxGetItem('sx_characters') || '[]', []);
   chars.forEach((char, index) => {
     const normalized = normalizeProfile(char, `char-${index}`);
     if (!normalized || seen.has(normalized.name)) return;
@@ -260,9 +266,9 @@ function loadProfilesFromSettings() {
   }
 }
 
-function loadCharacterMemory(charName) {
+async function loadCharacterMemory(charName) {
   try {
-    const raw = localStorage.getItem('sx_chat_history');
+    const raw = await sxGetItem('sx_chat_history');
     if (!raw) return [];
     const history = JSON.parse(raw);
     if (!Array.isArray(history) || history.length === 0) return [];
@@ -289,11 +295,11 @@ function loadCharacterMemory(charName) {
   }
 }
 
-function loadCharacterSettings(charId) {
+async function loadCharacterSettings(charId) {
   try {
-    const masks = parseJSON(localStorage.getItem('sx_masks') || '[]', []);
-    const chars = parseJSON(localStorage.getItem('sx_characters') || '[]', []);
-    const users = parseJSON(localStorage.getItem('sx_users') || '[]', []);
+    const masks = parseJSON(await sxGetItem('sx_masks') || '[]', []);
+    const chars = parseJSON(await sxGetItem('sx_characters') || '[]', []);
+    const users = parseJSON(await sxGetItem('sx_users') || '[]', []);
 
     const allPersonas = [
       ...masks.map((m, i) => ({ ...m, id: `mask-${i}`, source: 'mask' })),
@@ -319,11 +325,11 @@ function loadCharacterSettings(charId) {
   }
 }
 
-function buildCharacterContext(charId) {
-  const settings = loadCharacterSettings(charId);
+async function buildCharacterContext(charId) {
+  const settings = await loadCharacterSettings(charId);
   if (!settings) return null;
 
-  const memory = loadCharacterMemory(settings.name);
+  const memory = await loadCharacterMemory(settings.name);
 
   return {
     ...settings,
@@ -545,7 +551,7 @@ function getCurrentTrack() {
   return playlist[currentIndex] || null;
 }
 
-function updateCompanionStatus() {
+async function updateCompanionStatus() {
   const userName = userNameInput.value.trim() || '你';
   const profile = getCurrentProfile();
 
@@ -555,7 +561,7 @@ function updateCompanionStatus() {
     return;
   }
 
-  const charContext = buildCharacterContext(profile.id);
+  const charContext = await buildCharacterContext(profile.id);
 
   let descText = profile.personality || profile.background || '這個角色還沒有設定個性描述。';
 
@@ -622,7 +628,7 @@ function pushDanmaku(text) {
   });
 }
 
-function triggerCharComment() {
+async function triggerCharComment() {
   const track = getCurrentTrack();
   if (!track) return;
 
@@ -632,7 +638,7 @@ function triggerCharComment() {
     return;
   }
 
-  const charContext = buildCharacterContext(profile.id);
+  const charContext = await buildCharacterContext(profile.id);
 
   let comment;
   if (charContext && charContext.memory && charContext.memory.length > 0) {
@@ -729,7 +735,7 @@ function updateImportNotice() {
   importNotice.hidden = !isExternalPlatform(platformSelect?.value || '');
 }
 
-function importPlaylist() {
+async function importPlaylist() {
   const platform = platformSelect.value;
   const url = playlistUrlInput.value.trim();
   activePlatform = platform;
@@ -745,7 +751,7 @@ function importPlaylist() {
         if (!res.ok) throw new Error('連結無法取得');
         return res.json();
       })
-      .then(data => {
+      .then(async data => {
         const list = Array.isArray(data) ? data : data?.tracks;
         if (!Array.isArray(list)) throw new Error('清單格式錯誤');
         playlist = list.map(item => ({
@@ -757,8 +763,8 @@ function importPlaylist() {
           url: item.url
         })).filter(item => item.url);
 
-        localStorage.setItem('sx_music_playlist', JSON.stringify(playlist));
-        localStorage.setItem('sx_music_platform', platform);
+        await sxSetJSON('sx_music_playlist', playlist);
+        await sxSetItem('sx_music_platform', platform);
 
         currentIndex = -1;
         isPlaying = false;
@@ -789,8 +795,8 @@ function importPlaylist() {
   }
 
   playlist = (trackLibrary[platform] || []).map(track => ({ ...track }));
-  localStorage.setItem('sx_music_playlist', JSON.stringify(playlist));
-  localStorage.setItem('sx_music_platform', platform);
+  await sxSetJSON('sx_music_playlist', playlist);
+  await sxSetItem('sx_music_platform', platform);
   currentIndex = -1;
   isPlaying = false;
 
@@ -814,8 +820,16 @@ function importPlaylist() {
 
 function bindEvents() {
   platformSelect?.addEventListener('change', updateImportNotice);
-  importBtn?.addEventListener('click', importPlaylist);
-  refreshBtn?.addEventListener('click', importPlaylist);
+  importBtn?.addEventListener('click', () => {
+    (async () => {
+      await importPlaylist();
+    })();
+  });
+  refreshBtn?.addEventListener('click', () => {
+    (async () => {
+      await importPlaylist();
+    })();
+  });
 
   spotifyLoginBtn?.addEventListener('click', () => {
     const clientId = spotifyClientIdInput?.value.trim();
@@ -830,19 +844,27 @@ function bindEvents() {
   });
 
   spotifySaveTokenBtn?.addEventListener('click', () => {
-    const token = spotifyTokenInput?.value.trim();
-    if (!token) {
-      alert('請先貼上 Access Token');
-      return;
-    }
-    localStorage.setItem('sx_spotify_access_token', token);
-    alert('✅ 已儲存 Access Token（示範用途）');
+    (async () => {
+      const token = spotifyTokenInput?.value.trim();
+      if (!token) {
+        alert('請先貼上 Access Token');
+        return;
+      }
+      await sxSetItem('sx_spotify_access_token', token);
+      alert('✅ 已儲存 Access Token（示範用途）');
+    })();
   });
 
-  userNameInput?.addEventListener('input', updateCompanionStatus);
+  userNameInput?.addEventListener('input', () => {
+    (async () => {
+      await updateCompanionStatus();
+    })();
+  });
   charSelect?.addEventListener('change', () => {
-    updateCompanionStatus();
-    triggerCharComment();
+    (async () => {
+      await updateCompanionStatus();
+      await triggerCharComment();
+    })();
   });
 
   playlistList?.addEventListener('click', (event) => {
@@ -874,8 +896,8 @@ function bindEvents() {
   audio?.addEventListener('ended', playNext);
 }
 
-function loadPlaylistFromStorage() {
-  const raw = localStorage.getItem('sx_music_playlist');
+async function loadPlaylistFromStorage() {
+  const raw = await sxGetItem('sx_music_playlist');
   const stored = parseJSON(raw || '[]', []);
   if (Array.isArray(stored) && stored.length) {
     playlist = stored;
@@ -884,7 +906,7 @@ function loadPlaylistFromStorage() {
     renderPlaylist();
     updateTrackUI(null);
   }
-  const storedPlatform = localStorage.getItem('sx_music_platform');
+  const storedPlatform = await sxGetItem('sx_music_platform');
   if (storedPlatform) {
     activePlatform = storedPlatform;
     if (platformSelect) platformSelect.value = storedPlatform;
@@ -1184,7 +1206,7 @@ async function playMelody(melody, tempo = 120) {
   });
 }
 
-function addAIToPlaylist(melody) {
+async function addAIToPlaylist(melody) {
   if (!melody || melody.length === 0) return;
 
   const track = {
@@ -1198,21 +1220,21 @@ function addAIToPlaylist(melody) {
   };
 
   playlist.push(track);
-  localStorage.setItem('sx_music_playlist', JSON.stringify(playlist));
+  await sxSetJSON('sx_music_playlist', playlist);
   renderPlaylist();
   pushDanmaku(`系統：已將 AI 生成旋律加入播放清單。`);
 }
 
-function loadCharactersForMusic() {
+async function loadCharactersForMusic() {
   const charMusicSelect = document.getElementById('char-music-select');
   if (!charMusicSelect) return;
 
   const characters = [];
   
   try {
-    const masks = parseJSON(localStorage.getItem('sx_masks') || '[]', []);
-    const chars = parseJSON(localStorage.getItem('sx_characters') || '[]', []);
-    const users = parseJSON(localStorage.getItem('sx_users') || '[]', []);
+    const masks = parseJSON(await sxGetItem('sx_masks') || '[]', []);
+    const chars = parseJSON(await sxGetItem('sx_characters') || '[]', []);
+    const users = parseJSON(await sxGetItem('sx_users') || '[]', []);
     
     masks.forEach((mask, i) => {
       if (mask?.name) {
@@ -1265,8 +1287,8 @@ function loadCharactersForMusic() {
   return characters;
 }
 
-function getCharacterById(charId) {
-  const characters = loadCharactersForMusic();
+async function getCharacterById(charId) {
+  const characters = await loadCharactersForMusic();
   return characters?.find(c => c.id === charId) || null;
 }
 
@@ -1606,7 +1628,7 @@ async function publishToBubbles(track, message) {
     window.parent.postMessage(musicPost, '*');
   }
   
-  localStorage.setItem('sx_bubbles_music_post', JSON.stringify(musicPost));
+  await sxSetJSON('sx_bubbles_music_post', musicPost);
   
   publishStatusText.textContent = '已發布到 bubbles！';
   publishStatusIcon.textContent = '✓';
@@ -1647,7 +1669,7 @@ async function publishToWeverse(track, message) {
     window.parent.postMessage(musicPost, '*');
   }
   
-  localStorage.setItem('sx_weverse_music_post', JSON.stringify(musicPost));
+  await sxSetJSON('sx_weverse_music_post', musicPost);
   
   publishStatusText.textContent = '已發布到 weverse！';
   publishStatusIcon.textContent = '✓';
@@ -1832,7 +1854,9 @@ function bindAIEvents() {
 
   if (addToPlaylistBtn) {
     addToPlaylistBtn.addEventListener('click', () => {
-      addAIToPlaylist(aiMelody);
+      (async () => {
+        await addAIToPlaylist(aiMelody);
+      })();
     });
   }
 
@@ -1870,8 +1894,8 @@ function bindCharMusicEvents() {
   loadCharactersForMusic();
   
   if (charMusicSelect) {
-    charMusicSelect.addEventListener('change', () => {
-      const char = getCharacterById(charMusicSelect.value);
+    charMusicSelect.addEventListener('change', async () => {
+      const char = await getCharacterById(charMusicSelect.value);
       if (char) {
         charPersonalityText.textContent = char.personality || '這個角色還沒有設定個性描述。';
       } else {
@@ -1888,7 +1912,7 @@ function bindCharMusicEvents() {
         return;
       }
       
-      const char = getCharacterById(charId);
+      const char = await getCharacterById(charId);
       const mood = charMoodSelect?.value || 'calm';
       const style = charStyleSelect?.value || 'pop';
       const lang = charLangSelect?.value || 'zh';
@@ -1974,11 +1998,13 @@ function bindCharMusicEvents() {
   
   if (charAddBtn) {
     charAddBtn.addEventListener('click', () => {
-      if (charMelody.length === 0) {
-        pushDanmaku('尚未生成角色音樂。');
-        return;
-      }
-      addAIToPlaylist(charMelody);
+      (async () => {
+        if (charMelody.length === 0) {
+          pushDanmaku('尚未生成角色音樂。');
+          return;
+        }
+        await addAIToPlaylist(charMelody);
+      })();
     });
   }
 }
@@ -2003,43 +2029,53 @@ function bindPublishEvents() {
   
   if (publishBubblesBtn) {
     publishBubblesBtn.addEventListener('click', () => {
-      if (!currentPublishTrack || !currentPublishTrack.aiMelody) {
-        pushDanmaku('請先生成一段音樂再發布。');
-        return;
-      }
-      const message = publishMessage?.value || '';
-      publishToBubbles(currentPublishTrack, message);
+      (async () => {
+        if (!currentPublishTrack || !currentPublishTrack.aiMelody) {
+          pushDanmaku('請先生成一段音樂再發布。');
+          return;
+        }
+        const message = publishMessage?.value || '';
+        await publishToBubbles(currentPublishTrack, message);
+      })();
     });
   }
   
   if (publishWeverseBtn) {
     publishWeverseBtn.addEventListener('click', () => {
-      if (!currentPublishTrack || !currentPublishTrack.aiMelody) {
-        pushDanmaku('請先生成一段音樂再發布。');
-        return;
-      }
-      const message = publishMessage?.value || '';
-      publishToWeverse(currentPublishTrack, message);
+      (async () => {
+        if (!currentPublishTrack || !currentPublishTrack.aiMelody) {
+          pushDanmaku('請先生成一段音樂再發布。');
+          return;
+        }
+        const message = publishMessage?.value || '';
+        await publishToWeverse(currentPublishTrack, message);
+      })();
     });
   }
 }
 
-bindEvents();
-bindAIEvents();
-bindCharMusicEvents();
-bindPublishEvents();
-bindYuEEvents();
-updateImportNotice();
-loadPlaylistFromStorage();
-loadProfilesFromSettings();
-renderProfileOptions();
-updateCompanionStatus();
-renderPlaylist();
-drawPianoRoll([]);
-updatePublishPreview(null);
-console.log('Loaded app: music');
+(async function init() {
+  bindEvents();
+  bindAIEvents();
+  bindCharMusicEvents();
+  bindPublishEvents();
+  bindYuEEvents();
+  updateImportNotice();
+  await loadPlaylistFromStorage();
+  await loadProfilesFromSettings();
+  renderProfileOptions();
+  await updateCompanionStatus();
+  renderPlaylist();
+  drawPianoRoll([]);
+  updatePublishPreview(null);
+  console.log('Loaded app: music');
+})();
 
-const YUE_API_URL = localStorage.getItem('sx_yue_api_url') || 'http://localhost:8000';
+let YUE_API_URL = '';
+
+(async function initYuEApiUrl() {
+  YUE_API_URL = await sxGetItem('sx_yue_api_url') || 'http://localhost:8000';
+})();
 
 let yueCurrentTaskId = null;
 let yuePollingInterval = null;
@@ -2166,11 +2202,14 @@ function bindYuEEvents() {
   
   if (yueSaveApiBtn) {
     yueSaveApiBtn.addEventListener('click', () => {
-      const url = yueApiUrlInput?.value?.trim();
-      if (url) {
-        localStorage.setItem('sx_yue_api_url', url);
-        pushDanmaku('YuE：API URL 已儲存。');
-      }
+      (async () => {
+        const url = yueApiUrlInput?.value?.trim();
+        if (url) {
+          await sxSetItem('sx_yue_api_url', url);
+          YUE_API_URL = url;
+          pushDanmaku('YuE：API URL 已儲存。');
+        }
+      })();
     });
   }
   
@@ -2333,16 +2372,17 @@ function bindYuEEvents() {
   
   if (yueAddToPlaylistBtn) {
     yueAddToPlaylistBtn.addEventListener('click', () => {
-      if (!currentPublishTrack || !currentPublishTrack.url) {
-        pushDanmaku('YuE：尚未生成可加入的音樂。');
-        return;
-      }
-      
-      playlist.push(currentPublishTrack);
-      localStorage.setItem('sx_music_playlist', JSON.stringify(playlist));
-      renderPlaylist();
-      pushDanmaku(`YuE：已將「${currentPublishTrack.title}」加入播放清單。`);
+      (async () => {
+        if (!currentPublishTrack || !currentPublishTrack.url) {
+          pushDanmaku('YuE：尚未生成可加入的音樂。');
+          return;
+        }
+        
+        playlist.push(currentPublishTrack);
+        await sxSetJSON('sx_music_playlist', playlist);
+        renderPlaylist();
+        pushDanmaku(`YuE：已將「${currentPublishTrack.title}」加入播放清單。`);
+      })();
     });
   }
 }
-

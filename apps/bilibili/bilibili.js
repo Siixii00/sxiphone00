@@ -71,50 +71,35 @@ const NPC_LIST_KEY = 'sx_npcs';
 const MESSAGES_STORAGE_KEY = 'sx_bili_messages';
 const CHAT_STORAGE_KEY = 'sx_bili_chats';
 
-const saveBiliData = () => {
+const saveBiliData = async () => {
     try {
-        const messages = loadMessagesData();
-        const chats = loadChatData();
-        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages));
-        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chats));
-        console.log("B站數據已保存至 localStorage");
+        const messages = await loadMessagesData();
+        const chats = await loadChatData();
+        await sxSetJSON(MESSAGES_STORAGE_KEY, messages);
+        await sxSetJSON(CHAT_STORAGE_KEY, chats);
+        console.log("B站數據已保存至 IndexedDB");
     } catch (e) {
         console.error("保存B站數據失敗:", e);
     }
 };
 
 const saveToPersistentStorage = async () => {
-    saveBiliData();
-    if (typeof localforage !== 'undefined') {
-        try {
-            const messages = loadMessagesData();
-            const chats = loadChatData();
-            const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-            await localforage.setItem('sx_app_persisted_data', {
-                ...existingData,
-                sx_bili_messages: messages,
-                sx_bili_chats: chats
-            });
-            console.log("B站數據已保存至 IndexedDB");
-        } catch (e) {
-            console.error("IndexedDB 保存失敗:", e);
-        }
-    }
+    await saveBiliData();
 };
 
-window.addEventListener('pagehide', () => {
-    saveBiliData();
+window.addEventListener('pagehide', async () => {
+    await saveBiliData();
 });
 
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'hidden') {
-        saveBiliData();
+        await saveBiliData();
     }
 });
 
-window.addEventListener('message', (event) => {
+window.addEventListener('message', async (event) => {
     if (event.data?.type === 'APP_WILL_CLOSE') {
-        saveBiliData();
+        await saveBiliData();
     }
 });
 
@@ -178,16 +163,16 @@ function randomPick(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
-function getUserProfile() {
-  const name = localStorage.getItem('sx_user_name') || 'SXi User';
-  const avatar = localStorage.getItem('sx_user_avatar') || '';
-  const background = localStorage.getItem('sx_user_background') || '';
+async function getUserProfile() {
+  const name = await sxGetItem('sx_user_name') || 'SXi User';
+  const avatar = await sxGetItem('sx_user_avatar') || '';
+  const background = await sxGetItem('sx_user_background') || '';
   return { name, avatar, background };
 }
 
-function renderUserProfile() {
+async function renderUserProfile() {
   if (!meView) return;
-  const { name, avatar, background } = getUserProfile();
+  const { name, avatar, background } = await getUserProfile();
   if (meName) meName.textContent = name;
   if (meSub) meSub.textContent = background || 'Lv.5 · 追番中';
   if (meAvatar) {
@@ -201,8 +186,8 @@ function renderUserProfile() {
   }
 }
 
-function openEditProfileModal() {
-  const { name, avatar, background } = getUserProfile();
+async function openEditProfileModal() {
+  const { name, avatar, background } = await getUserProfile();
   editProfileModal?.removeAttribute('hidden');
   if (editNameInput) editNameInput.value = name;
   if (editBackgroundInput) editBackgroundInput.value = background || '';
@@ -259,45 +244,45 @@ function clearAvatarUpload() {
   }
 }
 
-function saveProfile() {
+async function saveProfile() {
   const name = editNameInput?.value.trim() || 'SXi User';
   const background = editBackgroundInput?.value.trim() || editSubInput?.value.trim() || '';
   
-  localStorage.setItem('sx_user_name', name);
-  localStorage.setItem('sx_user_background', background);
+  await sxSetItem('sx_user_name', name);
+  await sxSetItem('sx_user_background', background);
   
   if (uploadedAvatarData) {
-    localStorage.setItem('sx_user_avatar', uploadedAvatarData);
+    await sxSetItem('sx_user_avatar', uploadedAvatarData);
   } else if (!editAvatarPreview?.classList.contains('has-image')) {
-    localStorage.removeItem('sx_user_avatar');
+    await sxRemoveItem('sx_user_avatar');
   }
   
-  renderUserProfile();
+  await renderUserProfile();
   closeEditProfileModal();
 }
 
-function loadMessagesData() {
+async function loadMessagesData() {
   try {
-    const raw = localStorage.getItem(MESSAGES_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const data = await sxGetJSON(MESSAGES_STORAGE_KEY);
+    if (data) return data;
   } catch {}
   return { notifications: [], chats: [], system: [] };
 }
 
-function saveMessagesData(data) {
-  localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(data));
+async function saveMessagesData(data) {
+  await sxSetJSON(MESSAGES_STORAGE_KEY, data);
 }
 
-function loadChatData() {
+async function loadChatData() {
   try {
-    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const data = await sxGetJSON(CHAT_STORAGE_KEY);
+    if (data) return data;
   } catch {}
   return {};
 }
 
-function saveChatData(data) {
-  localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(data));
+async function saveChatData(data) {
+  await sxSetJSON(CHAT_STORAGE_KEY, data);
 }
 
 function generateRandomTime() {
@@ -378,13 +363,13 @@ function generateChatHistory(userId, count = 10) {
   return messages.sort((a, b) => new Date(a.time) - new Date(b.time));
 }
 
-function refreshMessages() {
+async function refreshMessages() {
   const data = {
     notifications: generateNotifications(8),
     chats: generateChatUsers(6),
     system: generateSystemNotifications(5)
   };
-  saveMessagesData(data);
+  await saveMessagesData(data);
   return data;
 }
 
@@ -476,15 +461,15 @@ function renderSystemNotifications(system) {
   `).join('');
 }
 
-function renderMessagesTab(tab) {
+async function renderMessagesTab(tab) {
   currentMsgTab = tab;
   
   document.querySelectorAll('.msg-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.msg-tab[data-msg-tab="${tab}"]`)?.classList.add('active');
   
-  let data = loadMessagesData();
+  let data = await loadMessagesData();
   if (!data.notifications || data.notifications.length === 0) {
-    data = refreshMessages();
+    data = await refreshMessages();
   }
   
   switch (tab) {
@@ -500,7 +485,7 @@ function renderMessagesTab(tab) {
   }
 }
 
-function openMessagesView() {
+async function openMessagesView() {
   homeView?.setAttribute('hidden', '');
   playerPage?.setAttribute('hidden', '');
   meView?.setAttribute('hidden', '');
@@ -510,8 +495,8 @@ function openMessagesView() {
   tabsBar?.setAttribute('hidden', '');
   messagesView?.removeAttribute('hidden');
   
-  refreshMessages();
-  renderMessagesTab('notifications');
+  await refreshMessages();
+  await renderMessagesTab('notifications');
 }
 
 function closeMessagesView() {
@@ -521,13 +506,13 @@ function closeMessagesView() {
   tabsBar?.removeAttribute('hidden');
 }
 
-function openChatView(userId, userName) {
+async function openChatView(userId, userName) {
   currentChatUser = { id: userId, name: userName };
   
-  chatData = loadChatData();
+  chatData = await loadChatData();
   if (!chatData[userId]) {
     chatData[userId] = generateChatHistory(userId, 8);
-    saveChatData(chatData);
+    await saveChatData(chatData);
   }
   
   messagesView?.setAttribute('hidden', '');
@@ -558,14 +543,14 @@ function renderChatMessages(messages) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function sendMessage() {
+async function sendMessage() {
   if (!chatInput || !currentChatUser) return;
   
   const text = chatInput.value.trim();
   if (!text) return;
   
   const userId = currentChatUser.id;
-  chatData = loadChatData();
+  chatData = await loadChatData();
   
   if (!chatData[userId]) {
     chatData[userId] = [];
@@ -579,12 +564,12 @@ function sendMessage() {
   };
   
   chatData[userId].push(newMessage);
-  saveChatData(chatData);
+  await saveChatData(chatData);
   
   renderChatMessages(chatData[userId]);
   chatInput.value = '';
   
-  setTimeout(() => {
+  setTimeout(async () => {
     const reply = {
       id: `msg_${Date.now()}_reply`,
       type: 'received',
@@ -592,7 +577,7 @@ function sendMessage() {
       time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
     };
     chatData[userId].push(reply);
-    saveChatData(chatData);
+    await saveChatData(chatData);
     renderChatMessages(chatData[userId]);
   }, 1000 + Math.random() * 2000);
 }
@@ -659,19 +644,18 @@ function generateFreshFeed(tab) {
   return [];
 }
 
-function loadCharList() {
-  const raw = localStorage.getItem(CHAR_LIST_KEY) || '[]';
+async function loadCharList() {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = await sxGetJSON(CHAR_LIST_KEY);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function renderCharHistorySelect() {
+async function renderCharHistorySelect() {
   if (!charHistorySelect) return;
-  const chars = loadCharList();
+  const chars = await loadCharList();
   if (!chars.length) {
     charHistorySelect.innerHTML = '<option value="">尚未建立角色</option>';
     return;
@@ -697,7 +681,7 @@ async function generateCharHistory(char, count = 6) {
 
   try {
     const context = buildBilibiliContext();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
     const systemPrompt = `你是一位專業的 B站內容分析師，擅長根據角色性格、背景和興趣，推測該角色可能會搜尋和觀看的影片類型。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -745,7 +729,7 @@ async function generateCharHistory(char, count = 6) {
 
 async function renderCharHistoryList(index) {
   if (!charHistoryList) return;
-  const chars = loadCharList();
+  const chars = await loadCharList();
   const char = chars[Number(index)];
   if (!char) {
     charHistoryList.innerHTML = '<div class="char-history-empty">尚未建立角色或找不到角色資料。</div>';
@@ -812,28 +796,28 @@ function render(tab = 'recommend') {
   `;
 }
 
-function persistGeneratedTitles(tab) {
+async function persistGeneratedTitles(tab) {
   const payload = {
     tab,
     updatedAt: new Date().toISOString(),
     titles: (sample[tab] || []).map(item => item.title)
   };
-  localStorage.setItem('sx_bili_generated_titles', JSON.stringify(payload, null, 2));
+  await sxSetJSON('sx_bili_generated_titles', payload);
 }
 
-function persistFeed(tab) {
-  localStorage.setItem('sx_bili_feed_custom', JSON.stringify(sample));
-  localStorage.setItem('sx_bili_feed_custom_meta', JSON.stringify({ tab, updatedAt: new Date().toISOString() }));
+async function persistFeed(tab) {
+  await sxSetJSON('sx_bili_feed_custom', sample);
+  await sxSetJSON('sx_bili_feed_custom_meta', { tab, updatedAt: new Date().toISOString() });
 }
 
 function loadPersistedFeed() {
 }
 
-function refreshFeed(tab) {
+async function refreshFeed(tab) {
   sample[tab] = generateFreshFeed(tab);
   render(tab);
-  persistGeneratedTitles(tab);
-  persistFeed(tab);
+  await persistGeneratedTitles(tab);
+  await persistFeed(tab);
 }
 
 function getActiveTab() {
@@ -902,7 +886,7 @@ function clearThumbUpload() {
   }
 }
 
-function addCustomVideo() {
+async function addCustomVideo() {
   const title = addTitleInput.value.trim() || '自訂影片';
   const url = addUrlInput.value.trim();
   const chosen = addTagSelect.value;
@@ -924,11 +908,11 @@ function addCustomVideo() {
   tabs.forEach(b => b.classList.remove('active'));
   const targetBtn = document.querySelector(`.tab[data-tab="${targetTab}"]`);
   targetBtn?.classList.add('active');
-  persistFeed(targetTab);
+  await persistFeed(targetTab);
   closeAddModal();
 }
 
-function openPlayerPage({ title, url } = {}) {
+async function openPlayerPage({ title, url } = {}) {
   pendingVideoData = { title, url };
   homeView?.setAttribute('hidden', '');
   playerPage?.removeAttribute('hidden');
@@ -936,7 +920,7 @@ function openPlayerPage({ title, url } = {}) {
   const convertedUrl = convertBilibiliUrl(url || '');
   if (playerFrame) playerFrame.src = convertedUrl;
   
-  renderCharWatchSelect();
+  await renderCharWatchSelect();
   renderNPCs();
   startDanmu();
   stopCharCompanion();
@@ -954,18 +938,18 @@ function closePlayerPage() {
   pendingVideoData = null;
 }
 
-function playUrl() {
+async function playUrl() {
   const url = modalUrlInput.value.trim();
   if (!url) return;
   closeModal();
-  openPlayerPage({ title: '自訂播放網址', url });
+  await openPlayerPage({ title: '自訂播放網址', url });
 }
 
-function openCustomFromModal() {
+async function openCustomFromModal() {
   const title = modal.dataset.pendingTitle || '自訂影片';
   const url = modalUrlInput.value.trim();
   closeModal();
-  openPlayerPage({ title, url });
+  await openPlayerPage({ title, url });
 }
 
 const danmuPool = [
@@ -982,10 +966,9 @@ const npcNames = [
   '琪琪', '小龍', '阿寶', '小美', '阿強', '小玲', '阿輝', '小君'
 ];
 
-function loadNPCs() {
-  const raw = localStorage.getItem(NPC_LIST_KEY) || '[]';
+async function loadNPCs() {
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = await sxGetJSON(NPC_LIST_KEY);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -1019,9 +1002,9 @@ function renderNPCs() {
   `).join('');
 }
 
-function renderCharWatchSelect() {
+async function renderCharWatchSelect() {
   if (!charWatchSelect) return;
-  const chars = loadCharList();
+  const chars = await loadCharList();
   charWatchSelect.innerHTML = '<option value="">選擇角色</option>' +
     chars.map((char, index) => {
       const name = char?.name || `角色 ${index + 1}`;
@@ -1072,12 +1055,10 @@ function stopDanmu() {
   if (danmuLayer) danmuLayer.innerHTML = '';
 }
 
-function loadCharacterMemory(charName) {
+async function loadCharacterMemory(charName) {
   try {
-    const raw = localStorage.getItem('sx_chat_history');
-    if (!raw) return [];
-    const history = JSON.parse(raw);
-    if (!Array.isArray(history) || history.length === 0) return [];
+    const history = await sxGetJSON('sx_chat_history');
+    if (!history || !Array.isArray(history) || history.length === 0) return [];
 
     const charMessages = [];
     for (const session of history) {
@@ -1101,7 +1082,7 @@ function loadCharacterMemory(charName) {
   }
 }
 
-function getCharLiveComment(char, video) {
+async function getCharLiveComment(char, video) {
   const personality = (char?.personality || '').trim();
   const background = (char?.background || '').trim();
   const name = char?.name || '角色';
@@ -1112,7 +1093,7 @@ function getCharLiveComment(char, video) {
 
   const combinedText = `${personality} ${background}`.toLowerCase();
 
-  const memory = loadCharacterMemory(name);
+  const memory = await loadCharacterMemory(name);
 
   const sentences = [];
 
@@ -1185,7 +1166,7 @@ function showCharCommentBubble(text) {
   }, 4000);
 }
 
-function startCharCompanion(char, video) {
+async function startCharCompanion(char, video) {
   const companion = document.getElementById('char-companion');
   const avatar = document.getElementById('char-companion-avatar');
   const nameEl = document.getElementById('char-companion-name');
@@ -1206,14 +1187,14 @@ function startCharCompanion(char, video) {
   
   if (charCommentTimer) clearInterval(charCommentTimer);
   
-  setTimeout(() => {
-    const initialComment = getCharLiveComment(char, video);
+  setTimeout(async () => {
+    const initialComment = await getCharLiveComment(char, video);
     showCharCommentBubble(initialComment);
   }, 2000);
   
-  charCommentTimer = setInterval(() => {
+  charCommentTimer = setInterval(async () => {
     if (!pendingVideoData) return;
-    const comment = getCharLiveComment(char, pendingVideoData);
+    const comment = await getCharLiveComment(char, pendingVideoData);
     showCharCommentBubble(comment);
   }, calculateCommentInterval(char));
 }
@@ -1233,51 +1214,51 @@ function stopCharCompanion() {
 
 function bind() {
   tabs.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       tabs.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       render(btn.dataset.tab);
-      persistFeed(btn.dataset.tab);
+      await persistFeed(btn.dataset.tab);
     });
   });
 
-  feed?.addEventListener('click', event => {
+  feed?.addEventListener('click', async event => {
     const card = event.target.closest('[data-action="open-video"]');
     if (!card) return;
     const title = card.querySelector('.video-title')?.textContent || '影片標題';
     const url = card.dataset.url || '';
     
     if (url) {
-      openPlayerPage({ title, url });
+      await openPlayerPage({ title, url });
     } else {
       openModal();
       modal.dataset.pendingTitle = title;
     }
   });
 
-  modal?.addEventListener('click', event => {
+  modal?.addEventListener('click', async event => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
     const action = target.dataset.action;
     if (action === 'close') closeModal();
     if (action === 'refresh') {
       const activeTab = getActiveTab();
-      refreshFeed(activeTab);
+      await refreshFeed(activeTab);
       const title = modal.dataset.pendingTitle || '影片標題';
       closeModal();
-      openPlayerPage({ title });
+      await openPlayerPage({ title });
     }
     if (action === 'play') {
       openCustomFromModal();
     }
   });
 
-  addModal?.addEventListener('click', event => {
+  addModal?.addEventListener('click', async event => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
     const action = target.dataset.action;
     if (action === 'close-add') closeAddModal();
-    if (action === 'add-video') addCustomVideo();
+    if (action === 'add-video') await addCustomVideo();
     if (action === 'upload-thumb') addThumbFileInput?.click();
     if (action === 'clear-thumb') clearThumbUpload();
   });
@@ -1294,7 +1275,7 @@ function bind() {
   });
 
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const view = btn.dataset.view;
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -1307,9 +1288,9 @@ function bind() {
         chatView?.setAttribute('hidden', '');
         searchRow?.setAttribute('hidden', '');
         tabsBar?.setAttribute('hidden', '');
-        renderUserProfile();
+        await renderUserProfile();
       } else if (view === 'messages') {
-        openMessagesView();
+        await openMessagesView();
       } else if (view === 'home') {
         meView?.setAttribute('hidden', '');
         charHistoryView?.setAttribute('hidden', '');
@@ -1329,7 +1310,7 @@ function bind() {
     searchRow?.setAttribute('hidden', '');
     tabsBar?.setAttribute('hidden', '');
     charHistoryView?.removeAttribute('hidden');
-    renderCharHistorySelect();
+    await renderCharHistorySelect();
     await renderCharHistoryList(charHistorySelect?.value || '0');
   });
 
@@ -1360,17 +1341,17 @@ function bind() {
     }
   });
 
-  charWatchSelect?.addEventListener('change', () => {
+  charWatchSelect?.addEventListener('change', async () => {
     const index = charWatchSelect.value;
     if (index === '') {
       currentWatchingChar = null;
       stopCharCompanion();
     } else {
       currentWatchingChar = parseInt(index, 10);
-      const chars = loadCharList();
+      const chars = await loadCharList();
       const char = chars[currentWatchingChar];
       if (char && pendingVideoData) {
-        startCharCompanion(char, pendingVideoData);
+        await startCharCompanion(char, pendingVideoData);
       }
     }
   });
@@ -1387,38 +1368,38 @@ function bind() {
     }
   });
 
-  window.addEventListener('storage', event => {
+  window.addEventListener('storage', async event => {
     if (['sx_user_name', 'sx_user_avatar', 'sx_user_background'].includes(event.key)) {
-      renderUserProfile();
+      await renderUserProfile();
     }
     if (event.key === CHAR_LIST_KEY) {
-      renderCharHistorySelect();
+      await renderCharHistorySelect();
     }
   });
 
-  document.addEventListener('click', event => {
+  document.addEventListener('click', async event => {
     const target = event.target.closest('[data-action]');
     if (!target) return;
     const action = target.dataset.action;
     
-    if (action === 'open-edit-profile') openEditProfileModal();
+    if (action === 'open-edit-profile') await openEditProfileModal();
     if (action === 'close-edit-profile') closeEditProfileModal();
-    if (action === 'save-profile') saveProfile();
+    if (action === 'save-profile') await saveProfile();
     if (action === 'upload-avatar') editAvatarFileInput?.click();
     if (action === 'clear-avatar') clearAvatarUpload();
     if (action === 'close-messages') closeMessagesView();
     if (action === 'refresh-messages') {
-      refreshMessages();
-      renderMessagesTab(currentMsgTab);
+      await refreshMessages();
+      await renderMessagesTab(currentMsgTab);
     }
     if (action === 'close-chat') closeChatView();
-    if (action === 'send-message') sendMessage();
+    if (action === 'send-message') await sendMessage();
   });
 
-  messagesView?.addEventListener('click', event => {
+  messagesView?.addEventListener('click', async event => {
     const msgTab = event.target.closest('.msg-tab');
     if (msgTab) {
-      renderMessagesTab(msgTab.dataset.msgTab);
+      await renderMessagesTab(msgTab.dataset.msgTab);
       return;
     }
     
@@ -1426,7 +1407,7 @@ function bind() {
     if (chatItem) {
       const userId = chatItem.dataset.chatUserId;
       const userName = chatItem.dataset.chatName;
-      openChatView(userId, userName);
+      await openChatView(userId, userName);
     }
   });
 
@@ -1443,30 +1424,28 @@ function bind() {
   });
 }
 
-loadPersistedFeed();
-bind();
-render();
-renderUserProfile();
+(async () => {
+  await loadPersistedFeed();
+  bind();
+  render();
+  await renderUserProfile();
+})();
 
-function getWorldbookData() {
+async function getWorldbookData() {
   const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
   const result = {};
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    try {
-      const list = JSON.parse(raw);
-      if (Array.isArray(list)) {
-        result[cat] = list;
-      }
-    } catch (e) {}
-  });
+    const list = await sxGetJSON(key);
+    if (Array.isArray(list)) {
+      result[cat] = list;
+    }
+  }
   return result;
 }
 
-function getWorldbookContext() {
-  const data = getWorldbookData();
+async function getWorldbookContext() {
+  const data = await getWorldbookData();
   const entries = [];
   for (const [cat, list] of Object.entries(data)) {
     if (list && list.length > 0) {
@@ -1480,66 +1459,51 @@ function getWorldbookContext() {
   return entries.length > 0 ? entries.join('\n') : '無世界書設定';
 }
 
-function getCharacterData(name) {
+async function getCharacterData(name) {
   if (!name) return null;
-  const raw = localStorage.getItem(CHAR_LIST_KEY);
-  if (!raw) return null;
-  try {
-    const list = JSON.parse(raw);
-    return list.find(c => c.name === name) || null;
-  } catch {
-    return null;
-  }
+  const list = await sxGetJSON(CHAR_LIST_KEY);
+  if (!list) return null;
+  return list.find(c => c.name === name) || null;
 }
 
-function getActiveCharacter() {
-  const activeName = localStorage.getItem('sx_char_name');
+async function getActiveCharacter() {
+  const activeName = await sxGetItem('sx_char_name');
   return getCharacterData(activeName);
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || ''
   };
 }
 
-function getChatHistory(limit = 15) {
-  const raw = localStorage.getItem('sx_chat_history');
-  if (!raw) return [];
-  try {
-    const history = JSON.parse(raw);
-    return history.slice(-limit);
-  } catch {
-    return [];
-  }
+async function getChatHistory(limit = 15) {
+  const history = await sxGetJSON('sx_chat_history');
+  if (!history) return [];
+  return history.slice(-limit);
 }
 
-function getChatHistoryContext() {
-  const history = getChatHistory(15);
+async function getChatHistoryContext() {
+  const history = await getChatHistory(15);
   if (history.length === 0) return '無聊天記錄';
-  const user = getUserData();
+  const user = await getUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
     return `${role}: ${msg.content.slice(0, 100)}`;
   }).join('\n');
 }
 
-function getApiConfig() {
-  const raw = localStorage.getItem('api_configs');
-  if (!raw) return null;
-  try {
-    const configs = JSON.parse(raw);
-    const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
-    return configs[activeIndex] || configs[0] || null;
-  } catch {
-    return null;
-  }
+async function getApiConfig() {
+  const configs = await sxGetJSON('api_configs');
+  if (!configs) return null;
+  const activeIndex = Number(await sxGetItem('sx_active_api') || 0);
+  return configs[activeIndex] || configs[0] || null;
 }
 
 async function callAIAPI(messages, temperature = 0.85) {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   if (!config || !config.url) {
     throw new Error('尚未設定 API');
   }
@@ -1579,11 +1543,11 @@ async function callAIAPI(messages, temperature = 0.85) {
   return data.choices?.[0]?.message?.content || '';
 }
 
-function buildBilibiliContext() {
-  const user = getUserData();
-  const char = getActiveCharacter();
-  const worldbook = getWorldbookContext();
-  const chatHistory = getChatHistoryContext();
+async function buildBilibiliContext() {
+  const user = await getUserData();
+  const char = await getActiveCharacter();
+  const worldbook = await getWorldbookContext();
+  const chatHistory = await getChatHistoryContext();
 
   let context = `# 使用者設定\n名稱: ${user.name}\n`;
   if (user.personality) context += `性格: ${user.personality}\n`;
@@ -1615,8 +1579,8 @@ async function generateAIVideos() {
   isGeneratingVideos = true;
 
   try {
-    const context = buildBilibiliContext();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const context = await buildBilibiliContext();
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
     const systemPrompt = `你是一位專業的影片內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的影片標題和描述。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -1661,7 +1625,7 @@ async function generateAIVideos() {
 
     if (videos.length > 0) {
       render('recommend');
-      persistFeed('recommend');
+      await persistFeed('recommend');
     } else {
       alert('生成失敗，請稍後重試');
     }
@@ -1820,7 +1784,7 @@ async function downloadGeneratedVideo() {
   }
 }
 
-function addGeneratedVideoToFeed() {
+async function addGeneratedVideoToFeed() {
   if (!aiVideoGenState.generatedVideoUrl) {
     alert('沒有可加入的影片');
     return;
@@ -1839,12 +1803,12 @@ function addGeneratedVideoToFeed() {
 
   sample[newVideo.tag].unshift(newVideo);
   render(newVideo.tag);
-  persistFeed(newVideo.tag);
+  await persistFeed(newVideo.tag);
 
   closeAIVideoGenModal();
 }
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
 
@@ -1861,13 +1825,13 @@ document.addEventListener('click', (event) => {
       toggleAdvancedOptions();
       break;
     case 'start-video-gen':
-      startAIVideoGeneration();
+      await startAIVideoGeneration();
       break;
     case 'download-video':
-      downloadGeneratedVideo();
+      await downloadGeneratedVideo();
       break;
     case 'add-to-feed':
-      addGeneratedVideoToFeed();
+      await addGeneratedVideoToFeed();
       break;
   }
 });

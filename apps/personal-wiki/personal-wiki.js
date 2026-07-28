@@ -516,7 +516,7 @@ const i18n = {
     }
 };
 
-function getApiConfig() {
+async function getApiConfig() {
     if (typeof SxSettings !== 'undefined' && SxSettings.getActiveApiWithFallback) {
         try {
             const api = SxSettings.getActiveApiWithFallback();
@@ -532,7 +532,7 @@ function getApiConfig() {
         }
     }
     try {
-        const raw = localStorage.getItem('api_configs');
+        const raw = await sxGetItem('api_configs');
         if (!raw) {
             console.warn('[PersonalWiki] api_configs 不存在');
             return null;
@@ -542,7 +542,7 @@ function getApiConfig() {
             console.warn('[PersonalWiki] api_configs 空陣列');
             return null;
         }
-        const idx = parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+        const idx = parseInt(await sxGetItem('sx_active_api') || '0', 10);
         const api = configs[idx] || configs[0];
         if (!api || !api.url || !api.key) {
             console.warn('[PersonalWiki] API 配置不完整:', api);
@@ -559,8 +559,8 @@ function getApiConfig() {
     }
 }
 
-function getCurrentLang() {
-    const rawLang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+async function getCurrentLang() {
+    const rawLang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
     const aliasMap = {
         'zh-TW': 'zh-Hant', 'zh-HK': 'zh-Hant', 'zh-MO': 'zh-Hant',
         'zh-CN': 'zh-Hans', 'zh-SG': 'zh-Hans'
@@ -569,8 +569,8 @@ function getCurrentLang() {
     return i18n[normalized] ? normalized : 'zh-Hant';
 }
 
-function t(key) {
-    const lang = getCurrentLang();
+async function t(key) {
+    const lang = await getCurrentLang();
     return i18n[lang]?.[key] || i18n['zh-Hant'][key] || key;
 }
 
@@ -780,15 +780,15 @@ const wikiDB = new PersonalWikiDB();
 
 async function initApp() {
     await wikiDB.init();
-    applyLanguage();
+    await applyLanguage();
     setupEventListeners();
-    loadWikiBackupSettings();
+    await loadWikiBackupSettings();
     await loadUserSelectList();
     await loadChars();
     await loadUserWiki();
     await syncWithMemorySystem();
     
-    if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+    if ((await sxGetItem('sx_auto_cleanup')) === 'true') {
         AutoCleanup.cleanupExpiredEntries().then(result => {
             if (result.cleaned > 0) {
                 console.log(`[PersonalWiki] 已自動清理 ${result.cleaned} 筆過期資料`);
@@ -797,12 +797,12 @@ async function initApp() {
     }
 }
 
-function loadWikiBackupSettings() {
+async function loadWikiBackupSettings() {
     const toggle = document.getElementById('wiki-auto-backup-toggle');
     const intervalSelect = document.getElementById('wiki-backup-interval');
     const lastBackupEl = document.getElementById('wiki-last-backup-time');
     
-    const status = WikiAutoBackup.getBackupStatus();
+    const status = await WikiAutoBackup.getBackupStatus();
     
     if (toggle) {
         toggle.checked = status.enabled;
@@ -877,7 +877,7 @@ async function loadUserSelectList() {
     
     let users = [];
     try {
-        const raw = localStorage.getItem('sx_users');
+        const raw = await sxGetItem('sx_users');
         if (raw) {
             users = JSON.parse(raw);
         }
@@ -891,8 +891,8 @@ async function loadUserSelectList() {
         console.error('[PersonalWiki] 載入用戶列表失敗:', e);
     }
     
-    const currentUserName = localStorage.getItem('sx_user_name') || 'User';
-    const savedUserIndex = localStorage.getItem('sx_current_user_index');
+    const currentUserName = (await sxGetItem('sx_user_name')) || 'User';
+    const savedUserIndex = await sxGetItem('sx_current_user_index');
     
     let optionsHtml = '';
     if (users.length > 0) {
@@ -917,7 +917,7 @@ async function switchWikiUser(value) {
     
     let users = [];
     try {
-        const raw = localStorage.getItem('sx_users');
+        const raw = await sxGetItem('sx_users');
         if (raw) {
             users = JSON.parse(raw);
         }
@@ -937,19 +937,18 @@ async function switchWikiUser(value) {
     
     const user = users[idx];
     if (user) {
-        localStorage.setItem('sx_current_user_index', idx.toString());
-        // 只有在有值時才更新，避免跳回 'User'
+        await sxSetItem('sx_current_user_index', idx.toString());
         if (user.name) {
-            localStorage.setItem('sx_user_name', user.name);
+            await sxSetItem('sx_user_name', user.name);
         }
         if (user.avatar) {
-            localStorage.setItem('sx_user_avatar', user.avatar);
+            await sxSetItem('sx_user_avatar', user.avatar);
         }
         if (user.personality) {
-            localStorage.setItem('sx_user_personality', user.personality);
+            await sxSetItem('sx_user_personality', user.personality);
         }
         if (user.background) {
-            localStorage.setItem('sx_user_background', user.background);
+            await sxSetItem('sx_user_background', user.background);
         }
         
         const introTitle = document.querySelector('.wiki-intro h2');
@@ -966,14 +965,14 @@ async function switchWikiUser(value) {
     }
 }
 
-function applyLanguage() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
+async function applyLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(async (el) => {
         const key = el.getAttribute('data-i18n');
-        el.textContent = t(key);
+        el.textContent = await t(key);
     });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(async (el) => {
         const key = el.getAttribute('data-i18n-placeholder');
-        el.placeholder = t(key);
+        el.placeholder = await t(key);
     });
 }
 
@@ -989,7 +988,11 @@ function setupEventListeners() {
         if (e.key === 'Enter') performSearch();
     });
 
-    window.addEventListener('message', handleParentMessage);
+    window.addEventListener('message', (event) => {
+        (async () => {
+            await handleParentMessage(event);
+        })();
+    });
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
@@ -998,13 +1001,13 @@ function setupEventListeners() {
     });
 }
 
-function handleParentMessage(event) {
+async function handleParentMessage(event) {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
 
     if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
-        localStorage.setItem('sxiphone_lang', data.lang);
-        applyLanguage();
+        await sxSetItem('sxiphone_lang', data.lang);
+        await applyLanguage();
     }
 
     if (data.type === 'APP_WILL_CLOSE') {
@@ -1077,7 +1080,7 @@ async function getCharsFromSettings() {
     const loadFromStorage = async (key) => {
         let data = [];
         try {
-            const raw = localStorage.getItem(key);
+            const raw = await sxGetItem(key);
             if (raw) {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
@@ -1144,10 +1147,10 @@ async function getCharsFromSettings() {
         }
     }
     
-    const currentCharName = localStorage.getItem('sx_char_name');
-    const currentCharAvatar = localStorage.getItem('sx_char_avatar');
-    const currentCharPersonality = localStorage.getItem('sx_char_personality');
-    const currentCharBackground = localStorage.getItem('sx_char_background');
+    const currentCharName = await sxGetItem('sx_char_name');
+    const currentCharAvatar = await sxGetItem('sx_char_avatar') || '';
+    const currentCharPersonality = await sxGetItem('sx_char_personality') || '';
+    const currentCharBackground = await sxGetItem('sx_char_background') || '';
     
     if (currentCharName && !allChars.find(c => c.name === currentCharName)) {
         allChars.push({
@@ -1177,72 +1180,13 @@ async function getCharsFromSettings() {
     console.log('[PersonalWiki]載入角色列表:', allChars.length, '個角色');
     return allChars;
 }
-            }
-            
-            if (data.length === 0 && typeof localforage !== 'undefined') {
-                const idbData = await localforage.getItem(key);
-                if (idbData) {
-                    const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        data = parsed;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error(`[PersonalWiki] 讀取 ${key} 失敗:`, e);
-        }
-        return data;
-    };
-    
-    const chars = await loadFromStorage('sx_characters');
-    chars.forEach(c => allChars.push({ ...c, source: 'characters' }));
-    
-    const users = await loadFromStorage('sx_users');
-    users.forEach(u => allChars.push({ ...u, source: 'users' }));
-    
-    const npcs = await loadFromStorage('sx_npcs');
-    npcs.forEach(n => allChars.push({ ...n, source: 'npcs' }));
-    
-    const currentCharName = localStorage.getItem('sx_char_name');
-    const currentCharAvatar = localStorage.getItem('sx_char_avatar');
-    const currentCharPersonality = localStorage.getItem('sx_char_personality');
-    const currentCharBackground = localStorage.getItem('sx_char_background');
-    
-    if (currentCharName && !allChars.find(c => c.name === currentCharName)) {
-        allChars.push({
-            name: currentCharName,
-            avatar: currentCharAvatar || '',
-            personality: currentCharPersonality || '',
-            background: currentCharBackground || '',
-            source: 'current_char'
-        });
-    }
-    
-    if (typeof SxSettings !== 'undefined' && SxSettings.getAllPersonas) {
-        try {
-            const personas = SxSettings.getAllPersonas();
-            if (Array.isArray(personas) && personas.length > 0) {
-                personas.forEach(p => {
-                    if (!allChars.find(c => c.name === p.name)) {
-                        allChars.push({ ...p, source: 'sxsettings' });
-                    }
-                });
-            }
-        } catch (e) {
-            console.error('[PersonalWiki] 從 SxSettings 讀取失敗:', e);
-        }
-    }
-    
-    console.log('[PersonalWiki] 載入角色列表:', allChars.length, '個角色');
-    return allChars;
-}
 
-function getUserFromSettings() {
+async function getUserFromSettings() {
     return {
-        name: localStorage.getItem('sx_user_name') || 'User',
-        avatar: localStorage.getItem('sx_user_avatar') || '',
-        personality: localStorage.getItem('sx_user_personality') || '',
-        background: localStorage.getItem('sx_user_background') || ''
+        name: (await sxGetItem('sx_user_name')) || 'User',
+        avatar: (await sxGetItem('sx_user_avatar')) || '',
+        personality: (await sxGetItem('sx_user_personality')) || '',
+        background: (await sxGetItem('sx_user_background')) || ''
     };
 }
 
@@ -1284,7 +1228,7 @@ async function getChatHistory() {
     }
     
     try {
-        const raw = localStorage.getItem('sx_chat_history');
+        const raw = await sxGetItem('sx_chat_history');
         if (raw) {
             const history = JSON.parse(raw);
             if (Array.isArray(history) && history.length > 0) {
@@ -1297,7 +1241,7 @@ async function getChatHistory() {
     }
     
     try {
-        const sessionsRaw = localStorage.getItem('sx_chat_sessions');
+        const sessionsRaw = await sxGetItem('sx_chat_sessions');
         if (sessionsRaw) {
             const sessions = JSON.parse(sessionsRaw);
             if (Array.isArray(sessions)) {
@@ -1324,7 +1268,7 @@ async function getAllMemoryData() {
     ]);
     
     const memories = {
-        user: getUserFromSettings(),
+        user: await getUserFromSettings(),
         chars: chars,
         chatHistory: chatHistory,
         wikiEntries: {
@@ -1437,7 +1381,7 @@ async function importCharFromSettings(charIndex) {
         console.log('[PersonalWiki] charMessages:', charMessages.length, '條');
         
         if (charMessages.length > 0) {
-            const user = getUserFromSettings();
+            const user = await getUserFromSettings();
             const groupedByDate = {};
             charMessages.forEach(msg => {
                 const dateKey = msg.timestamp ? new Date(msg.timestamp).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
@@ -1735,9 +1679,9 @@ async function loadCharWiki(charId) {
 }
 
 async function loadSharedWiki() {
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
-    const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
+    const charAvatar = (await sxGetItem('sx_char_avatar')) || '';
     
     document.getElementById('sharedUserName').textContent = user.name || 'User';
     document.getElementById('sharedCharName').textContent = charName;
@@ -1827,9 +1771,9 @@ async function generateSharedStory() {
 }
 
 async function generateSharedStoryNow(storyType = 'romance', storyLength = 'medium', extraPrompt = '') {
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
-    const charPersonality = localStorage.getItem('sx_char_personality') || '';
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
+    const charPersonality = (await sxGetItem('sx_char_personality')) || '';
     
     const sharedEntries = await wikiDB.getSharedEntries();
     const recentEntries = sharedEntries.slice(0, 10);
@@ -1927,8 +1871,8 @@ ${extraPrompt ? `- 額外要求：${extraPrompt}` : ''}
 
 async function exportSharedWiki() {
     const entries = await wikiDB.getSharedEntries();
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
     
     const exportData = {
         title: `${user.name} & ${charName} 的共同百科`,
@@ -1978,7 +1922,7 @@ async function getAvailableInteractionSources() {
     }
     
     if (chatSessions.length === 0) {
-        const localStorageSessions = JSON.parse(localStorage.getItem('sx_chat_sessions') || '[]');
+        const localStorageSessions = JSON.parse(await sxGetItem('sx_chat_sessions') || '[]');
         if (localStorageSessions.length > 0) {
             console.log('[PersonalWiki] 從 localStorage 找到 sessions:', localStorageSessions.length, '個');
             chatSessions.push(...localStorageSessions);
@@ -2002,7 +1946,7 @@ async function getAvailableInteractionSources() {
     }
     
     // 約會應用程式
-    const datingHistory = JSON.parse(localStorage.getItem('sx_dating_history') || '[]');
+    const datingHistory = JSON.parse(await sxGetItem('sx_dating_history') || '[]');
     if (datingHistory.length > 0) {
         datingHistory.forEach((record, idx) => {
             sources.push({
@@ -2018,7 +1962,7 @@ async function getAvailableInteractionSources() {
     }
     
     // 農場應用程式
-    const farmSave = localStorage.getItem('sx_farm_save');
+    const farmSave = await sxGetItem('sx_farm_save');
     if (farmSave) {
         try {
             const farmData = JSON.parse(farmSave);
@@ -2037,7 +1981,7 @@ async function getAvailableInteractionSources() {
     }
     
     // Lofter 應用程式
-    const lofterPosts = JSON.parse(localStorage.getItem('sx_lofter_posts') || '[]');
+    const lofterPosts = JSON.parse(await sxGetItem('sx_lofter_posts') || '[]');
     if (lofterPosts.length > 0) {
         sources.push({
             type: 'lofter',
@@ -2051,7 +1995,7 @@ async function getAvailableInteractionSources() {
     }
     
     // Twitter 應用程式
-    const tweets = JSON.parse(localStorage.getItem('sx_tweets') || '[]');
+    const tweets = JSON.parse(await sxGetItem('sx_tweets') || '[]');
     if (tweets.length > 0) {
         sources.push({
             type: 'twitter',
@@ -2065,7 +2009,7 @@ async function getAvailableInteractionSources() {
     }
     
     // Facebook 應用程式
-    const fbPosts = JSON.parse(localStorage.getItem('sx_facebook_posts') || '[]');
+    const fbPosts = JSON.parse(await sxGetItem('sx_facebook_posts') || '[]');
     if (fbPosts.length > 0) {
         sources.push({
             type: 'facebook',
@@ -2180,8 +2124,8 @@ async function selectInteractionSource(type, id) {
 }
 
 async function processChatHistoryForTimeline(history, session = null) {
-    const user = getUserFromSettings();
-    const charName = session?.charName || localStorage.getItem('sx_char_name') || 'Char';
+    const user = await getUserFromSettings();
+    const charName = session?.charName || (await sxGetItem('sx_char_name')) || 'Char';
     
     const timelineEntries = [];
     const groupedByDate = {};
@@ -2234,7 +2178,7 @@ async function processChatHistoryForTimeline(history, session = null) {
 }
 
 async function processDatingHistoryForTimeline(data) {
-    const user = getUserFromSettings();
+    const user = await getUserFromSettings();
     const charName = data.charName || 'Char';
     const timelineEntries = [];
     
@@ -2272,7 +2216,7 @@ async function processDatingHistoryForTimeline(data) {
 }
 
 async function processFarmHistoryForTimeline(data) {
-    const user = getUserFromSettings();
+    const user = await getUserFromSettings();
     const timelineEntries = [];
     
     if (data.members && data.members.length > 0) {
@@ -2313,7 +2257,7 @@ async function processFarmHistoryForTimeline(data) {
 }
 
 async function processLofterHistoryForTimeline(posts) {
-    const user = getUserFromSettings();
+    const user = await getUserFromSettings();
     const timelineEntries = [];
     
     posts.forEach((post, idx) => {
@@ -2333,7 +2277,7 @@ async function processLofterHistoryForTimeline(posts) {
 }
 
 async function processTwitterHistoryForTimeline(tweets) {
-    const user = getUserFromSettings();
+    const user = await getUserFromSettings();
     const timelineEntries = [];
     
     const groupedByDate = {};
@@ -2360,7 +2304,7 @@ async function processTwitterHistoryForTimeline(tweets) {
 }
 
 async function processFacebookHistoryForTimeline(posts) {
-    const user = getUserFromSettings();
+    const user = await getUserFromSettings();
     const timelineEntries = [];
     
     const groupedByDate = {};
@@ -3738,9 +3682,9 @@ const ExternalServices = {
                 });
                 
                 if (response.ok) {
-                    localStorage.setItem('sx_notion_api_key', apiKey);
-                    localStorage.setItem('sx_notion_database_id', databaseId);
-                    localStorage.setItem('sx_notion_connected', 'true');
+                    await sxSetItem('sx_notion_api_key', apiKey);
+                    await sxSetItem('sx_notion_database_id', databaseId);
+                    await sxSetItem('sx_notion_connected', 'true');
                     return { success: true };
                 }
                 return { success: false, error: '連線失敗' };
@@ -3749,13 +3693,13 @@ const ExternalServices = {
             }
         },
         
-        isConnected() {
-            return localStorage.getItem('sx_notion_connected') === 'true';
+        async isConnected() {
+            return (await sxGetItem('sx_notion_connected')) === 'true';
         },
         
         async createWikiPage(entry, charName, userName) {
-            const apiKey = localStorage.getItem('sx_notion_api_key');
-            const databaseId = localStorage.getItem('sx_notion_database_id');
+            const apiKey = await sxGetItem('sx_notion_api_key');
+            const databaseId = await sxGetItem('sx_notion_database_id');
             
             if (!apiKey || !databaseId) return null;
             
@@ -3888,10 +3832,10 @@ const ExternalServices = {
             return chunks;
         },
         
-        disconnect() {
-            localStorage.removeItem('sx_notion_api_key');
-            localStorage.removeItem('sx_notion_database_id');
-            localStorage.removeItem('sx_notion_connected');
+        async disconnect() {
+            await sxRemoveItem('sx_notion_api_key');
+            await sxRemoveItem('sx_notion_database_id');
+            await sxRemoveItem('sx_notion_connected');
         }
     },
     
@@ -4052,48 +3996,73 @@ ${entry.content}
             return null;
         },
         
-        isConnected() {
-            return localStorage.getItem('sx_llm_connected') === 'true';
+        async isConnected() {
+            return (await sxGetItem('sx_llm_connected')) === 'true';
         },
         
-        connect(provider, apiKey, endpoint, model) {
+        async connect(provider, apiKey, endpoint, model) {
             if (apiKey) {
-                localStorage.setItem('sx_llm_provider', provider);
-                localStorage.setItem('sx_llm_api_key', apiKey);
-                localStorage.setItem('sx_llm_endpoint', endpoint || '');
-                localStorage.setItem('sx_llm_model', model || '');
-                localStorage.setItem('sx_llm_connected', 'true');
+                await sxSetItem('sx_llm_provider', provider);
+                await sxSetItem('sx_llm_api_key', apiKey);
+                await sxSetItem('sx_llm_endpoint', endpoint || '');
+                await sxSetItem('sx_llm_model', model || '');
+                await sxSetItem('sx_llm_connected', 'true');
                 return { success: true };
             }
             return { success: false };
         },
         
+        async disconnect() {
+            await sxRemoveItem('sx_llm_provider');
+            await sxRemoveItem('sx_llm_api_key');
+            await sxRemoveItem('sx_llm_endpoint');
+            await sxRemoveItem('sx_llm_model');
+            await sxRemoveItem('sx_llm_connected');
+        },
+        
+        async getConfig() {
+            return {
+                provider: (await sxGetItem('sx_llm_provider')) || 'gemini',
+                apiKey: (await sxGetItem('sx_llm_api_key')) || '',
+                endpoint: (await sxGetItem('sx_llm_endpoint')) || '',
+                model: (await sxGetItem('sx_llm_model')) || ''
+            };
+        }
+            return { success: false };
+        },
+        
         disconnect() {
-            localStorage.removeItem('sx_llm_provider');
-            localStorage.removeItem('sx_llm_api_key');
-            localStorage.removeItem('sx_llm_endpoint');
-            localStorage.removeItem('sx_llm_model');
-            localStorage.removeItem('sx_llm_connected');
+            await sxRemoveItem('sx_llm_provider');
+            await sxRemoveItem('sx_llm_api_key');
+            await sxRemoveItem('sx_llm_endpoint');
+            await sxRemoveItem('sx_llm_model');
+            await sxRemoveItem('sx_llm_connected');
         },
         
         getConfig() {
             return {
-                provider: localStorage.getItem('sx_llm_provider') || 'gemini',
-                apiKey: localStorage.getItem('sx_llm_api_key') || '',
-                endpoint: localStorage.getItem('sx_llm_endpoint') || '',
-                model: localStorage.getItem('sx_llm_model') || ''
+                provider: await sxGetItem('sx_llm_provider') || 'gemini',
+                apiKey: await sxGetItem('sx_llm_api_key') || '',
+                endpoint: await sxGetItem('sx_llm_endpoint') || '',
+                model: await sxGetItem('sx_llm_model') || ''
             };
         }
     }
 };
 
-function showExternalServicesModal() {
+async function showExternalServicesModal() {
     const existingModal = document.getElementById('externalServicesModal');
     if (existingModal) existingModal.remove();
     
-    const notionConnected = ExternalServices.notion.isConnected();
-    const llmConnected = ExternalServices.llmService.isConnected();
-    const llmConfig = ExternalServices.llmService.getConfig();
+    const notionConnected = await ExternalServices.notion.isConnected();
+    const llmConnected = await ExternalServices.llmService.isConnected();
+    const llmConfig = await ExternalServices.llmService.getConfig();
+    
+    const autoSyncChecked = (await sxGetItem('sx_auto_sync')) === 'true' ? 'checked' : '';
+    const autoCleanupChecked = (await sxGetItem('sx_auto_cleanup')) === 'true' ? 'checked' : '';
+    const cleanupDaysValue = (await sxGetItem('sx_cleanup_days')) || '3';
+    const notionApiKey = (await sxGetItem('sx_notion_api_key')) || '';
+    const notionDbId = (await sxGetItem('sx_notion_database_id')) || '';
     
     const modal = document.createElement('div');
     modal.id = 'externalServicesModal';
@@ -4153,8 +4122,8 @@ function showExternalServicesModal() {
                             <h4 style="margin: 0;">AI 服務</h4>
                             <p style="margin: 0; font-size: 12px; color: var(--text-secondary);">${t('llmServiceDesc')}</p>
                         </div>
-                        <span style="margin-left: auto; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${ExternalServices.llmService.isConnected() ? 'var(--accent-success)' : 'var(--bg-primary)'};">
-                            ${ExternalServices.llmService.isConnected() ? '已連結' : '未連結'}
+                        <span style="margin-left: auto; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${llmConnected ? 'var(--accent-success)' : 'var(--bg-primary)'};">
+                            ${llmConnected ? '已連結' : '未連結'}
                         </span>
                     </div>
                     
@@ -4189,16 +4158,15 @@ function showExternalServicesModal() {
                     
                     <div style="display: flex; gap: 8px;">
                         <button onclick="connectLLMService()" style="flex: 1; padding: 10px; border-radius: 6px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; cursor: pointer;">
-                            ${ExternalServices.llmService.isConnected() ? '更新連結' : '連結服務'}
+                            ${llmConnected ? '更新連結' : '連結服務'}
                         </button>
-                        ${ExternalServices.llmService.isConnected() ? `<button onclick="processWithLLMService()" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-warning); color: white; border: none; cursor: pointer;">處理記憶</button>` : ''}
+                        ${llmConnected ? `<button onclick="processWithLLMService()" style="flex: 1; padding: 10px; border-radius: 6px; background: var(--accent-warning); color: white; border: none; cursor: pointer;">處理記憶</button>` : ''}
                     </div>
                 </div>
                 
-                <!-- 自動同步選項 -->
                 <div style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">
-                        <input type="checkbox" id="autoSyncEnabled" ${localStorage.getItem('sx_auto_sync') === 'true' ? 'checked' : ''} 
+                        <input type="checkbox" id="autoSyncEnabled" ${autoSyncChecked} 
                                onchange="toggleAutoSync(this.checked)">
                         <span>${t('autoSync')}</span>
                     </label>
@@ -4207,7 +4175,7 @@ function showExternalServicesModal() {
                     </p>
                     
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 8px;">
-                        <input type="checkbox" id="autoCleanupEnabled" ${localStorage.getItem('sx_auto_cleanup') === 'true' ? 'checked' : ''} 
+                        <input type="checkbox" id="autoCleanupEnabled" ${autoCleanupChecked} 
                                onchange="toggleAutoCleanup(this.checked, parseInt(document.getElementById('cleanupDaysInput')?.value || 3))">
                         <span>${t('autoCleanup')}</span>
                     </label>
@@ -4216,7 +4184,7 @@ function showExternalServicesModal() {
                     </p>
                     <div style="display: flex; align-items: center; gap: 8px; margin-left: 24px;">
                         <label style="font-size: 12px;">${t('cleanupDays')}:</label>
-                        <input type="number" id="cleanupDaysInput" value="${localStorage.getItem('sx_cleanup_days') || '3'}" min="1" max="30"
+                        <input type="number" id="cleanupDaysInput" value="${cleanupDaysValue}" min="1" max="30"
                                style="width: 60px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);"
                                onchange="toggleAutoCleanup(document.getElementById('autoCleanupEnabled').checked, parseInt(this.value))">
                         <span style="font-size: 12px;">天</span>
@@ -4234,8 +4202,8 @@ function showExternalServicesModal() {
     `;
     document.body.appendChild(modal);
     
-    document.getElementById('notionApiKey').value = localStorage.getItem('sx_notion_api_key') || '';
-    document.getElementById('notionDbId').value = localStorage.getItem('sx_notion_database_id') || '';
+    document.getElementById('notionApiKey').value = notionApiKey;
+    document.getElementById('notionDbId').value = notionDbId;
     
     document.getElementById('llmProvider').value = llmConfig.provider;
     document.getElementById('llmApiKey').value = llmConfig.apiKey;
@@ -4296,9 +4264,9 @@ async function connectLLMService() {
 
 async function processWithLLMService() {
     const entries = await wikiDB.getSharedEntries();
-    const config = ExternalServices.llmService.getConfig();
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    const config = await ExternalServices.llmService.getConfig();
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
     
     if (!config.apiKey || entries.length === 0) {
         alert('請先連結 AI 服務');
@@ -4328,7 +4296,7 @@ async function processWithLLMService() {
                 entry.exportedAt = Date.now();
                 await wikiDB.updateSharedEntry(entry);
                 
-                if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+                if (await sxGetItem('sx_auto_cleanup') === 'true') {
                     AutoCleanup.markAsExported(entry.id, 'shared_entries');
                 }
                 
@@ -4339,7 +4307,7 @@ async function processWithLLMService() {
     
     alert(`${t('llmProcessSuccess')}！已處理 ${processed} 個記憶`);
     
-    if (processed > 0 && localStorage.getItem('sx_auto_cleanup') === 'true') {
+    if (processed > 0 && await sxGetItem('sx_auto_cleanup') === 'true') {
         AutoCleanup.cleanupExpiredEntries();
     }
     
@@ -4347,25 +4315,25 @@ async function processWithLLMService() {
     closeExternalServicesModal();
 }
 
-function toggleAutoSync(enabled) {
-    localStorage.setItem('sx_auto_sync', enabled ? 'true' : 'false');
+async function toggleAutoSync(enabled) {
+    await sxSetItem('sx_auto_sync', enabled ? 'true' : 'false');
 }
 
 const AutoCleanup = {
-    markAsExported(entryId, storeName) {
-        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+    async markAsExported(entryId, storeName) {
+        const exported = JSON.parse((await sxGetItem('sx_exported_entries')) || '{}');
         exported[entryId] = {
             storeName,
             exportedAt: Date.now(),
             deleteAfter: Date.now() + (3 * 24 * 60 * 60 * 1000)
         };
-        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+        await sxSetItem('sx_exported_entries', JSON.stringify(exported));
     },
     
     async cleanupExpiredEntries() {
-        if (localStorage.getItem('sx_auto_cleanup') !== 'true') return { cleaned: 0 };
+        if ((await sxGetItem('sx_auto_cleanup')) !== 'true') return { cleaned: 0 };
         
-        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        const exported = JSON.parse((await sxGetItem('sx_exported_entries')) || '{}');
         const now = Date.now();
         let cleaned = 0;
         
@@ -4381,7 +4349,7 @@ const AutoCleanup = {
             }
         }
         
-        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+        await sxSetItem('sx_exported_entries', JSON.stringify(exported));
         return { cleaned };
     },
     
@@ -4389,7 +4357,7 @@ const AutoCleanup = {
         const cutoff = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
         let cleaned = 0;
         
-        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        const exported = JSON.parse((await sxGetItem('sx_exported_entries')) || '{}');
         
         for (const [entryId, info] of Object.entries(exported)) {
             if (info.exportedAt <= cutoff) {
@@ -4401,12 +4369,12 @@ const AutoCleanup = {
             }
         }
         
-        localStorage.setItem('sx_exported_entries', JSON.stringify(exported));
+        await sxSetItem('sx_exported_entries', JSON.stringify(exported));
         return { cleaned };
     },
     
     getCleanupStats() {
-        const exported = JSON.parse(localStorage.getItem('sx_exported_entries') || '{}');
+        const exported = JSON.parse((await sxGetItem('sx_exported_entries')) || '{}');
         const now = Date.now();
         let pending = 0;
         let readyToDelete = 0;
@@ -4423,13 +4391,13 @@ const AutoCleanup = {
     }
 };
 
-function toggleAutoCleanup(enabled, days = 3) {
-    localStorage.setItem('sx_auto_cleanup', enabled ? 'true' : 'false');
-    localStorage.setItem('sx_cleanup_days', days.toString());
+async function toggleAutoCleanup(enabled, days = 3) {
+    await sxSetItem('sx_auto_cleanup', enabled ? 'true' : 'false');
+    await sxSetItem('sx_cleanup_days', days.toString());
 }
 
 async function runCleanupNow() {
-    const days = parseInt(localStorage.getItem('sx_cleanup_days') || '3');
+    const days = parseInt((await sxGetItem('sx_cleanup_days')) || '3');
     const result = await AutoCleanup.forceCleanup(days);
     alert(t('cleanupSuccess') + `: ${result.cleaned} 筆`);
     await loadSharedWiki();
@@ -4437,8 +4405,8 @@ async function runCleanupNow() {
 
 async function syncToNotion() {
     const entries = await wikiDB.getSharedEntries();
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
     
     if (entries.length === 0) {
         alert('沒有可同步的記憶');
@@ -4456,7 +4424,7 @@ async function syncToNotion() {
             entry.exportedAt = Date.now();
             await wikiDB.updateSharedEntry(entry);
             
-            if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+            if (await sxGetItem('sx_auto_cleanup') === 'true') {
                 AutoCleanup.markAsExported(entry.id, 'shared_entries');
             }
         } else {
@@ -4477,9 +4445,9 @@ async function syncToNotion() {
 
 async function processWithNotebookLLM() {
     const entries = await wikiDB.getSharedEntries();
-    const apiKey = localStorage.getItem('sx_notebook_llm_key');
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    const apiKey = await sxGetItem('sx_notebook_llm_key');
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
     
     if (!apiKey || entries.length === 0) {
         alert('請先連結 NotebookLLM');
@@ -4500,7 +4468,7 @@ async function processWithNotebookLLM() {
                 entry.exportedAt = Date.now();
                 await wikiDB.updateSharedEntry(entry);
                 
-                if (localStorage.getItem('sx_auto_cleanup') === 'true') {
+                if (await sxGetItem('sx_auto_cleanup') === 'true') {
                     AutoCleanup.markAsExported(entry.id, 'shared_entries');
                 }
                 
@@ -4511,7 +4479,7 @@ async function processWithNotebookLLM() {
     
     alert(`處理完成！已處理 ${processed} 個記憶`);
     
-    if (processed > 0 && localStorage.getItem('sx_auto_cleanup') === 'true') {
+    if (processed > 0 && await sxGetItem('sx_auto_cleanup') === 'true') {
         AutoCleanup.cleanupExpiredEntries();
     }
     
@@ -4520,17 +4488,17 @@ async function processWithNotebookLLM() {
 }
 
 async function autoSyncEntry(entry) {
-    if (localStorage.getItem('sx_auto_sync') !== 'true') return;
+    if ((await sxGetItem('sx_auto_sync')) !== 'true') return;
     
-    const user = getUserFromSettings();
-    const charName = localStorage.getItem('sx_char_name') || 'Char';
+    const user = await getUserFromSettings();
+    const charName = (await sxGetItem('sx_char_name')) || 'Char';
     
-    if (ExternalServices.notion.isConnected()) {
+    if (await ExternalServices.notion.isConnected()) {
         await ExternalServices.notion.createWikiPage(entry, charName, user.name);
     }
     
     if (ExternalServices.notebookLLM.isConnected()) {
-        const apiKey = localStorage.getItem('sx_notebook_llm_key');
+        const apiKey = await sxGetItem('sx_notebook_llm_key');
         const result = await ExternalServices.notebookLLM.processEntry(entry, apiKey, charName, user.name);
         if (result) {
             entry.narrative = result.narrative;
@@ -4557,7 +4525,7 @@ async function saveTimelineEntries(entries, sourceName) {
             
             await wikiDB.addSharedEntry(entry);
             
-            if (localStorage.getItem('sx_auto_sync') === 'true') {
+            if (await sxGetItem('sx_auto_sync') === 'true') {
                 autoSyncEntry(entry);
             }
         } catch (e) {
@@ -4625,7 +4593,7 @@ const WikiAutoBackup = {
     defaultInterval: 30 * 60 * 1000, // 30 分鐘
     
     async init() {
-        const enabled = localStorage.getItem(this._autoBackupEnabledKey);
+        const enabled = await sxGetItem(this._autoBackupEnabledKey);
         if (enabled === 'true') {
             this.startAutoBackup();
         }
@@ -4634,7 +4602,7 @@ const WikiAutoBackup = {
     },
     
     async _checkInitialBackup() {
-        const lastBackup = localStorage.getItem(this._lastBackupKey);
+        const lastBackup = await sxGetItem(this._lastBackupKey);
         if (!lastBackup) return;
         
         const lastTime = parseInt(lastBackup, 10);
@@ -4647,12 +4615,12 @@ const WikiAutoBackup = {
         }
     },
     
-    startAutoBackup() {
+    async startAutoBackup() {
         if (this._backupTimer) {
             clearInterval(this._backupTimer);
         }
         
-        const interval = parseInt(localStorage.getItem(this._backupIntervalKey), 10) || this.defaultInterval;
+        const interval = parseInt((await sxGetItem(this._backupIntervalKey)), 10) || this.defaultInterval;
         
         this._backupTimer = setInterval(async () => {
             await this.performBackup();
@@ -4669,19 +4637,19 @@ const WikiAutoBackup = {
         console.log('[WikiAutoBackup] 自動備份已停止');
     },
     
-    setEnabled(enabled) {
-        localStorage.setItem(this._autoBackupEnabledKey, enabled ? 'true' : 'false');
+    async setEnabled(enabled) {
+        await sxSetItem(this._autoBackupEnabledKey, enabled ? 'true' : 'false');
         if (enabled) {
-            this.startAutoBackup();
+            await this.startAutoBackup();
         } else {
             this.stopAutoBackup();
         }
     },
     
-    setBackupInterval(intervalMs) {
-        localStorage.setItem(this._backupIntervalKey, intervalMs.toString());
-        if (localStorage.getItem(this._autoBackupEnabledKey) === 'true') {
-            this.startAutoBackup();
+    async setBackupInterval(intervalMs) {
+        await sxSetItem(this._backupIntervalKey, intervalMs.toString());
+        if ((await sxGetItem(this._autoBackupEnabledKey)) === 'true') {
+            await this.startAutoBackup();
         }
     },
     
@@ -4791,7 +4759,7 @@ const WikiAutoBackup = {
             const hasCloudBackup = await this._backupToCloud(compressed);
             
             if (hasCloudBackup) {
-                localStorage.setItem(this._lastBackupKey, Date.now().toString());
+                await sxSetItem(this._lastBackupKey, Date.now().toString());
                 console.log('[WikiAutoBackup] 備份成功');
                 
                 await wikiDB.addLog({
@@ -4814,7 +4782,7 @@ const WikiAutoBackup = {
     async _backupToCloud(compressedData) {
         const results = [];
         
-        const githubToken = localStorage.getItem('sx_github_token');
+        const githubToken = await sxGetItem('sx_github_token');
         if (githubToken) {
             try {
                 const result = await this._backupToGitHub(compressedData, githubToken);
@@ -4825,8 +4793,8 @@ const WikiAutoBackup = {
             }
         }
         
-        const supabaseUrl = localStorage.getItem('sx_supabase_url');
-        const supabaseKey = localStorage.getItem('sx_supabase_key');
+        const supabaseUrl = await sxGetItem('sx_supabase_url');
+        const supabaseKey = await sxGetItem('sx_supabase_key');
         if (supabaseUrl && supabaseKey) {
             try {
                 const result = await this._backupToSupabase(compressedData, supabaseUrl, supabaseKey);
@@ -4837,7 +4805,7 @@ const WikiAutoBackup = {
             }
         }
         
-        const gdriveToken = localStorage.getItem('sx_gdrive_access_token');
+        const gdriveToken = await sxGetItem('sx_gdrive_access_token');
         if (gdriveToken) {
             try {
                 const result = await this._backupToGDrive(compressedData, gdriveToken);
@@ -4855,7 +4823,7 @@ const WikiAutoBackup = {
     },
     
     async _backupToGitHub(compressedData, token) {
-        const repoName = localStorage.getItem('sx_github_repo_name') || 'sxiphone-backup';
+        const repoName = await sxGetItem('sx_github_repo_name') || 'sxiphone-backup';
         const filePath = 'wiki/wiki_backup.json';
         
         const userResp = await fetch('https://api.github.com/user', {
@@ -4911,8 +4879,8 @@ const WikiAutoBackup = {
     },
     
     async _backupToSupabase(compressedData, url, key) {
-        const table = localStorage.getItem('sx_backup_table') || 'sxiphone_backups';
-        const userId = localStorage.getItem('sx_user_name') || 'default';
+        const table = await sxGetItem('sx_backup_table') || 'sxiphone_backups';
+        const userId = await sxGetItem('sx_user_name') || 'default';
         
         const payload = {
             user_id: userId,
@@ -5024,11 +4992,11 @@ const WikiAutoBackup = {
         }
     },
     
-    getBackupStatus() {
+    async getBackupStatus() {
         return {
-            enabled: localStorage.getItem(this._autoBackupEnabledKey) === 'true',
-            interval: parseInt(localStorage.getItem(this._backupIntervalKey), 10) || this.defaultInterval,
-            lastBackup: localStorage.getItem(this._lastBackupKey) || null
+            enabled: (await sxGetItem(this._autoBackupEnabledKey)) === 'true',
+            interval: parseInt((await sxGetItem(this._backupIntervalKey)), 10) || this.defaultInterval,
+            lastBackup: (await sxGetItem(this._lastBackupKey)) || null
         };
     }
 };

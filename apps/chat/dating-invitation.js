@@ -1,4 +1,4 @@
-// --- 12. 約會邀請系統 ---
+﻿// --- 12. 約會邀請系統 ---
 const DatingInvitation = {
   timer: null,
   lastInviteTime: 0,
@@ -10,8 +10,23 @@ const DatingInvitation = {
 const DATING_INVITE_SETTINGS_KEY = 'sx_dating_invite_settings';
 
 function getDatingInviteSettings() {
+  const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
+  if (cache && cache.has(DATING_INVITE_SETTINGS_KEY)) {
+    try {
+      return JSON.parse(cache.get(DATING_INVITE_SETTINGS_KEY));
+    } catch (e) {}
+  }
+  return {
+    enabled: true,
+    minInterval: 30,
+    maxInterval: 120,
+    probability: 30
+  };
+}
+
+async function getDatingInviteSettingsAsync() {
   try {
-    const raw = localStorage.getItem(DATING_INVITE_SETTINGS_KEY);
+    const raw = await sxGetItem(DATING_INVITE_SETTINGS_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return {
@@ -23,7 +38,14 @@ function getDatingInviteSettings() {
 }
 
 function saveDatingInviteSettings(settings) {
-  localStorage.setItem(DATING_INVITE_SETTINGS_KEY, JSON.stringify(settings));
+  const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
+  if (cache) {
+    cache.set(DATING_INVITE_SETTINGS_KEY, JSON.stringify(settings));
+  }
+}
+
+async function saveDatingInviteSettingsAsync(settings) {
+  await sxSetJSON(DATING_INVITE_SETTINGS_KEY, settings);
 }
 
 function cleanCOTFromText(text) {
@@ -64,20 +86,20 @@ const SCENE_MAP = {
 };
 
 // 初始化約會邀請系統
-function initDatingInvitation() {
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+async function initDatingInvitation() {
+  const apis = await sxGetJSON('api_configs') || [];
   if (!apis[0] || !apis[0].url) {
     console.log('約會邀請系統：未偵測到 API 配置，跳過初始化');
     return;
   }
   
-  const settings = getDatingInviteSettings();
+  const settings = await getDatingInviteSettingsAsync();
   if (!settings.enabled) {
     console.log('約會邀請系統：已停用');
     return;
   }
   
-  loadScheduledDates();
+  await loadScheduledDates();
   checkScheduledDates();
   
   const initialDelay = (2 + Math.random() * 3) * 60 * 1000;
@@ -90,7 +112,7 @@ function initDatingInvitation() {
 // 載入已排程的約會
 function loadScheduledDates() {
   try {
-    const stored = localStorage.getItem('sx_scheduled_dates');
+    const stored = await sxGetItem('sx_scheduled_dates');
     if (stored) {
       DatingInvitation.scheduledDates = JSON.parse(stored);
     }
@@ -102,7 +124,7 @@ function loadScheduledDates() {
 
 // 儲存已排程的約會
 function saveScheduledDates() {
-  localStorage.setItem('sx_scheduled_dates', JSON.stringify(DatingInvitation.scheduledDates));
+  await sxSetJSON('sx_scheduled_dates', DatingInvitation.scheduledDates);
 }
 
 // 檢查是否有到期的約會
@@ -196,13 +218,13 @@ function scheduleNextCheck() {
 
 // 生成約會邀請
 async function generateDatingInvitation() {
-  const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+  const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
   const activeChar = currentChars[0] || {};
   const charName = activeChar.name || 'AI 助理';
   const charPersonality = activeChar.personality || '友善的助手';
   const charBackground = activeChar.background || '無';
-  const userName = localStorage.getItem('sx_user_name') || 'User';
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const userName = await sxGetItem('sx_user_name') || 'User';
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
   // 讀取最近聊天內容作為上下文
   const session = getActiveSession();
@@ -385,7 +407,7 @@ function acceptDatingInvite(scene, inviteId) {
 // 排程約會
 function scheduleDate(scene, minutes, inviteId) {
   const scheduledTime = Date.now() + minutes * 60 * 1000;
-  const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+  const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
   const activeChar = currentChars[0] || {};
   const charName = activeChar.name || 'AI 助理';
   

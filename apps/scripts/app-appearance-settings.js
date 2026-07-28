@@ -63,126 +63,118 @@
         }
     };
 
-    const getThemeMode = () => {
-        return localStorage.getItem(THEME_MODE_KEY) || 'dark';
+    const getThemeMode = async () => {
+        return await sxGetItem(THEME_MODE_KEY) || 'dark';
     };
 
-    const setThemeMode = (mode) => {
-        localStorage.setItem(THEME_MODE_KEY, mode);
+    const setThemeMode = async (mode) => {
+        await sxSetItem(THEME_MODE_KEY, mode);
         window.parent?.postMessage({ type: 'THEME_MODE_CHANGED', mode }, '*');
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const getCustomLightSettings = () => {
-        return safeJsonParse(localStorage.getItem(CUSTOM_LIGHT_KEY), { ...defaultLightSettings });
+    const getCustomLightSettings = async () => {
+        const raw = await sxGetItem(CUSTOM_LIGHT_KEY);
+        return safeJsonParse(raw, { ...defaultLightSettings });
     };
 
-    const getCustomDarkSettings = () => {
-        return safeJsonParse(localStorage.getItem(CUSTOM_DARK_KEY), { ...defaultDarkSettings });
+    const getCustomDarkSettings = async () => {
+        const raw = await sxGetItem(CUSTOM_DARK_KEY);
+        return safeJsonParse(raw, { ...defaultDarkSettings });
     };
 
-    const saveCustomLightSettings = (settings) => {
-        localStorage.setItem(CUSTOM_LIGHT_KEY, JSON.stringify(settings));
+    const saveCustomLightSettings = async (settings) => {
+        await sxSetJSON(CUSTOM_LIGHT_KEY, settings);
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const saveCustomDarkSettings = (settings) => {
-        localStorage.setItem(CUSTOM_DARK_KEY, JSON.stringify(settings));
+    const saveCustomDarkSettings = async (settings) => {
+        await sxSetJSON(CUSTOM_DARK_KEY, settings);
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const saveGlobalAppearance = (settings) => {
-        localStorage.setItem(GLOBAL_APPEARANCE_SAVED, JSON.stringify(settings));
+    const saveGlobalAppearance = async (settings) => {
+        await sxSetJSON(GLOBAL_APPEARANCE_SAVED, settings);
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const getSavedGlobalAppearance = () => {
-        const saved = localStorage.getItem(GLOBAL_APPEARANCE_SAVED);
-        if (saved) {
-            try {
-                return JSON.parse(saved);
-            } catch (e) {
-                return null;
-            }
-        }
-        return null;
+    const getSavedGlobalAppearance = async () => {
+        return await sxGetJSON(GLOBAL_APPEARANCE_SAVED);
     };
 
-    const clearSavedGlobalAppearance = () => {
-        localStorage.removeItem(GLOBAL_APPEARANCE_SAVED);
+    const clearSavedGlobalAppearance = async () => {
+        await sxRemoveItem(GLOBAL_APPEARANCE_SAVED);
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const getCurrentSettings = () => {
-        const savedGlobal = localStorage.getItem(GLOBAL_APPEARANCE_SAVED);
+    const getCurrentSettings = async () => {
+        const savedGlobal = await sxGetJSON(GLOBAL_APPEARANCE_SAVED);
         if (savedGlobal) {
-            try {
-                const parsed = JSON.parse(savedGlobal);
-                return parsed;
-            } catch (e) {}
+            return savedGlobal;
         }
-        const mode = getThemeMode();
+        const mode = await getThemeMode();
         switch (mode) {
             case 'light':
                 return { ...defaultLightSettings };
             case 'custom-light':
-                return getCustomLightSettings();
+                return await getCustomLightSettings();
             case 'custom-dark':
-                return getCustomDarkSettings();
+                return await getCustomDarkSettings();
             case 'dark':
             default:
                 return { ...defaultDarkSettings };
         }
     };
 
-    const getAppSettings = (appId) => {
+    const getAppSettings = async (appId) => {
         if (!appId || appId === 'global') {
-            return getCurrentSettings();
+            return await getCurrentSettings();
         }
-        const useGlobal = localStorage.getItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`);
+        const useGlobal = await sxGetItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`);
         if (useGlobal === 'true' || useGlobal === null) {
-            return getCurrentSettings();
+            return await getCurrentSettings();
         }
-        return safeJsonParse(localStorage.getItem(`${STORAGE_KEY_PREFIX}${appId}`), getCurrentSettings());
+        const raw = await sxGetItem(`${STORAGE_KEY_PREFIX}${appId}`);
+        return safeJsonParse(raw, await getCurrentSettings());
     };
 
-    const getUseGlobal = (appId) => {
+    const getUseGlobal = async (appId) => {
         if (!appId || appId === 'global') return true;
-        const val = localStorage.getItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`);
+        const val = await sxGetItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`);
         return val === null || val === 'true';
     };
 
-    const setUseGlobal = (appId, useGlobal) => {
+    const setUseGlobal = async (appId, useGlobal) => {
         if (!appId || appId === 'global') return;
-        localStorage.setItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`, useGlobal ? 'true' : 'false');
+        await sxSetItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`, useGlobal ? 'true' : 'false');
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const saveAppSettings = (appId, settings, themeType = null) => {
+    const saveAppSettings = async (appId, settings, themeType = null) => {
         if (!appId || appId === 'global') {
-            const mode = themeType || getThemeMode();
+            const mode = themeType || await getThemeMode();
             if (mode === 'custom-light') {
-                saveCustomLightSettings(settings);
+                await saveCustomLightSettings(settings);
             } else if (mode === 'custom-dark') {
-                saveCustomDarkSettings(settings);
+                await saveCustomDarkSettings(settings);
             }
         } else {
-            localStorage.setItem(`${STORAGE_KEY_PREFIX}${appId}`, JSON.stringify(settings));
+            await sxSetJSON(`${STORAGE_KEY_PREFIX}${appId}`, settings);
         }
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
-    const resetAppSettings = (appId) => {
+    const resetAppSettings = async (appId) => {
         if (!appId || appId === 'global') {
-            const mode = getThemeMode();
+            const mode = await getThemeMode();
             if (mode === 'custom-light') {
-                localStorage.setItem(CUSTOM_LIGHT_KEY, JSON.stringify(defaultLightSettings));
+                await sxSetJSON(CUSTOM_LIGHT_KEY, defaultLightSettings);
             } else if (mode === 'custom-dark') {
-                localStorage.setItem(CUSTOM_DARK_KEY, JSON.stringify(defaultDarkSettings));
+                await sxSetJSON(CUSTOM_DARK_KEY, defaultDarkSettings);
             }
         } else {
-            localStorage.removeItem(`${STORAGE_KEY_PREFIX}${appId}`);
-            localStorage.setItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`, 'true');
+            await sxRemoveItem(`${STORAGE_KEY_PREFIX}${appId}`);
+            await sxSetItem(`${STORAGE_KEY_PREFIX}${appId}_use_global`, 'true');
         }
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
@@ -291,11 +283,11 @@
         styleEl.textContent = css;
     };
 
-    const createPanelHTML = (appId, appName) => {
-        const mode = getThemeMode();
+    const createPanelHTML = async (appId, appName) => {
+        const mode = await getThemeMode();
         const isCustomMode = mode === 'custom-light' || mode === 'custom-dark';
-        const settings = getAppSettings(appId);
-        const useGlobal = appId !== 'global' ? getUseGlobal(appId) : false;
+        const settings = await getAppSettings(appId);
+        const useGlobal = appId !== 'global' ? await getUseGlobal(appId) : false;
         const isGlobal = appId === 'global';
         const appConfig = getAppConfig(appId);
         const hasAppSpecific = appConfig && Object.keys(appConfig.settings || {}).length > 0;
@@ -550,12 +542,12 @@
         }
 
         if (useGlobalCheckbox && settingsArea) {
-            useGlobalCheckbox.addEventListener('change', () => {
+            useGlobalCheckbox.addEventListener('change', async () => {
                 const useGlobal = useGlobalCheckbox.checked;
                 settingsArea.classList.toggle('sx-disabled', useGlobal);
-                setUseGlobal(appId, useGlobal);
+                await setUseGlobal(appId, useGlobal);
                 if (useGlobal) {
-                    const currentSettings = getCurrentSettings();
+                    const currentSettings = await getCurrentSettings();
                     populateSettings(panel, currentSettings);
                     populateAppSpecificSettings(appId, panel, currentSettings);
                     applySettingsToElement(null, currentSettings);
@@ -572,14 +564,14 @@
         }
 
         if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                const mode = getThemeMode();
+            resetBtn.addEventListener('click', async () => {
+                const mode = await getThemeMode();
                 let defaultSettings = mode === 'custom-light' ? defaultLightSettings : defaultDarkSettings;
                 if (appId !== 'global') {
-                    defaultSettings = getCurrentSettings();
+                    defaultSettings = await getCurrentSettings();
                 }
-                resetAppSettings(appId);
-                const settings = appId === 'global' ? getCurrentSettings() : getAppSettings(appId);
+                await resetAppSettings(appId);
+                const settings = appId === 'global' ? await getCurrentSettings() : await getAppSettings(appId);
                 populateSettings(panel, settings);
                 populateAppSpecificSettings(appId, panel, settings);
                 applySettingsToElement(null, settings);
@@ -588,12 +580,12 @@
         }
 
         if (applyBtn) {
-            applyBtn.addEventListener('click', () => {
+            applyBtn.addEventListener('click', async () => {
                 const newSettings = collectSettings(panel);
                 const appSpecificSettings = collectAppSpecificSettings(appId, panel);
                 const mergedSettings = { ...newSettings, ...appSpecificSettings };
-                const mode = getThemeMode();
-                saveAppSettings(appId, mergedSettings, mode);
+                const mode = await getThemeMode();
+                await saveAppSettings(appId, mergedSettings, mode);
                 applySettingsToElement(null, mergedSettings);
                 applyAppSpecificCss(appId, mergedSettings);
                 
@@ -616,13 +608,13 @@
         }
 
         if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
+            saveBtn.addEventListener('click', async () => {
                 const newSettings = collectSettings(panel);
                 const appSpecificSettings = collectAppSpecificSettings(appId, panel);
                 const mergedSettings = { ...newSettings, ...appSpecificSettings };
-                const mode = getThemeMode();
-                saveGlobalAppearance(mergedSettings);
-                saveAppSettings(appId, mergedSettings, mode);
+                const mode = await getThemeMode();
+                await saveGlobalAppearance(mergedSettings);
+                await saveAppSettings(appId, mergedSettings, mode);
                 applySettingsToElement(null, mergedSettings);
                 applyAppSpecificCss(appId, mergedSettings);
                 
@@ -732,9 +724,9 @@
         };
     };
 
-    const openAppearancePanel = (appId, container, onClose) => {
+    const openAppearancePanel = async (appId, container, onClose) => {
         const currentAppId = appId || 'global';
-        const html = createPanelHTML(currentAppId, '');
+        const html = await createPanelHTML(currentAppId, '');
         
         const wrapper = document.createElement('div');
         wrapper.innerHTML = html;
@@ -751,28 +743,30 @@
         return panel;
     };
 
-    const initAppearanceForApp = (appId) => {
-        const settings = getAppSettings(appId);
+    const initAppearanceForApp = async (appId) => {
+        const settings = await getAppSettings(appId);
         applySettingsToElement(null, settings);
         applyAppSpecificCss(appId, settings);
         
-        window.addEventListener('message', (event) => {
+        window.addEventListener('message', async (event) => {
             const data = event.data;
             if (!data || typeof data !== 'object') return;
             
             if (data.type === 'THEME_MODE_CHANGED') {
-                if (data.settings && getUseGlobal(appId)) {
+                const useGlobal = await getUseGlobal(appId);
+                if (data.settings && useGlobal) {
                     applySettingsToElement(null, data.settings);
                     applyAppSpecificCss(appId, data.settings);
-                } else if (getUseGlobal(appId)) {
-                    const newSettings = getCurrentSettings();
+                } else if (useGlobal) {
+                    const newSettings = await getCurrentSettings();
                     applySettingsToElement(null, newSettings);
                     applyAppSpecificCss(appId, newSettings);
                 }
             }
             
             if (data.type === 'CUSTOM_THEME_UPDATED') {
-                if (getUseGlobal(appId)) {
+                const useGlobal = await getUseGlobal(appId);
+                if (useGlobal) {
                     applySettingsToElement(null, data.settings);
                     applyAppSpecificCss(appId, data.settings);
                 }
@@ -801,15 +795,15 @@
         return { ...appConfigRegistry };
     };
 
-    const getMergedSettings = (appId) => {
-        const globalSettings = getCurrentSettings();
+    const getMergedSettings = async (appId) => {
+        const globalSettings = await getCurrentSettings();
         const appConfig = getAppConfig(appId);
         
-        if (!appConfig || getUseGlobal(appId)) {
+        if (!appConfig || await getUseGlobal(appId)) {
             return globalSettings;
         }
         
-        const appSettings = getAppSettings(appId);
+        const appSettings = await getAppSettings(appId);
         const merged = { ...globalSettings, ...appSettings };
         
         if (appConfig.settings) {

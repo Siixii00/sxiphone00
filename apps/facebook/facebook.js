@@ -33,8 +33,8 @@ const ACTIVE_USER_KEY = 'sx_user_name';
 
 const state = {
   profile: {
-    userName: localStorage.getItem('sx_user_name') || '你',
-    avatar: localStorage.getItem('sx_user_avatar') || ''
+    userName: '你',
+    avatar: ''
   },
   charProfile: null,
   userProfile: null,
@@ -64,38 +64,38 @@ const state = {
   charViewName: window.charViewName || ''
 };
 
-const saveFacebookData = () => {
+const saveFacebookData = async () => {
   try {
-    localStorage.setItem(FB_PROFILE_KEY, JSON.stringify(state.profile));
-    localStorage.setItem(FB_GENERATED_POSTS_KEY, JSON.stringify(state.generatedPosts));
-    localStorage.setItem(FB_USER_POSTS_KEY, JSON.stringify(state.userPosts));
-    localStorage.setItem(FB_SAVED_POSTS_KEY, JSON.stringify(state.savedPosts));
-    localStorage.setItem(FB_POST_MEMORIES_KEY, JSON.stringify(state.postMemories));
-    localStorage.setItem(FB_FRIENDS_KEY, JSON.stringify(state.friends));
-    localStorage.setItem(FB_NPC_FRIENDS_KEY, JSON.stringify(state.npcFriends));
-    localStorage.setItem(FB_POST_SETTINGS_KEY, JSON.stringify(state.postSettings));
-    localStorage.setItem(FB_COMMUNITY_TONE_KEY, state.communitySettings.tone);
-    localStorage.setItem(FB_COMMUNITY_FLAGS_KEY, JSON.stringify(state.communitySettings.flags));
-    localStorage.setItem(FB_NPC_PERSONALITY_KEY, state.communitySettings.npcPersonality);
-    localStorage.setItem(FB_HATER_PROFILES_KEY, state.communitySettings.haterProfiles);
-    localStorage.setItem(FB_ENABLE_HATERS_KEY, String(state.communitySettings.enableHaters));
-    localStorage.setItem(FB_POST_REACTIONS_KEY, JSON.stringify(state.postReactions));
-    localStorage.setItem(FB_POST_COMMENTS_KEY, JSON.stringify(state.postComments));
+    await sxSetJSON(FB_PROFILE_KEY, state.profile);
+    await sxSetJSON(FB_GENERATED_POSTS_KEY, state.generatedPosts);
+    await sxSetJSON(FB_USER_POSTS_KEY, state.userPosts);
+    await sxSetJSON(FB_SAVED_POSTS_KEY, state.savedPosts);
+    await sxSetJSON(FB_POST_MEMORIES_KEY, state.postMemories);
+    await sxSetJSON(FB_FRIENDS_KEY, state.friends);
+    await sxSetJSON(FB_NPC_FRIENDS_KEY, state.npcFriends);
+    await sxSetJSON(FB_POST_SETTINGS_KEY, state.postSettings);
+    await sxSetItem(FB_COMMUNITY_TONE_KEY, state.communitySettings.tone);
+    await sxSetJSON(FB_COMMUNITY_FLAGS_KEY, state.communitySettings.flags);
+    await sxSetItem(FB_NPC_PERSONALITY_KEY, state.communitySettings.npcPersonality);
+    await sxSetItem(FB_HATER_PROFILES_KEY, state.communitySettings.haterProfiles);
+    await sxSetItem(FB_ENABLE_HATERS_KEY, String(state.communitySettings.enableHaters));
+    await sxSetJSON(FB_POST_REACTIONS_KEY, state.postReactions);
+    await sxSetJSON(FB_POST_COMMENTS_KEY, state.postComments);
   } catch (e) {
     console.error('保存 Facebook 數據失敗:', e);
   }
 };
 
-window.addEventListener('pagehide', saveFacebookData);
+window.addEventListener('pagehide', () => { (async () => { await saveFacebookData(); })(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveFacebookData();
+  if (document.visibilityState === 'hidden') { (async () => { await saveFacebookData(); })(); }
 });
 window.addEventListener('message', (event) => {
-  if (event.data?.type === 'APP_WILL_CLOSE') saveFacebookData();
+  if (event.data?.type === 'APP_WILL_CLOSE') { (async () => { await saveFacebookData(); })(); }
 });
 
-function loadJSON(key, fallback) {
-  const raw = localStorage.getItem(key);
+async function loadJSON(key, fallback) {
+  const raw = await sxGetItem(key);
   if (!raw) return fallback;
   try {
     return JSON.parse(raw);
@@ -104,8 +104,8 @@ function loadJSON(key, fallback) {
   }
 }
 
-function saveJSON(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+async function saveJSON(key, value) {
+  await sxSetItem(key, JSON.stringify(value));
 }
 
 const escapeHTML = (str = '') => String(str)
@@ -129,35 +129,35 @@ function normalizePost(post) {
   };
 }
 
-function getCharacterList() {
-  return loadJSON(CHAR_LIST_KEY, []);
+async function getCharacterList() {
+  return await loadJSON(CHAR_LIST_KEY, []);
 }
 
-function getNpcList() {
-  return loadJSON(NPC_LIST_KEY, []);
+async function getNpcList() {
+  return await loadJSON(NPC_LIST_KEY, []);
 }
 
-function getActiveCharacter() {
-  const activeName = localStorage.getItem(ACTIVE_CHAR_KEY);
-  const charList = getCharacterList();
+async function getActiveCharacter() {
+  const activeName = await sxGetItem(ACTIVE_CHAR_KEY);
+  const charList = await getCharacterList();
   return charList.find(c => c.name === activeName) || null;
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || '',
-    avatar: localStorage.getItem('sx_user_avatar') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || '',
+    avatar: await sxGetItem('sx_user_avatar') || ''
   };
 }
 
-function getCommunityTone() {
-  return localStorage.getItem(FB_COMMUNITY_TONE_KEY) || 'neutral';
+async function getCommunityTone() {
+  return await sxGetItem(FB_COMMUNITY_TONE_KEY) || 'neutral';
 }
 
-function getCommunityFlags() {
-  const raw = localStorage.getItem(FB_COMMUNITY_FLAGS_KEY);
+async function getCommunityFlags() {
+  const raw = await sxGetItem(FB_COMMUNITY_FLAGS_KEY);
   if (!raw) {
     return { criticism: true, sarcasm: true, arguments: false, trolling: false };
   }
@@ -168,24 +168,24 @@ function getCommunityFlags() {
   }
 }
 
-function getNpcPersonality() {
-  return localStorage.getItem(FB_NPC_PERSONALITY_KEY) || '';
+async function getNpcPersonality() {
+  return await sxGetItem(FB_NPC_PERSONALITY_KEY) || '';
 }
 
-function getHaterProfiles() {
-  return localStorage.getItem(FB_HATER_PROFILES_KEY) || '';
+async function getHaterProfiles() {
+  return await sxGetItem(FB_HATER_PROFILES_KEY) || '';
 }
 
-function isHatersEnabled() {
-  return localStorage.getItem(FB_ENABLE_HATERS_KEY) === 'true';
+async function isHatersEnabled() {
+  return await sxGetItem(FB_ENABLE_HATERS_KEY) === 'true';
 }
 
-function getCommunityContext() {
-  const tone = getCommunityTone();
-  const flags = getCommunityFlags();
-  const npcPersonality = getNpcPersonality();
-  const hatersEnabled = isHatersEnabled();
-  const haterProfiles = getHaterProfiles();
+async function getCommunityContext() {
+  const tone = await getCommunityTone();
+  const flags = await getCommunityFlags();
+  const npcPersonality = await getNpcPersonality();
+  const hatersEnabled = await isHatersEnabled();
+  const haterProfiles = await getHaterProfiles();
   
   const toneMap = {
     friendly: '社群氛圍友善溫和，大多數用戶禮貌互動',
@@ -219,34 +219,34 @@ function getCommunityContext() {
   return context;
 }
 
-function loadProfile() {
-  const rawProfile = loadJSON(FB_PROFILE_KEY, null);
+async function loadProfile() {
+  const rawProfile = await loadJSON(FB_PROFILE_KEY, null);
   if (rawProfile && typeof rawProfile === 'object') {
     state.profile.userName = rawProfile.userName || state.profile.userName;
     state.profile.avatar = rawProfile.avatar || state.profile.avatar;
   }
 
-  state.generatedPosts = (loadJSON(FB_GENERATED_POSTS_KEY, []) || []).map(normalizePost);
-  state.userPosts = (loadJSON(FB_USER_POSTS_KEY, []) || []).map(normalizePost);
-  state.savedPosts = loadJSON(FB_SAVED_POSTS_KEY, []) || [];
-  state.postMemories = loadJSON(FB_POST_MEMORIES_KEY, []) || [];
-  state.friends = loadJSON(FB_FRIENDS_KEY, []);
-  state.npcFriends = loadJSON(FB_NPC_FRIENDS_KEY, []);
-  state.postSettings = { ...state.postSettings, ...loadJSON(FB_POST_SETTINGS_KEY, {}) };
+  state.generatedPosts = ((await loadJSON(FB_GENERATED_POSTS_KEY, [])) || []).map(normalizePost);
+  state.userPosts = ((await loadJSON(FB_USER_POSTS_KEY, [])) || []).map(normalizePost);
+  state.savedPosts = (await loadJSON(FB_SAVED_POSTS_KEY, [])) || [];
+  state.postMemories = (await loadJSON(FB_POST_MEMORIES_KEY, [])) || [];
+  state.friends = await loadJSON(FB_FRIENDS_KEY, []);
+  state.npcFriends = await loadJSON(FB_NPC_FRIENDS_KEY, []);
+  state.postSettings = { ...state.postSettings, ...(await loadJSON(FB_POST_SETTINGS_KEY, {})) };
   
-  state.communitySettings.tone = getCommunityTone();
-  state.communitySettings.flags = getCommunityFlags();
-  state.communitySettings.npcPersonality = getNpcPersonality();
-  state.communitySettings.haterProfiles = getHaterProfiles();
-  state.communitySettings.enableHaters = isHatersEnabled();
+  state.communitySettings.tone = await getCommunityTone();
+  state.communitySettings.flags = await getCommunityFlags();
+  state.communitySettings.npcPersonality = await getNpcPersonality();
+  state.communitySettings.haterProfiles = await getHaterProfiles();
+  state.communitySettings.enableHaters = await isHatersEnabled();
 
-  state.postReactions = loadJSON(FB_POST_REACTIONS_KEY, {});
-  state.postComments = loadJSON(FB_POST_COMMENTS_KEY, {});
+  state.postReactions = await loadJSON(FB_POST_REACTIONS_KEY, {});
+  state.postComments = await loadJSON(FB_POST_COMMENTS_KEY, {});
 
-  const activeCharName = localStorage.getItem(ACTIVE_CHAR_KEY) || '';
-  const activeUserName = localStorage.getItem(ACTIVE_USER_KEY) || '';
-  const charList = loadJSON(CHAR_LIST_KEY, []);
-  const userList = loadJSON(USER_LIST_KEY, []);
+  const activeCharName = await sxGetItem(ACTIVE_CHAR_KEY) || '';
+  const activeUserName = await sxGetItem(ACTIVE_USER_KEY) || '';
+  const charList = await loadJSON(CHAR_LIST_KEY, []);
+  const userList = await loadJSON(USER_LIST_KEY, []);
 
   state.charProfile = (Array.isArray(charList) ? charList : []).find((item) => item?.name === activeCharName) || null;
   state.userProfile = (Array.isArray(userList) ? userList : []).find((item) => item?.name === activeUserName) || null;
@@ -256,11 +256,11 @@ function loadProfile() {
     if (state.userProfile.avatar) state.profile.avatar = state.userProfile.avatar;
   }
 
-  const mounts = loadJSON(FB_WB_MOUNTS_KEY, []);
+  const mounts = await loadJSON(FB_WB_MOUNTS_KEY, []);
   state.mountedWorldbooks = (Array.isArray(mounts) ? mounts : []).filter((item) => item?.enabled !== false);
   
   if (state.isCharView && state.charViewName) {
-    const charList = getCharacterList();
+    const charList = await getCharacterList();
     const charData = charList.find(c => c.name === state.charViewName);
     if (charData) {
       state.currentAccount = state.charViewName;
@@ -268,18 +268,18 @@ function loadProfile() {
   }
 }
 
-function getCharacterData(name) {
-  const charList = getCharacterList();
+async function getCharacterData(name) {
+  const charList = await getCharacterList();
   return charList.find(c => c.name === name) || null;
 }
 
-function updateAccountSelectors() {
+async function updateAccountSelectors() {
   const accountSelect = document.getElementById('account-select');
   if (!accountSelect) return;
 
-  const user = getUserData();
-  const userProfile = loadJSON(FB_USER_PROFILES_KEY, {});
-  const charProfiles = loadJSON(FB_CHAR_PROFILES_KEY, {});
+  const user = await getUserData();
+  const userProfile = await loadJSON(FB_USER_PROFILES_KEY, {});
+  const charProfiles = await loadJSON(FB_CHAR_PROFILES_KEY, {});
   
   const userName = userProfile?.name || user.name || '你';
   const options = [`<option value="user">${escapeHTML(userName)}</option>`];
@@ -300,7 +300,7 @@ function updateAccountSelectors() {
 
   accountSelect.addEventListener('change', () => {
     state.currentAccount = accountSelect.value;
-    updateComposerAvatar();
+    (async () => { await updateComposerAvatar(); })();
   });
 }
 
@@ -309,12 +309,12 @@ function getCurrentPostingAccount() {
   return accountSelect?.value || state.currentAccount;
 }
 
-function getAccountInfo(accountValue) {
-  const userProfile = loadJSON(FB_USER_PROFILES_KEY, {});
-  const charProfiles = loadJSON(FB_CHAR_PROFILES_KEY, {});
+async function getAccountInfo(accountValue) {
+  const userProfile = await loadJSON(FB_USER_PROFILES_KEY, {});
+  const charProfiles = await loadJSON(FB_CHAR_PROFILES_KEY, {});
   
   if (accountValue === 'user') {
-    const user = getUserData();
+    const user = await getUserData();
     const profile = userProfile || {};
     return {
       name: profile.name || user.name || '你',
@@ -324,7 +324,7 @@ function getAccountInfo(accountValue) {
   }
   
   const charProfile = charProfiles[accountValue] || {};
-  const charData = getCharacterData(accountValue);
+  const charData = await getCharacterData(accountValue);
   if (charData) {
     return {
       name: charProfile.name || charData.name,
@@ -340,9 +340,9 @@ function getAccountInfo(accountValue) {
   };
 }
 
-function updateComposerAvatar() {
+async function updateComposerAvatar() {
   const accountValue = getCurrentPostingAccount();
-  const accountInfo = getAccountInfo(accountValue);
+  const accountInfo = await getAccountInfo(accountValue);
   
   const composerAvatar = document.getElementById('composer-avatar');
   const composeAvatar = document.getElementById('compose-avatar');
@@ -399,12 +399,12 @@ function updateProfileAvatars() {
   }
 }
 
-function renderSponsored() {
+async function renderSponsored() {
   const container = document.getElementById('sponsored-list');
   const card = document.getElementById('sponsored-card');
   if (!container) return;
 
-  const sponsored = loadJSON(FB_SPONSORED_KEY, []);
+  const sponsored = await loadJSON(FB_SPONSORED_KEY, []);
   
   if (sponsored.length === 0) {
     if (card) card.style.display = 'none';
@@ -468,11 +468,11 @@ function renderOnlineFriends() {
   `).join('');
 }
 
-function renderStories() {
+async function renderStories() {
   const container = document.getElementById('stories-track');
   if (!container) return;
 
-  const igStories = getIgStories();
+  const igStories = await getIgStories();
   
   let storiesHtml = `
     <div class="story create" id="create-story-btn">
@@ -503,8 +503,8 @@ function renderStories() {
   });
 }
 
-function getIgStories() {
-  const raw = localStorage.getItem(IG_STORIES_KEY);
+async function getIgStories() {
+  const raw = await sxGetItem(IG_STORIES_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw);
@@ -572,8 +572,6 @@ function cleanupPosts() {
       ...keepPosts
     ];
   }
-  
-  saveFacebookData();
 }
 
 function renderPosts() {
@@ -742,8 +740,7 @@ function bindPostEvents() {
       } else {
         state.postReactions[postId][state.currentAccount] = reactionType;
       }
-      saveFacebookData();
-      renderPosts();
+      (async () => { await saveFacebookData(); renderPosts(); })();
     });
   });
 
@@ -756,14 +753,14 @@ function bindPostEvents() {
   });
 
   feedEl?.querySelectorAll('.comment-submit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const postId = btn.dataset.postId;
       const input = btn.closest('.comments-section')?.querySelector('.comment-input');
       const text = input?.value?.trim();
       if (!postId || !text) return;
       
       if (!state.postComments[postId]) state.postComments[postId] = [];
-      const accountInfo = getAccountInfo(state.currentAccount);
+      const accountInfo = await getAccountInfo(state.currentAccount);
       state.postComments[postId].push({
         id: `comment_${Date.now()}`,
         author: accountInfo.name,
@@ -772,7 +769,7 @@ function bindPostEvents() {
         time: '剛剛',
         timestamp: Date.now()
       });
-      saveFacebookData();
+      await saveFacebookData();
       input.value = '';
       renderPosts();
     });
@@ -789,7 +786,7 @@ function bindPostEvents() {
   });
 
   feedEl?.querySelectorAll('[data-action="share"]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const postEl = btn.closest('.post');
       const postId = postEl?.dataset.postId;
       if (!postId) return;
@@ -798,7 +795,7 @@ function bindPostEvents() {
       const originalPost = allPosts.find(p => p.id === postId);
       if (!originalPost) return;
       
-      const accountInfo = getAccountInfo(state.currentAccount);
+      const accountInfo = await getAccountInfo(state.currentAccount);
       const sharedPost = normalizePost({
         author: accountInfo.name,
         authorType: accountInfo.type,
@@ -812,7 +809,7 @@ function bindPostEvents() {
       
       state.userPosts.unshift(sharedPost);
       originalPost.stats.share = (originalPost.stats.share || 0) + 1;
-      saveFacebookData();
+      await saveFacebookData();
       renderPosts();
     });
   });
@@ -833,7 +830,7 @@ function bindPostEvents() {
         btn.innerHTML = '<i class="fas fa-bookmark"></i>';
         btn.dataset.saved = 'true';
       }
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   });
 }
@@ -889,12 +886,12 @@ function renderSavedPosts() {
   bindPostEvents();
 }
 
-function addPost(content, visibility = 'public') {
+async function addPost(content, visibility = 'public') {
   const trimmed = content.trim();
   if (!trimmed) return;
   
   const accountValue = getCurrentPostingAccount();
-  const accountInfo = getAccountInfo(accountValue);
+  const accountInfo = await getAccountInfo(accountValue);
   
   const post = normalizePost({
     author: accountInfo.name,
@@ -907,7 +904,7 @@ function addPost(content, visibility = 'public') {
   });
   
   state.userPosts.unshift(post);
-  saveFacebookData();
+  await saveFacebookData();
   renderPosts();
 }
 
@@ -924,11 +921,11 @@ function closeComposeModal() {
   composeModal?.classList.add('hidden');
 }
 
-function renderCharFriendsList() {
+async function renderCharFriendsList() {
   const container = document.getElementById('char-friends-list');
   if (!container) return;
 
-  const charList = getCharacterList();
+  const charList = await getCharacterList();
   if (charList.length === 0) {
     container.innerHTML = '<div class="muted-text">尚未建立角色，請先到設定建立</div>';
     return;
@@ -957,20 +954,22 @@ function renderCharFriendsList() {
       } else {
         state.friends = state.friends.filter(n => n !== charName);
       }
-      saveFacebookData();
-      renderFriendsSidebar();
-      renderOnlineFriends();
-      renderStories();
-      updateAccountSelectors();
+      (async () => {
+        await saveFacebookData();
+        renderFriendsSidebar();
+        renderOnlineFriends();
+        await renderStories();
+        await updateAccountSelectors();
+      })();
     });
   });
 }
 
-function renderNpcFriendsList() {
+async function renderNpcFriendsList() {
   const container = document.getElementById('npc-friends-list');
   if (!container) return;
 
-  const npcList = getNpcList();
+  const npcList = await getNpcList();
   if (npcList.length === 0) {
     container.innerHTML = '<div class="muted-text">尚未建立 NPC，請先到設定建立</div>';
     return;
@@ -999,29 +998,31 @@ function renderNpcFriendsList() {
       } else {
         state.npcFriends = state.npcFriends.filter(n => n !== npcName);
       }
-      saveFacebookData();
-      renderFriendsSidebar();
-      renderOnlineFriends();
-      renderStories();
-      updateAccountSelectors();
+      (async () => {
+        await saveFacebookData();
+        renderFriendsSidebar();
+        renderOnlineFriends();
+        await renderStories();
+        await updateAccountSelectors();
+      })();
     });
   });
 }
 
-function getWorldbookIndex() {
-  return loadJSON(WORLD_BOOK_INDEX_KEY, []);
+async function getWorldbookIndex() {
+  return await loadJSON(WORLD_BOOK_INDEX_KEY, []);
 }
 
-function getWorldbookMounts() {
-  return loadJSON(WORLD_BOOK_MOUNTS_KEY, []);
+async function getWorldbookMounts() {
+  return await loadJSON(WORLD_BOOK_MOUNTS_KEY, []);
 }
 
-function renderWorldbookMountList() {
+async function renderWorldbookMountList() {
   const container = document.getElementById('wb-mount-list');
   if (!container) return;
 
-  const index = getWorldbookIndex();
-  const mounts = getWorldbookMounts();
+  const index = await getWorldbookIndex();
+  const mounts = await getWorldbookMounts();
   const mountMap = new Map(mounts.map(item => [item.name, item]));
   const items = index.length ? index : [{ title: '通用常識庫' }];
 
@@ -1046,7 +1047,7 @@ function renderWorldbookMountList() {
   }).join('');
 }
 
-function saveWorldbookMounts() {
+async function saveWorldbookMounts() {
   const container = document.getElementById('wb-mount-list');
   if (!container) return;
 
@@ -1064,8 +1065,8 @@ function saveWorldbookMounts() {
     });
   });
 
-  localStorage.setItem(WORLD_BOOK_MOUNTS_KEY, JSON.stringify(mounts));
-  localStorage.setItem(FB_WB_MOUNTS_KEY, JSON.stringify(mounts));
+  await sxSetJSON(WORLD_BOOK_MOUNTS_KEY, mounts);
+  await sxSetJSON(FB_WB_MOUNTS_KEY, mounts);
   
   const saveBtn = document.getElementById('wb-save');
   if (saveBtn) {
@@ -1074,14 +1075,14 @@ function saveWorldbookMounts() {
   }
 }
 
-function collectMountedWorldbookEntries() {
+async function collectMountedWorldbookEntries() {
   const mountedNameSet = new Set(state.mountedWorldbooks.map((item) => item.name));
   if (!mountedNameSet.size) return [];
 
   const entries = [];
-  WORLD_BOOK_KEYS.forEach((key) => {
-    const data = loadJSON(key, []);
-    if (!Array.isArray(data)) return;
+  for (const key of WORLD_BOOK_KEYS) {
+    const data = await loadJSON(key, []);
+    if (!Array.isArray(data)) continue;
     data.forEach((entry) => {
       const title = entry?.title || '';
       if (!entry?.enabled) return;
@@ -1092,26 +1093,26 @@ function collectMountedWorldbookEntries() {
         content: entry?.content || ''
       });
     });
-  });
+  }
 
   return entries;
 }
 
-function getActiveApiConfig() {
-  const configs = loadJSON('api_configs', []);
+async function getActiveApiConfig() {
+  const configs = await loadJSON('api_configs', []);
   const list = Array.isArray(configs) ? configs : [];
-  const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
+  const activeIndex = Number(await sxGetItem('sx_active_api') || 0);
   return list[activeIndex] || list[0] || null;
 }
 
-function getChatHistoryContext() {
-  const raw = localStorage.getItem('sx_chat_history');
+async function getChatHistoryContext() {
+  const raw = await sxGetItem('sx_chat_history');
   if (!raw) return '無聊天記錄';
   try {
     const history = JSON.parse(raw);
     const recent = history.slice(-15);
     if (recent.length === 0) return '無聊天記錄';
-    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const userName = await sxGetItem('sx_user_name') || 'User';
     return recent.map(msg => {
       const role = msg.role === 'user' ? userName : '角色';
       return `${role}: ${msg.content.slice(0, 100)}`;
@@ -1122,7 +1123,7 @@ function getChatHistoryContext() {
 }
 
 async function generateAIPosts() {
-  const apiConfig = getActiveApiConfig();
+  const apiConfig = await getActiveApiConfig();
   if (!apiConfig?.url) {
     alert('尚未設定 API，請先到設定頁面配置');
     return;
@@ -1135,10 +1136,10 @@ async function generateAIPosts() {
   }
 
   try {
-    const user = getUserData();
-    const char = getActiveCharacter();
-    const worldbooks = collectMountedWorldbookEntries();
-    const chatHistory = getChatHistoryContext();
+    const user = await getUserData();
+    const char = await getActiveCharacter();
+    const worldbooks = await collectMountedWorldbookEntries();
+    const chatHistory = await getChatHistoryContext();
 
     const authors = [];
     if (state.postSettings.generateUserPosts) {
@@ -1161,8 +1162,8 @@ async function generateAIPosts() {
     }
 
     const apiType = apiConfig.type || 'openai';
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
-    const communityContext = getCommunityContext();
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+    const communityContext = await getCommunityContext();
     const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定創作符合人物性格的 Facebook 貼文。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰撰寫。
 輸出格式為 JSON: {"posts":[{"author":"","text":"","visibility":"public|friends","like":0,"comment":0,"share":0}]}
@@ -1285,7 +1286,7 @@ ${communityContext}
     });
 
     state.generatedPosts = state.generatedPosts.slice(0, 100);
-    saveFacebookData();
+    await saveFacebookData();
     renderPosts();
 
     if (posts.length === 0) {
@@ -1310,7 +1311,7 @@ function loadPostSettings() {
     generateUserPosts.checked = state.postSettings.generateUserPosts !== false;
     generateUserPosts.addEventListener('change', () => {
       state.postSettings.generateUserPosts = generateUserPosts.checked;
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   }
 
@@ -1318,7 +1319,7 @@ function loadPostSettings() {
     generateFriendPosts.checked = state.postSettings.generateFriendPosts !== false;
     generateFriendPosts.addEventListener('change', () => {
       state.postSettings.generateFriendPosts = generateFriendPosts.checked;
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   }
 
@@ -1326,7 +1327,7 @@ function loadPostSettings() {
     generateNpcPosts.checked = state.postSettings.generateNpcPosts === true;
     generateNpcPosts.addEventListener('change', () => {
       state.postSettings.generateNpcPosts = generateNpcPosts.checked;
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   }
 }
@@ -1337,7 +1338,7 @@ function loadCommunitySettings() {
     communityToneSelect.value = state.communitySettings.tone;
     communityToneSelect.addEventListener('change', () => {
       state.communitySettings.tone = communityToneSelect.value;
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   }
 
@@ -1351,20 +1352,20 @@ function loadCommunitySettings() {
   if (argumentsCheck) argumentsCheck.checked = state.communitySettings.flags.arguments;
   if (trollingCheck) trollingCheck.checked = state.communitySettings.flags.trolling;
 
-  const saveCommunityFlags = () => {
+  const saveCommunityFlags = async () => {
     state.communitySettings.flags = {
       criticism: criticismCheck?.checked || false,
       sarcasm: sarcasmCheck?.checked || false,
       arguments: argumentsCheck?.checked || false,
       trolling: trollingCheck?.checked || false
     };
-    saveFacebookData();
+    await saveFacebookData();
   };
 
-  criticismCheck?.addEventListener('change', saveCommunityFlags);
-  sarcasmCheck?.addEventListener('change', saveCommunityFlags);
-  argumentsCheck?.addEventListener('change', saveCommunityFlags);
-  trollingCheck?.addEventListener('change', saveCommunityFlags);
+  criticismCheck?.addEventListener('change', () => { (async () => { await saveCommunityFlags(); })(); });
+  sarcasmCheck?.addEventListener('change', () => { (async () => { await saveCommunityFlags(); })(); });
+  argumentsCheck?.addEventListener('change', () => { (async () => { await saveCommunityFlags(); })(); });
+  trollingCheck?.addEventListener('change', () => { (async () => { await saveCommunityFlags(); })(); });
 
   const npcPersonalityInput = document.getElementById('npc-personality');
   if (npcPersonalityInput) {
@@ -1389,28 +1390,28 @@ function loadCommunitySettings() {
       if (haterSettingsPanel) {
         haterSettingsPanel.classList.toggle('hidden', !enableHatersToggle.checked);
       }
-      saveFacebookData();
+      (async () => { await saveFacebookData(); })();
     });
   }
 
   const communitySaveBtn = document.getElementById('community-save');
-  communitySaveBtn?.addEventListener('click', () => {
+  communitySaveBtn?.addEventListener('click', async () => {
     if (npcPersonalityInput) {
       state.communitySettings.npcPersonality = npcPersonalityInput.value.trim();
     }
     if (haterProfilesInput) {
       state.communitySettings.haterProfiles = haterProfilesInput.value.trim();
     }
-    saveFacebookData();
+    await saveFacebookData();
     communitySaveBtn.textContent = '已儲存';
     setTimeout(() => { communitySaveBtn.textContent = '儲存社群設定'; }, 1200);
   });
 }
 
 function bindEvents() {
-  postBtn?.addEventListener('click', () => {
+  postBtn?.addEventListener('click', async () => {
     const visibility = document.getElementById('compose-visibility')?.value || 'public';
-    addPost(composeInput?.value || '', visibility);
+    await addPost(composeInput?.value || '', visibility);
     if (composeInput) composeInput.value = '';
     closeComposeModal();
   });
@@ -1502,12 +1503,14 @@ function bindEvents() {
     
     if (data.type === 'APP_FOLDER_SYNC' && data.appId === 'settings' && data.data?.storage) {
       const storage = data.data.storage;
-      if (storage.sx_characters) localStorage.setItem(CHAR_LIST_KEY, storage.sx_characters);
-      if (storage.sx_users) localStorage.setItem(USER_LIST_KEY, storage.sx_users);
-      if (storage.sx_npc_list) localStorage.setItem(NPC_LIST_KEY, storage.sx_npc_list);
-      renderCharFriendsList();
-      renderNpcFriendsList();
-      updateAccountSelectors();
+      (async () => {
+        if (storage.sx_characters) await sxSetJSON(CHAR_LIST_KEY, storage.sx_characters);
+        if (storage.sx_users) await sxSetJSON(USER_LIST_KEY, storage.sx_users);
+        if (storage.sx_npc_list) await sxSetJSON(NPC_LIST_KEY, storage.sx_npc_list);
+        await renderCharFriendsList();
+        await renderNpcFriendsList();
+        await updateAccountSelectors();
+      })();
     }
   });
 
@@ -1516,13 +1519,13 @@ function bindEvents() {
   }
 }
 
-function showProfilePage(accountValue) {
+async function showProfilePage(accountValue) {
   const feedSection = document.querySelector('.fb-feed');
   if (!feedSection) return;
 
-  const accountInfo = getAccountInfo(accountValue);
-  const userProfile = loadJSON(FB_USER_PROFILES_KEY, {});
-  const charProfiles = loadJSON(FB_CHAR_PROFILES_KEY, {});
+  const accountInfo = await getAccountInfo(accountValue);
+  const userProfile = await loadJSON(FB_USER_PROFILES_KEY, {});
+  const charProfiles = await loadJSON(FB_CHAR_PROFILES_KEY, {});
   
   let profile = {};
   if (accountValue === 'user') {
@@ -1638,19 +1641,27 @@ function showProfilePage(accountValue) {
   document.body.appendChild(backBtn);
 }
 
-loadProfile();
-updateProfileAvatars();
-bindEvents();
-renderPosts();
-renderFriendsSidebar();
-renderOnlineFriends();
-renderStories();
-renderSponsored();
-updateAccountSelectors();
-updateComposerAvatar();
-
-if (state.isCharView && state.charViewName) {
-  document.title = `${state.charViewName} 查看臉書`;
+async function init() {
+  await loadProfile();
+  
+  state.profile.userName = await sxGetItem('sx_user_name') || '你';
+  state.profile.avatar = await sxGetItem('sx_user_avatar') || '';
+  
+  updateProfileAvatars();
+  bindEvents();
+  renderPosts();
+  renderFriendsSidebar();
+  renderOnlineFriends();
+  await renderStories();
+  await renderSponsored();
+  await updateAccountSelectors();
+  await updateComposerAvatar();
+  
+  if (state.isCharView && state.charViewName) {
+    document.title = `${state.charViewName} 查看臉書`;
+  }
+  
+  console.log('Loaded app: facebook');
 }
 
-console.log('Loaded app: facebook');
+init();

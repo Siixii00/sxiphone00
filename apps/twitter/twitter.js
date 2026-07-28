@@ -33,25 +33,25 @@ const NPC_FOLLOWS_KEY = 'sx_twitter_npc_follows';
 const NPC_TWEETS_KEY = 'sx_twitter_npc_tweets';
 const GENERATE_USER_TWEETS_KEY = 'sx_twitter_generate_user_tweets';
 
-function getWorldbookData() {
+async function getWorldbookData() {
   const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
   const result = {};
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
+    const raw = await sxGetItem(key);
+    if (!raw) continue;
     try {
       const list = JSON.parse(raw);
       if (Array.isArray(list)) {
         result[cat] = list;
       }
     } catch (e) {}
-  });
+  }
   return result;
 }
 
-function getWorldbookContext() {
-  const data = getWorldbookData();
+async function getWorldbookContext() {
+  const data = await getWorldbookData();
   const entries = [];
   for (const [cat, list] of Object.entries(data)) {
     if (list && list.length > 0) {
@@ -65,16 +65,16 @@ function getWorldbookContext() {
   return entries.length > 0 ? entries.join('\n') : '無世界書設定';
 }
 
-function getWorldviewSetting() {
-  return localStorage.getItem(WORLDVIEW_KEY) || '';
+async function getWorldviewSetting() {
+  return await sxGetItem(WORLDVIEW_KEY) || '';
 }
 
-function getCommunityTone() {
-  return localStorage.getItem(COMMUNITY_TONE_KEY) || 'neutral';
+async function getCommunityTone() {
+  return await sxGetItem(COMMUNITY_TONE_KEY) || 'neutral';
 }
 
-function getCommunityFlags() {
-  const raw = localStorage.getItem(COMMUNITY_FLAGS_KEY);
+async function getCommunityFlags() {
+  const raw = await sxGetItem(COMMUNITY_FLAGS_KEY);
   if (!raw) {
     return { criticism: true, sarcasm: true, arguments: false, trolling: false };
   }
@@ -85,25 +85,25 @@ function getCommunityFlags() {
   }
 }
 
-function getNpcPersonality() {
-  return localStorage.getItem(NPC_PERSONALITY_KEY) || '';
+async function getNpcPersonality() {
+  return await sxGetItem(NPC_PERSONALITY_KEY) || '';
 }
 
-function getHaterProfiles() {
-  return localStorage.getItem(HATER_PROFILES_KEY) || '';
+async function getHaterProfiles() {
+  return await sxGetItem(HATER_PROFILES_KEY) || '';
 }
 
-function isHatersEnabled() {
-  const raw = localStorage.getItem(ENABLE_HATERS_KEY);
+async function isHatersEnabled() {
+  const raw = await sxGetItem(ENABLE_HATERS_KEY);
   return raw === 'true';
 }
 
-function getCommunityContext() {
-  const tone = getCommunityTone();
-  const flags = getCommunityFlags();
-  const npcPersonality = getNpcPersonality();
-  const hatersEnabled = isHatersEnabled();
-  const haterProfiles = getHaterProfiles();
+async function getCommunityContext() {
+  const tone = await getCommunityTone();
+  const flags = await getCommunityFlags();
+  const npcPersonality = await getNpcPersonality();
+  const hatersEnabled = await isHatersEnabled();
+  const haterProfiles = await getHaterProfiles();
   
   const toneMap = {
     friendly: '社群氛圍友善溫和，大多數用戶禮貌互動',
@@ -137,9 +137,9 @@ function getCommunityContext() {
   return context;
 }
 
-function getCharacterData(name) {
+async function getCharacterData(name) {
   if (!name) return null;
-  const raw = localStorage.getItem(CHAR_LIST_KEY);
+  const raw = await sxGetItem(CHAR_LIST_KEY);
   if (!raw) return null;
   try {
     const list = JSON.parse(raw);
@@ -149,21 +149,21 @@ function getCharacterData(name) {
   }
 }
 
-function getActiveCharacter() {
-  const activeName = localStorage.getItem(ACTIVE_CHAR_KEY);
-  return getCharacterData(activeName);
+async function getActiveCharacter() {
+  const activeName = await sxGetItem(ACTIVE_CHAR_KEY);
+  return await getCharacterData(activeName);
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || ''
   };
 }
 
-function getNpcList() {
-  const raw = localStorage.getItem('sx_npc_list');
+async function getNpcList() {
+  const raw = await sxGetItem('sx_npc_list');
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -173,8 +173,8 @@ function getNpcList() {
   }
 }
 
-function getNpcFollows() {
-  const raw = localStorage.getItem(NPC_FOLLOWS_KEY);
+async function getNpcFollows() {
+  const raw = await sxGetItem(NPC_FOLLOWS_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -184,12 +184,12 @@ function getNpcFollows() {
   }
 }
 
-function saveNpcFollows(follows) {
-  localStorage.setItem(NPC_FOLLOWS_KEY, JSON.stringify(follows));
+async function saveNpcFollows(follows) {
+  await sxSetJSON(NPC_FOLLOWS_KEY, follows);
 }
 
-function getNpcTweets() {
-  const raw = localStorage.getItem(NPC_TWEETS_KEY);
+async function getNpcTweets() {
+  const raw = await sxGetItem(NPC_TWEETS_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -199,8 +199,8 @@ function getNpcTweets() {
   }
 }
 
-function saveNpcTweets(tweets) {
-  const bookmarks = getBookmarks();
+async function saveNpcTweets(tweets) {
+  const bookmarks = await getBookmarks();
   const bookmarkIds = bookmarks.map(b => b.id || b.timestamp);
   const preservedTweets = tweets.filter(t => bookmarkIds.includes(t.id || t.timestamp));
   const regularTweets = tweets.filter(t => !bookmarkIds.includes(t.id || t.timestamp));
@@ -208,35 +208,37 @@ function saveNpcTweets(tweets) {
   const trimmedRegular = regularTweets.slice(0, maxRegularTweets);
   const finalTweets = [...preservedTweets, ...trimmedRegular];
   finalTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  localStorage.setItem(NPC_TWEETS_KEY, JSON.stringify(finalTweets));
+  await sxSetJSON(NPC_TWEETS_KEY, finalTweets);
 }
 
-function cleanupOldTweets() {
-  const bookmarks = getBookmarks();
+async function cleanupOldTweets() {
+  const bookmarks = await getBookmarks();
   const bookmarkIds = bookmarks.map(b => b.id || b.timestamp);
   
-  const npcTweets = getNpcTweets();
+  const npcTweets = await getNpcTweets();
   const npcTweetsToRemove = npcTweets.filter(t => !bookmarkIds.includes(t.id || t.timestamp));
-  npcTweetsToRemove.forEach(tweet => addTweetMemory(tweet));
+  for (const tweet of npcTweetsToRemove) {
+    await addTweetMemory(tweet);
+  }
   
   const preservedNpcTweets = npcTweets.filter(t => bookmarkIds.includes(t.id || t.timestamp));
   const regularNpcTweets = npcTweets.filter(t => !bookmarkIds.includes(t.id || t.timestamp));
   const trimmedNpcTweets = regularNpcTweets.slice(0, 50);
   const finalNpcTweets = [...preservedNpcTweets, ...trimmedNpcTweets];
   finalNpcTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  localStorage.setItem(NPC_TWEETS_KEY, JSON.stringify(finalNpcTweets));
+  await sxSetJSON(NPC_TWEETS_KEY, finalNpcTweets);
   
   userTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  saveUserTweets();
+  await saveUserTweets();
 }
 
-function shouldGenerateUserTweets() {
-  const raw = localStorage.getItem(GENERATE_USER_TWEETS_KEY);
+async function shouldGenerateUserTweets() {
+  const raw = await sxGetItem(GENERATE_USER_TWEETS_KEY);
   return raw !== 'false';
 }
 
-function getChatHistory(limit = 15) {
-  const raw = localStorage.getItem('sx_chat_history');
+async function getChatHistory(limit = 15) {
+  const raw = await sxGetItem('sx_chat_history');
   if (!raw) return [];
   try {
     const history = JSON.parse(raw);
@@ -246,22 +248,22 @@ function getChatHistory(limit = 15) {
   }
 }
 
-function getChatHistoryContext() {
-  const history = getChatHistory(15);
+async function getChatHistoryContext() {
+  const history = await getChatHistory(15);
   if (history.length === 0) return '無聊天記錄';
-  const user = getUserData();
+  const user = await getUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
     return `${role}: ${msg.content.slice(0, 100)}`;
   }).join('\n');
 }
 
-function getApiConfig() {
-  const raw = localStorage.getItem('api_configs');
+async function getApiConfig() {
+  const raw = await sxGetItem('api_configs');
   if (!raw) return null;
   try {
     const configs = JSON.parse(raw);
-    const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
+    const activeIndex = Number(await sxGetItem('sx_active_api') || 0);
     return configs[activeIndex] || configs[0] || null;
   } catch {
     return null;
@@ -269,14 +271,13 @@ function getApiConfig() {
 }
 
 async function callAIAPI(messages, temperature = 0.85) {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   if (!config || !config.url) {
     throw new Error('尚未設定 API');
   }
 
   const apiType = config.type || 'openai';
   
-  // Gemini 原生 API 格式
   if (apiType === 'gemini') {
     const model = config.model || 'gemini-1.5-flash';
     const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.key}`;
@@ -319,7 +320,6 @@ async function callAIAPI(messages, temperature = 0.85) {
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
   
-  // OpenAI 相容格式或自訂端點
   let endpoint;
   if (apiType === 'custom') {
     endpoint = config.url;
@@ -352,13 +352,13 @@ async function callAIAPI(messages, temperature = 0.85) {
   return data.choices?.[0]?.message?.content || '';
 }
 
-function buildTwitterContext() {
-  const user = getUserData();
-  const char = getActiveCharacter();
-  const worldbook = getWorldbookContext();
-  const chatHistory = getChatHistoryContext();
-  const worldview = getWorldviewSetting();
-  const communityContext = getCommunityContext();
+async function buildTwitterContext() {
+  const user = await getUserData();
+  const char = await getActiveCharacter();
+  const worldbook = await getWorldbookContext();
+  const chatHistory = await getChatHistoryContext();
+  const worldview = await getWorldviewSetting();
+  const communityContext = await getCommunityContext();
 
   let context = `# 使用者設定\n名稱: ${user.name}\n`;
   if (user.personality) context += `性格: ${user.personality}\n`;
@@ -405,11 +405,11 @@ async function generateAITweets() {
   }
 
   try {
-    const context = buildTwitterContext();
-    const char = getActiveCharacter();
-    const npcFollows = getNpcFollows();
-    const generateUserTweets = shouldGenerateUserTweets();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const context = await buildTwitterContext();
+    const char = await getActiveCharacter();
+    const npcFollows = await getNpcFollows();
+    const generateUserTweets = await shouldGenerateUserTweets();
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
     const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的推文。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -453,16 +453,16 @@ async function generateAITweets() {
 
     const tweets = Array.isArray(parsed?.tweets) ? parsed.tweets : [];
 
-    tweets.forEach(tweet => {
+    for (const tweet of tweets) {
       if (tweet.content) {
         const author = tweet.author || '你';
         if (author === '你') {
-          addTweet(tweet.content);
+          await addTweet(tweet.content);
         } else {
-          addNpcTweet(author, tweet.content);
+          await addNpcTweet(author, tweet.content);
         }
       }
-    });
+    }
 
     if (tweets.length === 0) {
       alert('生成失敗，請稍後重試');
@@ -481,8 +481,8 @@ async function generateAITweets() {
   }
 }
 
-function getWorldbookIndex() {
-  const raw = localStorage.getItem(WORLD_BOOK_INDEX_KEY);
+async function getWorldbookIndex() {
+  const raw = await sxGetItem(WORLD_BOOK_INDEX_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -492,8 +492,8 @@ function getWorldbookIndex() {
   }
 }
 
-function getWorldbookMounts() {
-  const raw = localStorage.getItem(WORLD_BOOK_MOUNTS_KEY);
+async function getWorldbookMounts() {
+  const raw = await sxGetItem(WORLD_BOOK_MOUNTS_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -503,10 +503,10 @@ function getWorldbookMounts() {
   }
 }
 
-function renderWorldbookMountList() {
+async function renderWorldbookMountList() {
   if (!wbMountList) return;
-  const index = getWorldbookIndex();
-  const mounts = getWorldbookMounts();
+  const index = await getWorldbookIndex();
+  const mounts = await getWorldbookMounts();
   const mountMap = new Map(mounts.map(item => [item.name, item]));
   const items = index.length ? index : [{ title: '通用常識庫' }];
 
@@ -531,7 +531,7 @@ function renderWorldbookMountList() {
   }).join('');
 }
 
-function saveWorldbookMounts() {
+async function saveWorldbookMounts() {
   if (!wbMountList) return;
   const rows = wbMountList.querySelectorAll('.wb-mount-item');
   const mounts = [];
@@ -546,7 +546,7 @@ function saveWorldbookMounts() {
       position: select?.value || 'mid'
     });
   });
-  localStorage.setItem(WORLD_BOOK_MOUNTS_KEY, JSON.stringify(mounts));
+  await sxSetJSON(WORLD_BOOK_MOUNTS_KEY, mounts);
   if (wbSaveBtn) {
     wbSaveBtn.textContent = '已儲存';
     setTimeout(() => {
@@ -555,8 +555,8 @@ function saveWorldbookMounts() {
   }
 }
 
-function loadListFromStorage(key) {
-  const raw = localStorage.getItem(key);
+async function loadListFromStorage(key) {
+  const raw = await sxGetItem(key);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -578,22 +578,22 @@ function renderMountSelect(selectEl, list, activeName, placeholder) {
   selectEl.innerHTML = options.join('');
 }
 
-function renderMountLists() {
-  const charList = loadListFromStorage(CHAR_LIST_KEY);
-  const userList = loadListFromStorage(USER_LIST_KEY);
-  const activeChar = localStorage.getItem(ACTIVE_CHAR_KEY) || '';
-  const activeUser = localStorage.getItem(ACTIVE_USER_KEY) || '';
+async function renderMountLists() {
+  const charList = await loadListFromStorage(CHAR_LIST_KEY);
+  const userList = await loadListFromStorage(USER_LIST_KEY);
+  const activeChar = await sxGetItem(ACTIVE_CHAR_KEY) || '';
+  const activeUser = await sxGetItem(ACTIVE_USER_KEY) || '';
   renderMountSelect(mountCharSelect, charList, activeChar, '選擇角色');
   renderMountSelect(mountUserSelect, userList, activeUser, '選擇用戶');
-  renderNpcFollowList();
+  await renderNpcFollowList();
 }
 
-function renderNpcFollowList() {
+async function renderNpcFollowList() {
   const container = document.getElementById('npc-follow-list');
   if (!container) return;
   
-  const npcList = getNpcList();
-  const follows = getNpcFollows();
+  const npcList = await getNpcList();
+  const follows = await getNpcFollows();
   
   if (npcList.length === 0) {
     container.innerHTML = '<div class="settings-hint">尚未建立 NPC</div>';
@@ -615,9 +615,9 @@ function renderNpcFollowList() {
   }).join('');
   
   container.querySelectorAll('.npc-follow-check').forEach(check => {
-    check.addEventListener('change', () => {
+    check.addEventListener('change', async () => {
       const npcName = check.dataset.npcName;
-      let currentFollows = getNpcFollows();
+      let currentFollows = await getNpcFollows();
       if (check.checked) {
         if (!currentFollows.includes(npcName)) {
           currentFollows.push(npcName);
@@ -625,7 +625,7 @@ function renderNpcFollowList() {
       } else {
         currentFollows = currentFollows.filter(n => n !== npcName);
       }
-      saveNpcFollows(currentFollows);
+      await saveNpcFollows(currentFollows);
     });
   });
 }
@@ -634,8 +634,8 @@ const BOOKMARKS_KEY = 'sx_twitter_bookmarks';
 const PROFILE_KEY = 'sx_twitter_profile';
 const TWEET_MEMORIES_KEY = 'sx_twitter_tweet_memories';
 
-function getTweetMemories() {
-  const raw = localStorage.getItem(TWEET_MEMORIES_KEY);
+async function getTweetMemories() {
+  const raw = await sxGetItem(TWEET_MEMORIES_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw);
@@ -644,17 +644,17 @@ function getTweetMemories() {
   }
 }
 
-function saveTweetMemories(memories) {
+async function saveTweetMemories(memories) {
   if (memories.length > 500) {
     memories = memories.slice(-500);
   }
-  localStorage.setItem(TWEET_MEMORIES_KEY, JSON.stringify(memories));
+  await sxSetJSON(TWEET_MEMORIES_KEY, memories);
 }
 
-function addTweetMemory(tweet) {
+async function addTweetMemory(tweet) {
   if (tweet.author === '你') return;
   
-  const memories = getTweetMemories();
+  const memories = await getTweetMemories();
   const existingMemory = memories.find(m => m.id === tweet.id || m.timestamp === tweet.timestamp);
   if (existingMemory) return;
   
@@ -669,12 +669,12 @@ function addTweetMemory(tweet) {
     timestamp: tweet.timestamp
   });
   
-  saveTweetMemories(memories);
+  await saveTweetMemories(memories);
 }
 
-function getTwitterProfile() {
-  const raw = localStorage.getItem(PROFILE_KEY);
-  const userName = localStorage.getItem('sx_user_name') || 'User';
+async function getTwitterProfile() {
+  const raw = await sxGetItem(PROFILE_KEY);
+  const userName = await sxGetItem('sx_user_name') || 'User';
   const defaultProfile = {
     name: userName,
     handle: '@' + userName.toLowerCase().replace(/\s+/g, '_'),
@@ -689,8 +689,8 @@ function getTwitterProfile() {
   }
 }
 
-function getBookmarks() {
-  const raw = localStorage.getItem(BOOKMARKS_KEY);
+async function getBookmarks() {
+  const raw = await sxGetItem(BOOKMARKS_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw);
@@ -699,23 +699,23 @@ function getBookmarks() {
   }
 }
 
-function saveBookmarks(bookmarks) {
-  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+async function saveBookmarks(bookmarks) {
+  await sxSetJSON(BOOKMARKS_KEY, bookmarks);
 }
 
-function isTweetBookmarked(tweetId) {
-  const bookmarks = getBookmarks();
+async function isTweetBookmarked(tweetId) {
+  const bookmarks = await getBookmarks();
   return bookmarks.some(b => b.id === tweetId || b.timestamp === tweetId);
 }
 
-function toggleTweetBookmark(tweet) {
-  const bookmarks = getBookmarks();
+async function toggleTweetBookmark(tweet) {
+  const bookmarks = await getBookmarks();
   const tweetId = tweet.id || tweet.timestamp;
   const existingIndex = bookmarks.findIndex(b => b.id === tweetId || b.timestamp === tweetId);
   
   if (existingIndex >= 0) {
     bookmarks.splice(existingIndex, 1);
-    saveBookmarks(bookmarks);
+    await saveBookmarks(bookmarks);
     return false;
   } else {
     bookmarks.unshift({
@@ -727,7 +727,7 @@ function toggleTweetBookmark(tweet) {
       bookmarkedAt: Date.now(),
       stats: tweet.stats
     });
-    saveBookmarks(bookmarks);
+    await saveBookmarks(bookmarks);
     return true;
   }
 }
@@ -741,11 +741,11 @@ let activeTab = 'forYou';
 let userTweets = [];
 const USER_TWEETS_KEY = 'sx_twitter_user_tweets';
 
-function saveUserTweets() {
+async function saveUserTweets() {
   userTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   const data = JSON.stringify(userTweets);
   try {
-    localStorage.setItem(USER_TWEETS_KEY, data);
+    await sxSetItem(USER_TWEETS_KEY, data);
   } catch (e) {
     console.warn('[twitter] localStorage 儲存失敗:', e);
   }
@@ -756,25 +756,27 @@ function saveUserTweets() {
   }
 }
 
-function saveNpcTweets(tweets) {
-  const bookmarks = getBookmarks();
+async function saveNpcTweets(tweets) {
+  const bookmarks = await getBookmarks();
   const bookmarkIds = bookmarks.map(b => b.id || b.timestamp);
   
   const tweetsToRemove = tweets.filter(t => !bookmarkIds.includes(t.id || t.timestamp));
-  tweetsToRemove.forEach(tweet => addTweetMemory(tweet));
+  for (const tweet of tweetsToRemove) {
+    await addTweetMemory(tweet);
+  }
   
   const preservedTweets = tweets.filter(t => bookmarkIds.includes(t.id || t.timestamp));
   const regularTweets = tweets.filter(t => !bookmarkIds.includes(t.id || t.timestamp));
   const trimmedRegular = regularTweets.slice(0, 50);
   const finalTweets = [...preservedTweets, ...trimmedRegular];
   finalTweets.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  localStorage.setItem(NPC_TWEETS_KEY, JSON.stringify(finalTweets));
+  await sxSetJSON(NPC_TWEETS_KEY, finalTweets);
 }
 
-function loadUserTweets() {
+async function loadUserTweets() {
   let raw = null;
   try {
-    raw = localStorage.getItem(USER_TWEETS_KEY);
+    raw = await sxGetItem(USER_TWEETS_KEY);
   } catch (e) {
     console.warn('[twitter] localStorage 讀取失敗:', e);
   }
@@ -796,15 +798,15 @@ function loadUserTweets() {
   return [];
 }
 
-function renderTweets() {
+async function renderTweets() {
   if (!feedEl) return;
   
-  cleanupOldTweets();
+  await cleanupOldTweets();
   
-  const char = getActiveCharacter();
-  const npcFollows = getNpcFollows();
-  const npcTweets = getNpcTweets();
-  const profile = getTwitterProfile();
+  const char = await getActiveCharacter();
+  const npcFollows = await getNpcFollows();
+  const npcTweets = await getNpcTweets();
+  const profile = await getTwitterProfile();
   
   let all = [...userTweets];
   
@@ -818,7 +820,7 @@ function renderTweets() {
     all = [...all, ...followedNpcTweets];
   }
   
-  const bookmarkIds = new Set(getBookmarks().map(b => b.id || b.timestamp));
+  const bookmarkIds = new Set((await getBookmarks()).map(b => b.id || b.timestamp));
   const userIds = new Set(userTweets.map(t => t.id || t.timestamp));
   const preservedIds = new Set([...bookmarkIds, ...userIds]);
   
@@ -835,9 +837,6 @@ function renderTweets() {
 
   feedEl.innerHTML = displayTweets.map(tweet => {
     const tweetId = tweet.id || tweet.timestamp;
-    const isBookmarked = isTweetBookmarked(tweetId);
-    const bookmarkIcon = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
-    const bookmarkClass = isBookmarked ? 'bookmarked' : '';
     const isUserTweet = tweet.author === '你';
     const avatarStyle = isUserTweet ? `style="background: ${profile.avatarGradient || 'linear-gradient(135deg, #2d89ef, #8ec5ff)'}"` : '';
     const displayName = isUserTweet ? profile.name : tweet.author;
@@ -859,34 +858,33 @@ function renderTweets() {
           <button type="button" data-action="reply"><i class="far fa-comment"></i><span>${tweet.stats.reply}</span></button>
           <button type="button" data-action="retweet"><i class="fas fa-retweet"></i><span>${tweet.stats.retweet}</span></button>
           <button type="button" data-action="like"><i class="far fa-heart"></i><span>${tweet.stats.like}</span></button>
-          <button type="button" data-action="bookmark" class="${bookmarkClass}"><i class="${bookmarkIcon}"></i></button>
+          <button type="button" data-action="bookmark" class="tweet-bookmark-btn" data-tweet-id="${tweetId}"><i class="far fa-bookmark"></i></button>
         </div>
       </div>
     </article>
   `}).join('');
   
-  feedEl.querySelectorAll('[data-action="bookmark"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const article = btn.closest('.tweet');
-      const tweetId = parseFloat(article.dataset.tweetId);
-      const tweet = displayTweets.find(t => (t.id || t.timestamp) === tweetId);
-      if (tweet) {
-        const nowBookmarked = toggleTweetBookmark(tweet);
-        btn.classList.toggle('bookmarked', nowBookmarked);
-        const icon = btn.querySelector('i');
-        icon.className = nowBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
-      }
-    });
-  });
+  updateBookmarkIcons();
 }
 
-function switchTab(tab) {
+async function updateBookmarkIcons() {
+  const bookmarkBtns = feedEl.querySelectorAll('.tweet-bookmark-btn');
+  for (const btn of bookmarkBtns) {
+    const tweetId = parseFloat(btn.dataset.tweetId);
+    const isBookmarked = await isTweetBookmarked(tweetId);
+    const icon = btn.querySelector('i');
+    icon.className = isBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
+    btn.classList.toggle('bookmarked', isBookmarked);
+  }
+}
+
+async function switchTab(tab) {
   activeTab = tab;
   tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-  renderTweets();
+  await renderTweets();
 }
 
-function addTweet(content) {
+async function addTweet(content) {
   const trimmed = content.trim();
   if (!trimmed) return;
   const tweet = {
@@ -898,15 +896,15 @@ function addTweet(content) {
     timestamp: Date.now()
   };
   userTweets.unshift(tweet);
-  saveUserTweets();
-  renderTweets();
-  scheduleReactionsForTweet(tweet);
+  await saveUserTweets();
+  await renderTweets();
+  await scheduleReactionsForTweet(tweet);
 }
 
-function addNpcTweet(npcName, content) {
+async function addNpcTweet(npcName, content) {
   const trimmed = content.trim();
   if (!trimmed) return;
-  const npcTweets = getNpcTweets();
+  const npcTweets = await getNpcTweets();
   const tweet = {
     author: npcName,
     handle: `@${npcName.toLowerCase().replace(/\s+/g, '_')}`,
@@ -916,12 +914,12 @@ function addNpcTweet(npcName, content) {
     timestamp: Date.now()
   };
   npcTweets.unshift(tweet);
-  saveNpcTweets(npcTweets);
-  renderTweets();
+  await saveNpcTweets(npcTweets);
+  await renderTweets();
 }
 
-function addRetweetToFeed(retweeterName, tweetContent, originalAuthor) {
-  const npcTweets = getNpcTweets();
+async function addRetweetToFeed(retweeterName, tweetContent, originalAuthor) {
+  const npcTweets = await getNpcTweets();
   npcTweets.unshift({
     author: retweeterName,
     handle: `@${retweeterName.toLowerCase().replace(/\s+/g, '_')}`,
@@ -932,8 +930,8 @@ function addRetweetToFeed(retweeterName, tweetContent, originalAuthor) {
     isRetweet: true,
     originalAuthor
   });
-  saveNpcTweets(npcTweets);
-  renderTweets();
+  await saveNpcTweets(npcTweets);
+  await renderTweets();
 }
 
 function toggleDrawer(open) {
@@ -956,10 +954,10 @@ function toggleDrawer(open) {
   console.log('[Twitter] backdrop classes:', backdrop.className);
 }
 
-function showComposeModal() {
+async function showComposeModal() {
   const content = prompt('有什麼新鮮事？');
   if (content && content.trim()) {
-    addTweet(content.trim());
+    await addTweet(content.trim());
   }
   closeFabMenu();
 }
@@ -978,16 +976,16 @@ function closeFabMenu() {
   fabTweetBtn?.classList.remove('open');
 }
 
-function bindEvents() {
+async function bindEvents() {
   tabs.forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
   fabTweetBtn?.addEventListener('click', toggleFabMenu);
   fabComposeBtn?.addEventListener('click', showComposeModal);
-  fabAIGenerateBtn?.addEventListener('click', () => {
+  fabAIGenerateBtn?.addEventListener('click', async () => {
     closeFabMenu();
-    generateAITweets();
+    await generateAITweets();
   });
 
   document.addEventListener('click', (e) => {
@@ -1012,14 +1010,14 @@ function bindEvents() {
   });
 
   if (replyGuidelinesInput) {
-    const saved = localStorage.getItem(REPLY_GUIDELINES_KEY);
+    const saved = await sxGetItem(REPLY_GUIDELINES_KEY);
     replyGuidelinesInput.value = saved || '';
   }
 
-  replyGuidelinesSaveBtn?.addEventListener('click', () => {
+  replyGuidelinesSaveBtn?.addEventListener('click', async () => {
     if (!replyGuidelinesInput) return;
     const value = replyGuidelinesInput.value.trim();
-    localStorage.setItem(REPLY_GUIDELINES_KEY, value);
+    await sxSetItem(REPLY_GUIDELINES_KEY, value);
     replyGuidelinesSaveBtn.textContent = '已儲存';
     setTimeout(() => {
       replyGuidelinesSaveBtn.textContent = '儲存注意事項';
@@ -1027,43 +1025,45 @@ function bindEvents() {
   });
 
   if (wbMountList) {
-    renderWorldbookMountList();
+    await renderWorldbookMountList();
   }
-  renderMountLists();
+  await renderMountLists();
   if (window.parent && window.parent !== window) {
     window.parent.postMessage({ type: 'REQUEST_APP_FOLDER_SYNC', appId: 'settings' }, '*');
   }
-  wbSaveBtn?.addEventListener('click', saveWorldbookMounts);
-  wbRefreshBtn?.addEventListener('click', () => {
+  wbSaveBtn?.addEventListener('click', async () => {
+    await saveWorldbookMounts();
+  });
+  wbRefreshBtn?.addEventListener('click', async () => {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'REQUEST_WORLD_BOOK_SYNC' }, '*');
     }
-    renderWorldbookMountList();
+    await renderWorldbookMountList();
   });
 
-  mountCharSelect?.addEventListener('change', () => {
+  mountCharSelect?.addEventListener('change', async () => {
     const value = mountCharSelect.value;
     if (!value) return;
-    localStorage.setItem(ACTIVE_CHAR_KEY, value);
+    await sxSetItem(ACTIVE_CHAR_KEY, value);
     mountCharSelect.blur();
   });
 
-  mountUserSelect?.addEventListener('change', () => {
+  mountUserSelect?.addEventListener('change', async () => {
     const value = mountUserSelect.value;
     if (!value) return;
-    localStorage.setItem(ACTIVE_USER_KEY, value);
+    await sxSetItem(ACTIVE_USER_KEY, value);
     mountUserSelect.blur();
   });
 
   const worldviewInput = document.getElementById('worldview-setting');
   const worldviewSaveBtn = document.getElementById('worldview-save');
   if (worldviewInput) {
-    worldviewInput.value = getWorldviewSetting();
+    worldviewInput.value = await getWorldviewSetting();
   }
-  worldviewSaveBtn?.addEventListener('click', () => {
+  worldviewSaveBtn?.addEventListener('click', async () => {
     if (!worldviewInput) return;
     const value = worldviewInput.value.trim();
-    localStorage.setItem(WORLDVIEW_KEY, value);
+    await sxSetItem(WORLDVIEW_KEY, value);
     worldviewSaveBtn.textContent = '已儲存';
     setTimeout(() => {
       worldviewSaveBtn.textContent = '儲存世界觀';
@@ -1072,9 +1072,9 @@ function bindEvents() {
 
   const communityToneSelect = document.getElementById('community-tone');
   if (communityToneSelect) {
-    communityToneSelect.value = getCommunityTone();
-    communityToneSelect.addEventListener('change', () => {
-      localStorage.setItem(COMMUNITY_TONE_KEY, communityToneSelect.value);
+    communityToneSelect.value = await getCommunityTone();
+    communityToneSelect.addEventListener('change', async () => {
+      await sxSetItem(COMMUNITY_TONE_KEY, communityToneSelect.value);
     });
   }
 
@@ -1083,20 +1083,20 @@ function bindEvents() {
   const argumentsCheck = document.getElementById('allow-arguments');
   const trollingCheck = document.getElementById('allow-trolling');
   
-  const savedFlags = getCommunityFlags();
+  const savedFlags = await getCommunityFlags();
   if (criticismCheck) criticismCheck.checked = savedFlags.criticism;
   if (sarcasmCheck) sarcasmCheck.checked = savedFlags.sarcasm;
   if (argumentsCheck) argumentsCheck.checked = savedFlags.arguments;
   if (trollingCheck) trollingCheck.checked = savedFlags.trolling;
 
-  const saveCommunityFlags = () => {
+  const saveCommunityFlags = async () => {
     const flags = {
       criticism: criticismCheck?.checked || false,
       sarcasm: sarcasmCheck?.checked || false,
       arguments: argumentsCheck?.checked || false,
       trolling: trollingCheck?.checked || false
     };
-    localStorage.setItem(COMMUNITY_FLAGS_KEY, JSON.stringify(flags));
+    await sxSetJSON(COMMUNITY_FLAGS_KEY, flags);
   };
 
   criticismCheck?.addEventListener('change', saveCommunityFlags);
@@ -1106,25 +1106,25 @@ function bindEvents() {
 
   const npcPersonalityInput = document.getElementById('npc-personality');
   if (npcPersonalityInput) {
-    npcPersonalityInput.value = getNpcPersonality();
+    npcPersonalityInput.value = await getNpcPersonality();
   }
 
   const haterProfilesInput = document.getElementById('hater-profiles');
   if (haterProfilesInput) {
-    haterProfilesInput.value = getHaterProfiles();
+    haterProfilesInput.value = await getHaterProfiles();
   }
 
   const enableHatersToggle = document.getElementById('enable-haters');
   const haterSettingsPanel = document.getElementById('hater-settings');
   
   if (enableHatersToggle) {
-    enableHatersToggle.checked = isHatersEnabled();
+    enableHatersToggle.checked = await isHatersEnabled();
     if (haterSettingsPanel) {
       haterSettingsPanel.style.display = enableHatersToggle.checked ? 'block' : 'none';
     }
-    enableHatersToggle.addEventListener('change', () => {
+    enableHatersToggle.addEventListener('change', async () => {
       const enabled = enableHatersToggle.checked;
-      localStorage.setItem(ENABLE_HATERS_KEY, String(enabled));
+      await sxSetItem(ENABLE_HATERS_KEY, String(enabled));
       if (haterSettingsPanel) {
         haterSettingsPanel.style.display = enabled ? 'block' : 'none';
       }
@@ -1132,13 +1132,13 @@ function bindEvents() {
   }
 
   const communitySaveBtn = document.getElementById('community-save');
-  communitySaveBtn?.addEventListener('click', () => {
-    saveCommunityFlags();
+  communitySaveBtn?.addEventListener('click', async () => {
+    await saveCommunityFlags();
     if (npcPersonalityInput) {
-      localStorage.setItem(NPC_PERSONALITY_KEY, npcPersonalityInput.value.trim());
+      await sxSetItem(NPC_PERSONALITY_KEY, npcPersonalityInput.value.trim());
     }
     if (haterProfilesInput) {
-      localStorage.setItem(HATER_PROFILES_KEY, haterProfilesInput.value.trim());
+      await sxSetItem(HATER_PROFILES_KEY, haterProfilesInput.value.trim());
     }
     communitySaveBtn.textContent = '已儲存';
     setTimeout(() => {
@@ -1148,85 +1148,104 @@ function bindEvents() {
 
   const generateUserTweetsToggle = document.getElementById('generate-user-tweets');
   if (generateUserTweetsToggle) {
-    generateUserTweetsToggle.checked = shouldGenerateUserTweets();
-    generateUserTweetsToggle.addEventListener('change', () => {
-      localStorage.setItem(GENERATE_USER_TWEETS_KEY, String(generateUserTweetsToggle.checked));
+    generateUserTweetsToggle.checked = await shouldGenerateUserTweets();
+    generateUserTweetsToggle.addEventListener('change', async () => {
+      await sxSetItem(GENERATE_USER_TWEETS_KEY, String(generateUserTweetsToggle.checked));
     });
   }
+  
+  feedEl?.addEventListener('click', async (e) => {
+    const bookmarkBtn = e.target.closest('[data-action="bookmark"]');
+    if (bookmarkBtn) {
+      const article = bookmarkBtn.closest('.tweet');
+      const tweetId = parseFloat(article.dataset.tweetId);
+      const tweets = await getNpcTweets();
+      const userTweetsList = userTweets;
+      const allTweets = [...tweets, ...userTweetsList];
+      const tweet = allTweets.find(t => (t.id || t.timestamp) === tweetId);
+      if (tweet) {
+        const nowBookmarked = await toggleTweetBookmark(tweet);
+        bookmarkBtn.classList.toggle('bookmarked', nowBookmarked);
+        const icon = bookmarkBtn.querySelector('i');
+        icon.className = nowBookmarked ? 'fas fa-bookmark' : 'far fa-bookmark';
+      }
+    }
+  });
 }
 
-// iOS Safari / Android Chrome 儲存保護
-const saveTwitterData = () => {
+const saveTwitterData = async () => {
   try {
     const guidelines = replyGuidelinesInput?.value || '';
-    localStorage.setItem(REPLY_GUIDELINES_KEY, guidelines);
+    await sxSetItem(REPLY_GUIDELINES_KEY, guidelines);
   } catch (e) {
     console.warn('[twitter] 保存數據失敗:', e);
   }
-  saveUserTweets();
+  await saveUserTweets();
 };
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 if (isIOS) {
-  window.addEventListener('pagehide', (e) => {
-    saveUserTweets();
-    saveTwitterData();
+  window.addEventListener('pagehide', async (e) => {
+    await saveUserTweets();
+    await saveTwitterData();
   });
-  window.addEventListener('pageshow', () => {
-    userTweets = loadUserTweets();
-    renderTweets();
+  window.addEventListener('pageshow', async () => {
+    userTweets = await loadUserTweets();
+    await renderTweets();
   });
 }
 
 window.addEventListener('pagehide', saveTwitterData);
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'hidden') {
-    saveUserTweets();
-    saveTwitterData();
+    await saveUserTweets();
+    await saveTwitterData();
   }
 });
 
-window.addEventListener('beforeunload', () => {
-  saveUserTweets();
-  saveTwitterData();
+window.addEventListener('beforeunload', async () => {
+  await saveUserTweets();
+  await saveTwitterData();
 });
 
-window.addEventListener('message', (event) => {
+window.addEventListener('message', async (event) => {
   const data = event.data;
   if (!data || typeof data !== 'object') return;
   if (data.type === 'WORLD_BOOK_SYNC_READY') {
-    renderWorldbookMountList();
+    await renderWorldbookMountList();
   }
   if (data.type === 'APP_FOLDER_SYNC' && data.appId === 'settings' && data.data?.storage) {
     const storage = data.data.storage;
-    if (storage.sx_characters) localStorage.setItem(CHAR_LIST_KEY, storage.sx_characters);
-    if (storage.sx_users) localStorage.setItem(USER_LIST_KEY, storage.sx_users);
-    renderMountLists();
+    if (storage.sx_characters) await sxSetItem(CHAR_LIST_KEY, storage.sx_characters);
+    if (storage.sx_users) await sxSetItem(USER_LIST_KEY, storage.sx_users);
+    await renderMountLists();
   }
   if (data.type === 'settingsUpdated') {
-    renderMountLists();
+    await renderMountLists();
   }
   if (data.type === 'APP_WILL_CLOSE') {
-    saveUserTweets();
-    saveTwitterData();
+    await saveUserTweets();
+    await saveTwitterData();
   }
 });
 
-bindEvents();
-userTweets = loadUserTweets();
-renderTweets();
+(async () => {
+  await bindEvents();
+  userTweets = await loadUserTweets();
+  await renderTweets();
+})();
 
 const PENDING_REACTIONS_KEY = 'sx_twitter_pending_reactions';
 const NOTIFICATIONS_KEY = 'sx_twitter_notifications';
 
 let notificationInterval = null;
 
-function startNotificationSystem() {
+async function startNotificationSystem() {
   if (notificationInterval) return;
   notificationInterval = setInterval(processPendingReactions, 10000);
-  processPendingReactions();
+  await processPendingReactions();
 }
 
 function stopNotificationSystem() {
@@ -1240,8 +1259,8 @@ window.addEventListener('pagehide', stopNotificationSystem);
 
 startNotificationSystem();
 
-function getPendingReactions() {
-  const raw = localStorage.getItem(PENDING_REACTIONS_KEY);
+async function getPendingReactions() {
+  const raw = await sxGetItem(PENDING_REACTIONS_KEY);
   if (!raw) return [];
   try {
     return JSON.parse(raw);
@@ -1250,12 +1269,12 @@ function getPendingReactions() {
   }
 }
 
-function savePendingReactions(reactions) {
-  localStorage.setItem(PENDING_REACTIONS_KEY, JSON.stringify(reactions));
+async function savePendingReactions(reactions) {
+  await sxSetJSON(PENDING_REACTIONS_KEY, reactions);
 }
 
-function addNotification(notification) {
-  const raw = localStorage.getItem(NOTIFICATIONS_KEY);
+async function addNotification(notification) {
+  const raw = await sxGetItem(NOTIFICATIONS_KEY);
   let notifications = [];
   try {
     notifications = JSON.parse(raw) || [];
@@ -1267,27 +1286,27 @@ function addNotification(notification) {
     read: false
   });
   if (notifications.length > 100) notifications.length = 100;
-  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications));
+  await sxSetJSON(NOTIFICATIONS_KEY, notifications);
 }
 
-function scheduleReactionsForTweet(tweet) {
-  const npcFollows = getNpcFollows();
-  const npcList = getNpcList();
+async function scheduleReactionsForTweet(tweet) {
+  const npcFollows = await getNpcFollows();
+  const npcList = await getNpcList();
   if (npcFollows.length === 0) return;
   
-  npcFollows.forEach(npcName => {
+  const reactions = await getPendingReactions();
+  
+  for (const npcName of npcFollows) {
     const npc = npcList.find(n => n.name === npcName);
-    if (!npc) return;
+    if (!npc) continue;
     
-    if (Math.random() > 0.5) return;
+    if (Math.random() > 0.5) continue;
     
     const reactionType = Math.random();
     const minDelay = 30000;
     const maxDelay = 28800000;
     const delay = Math.random() * (maxDelay - minDelay) + minDelay;
     const scheduledTime = Date.now() + delay;
-    
-    const reactions = getPendingReactions();
     
     if (reactionType < 0.4) {
       reactions.push({
@@ -1314,33 +1333,33 @@ function scheduleReactionsForTweet(tweet) {
         scheduledTime
       });
     }
-    
-    savePendingReactions(reactions);
-  });
+  }
+  
+  await savePendingReactions(reactions);
 }
 
-function processPendingReactions() {
-  const reactions = getPendingReactions();
+async function processPendingReactions() {
+  const reactions = await getPendingReactions();
   const now = Date.now();
   const remaining = [];
   
-  reactions.forEach(reaction => {
+  for (const reaction of reactions) {
     if (now >= reaction.scheduledTime) {
-      executeReaction(reaction);
+      await executeReaction(reaction);
     } else {
       remaining.push(reaction);
     }
-  });
+  }
   
-  savePendingReactions(remaining);
+  await savePendingReactions(remaining);
 }
 
-function executeReaction(reaction) {
+async function executeReaction(reaction) {
   const { type, fromName, tweetContent, tweetAuthor } = reaction;
   
   switch (type) {
     case 'like':
-      addNotification({
+      await addNotification({
         type: 'like',
         fromName,
         tweetContent,
@@ -1349,31 +1368,31 @@ function executeReaction(reaction) {
       break;
       
     case 'retweet':
-      addNotification({
+      await addNotification({
         type: 'retweet',
         fromName,
         tweetContent,
         tweetAuthor
       });
-      addRetweetToFeed(fromName, tweetContent, tweetAuthor);
+      await addRetweetToFeed(fromName, tweetContent, tweetAuthor);
       break;
       
     case 'reply':
       const replies = ['這個觀點很有趣！', '同意！', '說得好', '推一個', '真的假的？', '哈哈沒錯', '我也這麼覺得', '太扯了吧', '感謝分享！', '學到了新東西'];
       const replyContent = replies[Math.floor(Math.random() * replies.length)];
-      addNotification({
+      await addNotification({
         type: 'reply',
         fromName,
         tweetContent,
         replyContent
       });
-      addNpcTweet(fromName, replyContent);
+      await addNpcTweet(fromName, replyContent);
       break;
   }
 }
 
-function updateNotificationBadge() {
-  const raw = localStorage.getItem(NOTIFICATIONS_KEY);
+async function updateNotificationBadge() {
+  const raw = await sxGetItem(NOTIFICATIONS_KEY);
   let notifications = [];
   try {
     notifications = JSON.parse(raw) || [];

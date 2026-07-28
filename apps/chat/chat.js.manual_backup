@@ -1,4 +1,4 @@
-﻿const UserEnv = {
+const UserEnv = {
     isIOS() {
         return /iP(ad|hone|od)/.test(navigator.userAgent);
     },
@@ -614,7 +614,7 @@ async function initChatSessionsFromIndexedDB() {
                     showDebugMessage('Sessions: ' + persistedData.sx_chat_sessions.length + ' 個, history: ' + (persistedData.sx_chat_sessions[0]?.history?.length || 0) + ' 條');
                     
                     if (persistedData.sx_chat_active) {
-                        await sxSetItem('sx_chat_active', persistedData.sx_chat_active);
+                        localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                     }
                 }
             } catch (e) {
@@ -796,7 +796,7 @@ window.addEventListener('pageshow', async (event) => {
     await initChatHistoryIndexedDB();
     await initChatSessionsFromIndexedDB();
     
-    const lastActivityTime = parseInt(await sxGetItem('sx_last_activity_time') || '0');
+    const lastActivityTime = parseInt(localStorage.getItem('sx_last_activity_time') || '0');
     const now = Date.now();
     const timeSinceLastActivity = now - lastActivityTime;
     const isLongSleep = timeSinceLastActivity > 30 * 60 * 1000;
@@ -825,33 +825,33 @@ window.addEventListener('pageshow', async (event) => {
                 for (const field of stringFields) {
                     if (persistedData[field]) {
                         const lsKey = field.startsWith('user') ? `sx_${field}` : `sx_${field}`;
-                        await sxSetItem(lsKey, persistedData[field]);
+                        localStorage.setItem(lsKey, persistedData[field]);
                     }
                 }
                 
                 if (persistedData.sx_characters && Array.isArray(persistedData.sx_characters)) {
-                    await sxSetJSON('sx_characters', persistedData.sx_characters);
+                    localStorage.setItem('sx_characters', JSON.stringify(persistedData.sx_characters));
                 }
                 
                 if (persistedData.sx_users && Array.isArray(persistedData.sx_users)) {
-                    await sxSetJSON('sx_users', persistedData.sx_users);
+                    localStorage.setItem('sx_users', JSON.stringify(persistedData.sx_users));
                 }
                 
                 if (persistedData.masks && Array.isArray(persistedData.masks)) {
-                    await sxSetJSON('sx_masks', persistedData.masks);
+                    localStorage.setItem('sx_masks', JSON.stringify(persistedData.masks));
                 }
                 
                 if (persistedData.apis && Array.isArray(persistedData.apis)) {
-                    await sxSetJSON('api_configs', persistedData.apis);
+                    localStorage.setItem('api_configs', JSON.stringify(persistedData.apis));
                 }
                 
                 if (persistedData.sx_chat_sessions && persistedData.sx_chat_sessions.length > 0) {
                     _chatSessionsCache = persistedData.sx_chat_sessions;
                     console.log('[Chat] 從 IndexedDB 恢復聊天 sessions:', persistedData.sx_chat_sessions.length, '個');
                     
-                    const activeId = persistedData.sx_chat_active || await sxGetItem('sx_chat_active');
+                    const activeId = persistedData.sx_chat_active || localStorage.getItem('sx_chat_active');
                     if (activeId) {
-                        await sxSetItem('sx_chat_active', activeId);
+                        localStorage.setItem('sx_chat_active', activeId);
                         const activeSession = persistedData.sx_chat_sessions.find(s => s.id === activeId);
                         if (activeSession && activeSession.history) {
                             _chatHistoryCache = activeSession.history;
@@ -861,15 +861,15 @@ window.addEventListener('pageshow', async (event) => {
                 }
                 
                 if (persistedData.sx_chat_active) {
-                    await sxSetItem('sx_chat_active', persistedData.sx_chat_active);
+                    localStorage.setItem('sx_chat_active', persistedData.sx_chat_active);
                 }
                 
                 if (persistedData.sxiphone_lang) {
-                    await sxSetItem('sxiphone_lang', persistedData.sxiphone_lang);
+                    localStorage.setItem('sxiphone_lang', persistedData.sxiphone_lang);
                 }
                 
                 if (persistedData.activeApiIndex !== undefined) {
-                    await sxSetItem('sx_active_api', persistedData.activeApiIndex.toString());
+                    localStorage.setItem('sx_active_api', persistedData.activeApiIndex.toString());
                 }
             }
         } catch (e) {
@@ -877,12 +877,12 @@ window.addEventListener('pageshow', async (event) => {
         }
     }
     
-    await sxSetItem('sx_last_activity_time', now.toString());
+    localStorage.setItem('sx_last_activity_time', now.toString());
     
     charConfig = getActiveConfig();
     userConfig = getUserConfig();
     
-    let displayName = await sxGetItem('sx_char_name');
+    let displayName = localStorage.getItem('sx_char_name');
     if (!displayName || displayName === '預設用戶') {
         displayName = charConfig.name || "AI 助理";
     }
@@ -897,8 +897,8 @@ window.addEventListener('pageshow', async (event) => {
     if (nameEl) nameEl.innerText = displayName;
     if (chatTitleEl) chatTitleEl.innerText = displayName;
     if (hintEl) hintEl.innerText = displayName;
-    if (charPersInput) charPersInput.value = await sxGetItem('sx_char_personality') || charConfig.personality || "";
-    if (charBackInput) charBackInput.value = await sxGetItem('sx_char_background') || charConfig.background || "";
+    if (charPersInput) charPersInput.value = localStorage.getItem('sx_char_personality') || charConfig.personality || "";
+    if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
     if (charNameInput) charNameInput.value = displayName;
     
     initUserUI();
@@ -906,7 +906,7 @@ window.addEventListener('pageshow', async (event) => {
     const userLabels = document.querySelectorAll('.mine .user-name');
     userLabels.forEach(label => label.innerText = userConfig.name || 'User');
     
-    const savedMode = await sxGetItem('sx_generation_mode') || 'dialogue';
+    const savedMode = localStorage.getItem('sx_generation_mode') || 'dialogue';
     const modeRadios = document.querySelectorAll('input[name="generation-mode"]');
     modeRadios.forEach(radio => {
         radio.checked = (radio.value === savedMode);
@@ -941,8 +941,8 @@ window.addEventListener('message', (event) => {
     
     if (data.type === 'settingsUpdated') {
         console.log('[Chat] 收到 settingsUpdated 事件');
-        console.log('[Chat] api_configs:', await sxGetItem('api_configs'));
-        console.log('[Chat] sx_active_api:', await sxGetItem('sx_active_api'));
+        console.log('[Chat] api_configs:', localStorage.getItem('api_configs'));
+        console.log('[Chat] sx_active_api:', localStorage.getItem('sx_active_api'));
     }
     
     if (data.type === 'OPEN_SUB_PANEL' && data.panelId) {
@@ -1031,17 +1031,17 @@ window.addEventListener('message', (event) => {
         const payload = data.payload;
         
         // 儲存角色資訊到 localStorage 以確保持久化
-        if (payload.name) await sxSetItem('sx_char_name', payload.name);
-        if (payload.avatar !== undefined) await sxSetItem('sx_char_avatar', payload.avatar);
-        if (payload.personality !== undefined) await sxSetItem('sx_char_personality', payload.personality);
-        if (payload.background !== undefined) await sxSetItem('sx_char_background', payload.background);
-        if (payload.examples !== undefined) await sxSetItem('sx_char_examples', payload.examples);
+        if (payload.name) localStorage.setItem('sx_char_name', payload.name);
+        if (payload.avatar !== undefined) localStorage.setItem('sx_char_avatar', payload.avatar);
+        if (payload.personality !== undefined) localStorage.setItem('sx_char_personality', payload.personality);
+        if (payload.background !== undefined) localStorage.setItem('sx_char_background', payload.background);
+        if (payload.examples !== undefined) localStorage.setItem('sx_char_examples', payload.examples);
         
         charConfig = {
-            name: payload.name || await sxGetItem('sx_char_name') || "AI 助理",
-            avatar: payload.avatar || await sxGetItem('sx_char_avatar') || "",
-            personality: payload.personality || await sxGetItem('sx_char_personality') || "一個友善的助手",
-            background: payload.background || await sxGetItem('sx_char_background') || "無",
+            name: payload.name || localStorage.getItem('sx_char_name') || "AI 助理",
+            avatar: payload.avatar || localStorage.getItem('sx_char_avatar') || "",
+            personality: payload.personality || localStorage.getItem('sx_char_personality') || "一個友善的助手",
+            background: payload.background || localStorage.getItem('sx_char_background') || "無",
             worldBook: ""
         };
         
@@ -1090,10 +1090,10 @@ window.addEventListener('message', (event) => {
         
         const payload = data.payload;
         
-        if (payload.name) await sxSetItem('sx_user_name', payload.name);
-        if (payload.avatar !== undefined) await sxSetItem('sx_user_avatar', payload.avatar);
-        if (payload.personality !== undefined) await sxSetItem('sx_user_personality', payload.personality);
-        if (payload.background !== undefined) await sxSetItem('sx_user_background', payload.background);
+        if (payload.name) localStorage.setItem('sx_user_name', payload.name);
+        if (payload.avatar !== undefined) localStorage.setItem('sx_user_avatar', payload.avatar);
+        if (payload.personality !== undefined) localStorage.setItem('sx_user_personality', payload.personality);
+        if (payload.background !== undefined) localStorage.setItem('sx_user_background', payload.background);
         
         userConfig = getUserConfig();
         initUserUI();
@@ -1132,7 +1132,7 @@ window.addEventListener('message', (event) => {
     // 處理語言變更
     if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
         console.log('[Chat] 收到語言變更訊息:', data.lang);
-        await sxSetItem('sxiphone_lang', data.lang);
+        localStorage.setItem('sxiphone_lang', data.lang);
         // 更新 html lang 屬性
         if (document.documentElement) {
             document.documentElement.lang = data.lang;
@@ -1206,19 +1206,19 @@ function handleFloatingScreenshot(dataUrl) {
     
     addMessage(container.innerHTML, 'user', false, true);
     
-    const charName = await sxGetItem('sx_char_name') || 'AI 助理';
+    const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
     addMessage(`${charName} 已收到截圖，請稍等...`, 'ai', false);
 }
 
 let phoneCheckDialogVisible = false;
 
 function handlePhoneCheckStarted(data) {
-    const charName = data.charName || await sxGetItem('sx_char_name') || '角色';
+    const charName = data.charName || localStorage.getItem('sx_char_name') || '角色';
     const message = data.message || `${charName}開始查看你的手機...`;
     
     const phoneCheckDialogHtml = `
         <div class="phone-check-dialog-card" id="phone-check-dialog-card">
-            <div class="phone-check-dialog-avatar" style="background-image: url('${await sxGetItem('sx_char_avatar') || ''}')"></div>
+            <div class="phone-check-dialog-avatar" style="background-image: url('${localStorage.getItem('sx_char_avatar') || ''}')"></div>
             <div class="phone-check-dialog-content">
                 <div class="phone-check-dialog-name">${charName}</div>
                 <div class="phone-check-dialog-status">
@@ -1287,7 +1287,7 @@ function handlePhoneCheckEnded(data) {
         cardEl.classList.add('phone-check-dialog-ended');
     }
     
-    const charName = data.charName || await sxGetItem('sx_char_name') || '角色';
+    const charName = data.charName || localStorage.getItem('sx_char_name') || '角色';
     const finalMessage = data.message || `${charName}看完了你的手機`;
     appendHistoryAndSession('assistant', `[查手機結束] ${finalMessage}`);
     
@@ -1304,7 +1304,7 @@ async function getActiveChatIdAsync() {
 
 function setActiveChatIdSync(id) {
     if (!id) return;
-    await sxSetItem('sx_chat_active', id);
+    localStorage.setItem('sx_chat_active', id);
 }
 
 async function setActiveChatId(id) {
@@ -1479,80 +1479,29 @@ function diagnoseWorldbookStatus() {
     const diagnosisDiv = document.getElementById('worldbook-diagnosis');
     if (!diagnosisDiv) return;
 
-    (async () => {
-        const worldbookData = await getWorldbookData();
-        const mounts = await getWorldbookMounts();
-        
-        let report = '<b>📊 世界書診斷報告</b><br><br>';
-        
-        // 1. localStorage 中的世界書資料
-        report += '<b>1. localStorage 資料:</b><br>';
-        const categories = ['sx_worldbook_core', 'sx_worldbook_theater', 'sx_worldbook_conditional', 
-                            'sx_worldbook_cot', 'sx_worldbook_style', 'sx_worldbook_global', 
-                            'sx_worldbook_keywords', 'sx_worldbook_backend'];
-        
-        for (const cat of categories) {
-            const data = await sxGetItem(cat);
-            if (data) {
-                try {
-                    const parsed = JSON.parse(data);
-                    const count = Array.isArray(parsed) ? parsed.length : 
-                                 (parsed && parsed.entries ? parsed.entries.length : 
-                                 Object.keys(parsed).length);
-                    report += `✅ ${cat}: ${count} 條<br>`;
-                } catch (e) {
-                    report += `⚠️ ${cat}: 解析失敗<br>`;
-                }
-            } else {
-                report += `❌ ${cat}: 空<br>`;
+    const worldbookData = getWorldbookData();
+    const mounts = getWorldbookMounts();
+    
+    let report = '<b>📊 世界書診斷報告</b><br><br>';
+    
+    // 1. localStorage 中的世界書資料
+    report += '<b>1. localStorage 資料:</b><br>';
+    const categories = ['sx_worldbook_core', 'sx_worldbook_theater', 'sx_worldbook_conditional', 
+                        'sx_worldbook_cot', 'sx_worldbook_style', 'sx_worldbook_global', 
+                        'sx_worldbook_keywords', 'sx_worldbook_backend'];
+    
+    categories.forEach(cat => {
+        const data = localStorage.getItem(cat);
+        if (data) {
+            try {
+                const parsed = JSON.parse(data);
+                const count = Array.isArray(parsed) ? parsed.length : 
+                             (parsed && parsed.entries ? parsed.entries.length : 
+                             Object.keys(parsed).length);
+                report += `✅ ${cat}: ${count} 條<br>`;
+            } catch (e) {
+                report += `⚠️ ${cat}: 解析失敗<br>`;
             }
-        }
-        
-        // 2. 掛載設定
-        report += '<br><b>2. 掛載設定:</b><br>';
-        if (mounts && mounts.length > 0) {
-            mounts.forEach(m => {
-                report += `${m.enabled ? '✅' : '❌'} ${m.name} (${m.position})<br>`;
-            });
-        } else {
-            report += '⚠️ 未設定任何掛載<br>';
-        }
-        
-        // 3. 角色設定
-        report += '<br><b>3. 角色設定:</b><br>';
-        const charName = await sxGetItem('sx_char_name') || '未設定';
-        const charPersonality = await sxGetItem('sx_char_personality') || '未設定';
-        report += `名字: ${charName}<br>`;
-        report += `性格: ${charPersonality?.substring(0, 50)}...<br>`;
-        
-        // 4. 用戶設定
-        report += '<br><b>4. 用戶設定:</b><br>';
-        const userName = await sxGetItem('sx_user_name') || '未設定';
-        const userBackground = await sxGetItem('sx_user_background') || '未設定';
-        report += `名字: ${userName}<br>`;
-        report += `背景: ${userBackground?.substring(0, 50)}...<br>`;
-        
-        // 5. 測試觸發
-        report += '<br><b>5. 測試觸發 (輸入 "測試"): </b><br>';
-        const testContent = WorldInfoEngine.scanAndGetContent('測試', worldbookData);
-        if (testContent) {
-            report += `✅ 有內容觸發<br>`;
-            report += `<pre style="max-height:100px;overflow:auto;background:#fff;padding:5px;border-radius:4px;">${testContent.substring(0, 200)}...</pre>`;
-        } else {
-            report += '❌ 無內容觸發<br>';
-            report += '<small>提示：世界書條目需要觸發詞才能被啟動，請確認條目的觸發詞設定</small><br>';
-        }
-        
-        diagnosisDiv.innerHTML = report;
-        diagnosisDiv.style.display = 'block';
-        
-        console.log('[Worldbook Diagnosis]', {
-            worldbookData,
-            mounts,
-            testContent
-        });
-    })();
-}
         } else {
             report += `❌ ${cat}: 空<br>`;
         }
@@ -1570,15 +1519,15 @@ function diagnoseWorldbookStatus() {
     
     // 3. 角色設定
     report += '<br><b>3. 角色設定:</b><br>';
-    const charName = await sxGetItem('sx_char_name') || '未設定';
-    const charPersonality = await sxGetItem('sx_char_personality') || '未設定';
+    const charName = localStorage.getItem('sx_char_name') || '未設定';
+    const charPersonality = localStorage.getItem('sx_char_personality') || '未設定';
     report += `名字: ${charName}<br>`;
     report += `性格: ${charPersonality?.substring(0, 50)}...<br>`;
     
     // 4. 用戶設定
     report += '<br><b>4. 用戶設定:</b><br>';
-    const userName = await sxGetItem('sx_user_name') || '未設定';
-    const userBackground = await sxGetItem('sx_user_background') || '未設定';
+    const userName = localStorage.getItem('sx_user_name') || '未設定';
+    const userBackground = localStorage.getItem('sx_user_background') || '未設定';
     report += `名字: ${userName}<br>`;
     report += `背景: ${userBackground?.substring(0, 50)}...<br>`;
     
@@ -1703,11 +1652,11 @@ async function saveCharSettingsToIndexedDB(charData) {
         const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
         const newData = {
             ...existingData,
-            charName: charData.name || await sxGetItem('sx_char_name') || existingData.charName || '',
-            charAvatar: charData.avatar || await sxGetItem('sx_char_avatar') || existingData.charAvatar || '',
-            charPersonality: charData.personality || await sxGetItem('sx_char_personality') || existingData.charPersonality || '',
-            charBackground: charData.background || await sxGetItem('sx_char_background') || existingData.charBackground || '',
-            sx_characters: JSON.parse(await sxGetItem('sx_characters') || '[]'),
+            charName: charData.name || localStorage.getItem('sx_char_name') || existingData.charName || '',
+            charAvatar: charData.avatar || localStorage.getItem('sx_char_avatar') || existingData.charAvatar || '',
+            charPersonality: charData.personality || localStorage.getItem('sx_char_personality') || existingData.charPersonality || '',
+            charBackground: charData.background || localStorage.getItem('sx_char_background') || existingData.charBackground || '',
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
             lastSaved: Date.now()
         };
         await chatDataStore.setItem('sx_app_persisted_data', newData);
@@ -1751,15 +1700,15 @@ async function saveUserSettingsToIndexedDB(userData) {
         const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
         const newData = {
             ...existingData,
-            userName: userData.name || await sxGetItem('sx_user_name') || existingData.userName || 'User',
-            userAvatar: userData.avatar || await sxGetItem('sx_user_avatar') || existingData.userAvatar || '',
-            userPersonality: userData.personality || await sxGetItem('sx_user_personality') || existingData.userPersonality || '',
-            userBackground: userData.background || await sxGetItem('sx_user_background') || existingData.userBackground || '',
-            userLikes: await sxGetItem('sx_user_likes') || existingData.userLikes || '',
-            userTaboos: await sxGetItem('sx_user_taboos') || existingData.userTaboos || '',
-            userStatus: await sxGetItem('sx_user_status') || existingData.userStatus || '',
-            sx_users: JSON.parse(await sxGetItem('sx_users') || '[]'),
-            sx_characters: JSON.parse(await sxGetItem('sx_characters') || '[]'),
+            userName: userData.name || localStorage.getItem('sx_user_name') || existingData.userName || 'User',
+            userAvatar: userData.avatar || localStorage.getItem('sx_user_avatar') || existingData.userAvatar || '',
+            userPersonality: userData.personality || localStorage.getItem('sx_user_personality') || existingData.userPersonality || '',
+            userBackground: userData.background || localStorage.getItem('sx_user_background') || existingData.userBackground || '',
+            userLikes: localStorage.getItem('sx_user_likes') || existingData.userLikes || '',
+            userTaboos: localStorage.getItem('sx_user_taboos') || existingData.userTaboos || '',
+            userStatus: localStorage.getItem('sx_user_status') || existingData.userStatus || '',
+            sx_users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
             lastSaved: Date.now()
         };
         await chatDataStore.setItem('sx_app_persisted_data', newData);
@@ -1780,11 +1729,11 @@ async function loadUserSettingsFromIndexedDB() {
         const persistedData = await chatDataStore.getItem('sx_app_persisted_data');
         if (persistedData) {
             if (persistedData.apis && Array.isArray(persistedData.apis)) {
-                await sxSetJSON('api_configs', persistedData.apis);
+                localStorage.setItem('api_configs', JSON.stringify(persistedData.apis));
                 console.log('[Chat] 從 IndexedDB 載入 API 配置:', persistedData.apis.length, '個');
             }
             if (persistedData.activeApiIndex !== undefined) {
-                await sxSetItem('sx_active_api', persistedData.activeApiIndex.toString());
+                localStorage.setItem('sx_active_api', persistedData.activeApiIndex.toString());
                 console.log('[Chat] 從 IndexedDB 載入 activeApiIndex:', persistedData.activeApiIndex);
             }
             return {
@@ -1862,19 +1811,15 @@ const DIARY_STORAGE_KEY = 'sx_char_diaries';
 const DIARY_SETTINGS_KEY = 'sx_diary_settings';
 
 function getDiarySettings() {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache && cache.has(DIARY_SETTINGS_KEY)) {
-        try {
-            const parsed = JSON.parse(cache.get(DIARY_SETTINGS_KEY));
-            return {
-                autoGenerate: parsed.autoGenerate !== false,
-                defaultTime: parsed.defaultTime || '22:00'
-            };
-        } catch {
-            return { autoGenerate: true, defaultTime: '22:00' };
-        }
+    try {
+        const parsed = JSON.parse(localStorage.getItem(DIARY_SETTINGS_KEY) || '{}');
+        return {
+            autoGenerate: parsed.autoGenerate !== false,
+            defaultTime: parsed.defaultTime || '22:00'
+        };
+    } catch {
+        return { autoGenerate: true, defaultTime: '22:00' };
     }
-    return { autoGenerate: true, defaultTime: '22:00' };
 }
 
 async function getDiarySettingsAsync() {
@@ -1890,10 +1835,7 @@ async function getDiarySettingsAsync() {
 }
 
 function saveDiarySettings(settings) {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache) {
-        cache.set(DIARY_SETTINGS_KEY, JSON.stringify(settings));
-    }
+    localStorage.setItem(DIARY_SETTINGS_KEY, JSON.stringify(settings));
 }
 
 async function saveDiarySettingsAsync(settings) {
@@ -1901,16 +1843,12 @@ async function saveDiarySettingsAsync(settings) {
 }
 
 function getDiaries() {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache && cache.has(DIARY_STORAGE_KEY)) {
-        try {
-            const parsed = JSON.parse(cache.get(DIARY_STORAGE_KEY));
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
+    try {
+        const parsed = JSON.parse(localStorage.getItem(DIARY_STORAGE_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
     }
-    return [];
 }
 
 async function getDiariesAsync() {
@@ -1923,10 +1861,7 @@ async function getDiariesAsync() {
 }
 
 function saveDiaries(diaries) {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache) {
-        cache.set(DIARY_STORAGE_KEY, JSON.stringify(diaries));
-    }
+    localStorage.setItem(DIARY_STORAGE_KEY, JSON.stringify(diaries));
 }
 
 async function saveDiariesAsync(diaries) {
@@ -1994,9 +1929,9 @@ async function generateDiaryFromAI(charName, userName, personality, background, 
     }
     
     if (!apiUrl) {
-        apiUrl = await sxGetItem('sx_new_api_url') || await sxGetItem('sx_nova_api_url') || '';
-        apiKey = await sxGetItem('sx_new_api_key') || await sxGetItem('sx_nova_api_key') || '';
-        modelName = await sxGetItem('sx_new_api_model') || '';
+        apiUrl = localStorage.getItem('sx_new_api_url') || localStorage.getItem('sx_nova_api_url') || '';
+        apiKey = localStorage.getItem('sx_new_api_key') || localStorage.getItem('sx_nova_api_key') || '';
+        modelName = localStorage.getItem('sx_new_api_model') || '';
     }
     
     if (!apiUrl || !apiKey) {
@@ -2004,7 +1939,7 @@ async function generateDiaryFromAI(charName, userName, personality, background, 
         return null;
     }
     
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     const langName = window.getAIReadableLangName?.(lang) || '繁體中文';
     
     let personalitySection = '';
@@ -2178,21 +2113,17 @@ function generateDiaryFromPersonality(charName, userName, personality, backgroun
 }
 
 function getChatWallets() {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache && cache.has(CHAT_WALLET_KEY)) {
-        try {
-            const parsed = JSON.parse(cache.get(CHAT_WALLET_KEY));
-            const user = Number(parsed?.user);
-            const char = Number(parsed?.char);
-            return {
-                user: Number.isFinite(user) && user >= 0 ? Math.floor(user) : DEFAULT_CHAT_WALLET.user,
-                char: Number.isFinite(char) && char >= 0 ? Math.floor(char) : DEFAULT_CHAT_WALLET.char
-            };
-        } catch {
-            return { ...DEFAULT_CHAT_WALLET };
-        }
+    try {
+        const parsed = JSON.parse(localStorage.getItem(CHAT_WALLET_KEY) || '');
+        const user = Number(parsed?.user);
+        const char = Number(parsed?.char);
+        return {
+            user: Number.isFinite(user) && user >= 0 ? Math.floor(user) : DEFAULT_CHAT_WALLET.user,
+            char: Number.isFinite(char) && char >= 0 ? Math.floor(char) : DEFAULT_CHAT_WALLET.char
+        };
+    } catch {
+        return { ...DEFAULT_CHAT_WALLET };
     }
-    return { ...DEFAULT_CHAT_WALLET };
 }
 
 async function getChatWalletsAsync() {
@@ -2210,13 +2141,10 @@ async function getChatWalletsAsync() {
 }
 
 function saveChatWallets(wallets) {
-    const cache = typeof sxStorage !== 'undefined' && sxStorage._cache;
-    if (cache) {
-        cache.set(CHAT_WALLET_KEY, JSON.stringify({
-            user: Math.max(0, Math.floor(Number(wallets?.user || 0))),
-            char: Math.max(0, Math.floor(Number(wallets?.char || 0)))
-        }));
-    }
+    localStorage.setItem(CHAT_WALLET_KEY, JSON.stringify({
+        user: Math.max(0, Math.floor(Number(wallets?.user || 0))),
+        char: Math.max(0, Math.floor(Number(wallets?.char || 0)))
+    }));
 }
 
 async function saveChatWalletsAsync(wallets) {
@@ -2236,7 +2164,7 @@ function sanitizeText(text) {
 }
 
 function formatNTD(amount) {
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     return `NT$${Number(amount || 0).toLocaleString(localeCode)}`;
 }
@@ -2268,7 +2196,7 @@ async function appendHistoryAndSession(role, content) {
 function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userName, charName }) {
     let ledger;
     try {
-        ledger = JSON.parse(await sxGetItem(KAKAOPAY_LEDGER_KEY) || '{}');
+        ledger = JSON.parse(localStorage.getItem(KAKAOPAY_LEDGER_KEY) || '{}');
     } catch {
         ledger = {};
     }
@@ -2293,7 +2221,7 @@ function appendKakaoPayTransferRecord({ flowType, direction, amount, note, userN
         direction
     });
 
-    await sxSetJSON(KAKAOPAY_LEDGER_KEY, { budget, transactions });
+    localStorage.setItem(KAKAOPAY_LEDGER_KEY, JSON.stringify({ budget, transactions }));
 }
 
 // --- 3. 核心功能：角色資料儲存與 UI 同步 ---
@@ -2478,7 +2406,7 @@ async function getUserConfig() {
 
 function loadCharPresets() {
     try {
-        const raw = await sxGetItem('sx_characters');
+        const raw = localStorage.getItem('sx_characters');
         const parsed = raw ? JSON.parse(raw) : [];
         return Array.isArray(parsed) ? parsed : [];
     } catch {
@@ -2488,7 +2416,7 @@ function loadCharPresets() {
 
 function loadUserPresets() {
     try {
-        const raw = await sxGetItem('sx_users');
+        const raw = localStorage.getItem('sx_users');
         const parsed = raw ? JSON.parse(raw) : [];
         return Array.isArray(parsed) ? parsed : [];
     } catch {
@@ -2533,7 +2461,7 @@ function initUserUI() {
         newUserBgInput.value = user.background || '';
         
         newUserBgInput.addEventListener('input', (e) => {
-            await sxSetItem('sx_user_background', e.target.value);
+            localStorage.setItem('sx_user_background', e.target.value);
             userConfig.background = e.target.value;
             updateUserToList();
             saveUserSettingsToIndexedDB({ background: e.target.value });
@@ -2541,17 +2469,17 @@ function initUserUI() {
     }
     
     if (userLikesInput) {
-        const savedLikes = await sxGetItem('sx_user_likes') || '';
+        const savedLikes = localStorage.getItem('sx_user_likes') || '';
         userLikesInput.value = savedLikes;
     }
     
     if (userTaboosInput) {
-        const savedTaboos = await sxGetItem('sx_user_taboos') || '';
+        const savedTaboos = localStorage.getItem('sx_user_taboos') || '';
         userTaboosInput.value = savedTaboos;
     }
     
     if (userStatusInput) {
-        const savedStatus = await sxGetItem('sx_user_status') || '';
+        const savedStatus = localStorage.getItem('sx_user_status') || '';
         userStatusInput.value = savedStatus;
     }
     
@@ -2561,9 +2489,9 @@ function initUserUI() {
             const taboos = userTaboosInput?.value || '';
             const status = userStatusInput?.value || '';
             
-            await sxSetItem('sx_user_likes', likes);
-            await sxSetItem('sx_user_taboos', taboos);
-            await sxSetItem('sx_user_status', status);
+            localStorage.setItem('sx_user_likes', likes);
+            localStorage.setItem('sx_user_taboos', taboos);
+            localStorage.setItem('sx_user_status', status);
             
             saveUserPreferencesToIndexedDB({ likes, taboos, status });
             
@@ -2589,19 +2517,19 @@ async function saveUserPreferencesToIndexedDB(prefs) {
         const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
         const newData = {
             ...existingData,
-            userLikes: prefs.likes || await sxGetItem('sx_user_likes') || existingData.userLikes || '',
-            userTaboos: prefs.taboos || await sxGetItem('sx_user_taboos') || existingData.userTaboos || '',
-            userStatus: prefs.status || await sxGetItem('sx_user_status') || existingData.userStatus || '',
-            userName: await sxGetItem('sx_user_name') || existingData.userName || 'User',
-            userAvatar: await sxGetItem('sx_user_avatar') || existingData.userAvatar || '',
-            userPersonality: await sxGetItem('sx_user_personality') || existingData.userPersonality || '',
-            userBackground: await sxGetItem('sx_user_background') || existingData.userBackground || '',
-            charName: await sxGetItem('sx_char_name') || existingData.charName || '',
-            charAvatar: await sxGetItem('sx_char_avatar') || existingData.charAvatar || '',
-            charPersonality: await sxGetItem('sx_char_personality') || existingData.charPersonality || '',
-            charBackground: await sxGetItem('sx_char_background') || existingData.charBackground || '',
-            sx_characters: JSON.parse(await sxGetItem('sx_characters') || '[]'),
-            sx_users: JSON.parse(await sxGetItem('sx_users') || '[]'),
+            userLikes: prefs.likes || localStorage.getItem('sx_user_likes') || existingData.userLikes || '',
+            userTaboos: prefs.taboos || localStorage.getItem('sx_user_taboos') || existingData.userTaboos || '',
+            userStatus: prefs.status || localStorage.getItem('sx_user_status') || existingData.userStatus || '',
+            userName: localStorage.getItem('sx_user_name') || existingData.userName || 'User',
+            userAvatar: localStorage.getItem('sx_user_avatar') || existingData.userAvatar || '',
+            userPersonality: localStorage.getItem('sx_user_personality') || existingData.userPersonality || '',
+            userBackground: localStorage.getItem('sx_user_background') || existingData.userBackground || '',
+            charName: localStorage.getItem('sx_char_name') || existingData.charName || '',
+            charAvatar: localStorage.getItem('sx_char_avatar') || existingData.charAvatar || '',
+            charPersonality: localStorage.getItem('sx_char_personality') || existingData.charPersonality || '',
+            charBackground: localStorage.getItem('sx_char_background') || existingData.charBackground || '',
+            sx_characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
+            sx_users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
             lastSaved: Date.now()
         };
         await chatDataStore.setItem('sx_app_persisted_data', newData);
@@ -2635,12 +2563,12 @@ async function loadUserPreferencesFromIndexedDB() {
 
 function updateUserToList() {
     try {
-        const usersRaw = await sxGetItem('sx_users');
+        const usersRaw = localStorage.getItem('sx_users');
         const users = usersRaw ? JSON.parse(usersRaw) : [];
-        const currentUserName = await sxGetItem('sx_user_name') || 'User';
-        const currentUserAvatar = await sxGetItem('sx_user_avatar') || '';
-        const currentUserBg = await sxGetItem('sx_user_background') || '';
-        const currentUserPers = await sxGetItem('sx_user_personality') || '';
+        const currentUserName = localStorage.getItem('sx_user_name') || 'User';
+        const currentUserAvatar = localStorage.getItem('sx_user_avatar') || '';
+        const currentUserBg = localStorage.getItem('sx_user_background') || '';
+        const currentUserPers = localStorage.getItem('sx_user_personality') || '';
         
         const existingIdx = users.findIndex(u => u.name === currentUserName);
         const userData = {
@@ -2655,7 +2583,7 @@ function updateUserToList() {
         } else {
             users.unshift(userData);
         }
-        await sxSetJSON('sx_users', users);
+        localStorage.setItem('sx_users', JSON.stringify(users));
         
         saveToPersistentStorage();
     } catch (e) {
@@ -2680,14 +2608,14 @@ function initPhoneCheckToggle() {
     const maxDurationInput = document.getElementById('phone-check-max-duration');
     
     if (!toggle) return;
-    const enabled = await sxGetItem(PHONE_CHECK_KEY) === '1';
+    const enabled = localStorage.getItem(PHONE_CHECK_KEY) === '1';
     toggle.checked = enabled;
     if (status) status.textContent = enabled ? '已允許隨機觸發' : '關閉時不會觸發';
     
-    if (minDelayInput) minDelayInput.value = await sxGetItem(PHONE_CHECK_MIN_DELAY_KEY) || 5;
-    if (maxDelayInput) maxDelayInput.value = await sxGetItem(PHONE_CHECK_MAX_DELAY_KEY) || 60;
-    if (minDurationInput) minDurationInput.value = await sxGetItem(PHONE_CHECK_MIN_DURATION_KEY) || 2;
-    if (maxDurationInput) maxDurationInput.value = await sxGetItem(PHONE_CHECK_MAX_DURATION_KEY) || 5;
+    if (minDelayInput) minDelayInput.value = localStorage.getItem(PHONE_CHECK_MIN_DELAY_KEY) || 5;
+    if (maxDelayInput) maxDelayInput.value = localStorage.getItem(PHONE_CHECK_MAX_DELAY_KEY) || 60;
+    if (minDurationInput) minDurationInput.value = localStorage.getItem(PHONE_CHECK_MIN_DURATION_KEY) || 2;
+    if (maxDurationInput) maxDurationInput.value = localStorage.getItem(PHONE_CHECK_MAX_DURATION_KEY) || 5;
     
     const saveSettings = () => {
         const settings = {
@@ -2698,11 +2626,11 @@ function initPhoneCheckToggle() {
             maxDuration: parseInt(maxDurationInput?.value) || 5
         };
         
-        await sxSetItem(PHONE_CHECK_KEY, settings.enabled ? '1' : '0');
-        await sxSetItem(PHONE_CHECK_MIN_DELAY_KEY, settings.minDelay);
-        await sxSetItem(PHONE_CHECK_MAX_DELAY_KEY, settings.maxDelay);
-        await sxSetItem(PHONE_CHECK_MIN_DURATION_KEY, settings.minDuration);
-        await sxSetItem(PHONE_CHECK_MAX_DURATION_KEY, settings.maxDuration);
+        localStorage.setItem(PHONE_CHECK_KEY, settings.enabled ? '1' : '0');
+        localStorage.setItem(PHONE_CHECK_MIN_DELAY_KEY, settings.minDelay);
+        localStorage.setItem(PHONE_CHECK_MAX_DELAY_KEY, settings.maxDelay);
+        localStorage.setItem(PHONE_CHECK_MIN_DURATION_KEY, settings.minDuration);
+        localStorage.setItem(PHONE_CHECK_MAX_DURATION_KEY, settings.maxDuration);
         
         if (status) status.textContent = settings.enabled ? '已允許隨機觸發' : '關閉時不會觸發';
         
@@ -2744,12 +2672,12 @@ function initPasskeyControlToggle() {
     const toggle = document.getElementById('passkey-control-toggle');
     const status = document.getElementById('passkey-control-status');
     if (!toggle) return;
-    const enabled = await sxGetItem(PASSKEY_CONTROL_KEY) === '1';
+    const enabled = localStorage.getItem(PASSKEY_CONTROL_KEY) === '1';
     toggle.checked = enabled;
     if (status) status.textContent = enabled ? '已啟用 NSFW 自動交接' : '關閉時不會自動交接';
     toggle.addEventListener('change', () => {
         const isOn = toggle.checked;
-        await sxSetItem(PASSKEY_CONTROL_KEY, isOn ? '1' : '0');
+        localStorage.setItem(PASSKEY_CONTROL_KEY, isOn ? '1' : '0');
         if (status) status.textContent = isOn ? '已啟用 NSFW 自動交接' : '關閉時不會自動交接';
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'PASSKEY_CONTROL_TOGGLE', enabled: isOn }, '*');
@@ -2761,7 +2689,7 @@ function initPasskeyControlToggle() {
 }
 
 function isPasskeyControlEnabled() {
-    return await sxGetItem(PASSKEY_CONTROL_KEY) === '1';
+    return localStorage.getItem(PASSKEY_CONTROL_KEY) === '1';
 }
 
 function checkNsfwTopic(text) {
@@ -2782,9 +2710,9 @@ function triggerPasskeyControlHandoff(reason, payload = {}) {
         text: payload.text || '',
         chatId: getActiveChatId() || '',
         timestamp: Date.now(),
-        character: await sxGetItem('sx_passkey_character') || ''
+        character: localStorage.getItem('sx_passkey_character') || ''
     };
-    await sxSetJSON('sx_passkey_control_handoff', detail);
+    localStorage.setItem('sx_passkey_control_handoff', JSON.stringify(detail));
     if (window.parent && window.parent !== window) {
         window.parent.postMessage({ type: 'PASSKEY_CONTROL_HANDOFF', payload: detail }, '*');
     }
@@ -2816,7 +2744,7 @@ function sendDeviceCommands(commands) {
                 duration: cmd.duration,
                 chatId: getActiveChatId() || '',
                 timestamp: Date.now(),
-                character: await sxGetItem('sx_passkey_character') || ''
+                character: localStorage.getItem('sx_passkey_character') || ''
             };
             
             if (window.parent && window.parent !== window) {
@@ -2826,7 +2754,7 @@ function sendDeviceCommands(commands) {
                 }, '*');
             }
             
-            await sxSetJSON('sx_lovespouse_command', detail);
+            localStorage.setItem('sx_lovespouse_command', JSON.stringify(detail));
             
             console.log('[Chat] Device command sent:', cmd);
         }, index * 500);
@@ -2854,7 +2782,7 @@ function processAiResponseForDevice(text) {
  */
 function checkBlockStatus() {
     const blockKey = `block_${charConfig.name}`;
-    const blockTime = await sxGetItem(blockKey);
+    const blockTime = localStorage.getItem(blockKey);
     const sendBtn = document.getElementById('send-trigger');
     const genBtn = document.getElementById('generate-trigger');
     const msgInput = document.getElementById('msg-input');
@@ -2878,7 +2806,7 @@ function checkBlockStatus() {
             return true; // 已被封鎖
         } else {
             // 封鎖時間已過，清除記錄
-            await sxRemoveItem(blockKey);
+            localStorage.removeItem(blockKey);
         }
     }
 
@@ -2899,17 +2827,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 先從 IndexedDB 回填用戶資料到 localStorage
     const persistedUserData = await loadUserSettingsFromIndexedDB();
     if (persistedUserData) {
-        if (persistedUserData.name && !await sxGetItem('sx_user_name')) {
-            await sxSetItem('sx_user_name', persistedUserData.name);
+        if (persistedUserData.name && !localStorage.getItem('sx_user_name')) {
+            localStorage.setItem('sx_user_name', persistedUserData.name);
         }
-        if (persistedUserData.avatar && !await sxGetItem('sx_user_avatar')) {
-            await sxSetItem('sx_user_avatar', persistedUserData.avatar);
+        if (persistedUserData.avatar && !localStorage.getItem('sx_user_avatar')) {
+            localStorage.setItem('sx_user_avatar', persistedUserData.avatar);
         }
-        if (persistedUserData.personality && !await sxGetItem('sx_user_personality')) {
-            await sxSetItem('sx_user_personality', persistedUserData.personality);
+        if (persistedUserData.personality && !localStorage.getItem('sx_user_personality')) {
+            localStorage.setItem('sx_user_personality', persistedUserData.personality);
         }
-        if (persistedUserData.background && !await sxGetItem('sx_user_background')) {
-            await sxSetItem('sx_user_background', persistedUserData.background);
+        if (persistedUserData.background && !localStorage.getItem('sx_user_background')) {
+            localStorage.setItem('sx_user_background', persistedUserData.background);
         }
         console.log('[Chat] 已從 IndexedDB 回填用戶資料');
     }
@@ -2977,14 +2905,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nameEl) nameEl.innerText = charName;
         if (chatTitleEl) chatTitleEl.innerText = charName;
         
-        await sxSetItem('sx_char_name', charName);
+        localStorage.setItem('sx_char_name', charName);
         if (preset.avatar) {
-            await sxSetItem('sx_char_avatar', preset.avatar);
+            localStorage.setItem('sx_char_avatar', preset.avatar);
             const preview = document.getElementById('preview-avatar');
             if (preview) preview.src = preset.avatar;
         }
-        if (preset.personality) await sxSetItem('sx_char_personality', preset.personality);
-        if (preset.background) await sxSetItem('sx_char_background', preset.background);
+        if (preset.personality) localStorage.setItem('sx_char_personality', preset.personality);
+        if (preset.background) localStorage.setItem('sx_char_background', preset.background);
         
         charConfig = {
             name: charName,
@@ -3024,15 +2952,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userBgInput) userBgInput.value = preset.background || '';
         if (userPersInput) userPersInput.value = preset.personality || '';
         
-        await sxSetItem('sx_user_name', userName);
-        await sxSetItem('sx_user_background', preset.background || '');
-        await sxSetItem('sx_user_personality', preset.personality || '');
+        localStorage.setItem('sx_user_name', userName);
+        localStorage.setItem('sx_user_background', preset.background || '');
+        localStorage.setItem('sx_user_personality', preset.personality || '');
         
         if (preset.avatar) {
-            await sxSetItem('sx_user_avatar', preset.avatar);
+            localStorage.setItem('sx_user_avatar', preset.avatar);
             if (userAvatarPreview) userAvatarPreview.src = preset.avatar;
         } else {
-            await sxRemoveItem('sx_user_avatar');
+            localStorage.removeItem('sx_user_avatar');
             if (userAvatarPreview) {
                 userAvatarPreview.src = '';
                 userAvatarPreview.style.background = '#eee';
@@ -3129,8 +3057,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sessions = loadChatSessions();
         console.log('[renderFriendsList] sessions:', sessions);
         
-        const characters = JSON.parse(await sxGetItem('sx_characters') || '[]');
-        const masks = JSON.parse(await sxGetItem('sx_masks') || '[]');
+        const characters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
+        const masks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const allChars = [...characters, ...masks];
         
         const charAvatarMap = new Map();
@@ -3145,7 +3073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         sessions.forEach(session => {
             console.log('[renderFriendsList] session:', session.id, 'charName:', session.charName);
             if (session.charName && !uniqueFriends.has(session.charName)) {
-                const avatar = session.charAvatar || charAvatarMap.get(session.charName) || await sxGetItem('sx_char_avatar') || '';
+                const avatar = session.charAvatar || charAvatarMap.get(session.charName) || localStorage.getItem('sx_char_avatar') || '';
                 uniqueFriends.set(session.charName, {
                     name: session.charName,
                     avatar: avatar,
@@ -3206,10 +3134,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (existingSession) {
                     setActiveChatId(existingSession.id);
                     setChatHistorySync(existingSession.history || []);
-                    if (existingSession.charName) await sxSetItem('sx_char_name', existingSession.charName);
-                    if (existingSession.charAvatar) await sxSetItem('sx_char_avatar', existingSession.charAvatar);
-                    if (existingSession.charPersonality) await sxSetItem('sx_char_personality', existingSession.charPersonality);
-                    if (existingSession.charBackground) await sxSetItem('sx_char_background', existingSession.charBackground);
+                    if (existingSession.charName) localStorage.setItem('sx_char_name', existingSession.charName);
+                    if (existingSession.charAvatar) localStorage.setItem('sx_char_avatar', existingSession.charAvatar);
+                    if (existingSession.charPersonality) localStorage.setItem('sx_char_personality', existingSession.charPersonality);
+                    if (existingSession.charBackground) localStorage.setItem('sx_char_background', existingSession.charBackground);
                     if (existingSession.worldbookMounts !== undefined) {
                         applySessionWorldbookMounts(existingSession.worldbookMounts);
                     }
@@ -3225,7 +3153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showChatDetail();
                     renderHistory();
                 } else {
-                    let charName = await sxGetItem('sx_char_name');
+                    let charName = localStorage.getItem('sx_char_name');
                     if (!charName || charName === '預設用戶') {
                         charName = charConfig.name || 'AI 助理';
                     }
@@ -3322,8 +3250,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const lastMsg = history[history.length - 1];
             const preview = lastMsg?.content ? lastMsg.content.slice(0, 20) : '點擊開始對話';
             
-            const sessionCharName = session.charName || await sxGetItem('sx_char_name') || charConfig.name || 'AI 助理';
-            const sessionCharAvatar = session.charAvatar || await sxGetItem('sx_char_avatar') || '';
+            const sessionCharName = session.charName || localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
+            const sessionCharAvatar = session.charAvatar || localStorage.getItem('sx_char_avatar') || '';
             
             const item = document.createElement('div');
             item.className = 'chat-list-item';
@@ -3345,11 +3273,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         if (sessions.length === 0) {
-            let charName = await sxGetItem('sx_char_name');
+            let charName = localStorage.getItem('sx_char_name');
             if (!charName || charName === '預設用戶') {
                 charName = charConfig.name || 'AI 助理';
             }
-            const charAvatar = await sxGetItem('sx_char_avatar') || '';
+            const charAvatar = localStorage.getItem('sx_char_avatar') || '';
             const avatarStyle = charAvatar 
                 ? `background-image: url('${charAvatar}'); background-size: cover; background-position: center;` 
                 : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
@@ -3395,7 +3323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const chatId = item.dataset.chatId;
         
         if (chatId === '__placeholder__') {
-            let charName = await sxGetItem('sx_char_name');
+            let charName = localStorage.getItem('sx_char_name');
             if (!charName || charName === '預設用戶') {
                 charName = charConfig.name || 'AI 助理';
             }
@@ -3422,7 +3350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sessions = loadChatSessions();
         const target = sessions.find(s => s.id === chatId);
         
-        let sessionCharName = target?.charName || await sxGetItem('sx_char_name');
+        let sessionCharName = target?.charName || localStorage.getItem('sx_char_name');
         if (!sessionCharName || sessionCharName === '預設用戶') {
             sessionCharName = charConfig.name || 'AI 助理';
         }
@@ -3432,16 +3360,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             setChatHistorySync(target.history || []);
             
             if (target.charName) {
-                await sxSetItem('sx_char_name', target.charName);
+                localStorage.setItem('sx_char_name', target.charName);
             }
             if (target.charAvatar) {
-                await sxSetItem('sx_char_avatar', target.charAvatar);
+                localStorage.setItem('sx_char_avatar', target.charAvatar);
             }
             if (target.charPersonality) {
-                await sxSetItem('sx_char_personality', target.charPersonality);
+                localStorage.setItem('sx_char_personality', target.charPersonality);
             }
             if (target.charBackground) {
-                await sxSetItem('sx_char_background', target.charBackground);
+                localStorage.setItem('sx_char_background', target.charBackground);
             }
             
             if (target.worldbookMounts !== undefined) {
@@ -3590,16 +3518,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('[Chat] 初始化時從 session 恢復 history:', initialSession.history.length, '條');
             }
             if (initialSession.charName) {
-                await sxSetItem('sx_char_name', initialSession.charName);
+                localStorage.setItem('sx_char_name', initialSession.charName);
             }
             if (initialSession.charAvatar) {
-                await sxSetItem('sx_char_avatar', initialSession.charAvatar);
+                localStorage.setItem('sx_char_avatar', initialSession.charAvatar);
             }
             if (initialSession.charPersonality) {
-                await sxSetItem('sx_char_personality', initialSession.charPersonality);
+                localStorage.setItem('sx_char_personality', initialSession.charPersonality);
             }
             if (initialSession.charBackground) {
-                await sxSetItem('sx_char_background', initialSession.charBackground);
+                localStorage.setItem('sx_char_background', initialSession.charBackground);
             }
             if (initialSession.worldbookMounts !== undefined) {
                 applySessionWorldbookMounts(initialSession.worldbookMounts);
@@ -3612,15 +3540,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         showChatList();
         
         const hintEl = document.getElementById('hint-name');
-        let displayName = await sxGetItem('sx_char_name');
+        let displayName = localStorage.getItem('sx_char_name');
         if (!displayName || displayName === '預設用戶') {
             displayName = charConfig.name || "AI 助理";
         }
         if (nameEl) nameEl.innerText = displayName;
         if (chatTitleEl) chatTitleEl.innerText = displayName;
         if (hintEl) hintEl.innerText = displayName;
-        if (charPersInput) charPersInput.value = await sxGetItem('sx_char_personality') || charConfig.personality || "";
-        if (charBackInput) charBackInput.value = await sxGetItem('sx_char_background') || charConfig.background || "";
+        if (charPersInput) charPersInput.value = localStorage.getItem('sx_char_personality') || charConfig.personality || "";
+        if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
         if (charNameInput) charNameInput.value = displayName;
         
         console.log('[Chat] 初始化完成，角色名稱:', displayName);
@@ -3656,7 +3584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatFontRange = document.getElementById('chat-font-range');
     const chatFontOutput = document.getElementById('chat-font-output');
     if (chatFontRange) {
-        const savedFont = await sxGetItem('sx_chat_font_size');
+        const savedFont = localStorage.getItem('sx_chat_font_size');
         if (savedFont) {
             chatFontRange.value = savedFont;
             if (chatFontOutput) chatFontOutput.value = savedFont;
@@ -3665,7 +3593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         chatFontRange.addEventListener('input', (event) => {
             const value = event.target.value;
             if (chatFontOutput) chatFontOutput.value = value;
-            await sxSetItem('sx_chat_font_size', value);
+            localStorage.setItem('sx_chat_font_size', value);
             document.documentElement.style.setProperty('--chat-font-size', `${value}px`);
         });
     }
@@ -3778,15 +3706,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (data.type === 'APP_FOLDER_SYNC' && data.appId === 'settings' && data.data?.storage) {
             const storage = data.data.storage;
-            if (storage.sx_characters) await sxSetItem('sx_characters', storage.sx_characters);
-            if (storage.sx_users) await sxSetItem('sx_users', storage.sx_users);
-            if (storage.sx_nova_api_url) await sxSetItem('sx_nova_api_url', storage.sx_nova_api_url);
-            if (storage.sx_nova_api_key) await sxSetItem('sx_nova_api_key', storage.sx_nova_api_key);
+            if (storage.sx_characters) localStorage.setItem('sx_characters', storage.sx_characters);
+            if (storage.sx_users) localStorage.setItem('sx_users', storage.sx_users);
+            if (storage.sx_nova_api_url) localStorage.setItem('sx_nova_api_url', storage.sx_nova_api_url);
+            if (storage.sx_nova_api_key) localStorage.setItem('sx_nova_api_key', storage.sx_nova_api_key);
             
-            if (storage.sx_user_name) await sxSetItem('sx_user_name', storage.sx_user_name);
-            if (storage.sx_user_avatar) await sxSetItem('sx_user_avatar', storage.sx_user_avatar);
-            if (storage.sx_user_personality) await sxSetItem('sx_user_personality', storage.sx_user_personality);
-            if (storage.sx_user_background) await sxSetItem('sx_user_background', storage.sx_user_background);
+            if (storage.sx_user_name) localStorage.setItem('sx_user_name', storage.sx_user_name);
+            if (storage.sx_user_avatar) localStorage.setItem('sx_user_avatar', storage.sx_user_avatar);
+            if (storage.sx_user_personality) localStorage.setItem('sx_user_personality', storage.sx_user_personality);
+            if (storage.sx_user_background) localStorage.setItem('sx_user_background', storage.sx_user_background);
             
             renderPresetOptions();
             
@@ -3795,7 +3723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         if (data.type === 'USER_AVATAR_UPDATED' && data.payload?.avatar) {
-            await sxSetItem('sx_user_avatar', data.payload.avatar);
+            localStorage.setItem('sx_user_avatar', data.payload.avatar);
             userConfig.avatar = data.payload.avatar;
             
             const userAvatarPreview = document.getElementById('preview-user-avatar');
@@ -3855,7 +3783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (confirm(`確定要拉黑 ${charName} 一小時嗎？這期間將無法發送訊息。`)) {
                 // 設定一小時後的 timestamp
                 const blockUntil = new Date().getTime() + (1 * 60 * 60 * 1000); 
-                await sxSetItem(`block_${charName}`, blockUntil);
+                localStorage.setItem(`block_${charName}`, blockUntil);
                 
                 // 立即更新 UI 狀態
                 checkBlockStatus(); 
@@ -3885,7 +3813,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             saveChatSessions(newSessions);
             setChatHistorySync([]);
-            await sxRemoveItem('sx_chat_active'); // 修復: 清除活躍對話 ID
+            localStorage.removeItem('sx_chat_active'); // 修復: 清除活躍對話 ID
             
             renderHistory();
             renderChatListFromStorage();
@@ -3937,7 +3865,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (config.type === 'char' && charConfig.avatar) {
                 preview.src = charConfig.avatar;
             } else if (config.type === 'user') {
-                const savedAvatar = await sxGetItem('sx_user_avatar');
+                const savedAvatar = localStorage.getItem('sx_user_avatar');
                 if (savedAvatar) {
                     preview.src = savedAvatar;
                     userConfig.avatar = savedAvatar;
@@ -3976,7 +3904,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (config.type === 'char') {
                         updateActiveMask('avatar', avatarUrl);
                     } else {
-                        await sxSetItem('sx_user_avatar', avatarUrl);
+                        localStorage.setItem('sx_user_avatar', avatarUrl);
                         userConfig.avatar = avatarUrl;
                         
                         updateUserToList();
@@ -3998,12 +3926,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- 歷史紀錄長度控制 (獨立於迴圈外) ---
     const rangeInput = document.getElementById('history-range');
     if (rangeInput) {
-        rangeInput.value = await sxGetItem('chat_history_range') || 30;
+        rangeInput.value = localStorage.getItem('chat_history_range') || 30;
         const output = rangeInput.nextElementSibling;
         if(output) output.value = rangeInput.value;
         rangeInput.oninput = (e) => {
             if(output) output.value = e.target.value;
-            await sxSetItem('chat_history_range', e.target.value);
+            localStorage.setItem('chat_history_range', e.target.value);
         };
     }
     // 初始化右鍵選單
@@ -4101,7 +4029,7 @@ function initSideDrawer() {
 
     const getInnerVoiceHistory = () => {
         try {
-            const raw = await sxGetItem(INNER_VOICE_HISTORY_KEY);
+            const raw = localStorage.getItem(INNER_VOICE_HISTORY_KEY);
             const parsed = raw ? JSON.parse(raw) : [];
             return Array.isArray(parsed) ? parsed : [];
         } catch {
@@ -4111,7 +4039,7 @@ function initSideDrawer() {
 
     const saveInnerVoiceToHistory = (content, charName) => {
         const history = getInnerVoiceHistory();
-        const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
+        const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
         const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
         const entry = {
             id: `iv_${Date.now()}`,
@@ -4124,7 +4052,7 @@ function initSideDrawer() {
         if (history.length > 50) {
             history.pop();
         }
-        await sxSetJSON(INNER_VOICE_HISTORY_KEY, history);
+        localStorage.setItem(INNER_VOICE_HISTORY_KEY, JSON.stringify(history));
     };
 
     const saveInnerVoiceToShortTermMemory = (content, charName) => {
@@ -4221,7 +4149,7 @@ function initSideDrawer() {
 
     const getVoiceSettings = () => {
         try {
-            const raw = await sxGetItem(VOICE_SETTINGS_KEY);
+            const raw = localStorage.getItem(VOICE_SETTINGS_KEY);
             const parsed = raw ? JSON.parse(raw) : {};
             return {
                 sttApiUrl: parsed.sttApiUrl || '',
@@ -4638,7 +4566,7 @@ function initSideDrawer() {
             const hasExternalTTS = !!(settings.ttsApiUrl && settings.ttsApiKey) ||
                                    !!(settings.voiceProvider && settings.thirdPartyVoiceUrl && settings.thirdPartyVoiceKey);
             
-            const systemLang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+            const systemLang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
             const ttsLang = settings.ttsLanguage || 'zh-TW';
             const needsTranslation = ttsLang !== systemLang && settings.enableTranslation !== false;
             
@@ -4804,7 +4732,7 @@ function initSideDrawer() {
     const handleGenerateDiary = async () => {
         const history = getChatHistory();
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
-        const userName = userConfig?.name || await sxGetItem('sx_user_name') || '我';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         
         if (diaryPreview) {
             diaryPreview.textContent = '正在生成日記...';
@@ -4827,9 +4755,9 @@ function initSideDrawer() {
         const date = diaryDateInput?.value || getTodayDateString();
         const time = diaryTimeInput?.value || '22:00';
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
-        const userName = userConfig?.name || await sxGetItem('sx_user_name') || '我';
-        const charAvatar = await sxGetItem('sx_char_avatar') || '';
-        const userAvatar = await sxGetItem('sx_user_avatar') || '';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
+        const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+        const userAvatar = localStorage.getItem('sx_user_avatar') || '';
         
         const diaries = getDiaries();
         const existingIndex = diaries.findIndex(d => d.date === date);
@@ -4876,7 +4804,7 @@ function initSideDrawer() {
         
         let books = [];
         try {
-            const raw = await sxGetItem(EXCHANGE_DIARY_BOOKS_KEY);
+            const raw = localStorage.getItem(EXCHANGE_DIARY_BOOKS_KEY);
             books = raw ? JSON.parse(raw) : [];
         } catch (e) {
             console.warn('[Chat] 無法解析交換日記資料:', e);
@@ -4920,8 +4848,8 @@ function initSideDrawer() {
         targetBook.entries.sort((a, b) => new Date(a.date) - new Date(b.date));
         targetBook.currentPageDate = new Date().toDateString();
         
-        await sxSetJSON(EXCHANGE_DIARY_BOOKS_KEY, books);
-        await sxSetItem(EXCHANGE_DIARY_ACTIVE_KEY, targetBook.id);
+        localStorage.setItem(EXCHANGE_DIARY_BOOKS_KEY, JSON.stringify(books));
+        localStorage.setItem(EXCHANGE_DIARY_ACTIVE_KEY, targetBook.id);
         
         if (typeof localforage !== 'undefined') {
             try {
@@ -4975,8 +4903,8 @@ function initSideDrawer() {
             charAppTitle.textContent = `${charName} 的${appName}`;
         }
         
-        await sxSetItem(CHAR_VIEWER_KEY, '1');
-        await sxSetItem(CHAR_ACTIVE_KEY, charName);
+        localStorage.setItem(CHAR_VIEWER_KEY, '1');
+        localStorage.setItem(CHAR_ACTIVE_KEY, charName);
         
         let appUrl;
         if (appId === 'facebook-settings') {
@@ -4996,7 +4924,7 @@ function initSideDrawer() {
         if (charAppFrame) {
             charAppFrame.src = '';
         }
-        await sxRemoveItem(CHAR_VIEWER_KEY);
+        localStorage.removeItem(CHAR_VIEWER_KEY);
     };
 
     const handlePhoneAppClick = (e) => {
@@ -5041,13 +4969,13 @@ function initSideDrawer() {
     };
 
     const assembleInnerVoicePrompt = () => {
-        const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
+        const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const activeChar = currentChars[0] || {};
         const charName = activeChar.name || 'AI 助理';
         const personality = activeChar.personality || '友善';
         const background = activeChar.background || '';
         
-        const userName = await sxGetItem('sx_user_name') || 'User';
+        const userName = localStorage.getItem('sx_user_name') || 'User';
         const userBio = document.getElementById('set-user-background')?.value || '';
         
         const history = getChatHistory();
@@ -5110,8 +5038,8 @@ ${lastCharContent || '（尚未有對話）'}
                 { role: 'user', content: prompt }
             ];
             
-            const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
-            const activeIndex = parseInt(await sxGetItem('sx_active_api'), 10);
+            const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+            const activeIndex = parseInt(localStorage.getItem('sx_active_api'), 10);
             const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
             const config = apis[validIndex] || apis[0];
             
@@ -5182,7 +5110,7 @@ ${lastCharContent || '（尚未有對話）'}
             
             innerVoiceContent.innerHTML = `<div class="inner-voice-text">${innerVoiceText}</div>`;
             
-            const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
+            const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
             const activeChar = currentChars[0] || {};
             const charName = activeChar.name || 'AI 助理';
             saveInnerVoiceToHistory(innerVoiceText, charName);
@@ -5992,8 +5920,8 @@ ${lastCharContent || '（尚未有對話）'}
         
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
-        const activeIndex = parseInt(await sxGetItem('sx_active_api'), 10);
+        const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+        const activeIndex = parseInt(localStorage.getItem('sx_active_api'), 10);
         const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
         const config = apis[validIndex] || apis[0];
         
@@ -6010,7 +5938,7 @@ ${lastCharContent || '（尚未有對話）'}
             addTranscript('char', '(Gemini API 需要 API Key)');
             return;
         }
-        const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
+        const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
         const activeChar = currentChars[0] || {};
         const charName = activeChar.name || 'AI 助理';
         const systemPrompt = await ChatEngine.assembleSystemPrompt(text);
@@ -6257,7 +6185,7 @@ ${lastCharContent || '（尚未有對話）'}
         if (isEmpty) isEmpty.remove();
 
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
-        const userName = userConfig?.name || await sxGetItem('sx_user_name') || '我';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         const displayName = speaker === 'user' ? userName : charName;
 
         const item = document.createElement('div');
@@ -6298,14 +6226,14 @@ ${lastCharContent || '（尚未有對話）'}
 
         let recordings = [];
         try {
-            const raw = await sxGetItem(RECORDINGS_KEY);
+            const raw = localStorage.getItem(RECORDINGS_KEY);
             recordings = raw ? JSON.parse(raw) : [];
             if (!Array.isArray(recordings)) recordings = [];
         } catch { recordings = []; }
 
         recordings.unshift(recording);
         if (recordings.length > 100) recordings.pop();
-        await sxSetJSON(RECORDINGS_KEY, recordings);
+        localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
 
         callTranscriptData = [];
         callTtsBlobs = [];
@@ -6429,7 +6357,7 @@ ${lastCharContent || '（尚未有對話）'}
     const renderTransferWallets = () => {
         if (!transferWalletMount) return;
         const wallets = getChatWallets();
-        const userName = sanitizeText(userConfig?.name || await sxGetItem('sx_user_name') || '我');
+        const userName = sanitizeText(userConfig?.name || localStorage.getItem('sx_user_name') || '我');
         const charName = sanitizeText(charConfig?.name || getActiveConfig().name || 'AI 助理');
         transferWalletMount.innerHTML = `
             <div class="transfer-wallet">
@@ -6508,7 +6436,7 @@ ${lastCharContent || '（尚未有對話）'}
         saveChatWallets(wallets);
         renderTransferWallets();
 
-        const userName = userConfig?.name || await sxGetItem('sx_user_name') || '我';
+        const userName = userConfig?.name || localStorage.getItem('sx_user_name') || '我';
         const charName = charConfig?.name || getActiveConfig().name || 'AI 助理';
         const flowLabel = flowType === 'envelope' ? '紅包' : (flowType === 'request' ? '收款' : '轉帳');
         const fromName = direction === 'user_to_char' ? userName : charName;
@@ -6605,7 +6533,7 @@ ${lastCharContent || '（尚未有對話）'}
 
     const loadEmojiPacks = () => {
         try {
-            const packsRaw = await sxGetItem('sx_emoji_packs');
+            const packsRaw = localStorage.getItem('sx_emoji_packs');
             if (packsRaw) {
                 const packs = JSON.parse(packsRaw);
                 if (Array.isArray(packs) && packs.length > 0) {
@@ -6678,8 +6606,8 @@ ${lastCharContent || '（尚未有對話）'}
                 imageUpload?.click();
             }
             if (action === 'generate-image') {
-                const apiUrl = await sxGetItem('sx_nova_api_url') || '';
-                const apiKey = await sxGetItem('sx_nova_api_key') || '';
+                const apiUrl = localStorage.getItem('sx_nova_api_url') || '';
+                const apiKey = localStorage.getItem('sx_nova_api_key') || '';
                 if (!apiUrl || !apiKey) {
                     alert('NovaAI 尚未設定，請到 Settings > API 設定填入 API URL 與 API Key');
                     return;
@@ -6845,7 +6773,7 @@ ${lastCharContent || '（尚未有對話）'}
     const loadPhoneAppearanceConfigSafe = () => {
         const defaults = getDefaultPhoneAppearanceConfig();
         try {
-            const saved = await sxGetItem(PHONE_APPEARANCE_KEY);
+            const saved = localStorage.getItem(PHONE_APPEARANCE_KEY);
             if (!saved) return defaults;
             const parsed = JSON.parse(saved);
             if (!parsed || typeof parsed !== 'object') return defaults;
@@ -6875,8 +6803,8 @@ ${lastCharContent || '（尚未有對話）'}
         document.documentElement.style.setProperty('--sx-phone-brand', `'${safe.brand}'`);
         document.documentElement.style.setProperty('--sx-font-family', resolvedFont);
 
-        if (!await sxGetItem(PHONE_APPEARANCE_KEY)) {
-            await sxSetJSON(PHONE_APPEARANCE_KEY, safe);
+        if (!localStorage.getItem(PHONE_APPEARANCE_KEY)) {
+            localStorage.setItem(PHONE_APPEARANCE_KEY, JSON.stringify(safe));
         }
     };
 
@@ -7021,7 +6949,7 @@ ${lastCharContent || '（尚未有對話）'}
                     showBorder: !!showBorderInput?.checked
                 };
                 
-                await sxSetJSON(PHONE_APPEARANCE_KEY, config);
+                localStorage.setItem(PHONE_APPEARANCE_KEY, JSON.stringify(config));
                 applyPhoneAppearanceConfig(config);
                 
                 window.parent?.postMessage({
@@ -7075,10 +7003,10 @@ ${lastCharContent || '（尚未有對話）'}
     const background = document.getElementById('set-background')?.value.trim() || '';
     const avatar = document.getElementById('preview-avatar')?.src || '';
     
-    await sxSetItem('sx_char_personality', personality);
-    await sxSetItem('sx_char_background', background);
+    localStorage.setItem('sx_char_personality', personality);
+    localStorage.setItem('sx_char_background', background);
     if (avatar && !avatar.includes('data:image')) {
-        await sxSetItem('sx_char_avatar', avatar);
+        localStorage.setItem('sx_char_avatar', avatar);
     }
     
     saveCharSettings(val);
@@ -7118,7 +7046,7 @@ const WorldInfoEngine = {
      */
     initGlobalWorldbooks() {
         // 從 localStorage 讀取全局世界書設定
-        const globalSettings = await sxGetItem('sx_global_worldbooks');
+        const globalSettings = localStorage.getItem('sx_global_worldbooks');
         if (globalSettings) {
             try {
                 this.globalWorldbooks = JSON.parse(globalSettings);
@@ -7137,7 +7065,7 @@ const WorldInfoEngine = {
     addGlobalWorldbook(worldbookId, category = 'global') {
         if (!this.globalWorldbooks.find(w => w.id === worldbookId)) {
             this.globalWorldbooks.push({ id: worldbookId, category, enabled: true });
-            await sxSetJSON('sx_global_worldbooks', this.globalWorldbooks);
+            localStorage.setItem('sx_global_worldbooks', JSON.stringify(this.globalWorldbooks));
             console.log('[WorldInfoEngine] 已添加全局世界書:', worldbookId);
         }
     },
@@ -7148,7 +7076,7 @@ const WorldInfoEngine = {
      */
     removeGlobalWorldbook(worldbookId) {
         this.globalWorldbooks = this.globalWorldbooks.filter(w => w.id !== worldbookId);
-        await sxSetJSON('sx_global_worldbooks', this.globalWorldbooks);
+        localStorage.setItem('sx_global_worldbooks', JSON.stringify(this.globalWorldbooks));
         console.log('[WorldInfoEngine] 已移除全局世界書:', worldbookId);
     },
     
@@ -7346,17 +7274,17 @@ const WorldInfoEngine = {
 // --- 6. AI 核心邏輯 (修正版) ---
 const ChatEngine = {
     getGenerationMode() {
-        return await sxGetItem('sx_generation_mode') || 'dialogue';
+        return localStorage.getItem('sx_generation_mode') || 'dialogue';
     },
     getHistorySlice() {
-        const depth = parseInt(await sxGetItem('chat_history_range')) || 30;
+        const depth = parseInt(localStorage.getItem('chat_history_range')) || 30;
         let history = getChatHistory();
         return history.slice(-depth);
     },
     // 獲取關係距離設定
     getRelationshipDistanceSettings() {
-        const meetupMentionEnabled = await sxGetItem('sx_meetup_mention_enabled') !== 'false';
-        const distance = await sxGetItem('sx_relationship_distance') || 'moderate';
+        const meetupMentionEnabled = localStorage.getItem('sx_meetup_mention_enabled') !== 'false';
+        const distance = localStorage.getItem('sx_relationship_distance') || 'moderate';
         return {
             meetupMentionEnabled,
             distance
@@ -7677,11 +7605,11 @@ ${noEllipsisRule}`;
     async assembleSystemPrompt(latestUserInput) {
         let activeChar = null;
         
-        const charName = await sxGetItem('sx_char_name');
-        const charPersonality = await sxGetItem('sx_char_personality');
-        const charBackground = await sxGetItem('sx_char_background');
-        const charAvatar = await sxGetItem('sx_char_avatar');
-        const charExamples = await sxGetItem('sx_char_examples');
+        const charName = localStorage.getItem('sx_char_name');
+        const charPersonality = localStorage.getItem('sx_char_personality');
+        const charBackground = localStorage.getItem('sx_char_background');
+        const charAvatar = localStorage.getItem('sx_char_avatar');
+        const charExamples = localStorage.getItem('sx_char_examples');
         
         if (charName && charName !== '預設用戶') {
             activeChar = {
@@ -7695,7 +7623,7 @@ ${noEllipsisRule}`;
         }
         
         if (!activeChar) {
-            const charactersRaw = await sxGetItem('sx_characters');
+            const charactersRaw = localStorage.getItem('sx_characters');
             if (charactersRaw) {
                 try {
                     const characters = JSON.parse(charactersRaw);
@@ -7710,16 +7638,16 @@ ${noEllipsisRule}`;
         }
         
         if (!activeChar) {
-            const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
+            const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
             activeChar = currentChars[0] || {};
             console.log('[ChatEngine] 從 sx_masks 讀取角色:', activeChar?.name);
         }
         
-        const userName = await sxGetItem('sx_user_name') || "User";
+        const userName = localStorage.getItem('sx_user_name') || "User";
         const userBio = document.getElementById('set-user-background')?.value || "";
         
-        const region = await sxGetItem('sxiphone_region') || "未知";
-        const lang = await sxGetItem('sxiphone_lang') || "zh-TW";
+        const region = localStorage.getItem('sxiphone_region') || "未知";
+        const lang = localStorage.getItem('sxiphone_lang') || "zh-TW";
         
         const worldbookData = getWorldbookData();
         const dynamicWI = WorldInfoEngine.scanAndGetContent(latestUserInput, worldbookData);
@@ -7762,7 +7690,7 @@ ${examples}
 
         let envContext = '';
         try {
-            const envSettingsRaw = await sxGetItem('sx_env_awareness_settings');
+            const envSettingsRaw = localStorage.getItem('sx_env_awareness_settings');
             const envEnabled = envSettingsRaw ? JSON.parse(envSettingsRaw).enabled : false;
             
             if (envEnabled) {
@@ -7827,7 +7755,7 @@ ${examples}
 
         let fortuneMemorySection = '';
         try {
-            const fortuneMemories = JSON.parse(await sxGetItem('sx_fortune_memory') || '[]');
+            const fortuneMemories = JSON.parse(localStorage.getItem('sx_fortune_memory') || '[]');
             if (fortuneMemories.length > 0) {
                 const recentFortunes = fortuneMemories.slice(0, 3);
                 const fortuneTexts = recentFortunes.map(f => {
@@ -7971,9 +7899,9 @@ ${modeInstructions}
      * 獲取用戶偏好設定區段
      */
     getUserPreferencesSection() {
-        const likes = await sxGetItem('sx_user_likes') || '';
-        const taboos = await sxGetItem('sx_user_taboos') || '';
-        const status = await sxGetItem('sx_user_status') || '';
+        const likes = localStorage.getItem('sx_user_likes') || '';
+        const taboos = localStorage.getItem('sx_user_taboos') || '';
+        const status = localStorage.getItem('sx_user_status') || '';
         
         let section = '';
         if (likes) section += `- 偏好與愛好: ${likes}\n`;
@@ -7987,10 +7915,10 @@ ${modeInstructions}
      * 獲取詳細關係資訊
      */
     getDetailedRelationshipInfo() {
-        const relationshipType = await sxGetItem('sx_relationship_type') || 'friends';
-        const relationshipDuration = await sxGetItem('sx_relationship_duration') || '';
-        const relationshipNotes = await sxGetItem('sx_relationship_notes') || '';
-        const meetupEnabled = await sxGetItem('sx_meetup_mention_enabled') !== 'false';
+        const relationshipType = localStorage.getItem('sx_relationship_type') || 'friends';
+        const relationshipDuration = localStorage.getItem('sx_relationship_duration') || '';
+        const relationshipNotes = localStorage.getItem('sx_relationship_notes') || '';
+        const meetupEnabled = localStorage.getItem('sx_meetup_mention_enabled') !== 'false';
         
         const typeNames = {
             'friends': '朋友',
@@ -8020,11 +7948,11 @@ ${modeInstructions}
     assembleSystemPromptSync(latestUserInput) {
         let activeChar = null;
         
-        const charName = await sxGetItem('sx_char_name');
-        const charPersonality = await sxGetItem('sx_char_personality');
-        const charBackground = await sxGetItem('sx_char_background');
-        const charAvatar = await sxGetItem('sx_char_avatar');
-        const charExamples = await sxGetItem('sx_char_examples');
+        const charName = localStorage.getItem('sx_char_name');
+        const charPersonality = localStorage.getItem('sx_char_personality');
+        const charBackground = localStorage.getItem('sx_char_background');
+        const charAvatar = localStorage.getItem('sx_char_avatar');
+        const charExamples = localStorage.getItem('sx_char_examples');
         
         if (charName && charName !== '預設用戶') {
             activeChar = {
@@ -8037,7 +7965,7 @@ ${modeInstructions}
         }
         
         if (!activeChar) {
-            const charactersRaw = await sxGetItem('sx_characters');
+            const charactersRaw = localStorage.getItem('sx_characters');
             if (charactersRaw) {
                 try {
                     const characters = JSON.parse(charactersRaw);
@@ -8051,15 +7979,15 @@ ${modeInstructions}
         }
         
         if (!activeChar) {
-            const currentChars = JSON.parse(await sxGetItem('sx_masks') || '[]');
+            const currentChars = JSON.parse(localStorage.getItem('sx_masks') || '[]');
             activeChar = currentChars[0] || {};
         }
         
-        const userName = await sxGetItem('sx_user_name') || "User";
+        const userName = localStorage.getItem('sx_user_name') || "User";
         const userBio = document.getElementById('set-user-background')?.value || "";
         
-        const region = await sxGetItem('sxiphone_region') || "未知";
-        const lang = await sxGetItem('sxiphone_lang') || "zh-TW";
+        const region = localStorage.getItem('sxiphone_region') || "未知";
+        const lang = localStorage.getItem('sxiphone_lang') || "zh-TW";
         
         const worldbookData = getWorldbookData();
         const dynamicWI = WorldInfoEngine.scanAndGetContent(latestUserInput, worldbookData);
@@ -8170,14 +8098,14 @@ async function callAIAPI(payload) {
         config = window.SettingsReader.getActiveApiWithFallback();
         console.log('[Chat] 使用 SettingsReader:', config);
     } else {
-        const apisRaw = await sxGetItem('api_configs');
+        const apisRaw = localStorage.getItem('api_configs');
         console.log('[Chat] api_configs raw:', apisRaw);
         
         const apis = JSON.parse(apisRaw || '[]');
         console.log('[Chat] parsed apis:', apis);
         console.log('[Chat] apis count:', apis.length);
         
-        const activeIndex = parseInt(await sxGetItem('sx_active_api'), 10);
+        const activeIndex = parseInt(localStorage.getItem('sx_active_api'), 10);
         console.log('[Chat] active index:', activeIndex);
         
         const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < apis.length) ? activeIndex : 0;
@@ -8295,7 +8223,7 @@ const LAST_GREETING_KEY = 'sx_chat_last_greeting';
 
 function getReadStatus() {
     try {
-        const raw = await sxGetItem(READ_STATUS_KEY);
+        const raw = localStorage.getItem(READ_STATUS_KEY);
         return raw ? JSON.parse(raw) : {};
     } catch {
         return {};
@@ -8303,12 +8231,12 @@ function getReadStatus() {
 }
 
 function saveReadStatus(status) {
-    await sxSetJSON(READ_STATUS_KEY, status);
+    localStorage.setItem(READ_STATUS_KEY, JSON.stringify(status));
 }
 
 function getGreetingConfig() {
     try {
-        const raw = await sxGetItem(GREETING_CONFIG_KEY);
+        const raw = localStorage.getItem(GREETING_CONFIG_KEY);
         const parsed = raw ? JSON.parse(raw) : {};
         return {
             enabled: parsed.enabled !== false,
@@ -8628,7 +8556,7 @@ function renderHistory() {
             appendMsg('other', greeting, { timestamp: Date.now() });
             history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
             setChatHistorySync(history);
-            await sxSetItem(LAST_GREETING_KEY, Date.now().toString());
+            localStorage.setItem(LAST_GREETING_KEY, Date.now().toString());
 
             const activeId = getActiveChatId();
             if (activeId) {
@@ -8708,7 +8636,7 @@ async function handleJustSend() {
     console.log('[handleJustSend] activeId:', activeId, 'sessions:', sessions.length);
     
     if (!activeId || !sessions.find(s => s.id === activeId)) {
-        let charName = await sxGetItem('sx_char_name');
+        let charName = localStorage.getItem('sx_char_name');
         if (!charName || charName === '預設用戶') {
             charName = charConfig.name || 'AI 助理';
         }
@@ -8723,7 +8651,7 @@ async function handleJustSend() {
         if (target) {
             target.history = history;
             if (!target.charName) {
-                target.charName = await sxGetItem('sx_char_name') || charConfig.name || 'AI 助理';
+                target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
             }
             await saveChatSessionsAsync(sessions);
             console.log('[handleJustSend] 更新現有 session:', activeId, 'history 長度:', history.length);
@@ -8800,7 +8728,7 @@ async function handleTriggerAI() {
             let activeId = getActiveChatId();
             let sessions = loadChatSessions();
             if (!activeId || !sessions.find(s => s.id === activeId)) {
-                let charName = await sxGetItem('sx_char_name');
+                let charName = localStorage.getItem('sx_char_name');
                 if (!charName || charName === '預設用戶') {
                     charName = charConfig.name || 'AI 助理';
                 }
@@ -8813,7 +8741,7 @@ async function handleTriggerAI() {
                 if (target) {
                     target.history = freshHistory;
                     if (!target.charName) {
-                        target.charName = await sxGetItem('sx_char_name') || charConfig.name || 'AI 助理';
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
                     await saveChatSessionsAsync(sessions);
                 }
@@ -8832,7 +8760,7 @@ async function handleTriggerAI() {
             let activeId = getActiveChatId();
             let sessions = loadChatSessions();
             if (!activeId || !sessions.find(s => s.id === activeId)) {
-                let charName = await sxGetItem('sx_char_name');
+                let charName = localStorage.getItem('sx_char_name');
                 if (!charName || charName === '預設用戶') {
                     charName = charConfig.name || 'AI 助理';
                 }
@@ -8845,7 +8773,7 @@ async function handleTriggerAI() {
                 if (target) {
                     target.history = freshHistory;
                     if (!target.charName) {
-                        target.charName = await sxGetItem('sx_char_name') || charConfig.name || 'AI 助理';
+                        target.charName = localStorage.getItem('sx_char_name') || charConfig.name || 'AI 助理';
                     }
                     await saveChatSessionsAsync(sessions);
                 }
@@ -8997,7 +8925,7 @@ const RandomGreetingSystem = {
         const config = getGreetingConfig();
         if (!config.enabled) return false;
         
-        const lastGreeting = await sxGetItem(LAST_GREETING_KEY);
+        const lastGreeting = localStorage.getItem(LAST_GREETING_KEY);
         if (lastGreeting) {
             const elapsed = Date.now() - parseInt(lastGreeting);
             const minInterval = config.minInterval * 60 * 1000;
@@ -9051,7 +8979,7 @@ const RandomGreetingSystem = {
         history.push({ role: 'assistant', content: greeting, timestamp: Date.now() });
         setChatHistorySync(history);
         
-        await sxSetItem(LAST_GREETING_KEY, Date.now().toString());
+        localStorage.setItem(LAST_GREETING_KEY, Date.now().toString());
         
         const activeId = getActiveChatId();
         if (activeId) {
@@ -9150,7 +9078,7 @@ function initGreetingSettings() {
             maxInterval: parseInt(maxIntervalInput?.value) || 120
         };
         
-        await sxSetJSON(GREETING_CONFIG_KEY, settings);
+        localStorage.setItem(GREETING_CONFIG_KEY, JSON.stringify(settings));
         
         if (status) status.textContent = settings.enabled ? '已啟用隨機問候' : '關閉時不會主動發送';
         
@@ -9178,8 +9106,8 @@ function initRelationshipDistanceSettings() {
     if (!toggle) return;
     
     // 載入保存的設定
-    const meetupEnabled = await sxGetItem(MEETUP_MENTION_KEY) !== 'false';
-    const distance = await sxGetItem(RELATIONSHIP_DISTANCE_KEY) || 'moderate';
+    const meetupEnabled = localStorage.getItem(MEETUP_MENTION_KEY) !== 'false';
+    const distance = localStorage.getItem(RELATIONSHIP_DISTANCE_KEY) || 'moderate';
     
     toggle.checked = meetupEnabled;
     if (distanceSelect) distanceSelect.value = distance;
@@ -9192,9 +9120,9 @@ function initRelationshipDistanceSettings() {
     updateStatus();
     
     const saveSettings = () => {
-        await sxSetItem(MEETUP_MENTION_KEY, toggle.checked ? 'true' : 'false');
+        localStorage.setItem(MEETUP_MENTION_KEY, toggle.checked ? 'true' : 'false');
         if (distanceSelect) {
-            await sxSetItem(RELATIONSHIP_DISTANCE_KEY, distanceSelect.value);
+            localStorage.setItem(RELATIONSHIP_DISTANCE_KEY, distanceSelect.value);
         }
         updateStatus();
         console.log('[Chat] 關係距離設定已保存:', {
@@ -9241,9 +9169,9 @@ function handleHouseInviteResponse(aiReply, history) {
     const isReject = rejectPatterns.some(p => p.test(aiReply));
     
     if (isAgree && !isReject) {
-        const pendingInvite = JSON.parse(await sxGetItem('sx_pending_house_invite') || 'null');
+        const pendingInvite = JSON.parse(localStorage.getItem('sx_pending_house_invite') || 'null');
         if (pendingInvite) {
-            const chars = JSON.parse(await sxGetItem('sx_characters') || '[]');
+            const chars = JSON.parse(localStorage.getItem('sx_characters') || '[]');
             let charIdx = pendingInvite.charIdx;
             
             if (charIdx === undefined || charIdx === null) {
@@ -9253,7 +9181,7 @@ function handleHouseInviteResponse(aiReply, history) {
             }
             
             if (charIdx >= 0 && charIdx < chars.length) {
-                const homeData = JSON.parse(await sxGetItem('sx_home_data') || '{}');
+                const homeData = JSON.parse(localStorage.getItem('sx_home_data') || '{}');
                 if (!homeData.properties) homeData.properties = [];
                 if (!homeData.placedFurniture) homeData.placedFurniture = { 
                     user: {
@@ -9284,14 +9212,14 @@ function handleHouseInviteResponse(aiReply, history) {
                     balcony: []
                 };
                 
-                await sxSetJSON('sx_home_data', homeData);
-                await sxRemoveItem('sx_pending_house_invite');
+                localStorage.setItem('sx_home_data', JSON.stringify(homeData));
+                localStorage.removeItem('sx_pending_house_invite');
                 
                 console.log('[HouseInvite] TA 同意一起買房，已建立共同房產');
             }
         }
     } else if (isReject) {
-        await sxRemoveItem('sx_pending_house_invite');
+        localStorage.removeItem('sx_pending_house_invite');
         console.log('[HouseInvite] TA 拒絕了買房邀請');
     }
 }
@@ -9503,7 +9431,7 @@ function initAPISettings() {
     if(!saveBtn || !urlInput || !keyInput || !modelInput) return;
 
     try {
-        const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+        const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
         if(apis[0]){
             urlInput.value = apis[0].url || '';
             keyInput.value = apis[0].key || '';
@@ -9519,7 +9447,7 @@ function initAPISettings() {
             model: modelInput.value.trim() || 'gpt-3.5-turbo'
         };
         try {
-            await sxSetJSON('api_configs', [config]);
+            localStorage.setItem('api_configs', JSON.stringify([config]));
             alert('API 配置已儲存 ✅');
         } catch(e){
             alert('儲存失敗，請確認瀏覽器允許 localStorage');
@@ -9545,19 +9473,19 @@ function handleBack() {
         const region = document.getElementById('regionInput')?.value;
         const userName = document.getElementById('userNameInput')?.value;
 
-        if (lang) await sxSetItem('sxiphone_lang', lang);
-        if (region) await sxSetItem('sxiphone_region', region);
-        if (userName) await sxSetItem('sx_user_name', userName);
+        if (lang) localStorage.setItem('sxiphone_lang', lang);
+        if (region) localStorage.setItem('sxiphone_region', region);
+        if (userName) localStorage.setItem('sx_user_name', userName);
 
         // 封裝所有資料到 payload (包含關鍵的頭貼)
         const currentPayload = {
-            masks: JSON.parse(await sxGetItem('sx_masks') || '[]'),
-            api_configs: JSON.parse(await sxGetItem('api_configs') || '[]'),
+            masks: JSON.parse(localStorage.getItem('sx_masks') || '[]'),
+            api_configs: JSON.parse(localStorage.getItem('api_configs') || '[]'),
             chat_history: getChatHistory(),
-            user_name: await sxGetItem('sx_user_name') || 'User',
-            user_avatar: await sxGetItem('sx_user_avatar') || '',
-            lang: await sxGetItem('sxiphone_lang') || '',
-            region: await sxGetItem('sxiphone_region') || ''
+            user_name: localStorage.getItem('sx_user_name') || 'User',
+            user_avatar: localStorage.getItem('sx_user_avatar') || '',
+            lang: localStorage.getItem('sxiphone_lang') || '',
+            region: localStorage.getItem('sxiphone_region') || ''
         };
 
         if (typeof UserEnv !== 'undefined' && UserEnv.isIOS()) {
@@ -9603,7 +9531,7 @@ const VoiceCallEngine = {
 
     loadSettings() {
         try {
-            const raw = await sxGetItem('sx_voice_settings');
+            const raw = localStorage.getItem('sx_voice_settings');
             if (!raw) return null;
             return JSON.parse(raw);
         } catch {
@@ -9871,7 +9799,7 @@ const VoiceCallEngine = {
     async saveCallRecording() {
         const RECORDINGS_KEY = 'sx_voice_call_recordings';
         const duration = Math.floor((Date.now() - this.callStartTime) / 1000);
-        const charName = await sxGetItem('sx_char_name') || '未知';
+        const charName = localStorage.getItem('sx_char_name') || '未知';
 
         let audioData = null;
         if (this.callTtsAudioBlobs.length > 0) {
@@ -9900,14 +9828,14 @@ const VoiceCallEngine = {
 
         let recordings = [];
         try {
-            const raw = await sxGetItem(RECORDINGS_KEY);
+            const raw = localStorage.getItem(RECORDINGS_KEY);
             recordings = raw ? JSON.parse(raw) : [];
             if (!Array.isArray(recordings)) recordings = [];
         } catch { recordings = []; }
 
         recordings.unshift(recording);
         if (recordings.length > 100) recordings.pop();
-        await sxSetJSON(RECORDINGS_KEY, recordings);
+        localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recordings));
 
         this.callTranscript = [];
         this.callTtsAudioBlobs = [];
@@ -10028,7 +9956,7 @@ function isAdultProduct(product) {
 
 function getShopSettings() {
     try {
-        const raw = await sxGetItem(SHOP_SETTINGS_KEY);
+        const raw = localStorage.getItem(SHOP_SETTINGS_KEY);
         if (raw) {
             return JSON.parse(raw);
         }
@@ -10084,7 +10012,7 @@ function loadAndRenderProducts() {
     let products = [];
     
     try {
-        const raw = await sxGetItem(SHOP_PRODUCTS_KEY);
+        const raw = localStorage.getItem(SHOP_PRODUCTS_KEY);
         if (raw) {
             products = JSON.parse(raw);
         }
@@ -10219,7 +10147,7 @@ function createProductCardHTML(product, type) {
 function addToCart(product) {
     try {
         let cart = [];
-        const raw = await sxGetItem(SHOP_CART_KEY);
+        const raw = localStorage.getItem(SHOP_CART_KEY);
         if (raw) {
             cart = JSON.parse(raw);
         }
@@ -10231,7 +10159,7 @@ function addToCart(product) {
             cart.push({ ...product, qty: 1 });
         }
         
-        await sxSetJSON(SHOP_CART_KEY, cart);
+        localStorage.setItem(SHOP_CART_KEY, JSON.stringify(cart));
         
         window.parent?.postMessage({
             type: 'SHOP_CART_UPDATED',
@@ -10349,26 +10277,26 @@ let currentMemoryTableData = null;
 
 function getMemoryTableSettings() {
     try {
-        const raw = await sxGetItem(MEMORY_SETTINGS_KEY);
+        const raw = localStorage.getItem(MEMORY_SETTINGS_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
     return { autoGenerate: false, autoRounds: 20 };
 }
 
 function saveMemoryTableSettings(settings) {
-    await sxSetJSON(MEMORY_SETTINGS_KEY, settings);
+    localStorage.setItem(MEMORY_SETTINGS_KEY, JSON.stringify(settings));
 }
 
 function getMemoryTables() {
     try {
-        const raw = await sxGetItem(MEMORY_TABLE_KEY);
+        const raw = localStorage.getItem(MEMORY_TABLE_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
     return [];
 }
 
 function saveMemoryTables(tables) {
-    await sxSetJSON(MEMORY_TABLE_KEY, tables);
+    localStorage.setItem(MEMORY_TABLE_KEY, JSON.stringify(tables));
 }
 
 function openMemoryTablePanel() {
@@ -10453,7 +10381,7 @@ function generateMemoryTable() {
         id: `memory_${Date.now()}`,
         createdAt: new Date().toISOString(),
         charName: charConfig?.name || getActiveConfig().name || 'AI 助理',
-        userName: userConfig?.name || await sxGetItem('sx_user_name') || 'User',
+        userName: userConfig?.name || localStorage.getItem('sx_user_name') || 'User',
         entries: memoryEntries,
         rounds: rounds
     };
@@ -10533,7 +10461,7 @@ function renderSavedMemoryTables() {
     }
     
     container.innerHTML = tables.map((table, index) => {
-        const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
+        const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
         const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
         const date = new Date(table.createdAt).toLocaleString(localeCode);
         return `
@@ -10572,7 +10500,7 @@ window.deleteMemoryTable = function(index) {
 };
 
 function exportMemoryTableToFormat(table, format) {
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     const date = new Date(table.createdAt).toLocaleString(localeCode);
     
@@ -10696,7 +10624,7 @@ function saveToSettingsFolder(table, format, filename) {
         
         let folder = {};
         try {
-            const raw = await sxGetItem(folderKey);
+            const raw = localStorage.getItem(folderKey);
             if (raw) folder = JSON.parse(raw);
         } catch {}
         
@@ -10711,7 +10639,7 @@ function saveToSettingsFolder(table, format, filename) {
             content: content
         });
         
-        await sxSetJSON(folderKey, folder);
+        localStorage.setItem(folderKey, JSON.stringify(folder));
     } catch (e) {
         console.warn('Failed to save to settings folder', e);
     }
@@ -10814,8 +10742,8 @@ appendHistoryAndSession = async function(role, content) {
             metadata: {
                 role,
                 sessionId: getActiveChatId(),
-                charName: charConfig?.name || await sxGetItem('sx_char_name') || 'AI',
-                userName: userConfig?.name || await sxGetItem('sx_user_name') || 'User'
+                charName: charConfig?.name || localStorage.getItem('sx_char_name') || 'AI',
+                userName: userConfig?.name || localStorage.getItem('sx_user_name') || 'User'
             }
         }).catch(e => {
             console.warn('[Chat] 記憶儲存失敗:', e);
@@ -10920,7 +10848,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeRadios = document.querySelectorAll('input[name="generation-mode"]');
     if (modeRadios.length === 0) return;
     
-    const savedMode = await sxGetItem('sx_generation_mode') || 'dialogue';
+    const savedMode = localStorage.getItem('sx_generation_mode') || 'dialogue';
     modeRadios.forEach(radio => {
         if (radio.value === savedMode) {
             radio.checked = true;
@@ -10929,7 +10857,7 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', () => {
             if (radio.checked) {
                 const newMode = radio.value;
-                await sxSetItem('sx_generation_mode', newMode);
+                localStorage.setItem('sx_generation_mode', newMode);
                 console.log('[Chat] 生成模式已切換為:', newMode);
                 
                 // 顯示模式切換提示
@@ -10975,7 +10903,7 @@ window.addEventListener('sxiphone-data-restored', (event) => {
     const charBackInput = document.getElementById('set-background');
     const charNameInput = document.getElementById('set-name');
     
-    let displayName = await sxGetItem('sx_char_name');
+    let displayName = localStorage.getItem('sx_char_name');
     if (!displayName || displayName === '預設用戶') {
         displayName = charConfig.name || "AI 助理";
     }
@@ -10983,8 +10911,8 @@ window.addEventListener('sxiphone-data-restored', (event) => {
     if (nameEl) nameEl.innerText = displayName;
     if (chatTitleEl) chatTitleEl.innerText = displayName;
     if (hintEl) hintEl.innerText = displayName;
-    if (charPersInput) charPersInput.value = await sxGetItem('sx_char_personality') || charConfig.personality || "";
-    if (charBackInput) charBackInput.value = await sxGetItem('sx_char_background') || charConfig.background || "";
+    if (charPersInput) charPersInput.value = localStorage.getItem('sx_char_personality') || charConfig.personality || "";
+    if (charBackInput) charBackInput.value = localStorage.getItem('sx_char_background') || charConfig.background || "";
     if (charNameInput) charNameInput.value = displayName;
     
     renderChatListFromStorage();
@@ -11070,7 +10998,7 @@ function applyChatTheme(theme) {
             header.style.color = config.headerTextColor || '#343434';
         }
         
-        await sxSetJSON('sx_chat_applied_theme', theme);
+        localStorage.setItem('sx_chat_applied_theme', JSON.stringify(theme));
         
         console.log('[Chat] 主題已應用:', theme.name);
         
@@ -11128,7 +11056,7 @@ function applyAppearanceConfig(config) {
 // 頁面載入時應用已儲存的主題
 function loadSavedChatTheme() {
     try {
-        const savedTheme = await sxGetItem('sx_chat_applied_theme');
+        const savedTheme = localStorage.getItem('sx_chat_applied_theme');
         if (savedTheme) {
             const theme = JSON.parse(savedTheme);
             applyChatTheme(theme);
@@ -11147,14 +11075,14 @@ const CHAT_SETTINGS_KEY = 'sx_chat_room_settings';
 
 function saveChatRoomSettings() {
     const activeId = getActiveChatId();
-    const charName = await sxGetItem('sx_char_name') || 'AI 助理';
-    const charAvatar = await sxGetItem('sx_char_avatar') || '';
-    const charPersonality = await sxGetItem('sx_char_personality') || '';
-    const charBackground = await sxGetItem('sx_char_background') || '';
-    const userName = await sxGetItem('sx_user_name') || 'User';
-    const userAvatar = await sxGetItem('sx_user_avatar') || '';
-    const userPersonality = await sxGetItem('sx_user_personality') || '';
-    const userBackground = await sxGetItem('sx_user_background') || '';
+    const charName = localStorage.getItem('sx_char_name') || 'AI 助理';
+    const charAvatar = localStorage.getItem('sx_char_avatar') || '';
+    const charPersonality = localStorage.getItem('sx_char_personality') || '';
+    const charBackground = localStorage.getItem('sx_char_background') || '';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const userAvatar = localStorage.getItem('sx_user_avatar') || '';
+    const userPersonality = localStorage.getItem('sx_user_personality') || '';
+    const userBackground = localStorage.getItem('sx_user_background') || '';
     
     const settings = {
         activeChatId: activeId,
@@ -11173,7 +11101,7 @@ function saveChatRoomSettings() {
         savedAt: new Date().toISOString()
     };
     
-    await sxSetJSON(CHAT_SETTINGS_KEY, settings);
+    localStorage.setItem(CHAT_SETTINGS_KEY, JSON.stringify(settings));
     
     // 同時更新當前聊天室的 session
     if (activeId) {
@@ -11204,7 +11132,7 @@ function saveChatRoomSettings() {
 }
 
 function loadChatRoomSettings() {
-    const saved = await sxGetItem(CHAT_SETTINGS_KEY);
+    const saved = localStorage.getItem(CHAT_SETTINGS_KEY);
     if (!saved) return null;
     
     try {
@@ -11222,7 +11150,7 @@ function applyChatRoomSettings(settings) {
     // 應用角色設定
     if (settings.char) {
         if (settings.char.name) {
-            await sxSetItem('sx_char_name', settings.char.name);
+            localStorage.setItem('sx_char_name', settings.char.name);
             const nameEl = document.getElementById('display-name');
             const chatTitleEl = document.getElementById('chat-detail-title');
             const hintEl = document.getElementById('hint-name');
@@ -11233,17 +11161,17 @@ function applyChatRoomSettings(settings) {
             if (charNameInput) charNameInput.value = settings.char.name;
         }
         if (settings.char.avatar) {
-            await sxSetItem('sx_char_avatar', settings.char.avatar);
+            localStorage.setItem('sx_char_avatar', settings.char.avatar);
             const preview = document.getElementById('preview-avatar');
             if (preview) preview.src = settings.char.avatar;
         }
         if (settings.char.personality) {
-            await sxSetItem('sx_char_personality', settings.char.personality);
+            localStorage.setItem('sx_char_personality', settings.char.personality);
             const charPersInput = document.getElementById('set-personality');
             if (charPersInput) charPersInput.value = settings.char.personality;
         }
         if (settings.char.background) {
-            await sxSetItem('sx_char_background', settings.char.background);
+            localStorage.setItem('sx_char_background', settings.char.background);
             const charBackInput = document.getElementById('set-background');
             if (charBackInput) charBackInput.value = settings.char.background;
         }
@@ -11252,22 +11180,22 @@ function applyChatRoomSettings(settings) {
     // 應用用戶設定
     if (settings.user) {
         if (settings.user.name) {
-            await sxSetItem('sx_user_name', settings.user.name);
+            localStorage.setItem('sx_user_name', settings.user.name);
             const userNameInput = document.getElementById('set-user-name');
             if (userNameInput) userNameInput.value = settings.user.name;
             const userLabels = document.querySelectorAll('.mine .user-name');
             userLabels.forEach(label => label.innerText = settings.user.name);
         }
         if (settings.user.avatar) {
-            await sxSetItem('sx_user_avatar', settings.user.avatar);
+            localStorage.setItem('sx_user_avatar', settings.user.avatar);
             const userAvatarPreview = document.getElementById('preview-user-avatar');
             if (userAvatarPreview) userAvatarPreview.src = settings.user.avatar;
         }
         if (settings.user.personality) {
-            await sxSetItem('sx_user_personality', settings.user.personality);
+            localStorage.setItem('sx_user_personality', settings.user.personality);
         }
         if (settings.user.background) {
-            await sxSetItem('sx_user_background', settings.user.background);
+            localStorage.setItem('sx_user_background', settings.user.background);
             const userBgInput = document.getElementById('set-user-background');
             if (userBgInput) userBgInput.value = settings.user.background;
         }
@@ -11299,10 +11227,10 @@ async function handleArcadeInvite(payload) {
     const charAvatar = payload.charAvatar || '';
     const charPersonality = payload.charPersonality || '友善的助手';
     const charBackground = payload.charBackground || '';
-    const userName = await sxGetItem('sx_user_name') || 'User';
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     
     let inviteText = '邀請你一起去街機廳玩遊戲！';
     
@@ -11401,13 +11329,13 @@ async function handleArcadeInvite(payload) {
 
 async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonality, charBackground) {
     const card = document.getElementById(inviteId);
-    const userName = await sxGetItem('sx_user_name') || 'User';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
     
     let responseText = '太好了！一起去玩吧！';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (apis[0] && apis[0].url) {
-        const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+        const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
         
         const systemPrompt = [
             '# ROLE_SETTING',
@@ -11477,16 +11405,16 @@ async function acceptArcadeInvite(inviteId, charName, charAvatar, charPersonalit
 
 async function rejectArcadeInvite(inviteId, charName) {
     const card = document.getElementById(inviteId);
-    const userName = await sxGetItem('sx_user_name') || 'User';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
     
     let responseText = '好吧...下次再說';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
-    const charPersonality = await sxGetItem('sx_char_personality') || '';
-    const charBackground = await sxGetItem('sx_char_background') || '';
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+    const charPersonality = localStorage.getItem('sx_char_personality') || '';
+    const charBackground = localStorage.getItem('sx_char_background') || '';
     
     if (apis[0] && apis[0].url) {
-        const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+        const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
         
         const systemPrompt = [
             '# ROLE_SETTING',
@@ -11547,9 +11475,9 @@ async function handleArcadeAvatarDialogue(payload) {
     const charAvatar = payload.charAvatar || '';
     const charPersonality = payload.charPersonality || '';
     const userMessage = payload.message || '';
-    const userName = await sxGetItem('sx_user_name') || 'User';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (!apis[0] || !apis[0].url) {
         console.log('[Chat] 無 API 配置，跳過 AI 回應');
         return;
@@ -11605,10 +11533,10 @@ async function handleArcadeRequestDialogue(payload) {
     const charBackground = payload.payload?.charBackground || '';
     const context = payload.payload?.context || 'click';
     const extraData = payload.payload?.extraData || {};
-    const userName = await sxGetItem('sx_user_name') || 'User';
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     if (!apis[0] || !apis[0].url) {
         console.log('[Chat] 無 API 配置，跳過 AI 回應');
         window.parent.postMessage({
@@ -11722,10 +11650,10 @@ async function handleArcadeInviteFromUser(payload) {
     const charAvatar = payload.charAvatar || '';
     const charPersonality = payload.charPersonality || '友善的助手';
     const charBackground = payload.charBackground || '';
-    const userName = await sxGetItem('sx_user_name') || 'User';
-    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
+    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
     
-    const apis = JSON.parse(await sxGetItem('api_configs') || '[]');
+    const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
     
     const inviteId = 'arcade-user-invite-' + Date.now();
     
@@ -11881,7 +11809,7 @@ window.addEventListener('storage', (event) => {
 
 // 初始化時檢查 API 配置
 setTimeout(() => {
-    const apisRaw = await sxGetItem('api_configs');
+    const apisRaw = localStorage.getItem('api_configs');
     console.log('[Chat] 初始化檢查 api_configs:', apisRaw);
     if (apisRaw) {
         try {

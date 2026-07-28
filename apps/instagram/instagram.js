@@ -9,27 +9,22 @@ const CHAR_LIST_KEY = 'sx_characters';
 const USER_LIST_KEY = 'sx_users';
 const ACTIVE_CHAR_KEY = 'sx_char_name';
 
-function getPostMemories() {
-  const raw = localStorage.getItem(IG_POST_MEMORIES_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+async function getPostMemories() {
+  const data = await sxGetJSON(IG_POST_MEMORIES_KEY);
+  return Array.isArray(data) ? data : [];
 }
 
-function savePostMemories(memories) {
+async function savePostMemories(memories) {
   if (memories.length > 500) {
     memories = memories.slice(-500);
   }
-  localStorage.setItem(IG_POST_MEMORIES_KEY, JSON.stringify(memories));
+  await sxSetJSON(IG_POST_MEMORIES_KEY, memories);
 }
 
-function addPostMemory(post) {
+async function addPostMemory(post) {
   if (post.isUserPost) return;
   
-  const memories = getPostMemories();
+  const memories = await getPostMemories();
   const existingMemory = memories.find(m => m.id === post.id);
   if (existingMemory) return;
   
@@ -44,51 +39,36 @@ function addPostMemory(post) {
     timestamp: post.timestamp
   });
   
-  savePostMemories(memories);
+  await savePostMemories(memories);
 }
 
-function getSavedPosts() {
-  const raw = localStorage.getItem(IG_SAVED_POSTS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+async function getSavedPosts() {
+  const data = await sxGetJSON(IG_SAVED_POSTS_KEY);
+  return Array.isArray(data) ? data : [];
 }
 
-function saveSavedPosts(savedIds) {
-  localStorage.setItem(IG_SAVED_POSTS_KEY, JSON.stringify(savedIds));
+async function saveSavedPosts(savedIds) {
+  await sxSetJSON(IG_SAVED_POSTS_KEY, savedIds);
 }
 
-function getUserPosts() {
-  const raw = localStorage.getItem(IG_USER_POSTS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+async function getUserPosts() {
+  const data = await sxGetJSON(IG_USER_POSTS_KEY);
+  return Array.isArray(data) ? data : [];
 }
 
-function saveUserPosts(posts) {
+async function saveUserPosts(posts) {
   posts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-  localStorage.setItem(IG_USER_POSTS_KEY, JSON.stringify(posts));
+  await sxSetJSON(IG_USER_POSTS_KEY, posts);
 }
 
-function getStoredPosts() {
-  const raw = localStorage.getItem(IG_POSTS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
+async function getStoredPosts() {
+  const data = await sxGetJSON(IG_POSTS_KEY);
+  return Array.isArray(data) ? data : [];
 }
 
-function saveStoredPosts(posts) {
-  const savedIds = new Set(getSavedPosts());
-  const userIds = new Set(getUserPosts().map(p => p.id));
+async function saveStoredPosts(posts) {
+  const savedIds = await getSavedPosts();
+  const userIds = new Set((await getUserPosts()).map(p => p.id));
   const preservedIds = new Set([...savedIds, ...userIds]);
   
   const toRemove = posts.filter(p => !preservedIds.has(p.id));
@@ -100,28 +80,28 @@ function saveStoredPosts(posts) {
   const finalPosts = [...preservedPosts, ...trimmedRegular];
   finalPosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   
-  localStorage.setItem(IG_POSTS_KEY, JSON.stringify(finalPosts));
+  await sxSetJSON(IG_POSTS_KEY, finalPosts);
 }
 
-function getWorldbookData() {
+async function getWorldbookData() {
   const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
   const result = {};
-  categories.forEach(cat => {
-    const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    try {
-      const list = JSON.parse(raw);
-      if (Array.isArray(list)) {
-        result[cat] = list;
-      }
+  for (const cat of categories) {
+    const key = `sx_worldBook_${cat}`;
+    const list = await sxGetJSON(key);
+    if (Array.isArray(list)) {
+      result[cat] = list;
+    }
+  }
+  return result;
+}
     } catch (e) {}
   });
   return result;
 }
 
-function getWorldbookContext() {
-  const data = getWorldbookData();
+async function getWorldbookContext() {
+  const data = await getWorldbookData();
   const entries = [];
   for (const [cat, list] of Object.entries(data)) {
     if (list && list.length > 0) {
@@ -135,66 +115,51 @@ function getWorldbookContext() {
   return entries.length > 0 ? entries.join('\n') : '無世界書設定';
 }
 
-function getCharacterData(name) {
+async function getCharacterData(name) {
   if (!name) return null;
-  const raw = localStorage.getItem(CHAR_LIST_KEY);
-  if (!raw) return null;
-  try {
-    const list = JSON.parse(raw);
-    return list.find(c => c.name === name) || null;
-  } catch {
-    return null;
-  }
+  const list = await sxGetJSON(CHAR_LIST_KEY);
+  if (!list) return null;
+  return list.find(c => c.name === name) || null;
 }
 
-function getActiveCharacter() {
-  const activeName = localStorage.getItem(ACTIVE_CHAR_KEY);
-  return getCharacterData(activeName);
+async function getActiveCharacter() {
+  const activeName = await sxGetItem(ACTIVE_CHAR_KEY);
+  return await getCharacterData(activeName);
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || ''
   };
 }
 
-function getChatHistory(limit = 15) {
-  const raw = localStorage.getItem('sx_chat_history');
-  if (!raw) return [];
-  try {
-    const history = JSON.parse(raw);
-    return history.slice(-limit);
-  } catch {
-    return [];
-  }
+async function getChatHistory(limit = 15) {
+  const history = await sxGetJSON('sx_chat_history');
+  if (!Array.isArray(history)) return [];
+  return history.slice(-limit);
 }
 
-function getChatHistoryContext() {
-  const history = getChatHistory(15);
+async function getChatHistoryContext() {
+  const history = await getChatHistory(15);
   if (history.length === 0) return '無聊天記錄';
-  const user = getUserData();
+  const user = await getUserData();
   return history.map(msg => {
     const role = msg.role === 'user' ? user.name : '角色';
     return `${role}: ${msg.content.slice(0, 100)}`;
   }).join('\n');
 }
 
-function getApiConfig() {
-  const raw = localStorage.getItem('api_configs');
-  if (!raw) return null;
-  try {
-    const configs = JSON.parse(raw);
-    const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
-    return configs[activeIndex] || configs[0] || null;
-  } catch {
-    return null;
-  }
+async function getApiConfig() {
+  const configs = await sxGetJSON('api_configs');
+  if (!configs) return null;
+  const activeIndex = Number(await sxGetItem('sx_active_api') || 0);
+  return configs[activeIndex] || configs[0] || null;
 }
 
 async function callAIAPI(messages, temperature = 0.85) {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   if (!config || !config.url) {
     throw new Error('尚未設定 API');
   }
@@ -234,11 +199,11 @@ async function callAIAPI(messages, temperature = 0.85) {
   return data.choices?.[0]?.message?.content || '';
 }
 
-function buildInstagramContext() {
-  const user = getUserData();
-  const char = getActiveCharacter();
-  const worldbook = getWorldbookContext();
-  const chatHistory = getChatHistoryContext();
+async function buildInstagramContext() {
+  const user = await getUserData();
+  const char = await getActiveCharacter();
+  const worldbook = await getWorldbookContext();
+  const chatHistory = await getChatHistoryContext();
 
   let context = `# 使用者設定\n名稱: ${user.name}\n`;
   if (user.personality) context += `性格: ${user.personality}\n`;
@@ -275,8 +240,8 @@ async function generateAIPosts() {
   }
 
   try {
-    const context = buildInstagramContext();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const context = await buildInstagramContext();
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
     const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定和使用者背景創作符合人物性格的 Instagram 貼文。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -307,8 +272,8 @@ async function generateAIPosts() {
 
     const posts = Array.isArray(parsed?.posts) ? parsed.posts : [];
 
-    const storedPosts = getStoredPosts();
-    const user = getUserData();
+    const storedPosts = await getStoredPosts();
+    const user = await getUserData();
     
     posts.forEach((post, index) => {
       if (post.caption) {
@@ -327,9 +292,9 @@ async function generateAIPosts() {
         };
         
         if (newPost.isUserPost) {
-          const userPosts = getUserPosts();
+          const userPosts = await getUserPosts();
           userPosts.unshift(newPost);
-          saveUserPosts(userPosts);
+          await saveUserPosts(userPosts);
         } else {
           storedPosts.unshift(newPost);
         }
@@ -370,10 +335,10 @@ async function generateAIStories() {
   }
 
   try {
-    const context = buildInstagramContext();
-    const char = getActiveCharacter();
-    const user = getUserData();
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const context = await buildInstagramContext();
+    const char = await getActiveCharacter();
+    const user = await getUserData();
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
     const authors = [user.name];
     if (char) authors.push(char.name);
@@ -459,41 +424,36 @@ let storiesData = [
     }
 ];
 
-function getIgStories() {
-    const raw = localStorage.getItem(IG_STORIES_KEY);
-    if (!raw) return [];
-    try {
-        return JSON.parse(raw);
-    } catch {
-        return [];
-    }
+async function getIgStories() {
+    const data = await sxGetJSON(IG_STORIES_KEY);
+    return Array.isArray(data) ? data : [];
 }
 
-function saveIgStory(story) {
-    const stories = getIgStories();
+async function saveIgStory(story) {
+    const stories = await getIgStories();
     stories.unshift({
         ...story,
         id: `ig-story-${Date.now()}`,
         createdAt: Date.now()
     });
     const trimmed = stories.slice(0, 20);
-    localStorage.setItem(IG_STORIES_KEY, JSON.stringify(trimmed));
+    await sxSetJSON(IG_STORIES_KEY, trimmed);
 }
 
-function addIgStory(authorName, content) {
+async function addIgStory(authorName, content) {
     const story = {
         name: authorName,
         content: content,
         avatar: ''
     };
     
-    const charList = JSON.parse(localStorage.getItem(CHAR_LIST_KEY) || '[]');
+    const charList = await sxGetJSON(CHAR_LIST_KEY) || [];
     const charData = charList.find(c => c.name === authorName);
     if (charData?.avatar) {
         story.avatar = charData.avatar;
     }
     
-    saveIgStory(story);
+    await saveIgStory(story);
 }
 
 let postsData = [
@@ -535,18 +495,18 @@ let postsData = [
 const feedEl = document.getElementById('feed');
 const storiesTrack = document.getElementById('stories-track');
 
-function formatLikes(num) {
+async function formatLikes(num) {
     if (num >= 10000) return `${(num / 1000).toFixed(1)}k`;
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     return num.toLocaleString(localeCode);
 }
 
-function renderStories() {
+async function renderStories() {
     if (!storiesTrack) return;
     storiesTrack.innerHTML = '';
     
-    const igStories = getIgStories();
+    const igStories = await getIgStories();
     igStories.forEach((story) => {
         const button = document.createElement('button');
         button.className = 'story';
@@ -585,8 +545,8 @@ function renderStories() {
     });
 }
 
-function createPost(post) {
-    const savedIds = getSavedPosts();
+async function createPost(post) {
+    const savedIds = await getSavedPosts();
     const isSaved = savedIds.includes(post.id);
     const bookmarkIcon = isSaved ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark';
     
@@ -616,7 +576,7 @@ function createPost(post) {
             </div>
             <button class="bookmark-btn" data-post-id="${post.id}"><i class="${bookmarkIcon}"></i></button>
         </div>
-        <div class="post-stats"><strong class="likes-count">${formatLikes(post.likes)} 個讚</strong></div>
+        <div class="post-stats"><strong class="likes-count">${post.likes} 個讚</strong></div>
         <div class="caption"><strong>${post.user}</strong>${post.caption}</div>
         <div class="view-comments">查看全部 37 則留言</div>
         <div class="view-comments">${post.time}</div>
@@ -659,28 +619,28 @@ function bindPostInteractions(article, post) {
         }
     });
     
-    bookmarkBtn?.addEventListener('click', () => {
-        const savedIds = getSavedPosts();
+    bookmarkBtn?.addEventListener('click', async () => {
+        const savedIds = await getSavedPosts();
         const isSaved = savedIds.includes(post.id);
         
         if (isSaved) {
             const newSavedIds = savedIds.filter(id => id !== post.id);
-            saveSavedPosts(newSavedIds);
+            await saveSavedPosts(newSavedIds);
             bookmarkBtn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
         } else {
             savedIds.push(post.id);
-            saveSavedPosts(savedIds);
+            await saveSavedPosts(savedIds);
             bookmarkBtn.innerHTML = '<i class="fa-solid fa-bookmark"></i>';
         }
     });
 }
 
-function renderFeed() {
+async function renderFeed() {
     if (!feedEl) return;
     
-    const userPosts = getUserPosts();
-    const storedPosts = getStoredPosts();
-    const savedIds = new Set(getSavedPosts());
+    const userPosts = await getUserPosts();
+    const storedPosts = await getStoredPosts();
+    const savedIds = new Set(await getSavedPosts());
     
     let allPosts = [...userPosts, ...storedPosts];
     
@@ -932,7 +892,7 @@ const saveInstagramData = () => {
         }));
         
         const storedPosts = getStoredPosts();
-        saveStoredPosts(storedPosts);
+    await saveStoredPosts(storedPosts);
         
         const userPosts = getUserPosts();
         saveUserPosts(userPosts);

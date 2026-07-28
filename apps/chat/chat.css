@@ -4136,3 +4136,250 @@ input[type="range"] {
     color: #6366f1;
     font-weight: 500;
 }
+
+.add-contact-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.add-contact-panel.active {
+    display: flex;
+}
+
+.add-contact-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 360px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.add-contact-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    border-bottom: 1px solid #e0e0e0;
+    position: relative;
+}
+
+.add-contact-header i {
+    margin-right: 8px;
+    color: #007AFF;
+}
+
+.add-contact-header span {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.add-contact-close {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.add-contact-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.add-contact-hint {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.add-contact-char-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.add-contact-char-list .empty-tip,
+.add-contact-char-list .error-tip,
+.add-contact-char-list .loading-tip {
+    text-align: center;
+    padding: 24px;
+    color: #999;
+    font-size: 13px;
+}
+
+.add-contact-char-list .char-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f8f8;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-contact-char-list .char-item:hover {
+    background: #f0f0f0;
+}
+
+.add-contact-char-list .char-item.selected {
+    background: rgba(0, 122, 255, 0.1);
+    border: 2px solid #007AFF;
+}
+
+.char-item .char-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.char-item .char-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.char-item .char-avatar i {
+    color: #999;
+    font-size: 20px;
+}
+
+.char-item .char-info {
+    flex: 1;
+    margin-left: 12px;
+    overflow: hidden;
+}
+
+.char-item .char-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.char-item .char-desc {
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.add-contact-bound-user {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.add-contact-bound-user.hidden {
+    display: none;
+}
+
+.bound-user-header {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.bound-user-info {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: rgba(0, 122, 255, 0.05);
+    border-radius: 10px;
+}
+
+.bound-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.bound-user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bound-user-avatar i {
+    color: #007AFF;
+    font-size: 16px;
+}
+
+.bound-user-details {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.bound-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.bound-user-bg {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+.add-contact-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.add-contact-actions .action-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.add-contact-actions .action-btn.secondary {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.add-contact-actions .action-btn.primary {
+    background: #007AFF;
+    color: #fff;
+}
+
+.add-contact-actions .action-btn.primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}

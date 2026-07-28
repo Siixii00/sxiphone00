@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    核心資料初始化與環境偵測
 ========================================================= */
 const UserEnv = {
@@ -168,13 +168,24 @@ const i18n = {
 };
 
 function t(key) {
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    } else if (typeof window !== 'undefined' && window._sxHelperCache) {
+        lang = window._sxHelperCache.get('sxiphone_lang') || 'zh-Hant';
+    }
     const normalizedLang = lang === 'zh-CN' || lang === 'zh-SG' ? 'zh-Hans' : lang;
     return i18n[normalizedLang]?.[key] || i18n['zh-Hant'][key] || key;
 }
 
-function applyLanguageToUI() {
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+async function tAsync(key) {
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
+    const normalizedLang = lang === 'zh-CN' || lang === 'zh-SG' ? 'zh-Hans' : lang;
+    return i18n[normalizedLang]?.[key] || i18n['zh-Hant'][key] || key;
+}
+
+async function applyLanguageToUIAsync() {
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
     document.documentElement.lang = lang === 'zh-CN' || lang === 'zh-SG' ? 'zh-Hans' : lang;
     
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -197,13 +208,16 @@ function applyLanguageToUI() {
     if (backBtn) backBtn.textContent = t('back');
 }
 
-const collectAppFolders = () => {
+const collectAppFolders = async () => {
     const folders = {};
+    const keys = [];
     for (let i = 0; i < localStorage.length; i += 1) {
         const key = localStorage.key(i);
-        if (!key) continue;
+        if (key) keys.push(key);
+    }
+    for (const key of keys) {
         if (!key.startsWith(APP_FOLDER_PREFIX) || !key.endsWith(APP_FOLDER_SUFFIX)) continue;
-        const raw = localStorage.getItem(key);
+        const raw = await sxGetItem(key);
         if (!raw) continue;
         try {
             folders[key] = JSON.parse(raw);
@@ -214,76 +228,43 @@ const collectAppFolders = () => {
     return folders;
 };
 
-const restoreAppFolders = (folders = {}) => {
+const restoreAppFolders = async (folders = {}) => {
     if (!folders || typeof folders !== 'object') return;
-    Object.entries(folders).forEach(([key, value]) => {
-        if (!key.startsWith(APP_FOLDER_PREFIX) || !key.endsWith(APP_FOLDER_SUFFIX)) return;
+    for (const [key, value] of Object.entries(folders)) {
+        if (!key.startsWith(APP_FOLDER_PREFIX) || !key.endsWith(APP_FOLDER_SUFFIX)) continue;
         if (value && typeof value === 'object' && '__raw' in value) {
-            localStorage.setItem(key, value.__raw);
+            await sxSetItem(key, value.__raw);
             return;
         }
         try {
-            localStorage.setItem(key, JSON.stringify(value));
+            await sxSetJSON(key, value);
         } catch (e) {
             console.warn('app-folder 匯入失敗', key, e);
         }
-    });
+    }
 };
 
-// 核心資料加載
-let masks = JSON.parse(localStorage.getItem('sx_masks')) || [
-    { name: '', personality: '', appearance: '', worldBook: '', avatar: '' }
-];
+let masks = [];
 let apis = [];
 let activeApiIndex = 0;
+
+const initMasksAndApis = async () => {
+    masks = await sxGetJSON('sx_masks') || [
+        { name: '', personality: '', appearance: '', worldBook: '', avatar: '' }
+    ];
+};
 
 const CHARACTERS_KEY = 'sx_characters';
 const USERS_KEY = 'sx_users';
 const NPCS_KEY = 'sx_npcs';
 
-// 改為 async 函式，支援從 IndexedDB 讀取
 const loadCharList = async () => {
     try {
-        // 1. 先從 localStorage 讀取
-        const raw = localStorage.getItem(CHARACTERS_KEY);
-        console.log('[Settings] loadCharList: localStorage raw =', raw ? raw.substring(0, 200) + '...' : 'null');
-        
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                console.log('[Settings] loadCharList: 從 localStorage 載入', parsed.length, '個角色');
-                return parsed;
-            }
+        const parsed = await sxGetJSON(CHARACTERS_KEY);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('[Settings] loadCharList: 載入', parsed.length, '個角色');
+            return parsed;
         }
-        
-        // 2. localStorage 沒有或為空，嘗試從 IndexedDB (localforage) 讀取
-        if (typeof localforage !== 'undefined') {
-            const idbData = await localforage.getItem(CHARACTERS_KEY);
-            console.log('[Settings] loadCharList: IndexedDB data =', idbData ? JSON.stringify(idbData).substring(0, 200) + '...' : 'null');
-            
-            if (idbData) {
-                const parsed = typeof idbData === 'string' ? JSON.parse(idbData) : idbData;
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    console.log('[Settings] loadCharList: 從 IndexedDB 載入', parsed.length, '個角色');
-                    // 同時回寫到 localStorage 以確保一致性
-                    localStorage.setItem(CHARACTERS_KEY, JSON.stringify(parsed));
-                    return parsed;
-                }
-            }
-            
-            // 3. 也檢查是否有標記表示資料在 IndexedDB
-            const inIdbFlag = localStorage.getItem('sx_characters_in_idb');
-            if (inIdbFlag === 'true') {
-                // 可能資料在其他 key，嘗試搜尋
-                await localforage.iterate((value, key) => {
-                    if (key === CHARACTERS_KEY || key.startsWith('sx_char')) {
-                        console.log('[Settings] loadCharList: 找到相關 key:', key);
-                    }
-                });
-            }
-        }
-        
-        // 4. 都沒有，返回空陣列
         console.log('[Settings] loadCharList: 未找到角色資料，返回空陣列');
         return [];
     } catch (e) {
@@ -292,15 +273,11 @@ const loadCharList = async () => {
     }
 };
 
-// 同步版本，供不需要 async 的地方使用
-const loadCharListSync = () => {
+const loadCharListSync = async () => {
     try {
-        const raw = localStorage.getItem(CHARACTERS_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-                return parsed;
-            }
+        const parsed = await sxGetJSON(CHARACTERS_KEY);
+        if (Array.isArray(parsed)) {
+            return parsed;
         }
         return [];
     } catch (e) {
@@ -311,27 +288,16 @@ const loadCharListSync = () => {
 
 const saveCharList = async (list) => {
     try {
-        if (typeof SxStorage !== 'undefined') {
-            await SxStorage.setItem(CHARACTERS_KEY, list);
-            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色到 IndexedDB');
-        } else {
-            const serialized = JSON.stringify(list);
-            localStorage.setItem(CHARACTERS_KEY, serialized);
-            if (typeof localforage !== 'undefined') {
-                await localforage.setItem(CHARACTERS_KEY, list);
-                localStorage.setItem('sx_characters_in_idb', 'true');
-            }
-            console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色');
-        }
+        await sxSetJSON(CHARACTERS_KEY, list);
+        console.log('[Settings] saveCharList: 成功儲存', list.length, '個角色');
     } catch (e) {
         console.error('[Settings] saveCharList 儲存失敗:', e);
     }
 };
 
-const loadUserList = () => {
+const loadUserList = async () => {
     try {
-        const raw = localStorage.getItem(USERS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
+        const parsed = await sxGetJSON(USERS_KEY);
         if (Array.isArray(parsed)) {
             console.log('[Settings] loadUserList: 載入', parsed.length, '個用戶');
             return parsed;
@@ -345,22 +311,16 @@ const loadUserList = () => {
 
 const saveUserList = async (list) => {
     try {
-        if (typeof SxStorage !== 'undefined') {
-            await SxStorage.setItem(USERS_KEY, list);
-            console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶到 IndexedDB');
-        } else {
-            localStorage.setItem(USERS_KEY, JSON.stringify(list));
-            console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶');
-        }
+        await sxSetJSON(USERS_KEY, list);
+        console.log('[Settings] saveUserList: 成功儲存', list.length, '個用戶');
     } catch (e) {
         console.error('[Settings] saveUserList 儲存失敗:', e);
     }
 };
 
-const loadNpcList = () => {
+const loadNpcList = async () => {
     try {
-        const raw = localStorage.getItem(NPCS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
+        const parsed = await sxGetJSON(NPCS_KEY);
         return Array.isArray(parsed) ? parsed : [];
     } catch {
         return [];
@@ -369,11 +329,7 @@ const loadNpcList = () => {
 
 const saveNpcList = async (list) => {
     try {
-        if (typeof SxStorage !== 'undefined') {
-            await SxStorage.setItem(NPCS_KEY, list);
-        } else {
-            localStorage.setItem(NPCS_KEY, JSON.stringify(list));
-        }
+        await sxSetJSON(NPCS_KEY, list);
     } catch (e) {
         console.error('[Settings] saveNpcList 儲存失敗:', e);
     }
@@ -398,10 +354,10 @@ async function saveAll() {
     const formUserName = document.getElementById('maskNameInput')?.value || '';
     const formUserAvatar = document.getElementById('avatarUrlInput')?.value || '';
     
-    const currentUserName = formUserName || localStorage.getItem('sx_user_name') || 'User';
-    const currentUserAvatar = formUserAvatar || localStorage.getItem('sx_user_avatar') || '';
-    const currentUserPers = formUserPers || localStorage.getItem('sx_user_personality') || '';
-    const currentUserBG = formUserBG || localStorage.getItem('sx_user_background') || '';
+    const currentUserName = formUserName || await sxGetItem('sx_user_name') || 'User';
+    const currentUserAvatar = formUserAvatar || await sxGetItem('sx_user_avatar') || '';
+    const currentUserPers = formUserPers || await sxGetItem('sx_user_personality') || '';
+    const currentUserBG = formUserBG || await sxGetItem('sx_user_background') || '';
 
     const smallKeys = {
         'sx_active_api': activeApiIndex.toString(),
@@ -411,17 +367,17 @@ async function saveAll() {
         'sx_user_avatar': currentUserAvatar,
         'sx_user_personality': currentUserPers,
         'sx_user_background': currentUserBG,
-        'sx_user_likes': localStorage.getItem('sx_user_likes') || '',
-        'sx_user_taboos': localStorage.getItem('sx_user_taboos') || '',
-        'sx_user_status': localStorage.getItem('sx_user_status') || '',
-        'sx_char_name': localStorage.getItem('sx_char_name') || '',
-        'sx_char_avatar': localStorage.getItem('sx_char_avatar') || '',
-        'sx_char_personality': localStorage.getItem('sx_char_personality') || '',
-        'sx_char_background': localStorage.getItem('sx_char_background') || ''
+        'sx_user_likes': await sxGetItem('sx_user_likes') || '',
+        'sx_user_taboos': await sxGetItem('sx_user_taboos') || '',
+        'sx_user_status': await sxGetItem('sx_user_status') || '',
+        'sx_char_name': await sxGetItem('sx_char_name') || '',
+        'sx_char_avatar': await sxGetItem('sx_char_avatar') || '',
+        'sx_char_personality': await sxGetItem('sx_char_personality') || '',
+        'sx_char_background': await sxGetItem('sx_char_background') || ''
     };
 
     for (const [key, value] of Object.entries(smallKeys)) {
-        localStorage.setItem(key, value);
+        await sxSetItem(key, value);
     }
 
     const largeData = {
@@ -435,14 +391,8 @@ async function saveAll() {
         'sx_worldbook_theater': wbParts.sx_worldbook_theater || []
     };
 
-    if (typeof SxStorage !== 'undefined') {
-        for (const [key, value] of Object.entries(largeData)) {
-            await SxStorage.setItem(key, value);
-        }
-    } else {
-        for (const [key, value] of Object.entries(largeData)) {
-            localStorage.setItem(key, JSON.stringify(value));
-        }
+    for (const [key, value] of Object.entries(largeData)) {
+        await sxSetJSON(key, value);
     }
     
     if (typeof localforage !== 'undefined') {
@@ -453,8 +403,8 @@ async function saveAll() {
             });
             const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
             
-            const sxCharacters = JSON.parse(localStorage.getItem('sx_characters') || '[]');
-            const sxUsers = JSON.parse(localStorage.getItem('sx_users') || '[]');
+            const sxCharacters = await sxGetJSON('sx_characters') || [];
+            const sxUsers = await sxGetJSON('sx_users') || [];
             const sxChatSessions = existingData.sx_chat_sessions || [];
             
             const newData = {
@@ -508,7 +458,7 @@ async function saveAll() {
         window.parent.postMessage({ type: 'WORLD_BOOK_UPDATED' }, '*');
         window.parent.postMessage({ type: 'LANGUAGE_CHANGED', lang }, '*');
     }
-    applyLanguageToUI();
+    await applyLanguageToUIAsync();
     window.dispatchEvent(new CustomEvent('sx-language-changed', { detail: { lang } }));
 }
 /* =========================================================
@@ -543,9 +493,7 @@ function updateCharAvatarPreview(url) {
     }
 }
 
-// 儲存面具並觸發同步
-function saveUserMask() {
-    // 1. 取得輸入欄位
+async function saveUserMask() {
     const nameInput = document.getElementById('maskNameInput'); 
     const avatarInput = document.getElementById('avatarUrlInput');
     const personalityInput = document.getElementById('maskPersonality');
@@ -556,45 +504,35 @@ function saveUserMask() {
     const personality = personalityInput?.value || '';
     const background = backgroundInput?.value || '';
 
-    // 檢查是否至少有輸入名稱或頭像
     if (!name && !avatar) {
         alert("請輸入用戶名稱或頭貼 URL");
         return;
     }
 
-    // 2. 【核心修正】直接儲存為 User 專屬資料，不存入 masks 陣列
-    // 這樣 Chat App 的 getUserConfig() 就能抓到正確的 User 資料
-    // 只有在有輸入值時才更新，避免跳回 'User'
     if (name) {
-        localStorage.setItem('sx_user_name', name);
+        await sxSetItem('sx_user_name', name);
     }
 
-    // 頭像自動上傳圖床（base64 → URL）
     if (avatar && typeof ImageUploader !== 'undefined' && ImageUploader.isBase64(avatar)) {
-        ImageUploader.uploadOrKeep(avatar).then(finalUrl => {
-            localStorage.setItem('sx_user_avatar', finalUrl);
+        ImageUploader.uploadOrKeep(avatar).then(async finalUrl => {
+            await sxSetItem('sx_user_avatar', finalUrl);
         });
     } else {
-        localStorage.setItem('sx_user_avatar', avatar);
+        await sxSetItem('sx_user_avatar', avatar);
     }
     
-    // 如果有輸入人設或背景，存入專屬 Key
-    if (personality) localStorage.setItem('sx_user_personality', personality);
-    if (background) localStorage.setItem('sx_user_background', background);
+    if (personality) await sxSetItem('sx_user_personality', personality);
+    if (background) await sxSetItem('sx_user_background', background);
 
-    // 同步到 users 列表
-    const list = loadUserList();
+    const list = await loadUserList();
     const payload = { name, avatar, personality, background };
     const existingIdx = list.findIndex(item => item.name === name && name);
     if (existingIdx >= 0) list[existingIdx] = payload;
     else list.unshift(payload);
-    saveUserList(list);
+    await saveUserList(list);
 
-    // 3. 執行全域同步 (同步語言、地區等環境變數)
-    // 注意：此時 saveAll 內部不應再處理 masks.push
-    saveAll();
+    await saveAll();
     
-    // 呼叫原本的預覽更新函式歸零
     if (typeof updateAvatarPreview === 'function') {
         updateAvatarPreview('');
     }
@@ -632,7 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     for (let id in fields) {
         const el = document.getElementById(id);
         if (el) {
-            const savedValue = localStorage.getItem(fields[id]);
+            const savedValue = await sxGetItem(fields[id]);
             if (id === 'langSelect') {
                 el.value = savedValue || 'zh-Hant';
             } else if (id === 'memory-interval') {
@@ -660,14 +598,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     for (let id in charFields) {
         const el = document.getElementById(id);
         if (el) {
-            const savedValue = localStorage.getItem(charFields[id]);
+            const savedValue = await sxGetItem(charFields[id]);
             el.value = savedValue || '';
         }
     }
     // 回填角色頭像預覽
     const charAvatarPreview = document.getElementById('char-avatar-preview');
     if (charAvatarPreview) {
-        const charAvatar = localStorage.getItem('sx_char_avatar');
+        const charAvatar = await sxGetItem('sx_char_avatar');
         if (charAvatar) {
             charAvatarPreview.src = charAvatar;
         }
@@ -676,9 +614,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 語言選擇器即時同步
     const langSelectEl = document.getElementById('langSelect');
     if (langSelectEl) {
-        langSelectEl.addEventListener('change', (e) => {
+        langSelectEl.addEventListener('change', async (e) => {
             const newLang = e.target.value;
-            localStorage.setItem('sxiphone_lang', newLang);
+            await sxSetItem('sxiphone_lang', newLang);
             document.documentElement.lang = newLang;
             applyLanguageToUI();
             window.parent?.postMessage({ type: 'LANGUAGE_CHANGED', lang: newLang }, '*');
@@ -691,9 +629,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const memoryIntervalValue = document.getElementById('memory-interval-value');
     if (memoryInterval && memoryIntervalValue) {
         memoryIntervalValue.textContent = memoryInterval.value || '15';
-        memoryInterval.addEventListener('input', (e) => {
+        memoryInterval.addEventListener('input', async (e) => {
             memoryIntervalValue.textContent = e.target.value;
-            localStorage.setItem('sx_memory_interval', e.target.value);
+            await sxSetItem('sx_memory_interval', e.target.value);
             window.parent?.postMessage({ type: 'MEMORY_INTERVAL_UPDATED', payload: { interval: Number(e.target.value) } }, '*');
         });
     }
@@ -712,11 +650,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sleepTaskAssociate = document.getElementById('sleep-task-associate');
     const sleepTaskDecay = document.getElementById('sleep-task-decay');
 
-    const loadSleepSettings = () => {
-        const savedStart = localStorage.getItem('sx_ai_sleep_start') || '23:00';
-        const savedEnd = localStorage.getItem('sx_ai_sleep_end') || '07:00';
-        const savedEnabled = localStorage.getItem('sx_ai_sleep_enabled') !== 'false';
-        const savedTasks = JSON.parse(localStorage.getItem('sx_ai_sleep_tasks') || '{"consolidate":true,"vectorize":true,"associate":true,"decay":true}');
+    const loadSleepSettings = async () => {
+        const savedStart = await sxGetItem('sx_ai_sleep_start') || '23:00';
+        const savedEnd = await sxGetItem('sx_ai_sleep_end') || '07:00';
+        const savedEnabled = await sxGetItem('sx_ai_sleep_enabled') !== 'false';
+        const savedTasks = await sxGetJSON('sx_ai_sleep_tasks') || { consolidate: true, vectorize: true, associate: true, decay: true };
         
         if (aiSleepStart) aiSleepStart.value = savedStart;
         if (aiSleepEnd) aiSleepEnd.value = savedEnd;
@@ -726,13 +664,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sleepTaskAssociate) sleepTaskAssociate.checked = savedTasks.associate !== false;
         if (sleepTaskDecay) sleepTaskDecay.checked = savedTasks.decay !== false;
         
-        updateSleepStatus();
+        await updateSleepStatus();
     };
 
-    const updateSleepStatus = () => {
-        const schedulerState = JSON.parse(localStorage.getItem('sx_sleep_scheduler_state') || '{}');
-        const lastSleep = schedulerState.lastNightlySleep || localStorage.getItem('sx_sleep_last_time') || localStorage.getItem('sx_sleep_completed_at');
-        const persistedCount = parseInt(localStorage.getItem('sx_sleep_engine_count') || '0');
+    const updateSleepStatus = async () => {
+        const schedulerState = await sxGetJSON('sx_sleep_scheduler_state') || {};
+        const lastSleep = schedulerState.lastNightlySleep || await sxGetItem('sx_sleep_last_time') || await sxGetItem('sx_sleep_completed_at');
+        const persistedCount = parseInt(await sxGetItem('sx_sleep_engine_count') || '0');
         const totalSleeps = Math.max(schedulerState.totalSleeps || 0, persistedCount);
         
         if (aiSleepLastTime) {
@@ -742,7 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             aiSleepCount.textContent = `總睡眠次數：${totalSleeps}`;
         }
         
-        const sleepStart = localStorage.getItem('sx_ai_sleep_start') || '23:00';
+        const sleepStart = await sxGetItem('sx_ai_sleep_start') || '23:00';
         const [hour, minute] = sleepStart.split(':').map(Number);
         const now = new Date();
         const nextSleep = new Date();
@@ -752,7 +690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         if (aiSleepNextTime) {
-            const enabled = localStorage.getItem('sx_ai_sleep_enabled') !== 'false';
+            const enabled = await sxGetItem('sx_ai_sleep_enabled') !== 'false';
             if (enabled) {
                 aiSleepNextTime.textContent = `下次睡眠時間：${nextSleep.toLocaleString()}`;
             } else {
@@ -761,10 +699,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    const saveSleepSettings = () => {
-        if (aiSleepStart) localStorage.setItem('sx_ai_sleep_start', aiSleepStart.value);
-        if (aiSleepEnd) localStorage.setItem('sx_ai_sleep_end', aiSleepEnd.value);
-        if (aiSleepEnabled) localStorage.setItem('sx_ai_sleep_enabled', aiSleepEnabled.checked ? 'true' : 'false');
+    const saveSleepSettings = async () => {
+        if (aiSleepStart) await sxSetItem('sx_ai_sleep_start', aiSleepStart.value);
+        if (aiSleepEnd) await sxSetItem('sx_ai_sleep_end', aiSleepEnd.value);
+        if (aiSleepEnabled) await sxSetItem('sx_ai_sleep_enabled', aiSleepEnabled.checked ? 'true' : 'false');
         
         const tasks = {
             consolidate: sleepTaskConsolidate?.checked !== false,
@@ -772,7 +710,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             associate: sleepTaskAssociate?.checked !== false,
             decay: sleepTaskDecay?.checked !== false
         };
-        localStorage.setItem('sx_ai_sleep_tasks', JSON.stringify(tasks));
+        await sxSetJSON('sx_ai_sleep_tasks', tasks);
         
         window.parent?.postMessage({
             type: 'AI_SLEEP_SETTINGS_UPDATED',
@@ -784,7 +722,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, '*');
         
-        updateSleepStatus();
+        await updateSleepStatus();
         alert('✅ AI 睡眠設定已儲存');
     };
 
@@ -853,12 +791,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     aiSleepTriggerBtn?.addEventListener('click', triggerManualSleep);
 
     [aiSleepStart, aiSleepEnd, aiSleepEnabled, sleepTaskConsolidate, sleepTaskVectorize, sleepTaskAssociate, sleepTaskDecay].forEach(el => {
-        el?.addEventListener('change', () => {
-            updateSleepStatus();
+        el?.addEventListener('change', async () => {
+            await updateSleepStatus();
         });
     });
 
-    setInterval(updateSleepStatus, 60000);
+    setInterval(async () => { await updateSleepStatus(); }, 60000);
 
     const githubPat = document.getElementById('github-pat');
     const githubRepo = document.getElementById('github-repo');
@@ -1151,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const ipaGuideBtn = document.getElementById('ipa-guide-btn');
-    ipaGuideBtn?.addEventListener('click', () => {
+    ipaGuideBtn?.addEventListener('click', async () => {
         const guideModal = document.createElement('div');
         guideModal.id = 'ipa-guide-modal';
         guideModal.style.cssText = `
@@ -1257,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateIOSStoragePressure();
 
-    const updateBackupPipelineStatus = () => {
+    const updateBackupPipelineStatus = async () => {
         const migrateStatusEl = document.getElementById('pipeline-migrate-status');
         const supabaseStatusEl = document.getElementById('pipeline-supabase-status');
         const gdriveStatusEl = document.getElementById('pipeline-gdrive-status');
@@ -1268,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!migrateStatusEl) return;
 
-        const lastMigrate = localStorage.getItem('sx_last_pipeline_migrate');
+        const lastMigrate = await sxGetItem('sx_last_pipeline_migrate');
         if (lastMigrate) {
             const migrateTime = new Date(parseInt(lastMigrate));
             const minutesAgo = Math.round((Date.now() - parseInt(lastMigrate)) / 60000);
@@ -1279,8 +1217,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             migrateStatusEl.style.color = '#FF9500';
         }
 
-        const lastSupabaseAuto = localStorage.getItem('sx_supabase_last_auto_backup');
-        const supabaseEnabled = localStorage.getItem('sx_supabase_auto_backup') === 'true';
+        const lastSupabaseAuto = await sxGetItem('sx_supabase_last_auto_backup');
+        const supabaseEnabled = await sxGetItem('sx_supabase_auto_backup') === 'true';
         if (supabaseEnabled && lastSupabaseAuto) {
             const minutesAgo = Math.round((Date.now() - parseInt(lastSupabaseAuto)) / 60000);
             supabaseStatusEl.textContent = `✅ ${minutesAgo}分鐘前`;
@@ -1293,9 +1231,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             supabaseStatusEl.style.color = '#FF9500';
         }
 
-        const lastGDriveSync = localStorage.getItem('sx_gdrive_last_sync');
-        const gdriveEnabled = localStorage.getItem('sx_auto_backup_gdrive') === 'true';
-        const gdriveConnected = localStorage.getItem('sx_gdrive_access_token');
+        const lastGDriveSync = await sxGetItem('sx_gdrive_last_sync');
+        const gdriveEnabled = await sxGetItem('sx_auto_backup_gdrive') === 'true';
+        const gdriveConnected = await sxGetItem('sx_gdrive_access_token');
         if (gdriveStatusEl) {
             if (gdriveEnabled && gdriveConnected) {
                 if (lastGDriveSync) {
@@ -1314,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        const lastNightly = localStorage.getItem('sx_last_nightly_backup');
+        const lastNightly = await sxGetItem('sx_last_nightly_backup');
         if (lastNightly) {
             nightlyStatusEl.textContent = `✅ ${lastNightly}`;
             nightlyStatusEl.style.color = '#34C759';
@@ -1323,10 +1261,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             nightlyStatusEl.style.color = '#FF9500';
         }
 
-        const pendingFail = localStorage.getItem('sx_backup_fail_pending') === 'true';
+        const pendingFail = await sxGetItem('sx_backup_fail_pending') === 'true';
         if (pendingFail && failWarningEl) {
             failWarningEl.classList.remove('hidden');
-            const details = localStorage.getItem('sx_backup_fail_details');
+            const details = await sxGetItem('sx_backup_fail_details');
             if (details && failMessageEl) {
                 try {
                     const parsed = JSON.parse(details);
@@ -1458,8 +1396,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    updateBackupPipelineStatus();
-    setInterval(updateBackupPipelineStatus, 60000);
+    (async () => { await updateBackupPipelineStatus(); })();
+    setInterval(async () => { await updateBackupPipelineStatus(); }, 60000);
 
     window.addEventListener('sxiphone-backup-failed', (e) => {
         console.warn('[Settings] 收到備份失敗事件:', e.detail);
@@ -1474,9 +1412,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const refreshGitHubSection = async () => {
-        const loginToken = localStorage.getItem('sx_github_token') || localStorage.getItem('sx_github_pat');
-        const loginUser = localStorage.getItem('sx_github_user');
-        const loginRepo = localStorage.getItem('sx_github_repo_name') || localStorage.getItem('sx_github_repo');
+        const loginToken = await sxGetItem('sx_github_token') || await sxGetItem('sx_github_pat');
+        const loginUser = await sxGetItem('sx_github_user');
+        const loginRepo = await sxGetItem('sx_github_repo_name') || await sxGetItem('sx_github_repo');
         const isConnected = !!loginToken;
 
         if (githubConnectedSection) githubConnectedSection.classList.toggle('hidden', !isConnected);
@@ -1490,12 +1428,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 githubDetailRepoLink.textContent = `${loginUser || 'user'}/${loginRepo || 'sxiphone-backup'}`;
                 githubDetailRepoLink.href = `https://github.com/${loginUser || 'user'}/${loginRepo || 'sxiphone-backup'}`;
             }
-            const lastSync = localStorage.getItem('sx_github_last_sync');
+            const lastSync = await sxGetItem('sx_github_last_sync');
             if (githubDetailLastSync) githubDetailLastSync.textContent = lastSync || '未知';
-            const isGuest = localStorage.getItem('sx_guest_mode');
+            const isGuest = await sxGetItem('sx_guest_mode');
             if (githubDetailMode) githubDetailMode.textContent = isGuest ? '遊客' : 'GitHub';
 
-            let avatarUrl = localStorage.getItem('sx_github_avatar_url');
+            let avatarUrl = await sxGetItem('sx_github_avatar_url');
             if (!avatarUrl && loginToken) {
                 try {
                     const resp = await fetch('https://api.github.com/user', {
@@ -1504,8 +1442,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (resp.ok) {
                         const userData = await resp.json();
                         avatarUrl = userData.avatar_url || '';
-                        if (avatarUrl) localStorage.setItem('sx_github_avatar_url', avatarUrl);
-                        if (userData.login) localStorage.setItem('sx_github_user', userData.login);
+                        if (avatarUrl) await sxSetItem('sx_github_avatar_url', avatarUrl);
+                        if (userData.login) await sxSetItem('sx_github_user', userData.login);
                     }
                 } catch {}
             }
@@ -1660,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 continue;
             }
             try {
-                const value = localStorage.getItem(key);
+                const value = await sxGetItem(key);
                 if (value === null) continue;
                 if (isFunctionString(value)) {
                     console.warn('[GitHub 備份] 排除函式字串 key:', key);
@@ -1753,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data.localStorage) {
             for (const [key, value] of Object.entries(data.localStorage)) {
                 try {
-                    localStorage.setItem(key, value);
+                    await sxSetItem(key, value);
                     count++;
                 } catch (e) {
                     console.warn('無法還原 localStorage:', key);
@@ -1781,7 +1719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const existingData = await chatDataStore.getItem('sx_app_persisted_data') || {};
                 existingData.sx_chat_sessions = data.chatSessions;
                 await chatDataStore.setItem('sx_app_persisted_data', existingData);
-                localStorage.setItem('sx_chat_sessions', JSON.stringify(data.chatSessions));
+                await sxSetJSON('sx_chat_sessions', data.chatSessions);
                 console.log('[Restore] 聊天 sessions 已還原:', data.chatSessions.length, '個');
                 count++;
             } catch (e) {
@@ -1818,21 +1756,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await chatDataStore.setItem('sx_app_persisted_data', mergedData);
                 console.log('[Restore] persistedData 已還原，包含 keys:', Object.keys(mergedData));
                 
-                if (mergedData.userName) localStorage.setItem('sx_user_name', mergedData.userName);
-                if (mergedData.userAvatar) localStorage.setItem('sx_user_avatar', mergedData.userAvatar);
-                if (mergedData.userPersonality) localStorage.setItem('sx_user_personality', mergedData.userPersonality);
-                if (mergedData.userBackground) localStorage.setItem('sx_user_background', mergedData.userBackground);
-                if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
-                if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
-                if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
-                if (mergedData.charName) localStorage.setItem('sx_char_name', mergedData.charName);
-                if (mergedData.charAvatar) localStorage.setItem('sx_char_avatar', mergedData.charAvatar);
-                if (mergedData.charPersonality) localStorage.setItem('sx_char_personality', mergedData.charPersonality);
-                if (mergedData.charBackground) localStorage.setItem('sx_char_background', mergedData.charBackground);
-                if (mergedData.sx_characters) localStorage.setItem('sx_characters', JSON.stringify(mergedData.sx_characters));
-                if (mergedData.sx_users) localStorage.setItem('sx_users', JSON.stringify(mergedData.sx_users));
-                if (mergedData.masks) localStorage.setItem('sx_masks', JSON.stringify(mergedData.masks));
-                if (mergedData.apis) localStorage.setItem('api_configs', JSON.stringify(mergedData.apis));
+                if (mergedData.userName) await sxSetItem('sx_user_name', mergedData.userName);
+                if (mergedData.userAvatar) await sxSetItem('sx_user_avatar', mergedData.userAvatar);
+                if (mergedData.userPersonality) await sxSetItem('sx_user_personality', mergedData.userPersonality);
+                if (mergedData.userBackground) await sxSetItem('sx_user_background', mergedData.userBackground);
+                if (mergedData.userLikes) await sxSetItem('sx_user_likes', mergedData.userLikes);
+                if (mergedData.userTaboos) await sxSetItem('sx_user_taboos', mergedData.userTaboos);
+                if (mergedData.userStatus) await sxSetItem('sx_user_status', mergedData.userStatus);
+                if (mergedData.charName) await sxSetItem('sx_char_name', mergedData.charName);
+                if (mergedData.charAvatar) await sxSetItem('sx_char_avatar', mergedData.charAvatar);
+                if (mergedData.charPersonality) await sxSetItem('sx_char_personality', mergedData.charPersonality);
+                if (mergedData.charBackground) await sxSetItem('sx_char_background', mergedData.charBackground);
+                if (mergedData.sx_characters) await sxSetJSON('sx_characters', mergedData.sx_characters);
+                if (mergedData.sx_users) await sxSetJSON('sx_users', mergedData.sx_users);
+                if (mergedData.masks) await sxSetJSON('sx_masks', mergedData.masks);
+                if (mergedData.apis) await sxSetJSON('api_configs', mergedData.apis);
                 
                 count++;
             } catch (e) {
@@ -1955,25 +1893,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    githubDisconnectBtn?.addEventListener('click', () => {
+    githubDisconnectBtn?.addEventListener('click', async () => {
         if (!confirm('確定要中斷 GitHub 連接？備份資料仍保留在 GitHub 上，但此裝置將不再同步。')) return;
-        localStorage.removeItem('sx_github_token');
-        localStorage.removeItem('sx_github_user');
-        localStorage.removeItem('sx_github_repo_name');
-        localStorage.removeItem('sx_github_avatar_url');
-        localStorage.removeItem('sx_github_last_sync');
-        localStorage.removeItem('sx_guest_mode');
+        await sxRemoveItem('sx_github_token');
+        await sxRemoveItem('sx_github_user');
+        await sxRemoveItem('sx_github_repo_name');
+        await sxRemoveItem('sx_github_avatar_url');
+        await sxRemoveItem('sx_github_last_sync');
+        await sxRemoveItem('sx_guest_mode');
         refreshGitHubSection();
     });
 
     githubSaveBtn?.addEventListener('click', async () => {
         if (githubPat?.value) {
-            localStorage.setItem('sx_github_pat', githubPat.value.trim());
+            await sxSetItem('sx_github_pat', githubPat.value.trim());
         }
-        if (githubRepo?.value) localStorage.setItem('sx_github_repo', githubRepo.value.trim());
-        if (githubFile?.value) localStorage.setItem('sx_github_backup_file', githubFile.value.trim());
+        if (githubRepo?.value) await sxSetItem('sx_github_repo', githubRepo.value.trim());
+        if (githubFile?.value) await sxSetItem('sx_github_backup_file', githubFile.value.trim());
         
-        const token = localStorage.getItem('sx_github_pat');
+        const token = await sxGetItem('sx_github_pat');
         if (token) {
             setGithubStatus('正在驗證 Token...');
             try {
@@ -1982,10 +1920,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (userResp.ok) {
                     const userData = await userResp.json();
-                    localStorage.setItem('sx_github_token', token);
-                    localStorage.setItem('sx_github_user', userData.login);
-                    localStorage.setItem('sx_github_repo_name', localStorage.getItem('sx_github_repo') || 'sxiphone-backup');
-                    if (userData.avatar_url) localStorage.setItem('sx_github_avatar_url', userData.avatar_url);
+                    await sxSetItem('sx_github_token', token);
+                    await sxSetItem('sx_github_user', userData.login);
+                    await sxSetItem('sx_github_repo_name', await sxGetItem('sx_github_repo') || 'sxiphone-backup');
+                    if (userData.avatar_url) await sxSetItem('sx_github_avatar_url', userData.avatar_url);
                     setGithubStatus('✅ Token 驗證成功，已連接 GitHub');
                     refreshGitHubSection();
                 } else {
@@ -2024,21 +1962,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const backupClearBtn = document.getElementById('backup-clear');
     const backupStatusEl = document.getElementById('backup-status');
 
-    const loadBackupSettings = () => {
-        const supabaseUrl = localStorage.getItem(SUPABASE_URL_KEY);
-        const supabaseKey = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+    const loadBackupSettings = async () => {
+        const supabaseUrl = await sxGetItem(SUPABASE_URL_KEY);
+        const supabaseKey = await sxGetItem(SUPABASE_KEY_KEY);
+        const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
         
         if (supabaseUrlInput) supabaseUrlInput.value = supabaseUrl || '';
         if (supabaseKeyInput) supabaseKeyInput.value = supabaseKey || '';
         if (backupTableInput) backupTableInput.value = table;
         
-        updateBackupStatus();
+        await updateBackupStatus();
     };
 
-    const updateBackupStatus = () => {
+    const updateBackupStatus = async () => {
         if (!backupStatusEl) return;
-        const hasSupabase = localStorage.getItem(SUPABASE_URL_KEY) && localStorage.getItem(SUPABASE_KEY_KEY);
+        const hasSupabase = await sxGetItem(SUPABASE_URL_KEY) && await sxGetItem(SUPABASE_KEY_KEY);
         
         if (hasSupabase) {
             backupStatusEl.textContent = '✅ Supabase 已設定';
@@ -2053,9 +1991,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (backupStatusEl) backupStatusEl.textContent = text;
     };
 
-    const getBackupHeaders = () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+    const getBackupHeaders = async () => {
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
         return {
             'Content-Type': 'application/json',
             'apikey': key,
@@ -2065,8 +2003,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const testBackupConnection = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
         
         if (!url || !key) {
             setBackupStatus('❌ 請先設定 URL 和 Key');
@@ -2076,9 +2014,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         setBackupStatus('正在測試連線...');
         
         try {
-            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
             const resp = await fetch(`${url}/rest/v1/${table}?select=id&limit=1`, {
-                headers: getBackupHeaders()
+                headers: await getBackupHeaders()
             });
             
             if (resp.ok) {
@@ -2119,15 +2057,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     const clearOldBackups = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
+        const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
         
         try {
             const resp = await fetch(`${url}/rest/v1/${table}?id=not.is.null`, {
                 method: 'DELETE',
                 headers: {
-                    ...getBackupHeaders(),
+                    ...(await getBackupHeaders()),
                     'Prefer': 'return=minimal'
                 }
             });
@@ -2149,8 +2087,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         setBackupStatus('正在收集資料...');
         
         try {
-            const url = localStorage.getItem(SUPABASE_URL_KEY);
-            const key = localStorage.getItem(SUPABASE_KEY_KEY);
+            const url = await sxGetItem(SUPABASE_URL_KEY);
+            const key = await sxGetItem(SUPABASE_KEY_KEY);
             
             if (!url || !key) {
                 setBackupStatus('❌ 請先設定 URL 和 Key');
@@ -2159,7 +2097,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             
             const allData = await collectAllStorageData();
             const dataHash = await generateDataHash(allData);
-            const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+            const lastHash = await sxGetItem('sx_backup_last_data_hash');
             
             if (dataHash === lastHash) {
                 setBackupStatus('資料無變動，跳過備份');
@@ -2173,7 +2111,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 device: navigator.userAgent,
                 data: allData,
                 data_hash: dataHash,
-                user_id: localStorage.getItem('sx_user_name') || 'default'
+                user_id: await sxGetItem('sx_user_name') || 'default'
             };
 
             setBackupStatus('正在清除舊備份...');
@@ -2181,10 +2119,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             
             setBackupStatus('正在上傳備份...');
             
-            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
             const resp = await fetch(`${url}/rest/v1/${table}`, {
                 method: 'POST',
-                headers: getBackupHeaders(),
+                headers: await getBackupHeaders(),
                 body: JSON.stringify(payload)
             });
             
@@ -2196,12 +2134,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 throw new Error(`上傳失敗 (${resp.status})`);
             }
 
-            localStorage.setItem('sx_backup_last_data_hash', dataHash);
-            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_backup_last_data_hash', dataHash);
+            await sxSetItem('sx_backup_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_supabase_last_sync', new Date().toLocaleString());
             
-            const count = parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1;
-            localStorage.setItem('sx_supabase_backup_count', count.toString());
+            const count = parseInt(await sxGetItem('sx_supabase_backup_count') || '0') + 1;
+            await sxSetItem('sx_supabase_backup_count', count.toString());
             
             setBackupStatus('✅ Supabase 備份完成');
             
@@ -2222,17 +2160,17 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         setBackupStatus('正在下載備份...');
         
         try {
-            const url = localStorage.getItem(SUPABASE_URL_KEY);
-            const key = localStorage.getItem(SUPABASE_KEY_KEY);
+            const url = await sxGetItem(SUPABASE_URL_KEY);
+            const key = await sxGetItem(SUPABASE_KEY_KEY);
             
             if (!url || !key) {
                 setBackupStatus('❌ 請先設定 URL 和 Key');
                 return false;
             }
             
-            const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+            const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
             const resp = await fetch(`${url}/rest/v1/${table}?select=*&order=exported_at.desc&limit=1`, {
-                headers: getBackupHeaders()
+                headers: await getBackupHeaders()
             });
             
             if (!resp.ok) throw new Error(`下載失敗 (${resp.status})`);
@@ -2250,7 +2188,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             if (!dataToRestore) throw new Error('備份格式不正確');
             
             const count = await restoreAllStorageData(dataToRestore);
-            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_backup_last_sync', new Date().toLocaleString());
             setBackupStatus(`✅ 還原完成 (${count} 筆資料)`);
             alert(`✅ 已成功還原 ${count} 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。`);
             return true;
@@ -2270,28 +2208,28 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     };
 
-    backupSaveBtn?.addEventListener('click', () => {
-        if (supabaseUrlInput?.value) localStorage.setItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
-        if (supabaseKeyInput?.value) localStorage.setItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
-        if (backupTableInput?.value) localStorage.setItem(BACKUP_TABLE_KEY, backupTableInput.value.trim());
+    backupSaveBtn?.addEventListener('click', async () => {
+        if (supabaseUrlInput?.value) await sxSetItem(SUPABASE_URL_KEY, supabaseUrlInput.value.trim());
+        if (supabaseKeyInput?.value) await sxSetItem(SUPABASE_KEY_KEY, supabaseKeyInput.value.trim());
+        if (backupTableInput?.value) await sxSetItem(BACKUP_TABLE_KEY, backupTableInput.value.trim());
         
         setBackupStatus('✅ 設定已儲存');
-        updateBackupStatus();
+        await updateBackupStatus();
     });
 
     backupTestBtn?.addEventListener('click', testBackupConnection);
     backupPushBtn?.addEventListener('click', pushBackup);
     backupPullBtn?.addEventListener('click', pullBackup);
 
-    backupClearBtn?.addEventListener('click', () => {
+    backupClearBtn?.addEventListener('click', async () => {
         if (!confirm('確定要清除 Supabase 備份設定？')) return;
-        localStorage.removeItem(SUPABASE_URL_KEY);
-        localStorage.removeItem(SUPABASE_KEY_KEY);
-        localStorage.removeItem(BACKUP_TABLE_KEY);
-        localStorage.removeItem('sx_backup_last_sync');
-        localStorage.removeItem('sx_backup_last_data_hash');
-        localStorage.removeItem('sx_supabase_last_sync');
-        localStorage.removeItem('sx_supabase_backup_count');
+        await sxRemoveItem(SUPABASE_URL_KEY);
+        await sxRemoveItem(SUPABASE_KEY_KEY);
+        await sxRemoveItem(BACKUP_TABLE_KEY);
+        await sxRemoveItem('sx_backup_last_sync');
+        await sxRemoveItem('sx_backup_last_data_hash');
+        await sxRemoveItem('sx_supabase_last_sync');
+        await sxRemoveItem('sx_supabase_backup_count');
         
         if (supabaseUrlInput) supabaseUrlInput.value = '';
         if (supabaseKeyInput) supabaseKeyInput.value = '';
@@ -2310,24 +2248,24 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const IMAGE_HOST_PROVIDER_KEY = 'sx_image_host_provider';
     const CATBOX_USERHASH_KEY = 'sx_catbox_userhash';
 
-    const loadImageHostSettings = () => {
-        const enabled = localStorage.getItem(IMAGE_HOST_ENABLED_KEY) === 'true';
-        const provider = localStorage.getItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
-        const userhash = localStorage.getItem(CATBOX_USERHASH_KEY) || '';
+    const loadImageHostSettings = async () => {
+        const enabled = await sxGetItem(IMAGE_HOST_ENABLED_KEY) === 'true';
+        const provider = await sxGetItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
+        const userhash = await sxGetItem(CATBOX_USERHASH_KEY) || '';
 
         if (imageHostEnabledToggle) imageHostEnabledToggle.checked = enabled;
         if (imageHostProviderSelect) imageHostProviderSelect.value = provider;
         if (catboxUserhashInput) catboxUserhashInput.value = userhash;
 
-        updateImageHostStatus();
+        await updateImageHostStatus();
     };
 
-    const updateImageHostStatus = () => {
+    const updateImageHostStatus = async () => {
         if (!imageHostStatusEl) return;
 
-        const enabled = localStorage.getItem(IMAGE_HOST_ENABLED_KEY) === 'true';
-        const provider = localStorage.getItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
-        const userhash = localStorage.getItem(CATBOX_USERHASH_KEY);
+        const enabled = await sxGetItem(IMAGE_HOST_ENABLED_KEY) === 'true';
+        const provider = await sxGetItem(IMAGE_HOST_PROVIDER_KEY) || 'catbox';
+        const userhash = await sxGetItem(CATBOX_USERHASH_KEY);
 
         if (enabled) {
             const hasAccount = userhash && userhash.length > 0;
@@ -2345,25 +2283,25 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     if (imageHostEnabledToggle) {
-        imageHostEnabledToggle.addEventListener('change', () => {
-            localStorage.setItem(IMAGE_HOST_ENABLED_KEY, imageHostEnabledToggle.checked);
-            updateImageHostStatus();
+        imageHostEnabledToggle.addEventListener('change', async () => {
+            await sxSetItem(IMAGE_HOST_ENABLED_KEY, imageHostEnabledToggle.checked);
+            await updateImageHostStatus();
             console.log('[ImageHost] 設定已更新:', imageHostEnabledToggle.checked);
         });
     }
 
     if (imageHostProviderSelect) {
-        imageHostProviderSelect.addEventListener('change', () => {
-            localStorage.setItem(IMAGE_HOST_PROVIDER_KEY, imageHostProviderSelect.value);
-            updateImageHostStatus();
+        imageHostProviderSelect.addEventListener('change', async () => {
+            await sxSetItem(IMAGE_HOST_PROVIDER_KEY, imageHostProviderSelect.value);
+            await updateImageHostStatus();
             console.log('[ImageHost] 服務已切換:', imageHostProviderSelect.value);
         });
     }
 
     if (catboxUserhashInput) {
-        catboxUserhashInput.addEventListener('change', () => {
-            localStorage.setItem(CATBOX_USERHASH_KEY, catboxUserhashInput.value.trim());
-            updateImageHostStatus();
+        catboxUserhashInput.addEventListener('change', async () => {
+            await sxSetItem(CATBOX_USERHASH_KEY, catboxUserhashInput.value.trim());
+            await updateImageHostStatus();
             console.log('[ImageHost] Userhash 已更新');
         });
     }
@@ -2377,12 +2315,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const migrateProgress = document.getElementById('migrate-progress');
 
     const ImageHostService = {
-        isEnabled() {
-            return localStorage.getItem('sx_image_host_enabled') === 'true';
+        async isEnabled() {
+            return await sxGetItem('sx_image_host_enabled') === 'true';
         },
         
-        getUserhash() {
-            return localStorage.getItem('sx_catbox_userhash') || '';
+        async getUserhash() {
+            return await sxGetItem('sx_catbox_userhash') || '';
         },
         
         async uploadToCatbox(dataUrl) {
@@ -2404,7 +2342,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 formData.append('reqtype', 'fileupload');
                 formData.append('fileToUpload', file);
                 
-                const userhash = this.getUserhash();
+                const userhash = await this.getUserhash();
                 if (userhash) formData.append('userhash', userhash);
                 
                 const res = await fetch('https://catbox.moe/user/api.php', {
@@ -2474,8 +2412,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         // 掃描相簿
         try {
-            const albumRaw = localStorage.getItem('sx_album_uploaded_images');
-            const albumImages = albumRaw ? JSON.parse(albumRaw) : [];
+            const albumImages = await sxGetJSON('sx_album_uploaded_images') || [];
             if (Array.isArray(albumImages)) {
                 albumImages.forEach(img => {
                     if (img.url && img.url.startsWith('data:')) {
@@ -2487,8 +2424,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         // 掃描角色頭貼
         try {
-            const charRaw = localStorage.getItem('sx_characters');
-            const chars = charRaw ? JSON.parse(charRaw) : [];
+            const chars = await sxGetJSON('sx_characters') || [];
             if (Array.isArray(chars)) {
                 chars.forEach(char => {
                     if (char.avatar && char.avatar.startsWith('data:')) {
@@ -2500,7 +2436,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         // 掃描用戶頭貼
         try {
-            const userAvatar = localStorage.getItem('sx_user_avatar');
+            const userAvatar = await sxGetItem('sx_user_avatar');
             if (userAvatar && userAvatar.startsWith('data:')) {
                 images.push({ source: 'user', id: 'current', url: userAvatar, size: userAvatar.length * 0.75 });
             }
@@ -2508,8 +2444,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         // 掃描聊天歷史中的圖片
         try {
-            const historyRaw = localStorage.getItem('sx_chat_history');
-            const history = historyRaw ? JSON.parse(historyRaw) : [];
+            const history = await sxGetJSON('sx_chat_history') || [];
             if (Array.isArray(history)) {
                 history.forEach((msg, idx) => {
                     if (msg.content && msg.content.includes('data:image')) {
@@ -2532,8 +2467,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         
         // 掃描聊天 sessions
         try {
-            const sessionsRaw = localStorage.getItem('sx_chat_sessions');
-            const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+            const sessions = await sxGetJSON('sx_chat_sessions') || [];
             if (Array.isArray(sessions)) {
                 sessions.forEach(session => {
                     if (session.history && Array.isArray(session.history)) {
@@ -2569,7 +2503,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     const checkAndShowMigrateSection = async () => {
-        if (!ImageHostService.isEnabled()) {
+        if (!await ImageHostService.isEnabled()) {
             if (migrateSection) migrateSection.style.display = 'none';
             return;
         }
@@ -2589,7 +2523,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     const migrateImages = async () => {
-        if (!ImageHostService.isEnabled()) {
+        if (!await ImageHostService.isEnabled()) {
             alert('請先啟用圖床上傳功能');
             return;
         }
@@ -2672,8 +2606,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         // 先處理相簿圖片
         const albumImages = images.filter(img => img.source === 'album');
         if (albumImages.length > 0) {
-            const albumRaw = localStorage.getItem('sx_album_uploaded_images');
-            let albumData = albumRaw ? JSON.parse(albumRaw) : [];
+            let albumData = await sxGetJSON('sx_album_uploaded_images') || [];
             
             for (let i = 0; i < albumImages.length; i++) {
                 const img = albumImages[i];
@@ -2690,18 +2623,16 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                     failCount++;
                 }
                 
-                // 每張圖片間隔一下避免請求太快
                 await new Promise(r => setTimeout(r, 500));
             }
             
-            localStorage.setItem('sx_album_uploaded_images', JSON.stringify(albumData));
+            await sxSetJSON('sx_album_uploaded_images', albumData);
         }
         
         // 處理角色頭貼
         const charImages = images.filter(img => img.source === 'char');
         if (charImages.length > 0) {
-            const charRaw = localStorage.getItem('sx_characters');
-            let charData = charRaw ? JSON.parse(charRaw) : [];
+            let charData = await sxGetJSON('sx_characters') || [];
             
             for (let i = 0; i < charImages.length; i++) {
                 const img = charImages[i];
@@ -2721,7 +2652,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 await new Promise(r => setTimeout(r, 500));
             }
             
-            localStorage.setItem('sx_characters', JSON.stringify(charData));
+            await sxSetJSON('sx_characters', charData);
         }
         
         // 處理用戶頭貼
@@ -2734,7 +2665,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             
             const newUrl = await ImageHostService.uploadToCatbox(img.url);
             if (newUrl) {
-                localStorage.setItem('sx_user_avatar', newUrl);
+                await sxSetItem('sx_user_avatar', newUrl);
                 successCount++;
             } else {
                 failCount++;
@@ -2744,7 +2675,6 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         // 處理聊天歷史中的圖片
         const chatImages = images.filter(img => img.source === 'chat_history' || img.source === 'chat_session');
         if (chatImages.length > 0) {
-            // 按 sessionId 分組處理
             const sessionGroups = {};
             chatImages.forEach(img => {
                 const key = img.source === 'chat_history' ? 'main_history' : img.sessionId;
@@ -2759,12 +2689,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 
                 let data, storageKey;
                 if (sessionId === 'main_history') {
-                    const raw = localStorage.getItem('sx_chat_history');
-                    data = raw ? JSON.parse(raw) : [];
+                    data = await sxGetJSON('sx_chat_history') || [];
                     storageKey = 'sx_chat_history';
                 } else {
-                    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
-                    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+                    const sessions = await sxGetJSON('sx_chat_sessions') || [];
                     const session = sessions.find(s => s.id === sessionId);
                     data = session ? session.history : [];
                     storageKey = null;
@@ -2788,14 +2716,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 }
                 
                 if (sessionId === 'main_history') {
-                    localStorage.setItem(storageKey, JSON.stringify(data));
+                    await sxSetJSON(storageKey, data);
                 } else {
-                    const sessionsRaw = localStorage.getItem('sx_chat_sessions');
-                    const sessions = sessionsRaw ? JSON.parse(sessionsRaw) : [];
+                    const sessions = await sxGetJSON('sx_chat_sessions') || [];
                     const sessionIdx = sessions.findIndex(s => s.id === sessionId);
                     if (sessionIdx >= 0) {
                         sessions[sessionIdx].history = data;
-                        localStorage.setItem('sx_chat_sessions', JSON.stringify(sessions));
+                        await sxSetJSON('sx_chat_sessions', sessions);
                     }
                 }
             }
@@ -2823,7 +2750,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
 
     // 當圖床設定變更時重新檢查
     if (imageHostEnabledToggle) {
-        imageHostEnabledToggle.addEventListener('change', () => {
+        imageHostEnabledToggle.addEventListener('change', async () => {
             setTimeout(checkAndShowMigrateSection, 300);
         });
     }
@@ -2842,12 +2769,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const SUPABASE_BACKUP_COUNT_KEY = 'sx_supabase_backup_count';
     const SUPABASE_LAST_SYNC_KEY = 'sx_supabase_last_sync';
 
-    const loadSupabaseQuickSettings = () => {
-        const savedUrl = localStorage.getItem(SUPABASE_URL_KEY);
-        const savedKey = localStorage.getItem(SUPABASE_KEY_KEY);
-        const autoEnabled = localStorage.getItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
-        const lastSync = localStorage.getItem(SUPABASE_LAST_SYNC_KEY);
-        const backupCount = localStorage.getItem(SUPABASE_BACKUP_COUNT_KEY) || '0';
+    const loadSupabaseQuickSettings = async () => {
+        const savedUrl = await sxGetItem(SUPABASE_URL_KEY);
+        const savedKey = await sxGetItem(SUPABASE_KEY_KEY);
+        const autoEnabled = await sxGetItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
+        const lastSync = await sxGetItem(SUPABASE_LAST_SYNC_KEY);
+        const backupCount = await sxGetItem(SUPABASE_BACKUP_COUNT_KEY) || '0';
 
         if (supabaseQuickUrlInput) supabaseQuickUrlInput.value = savedUrl || '';
         if (supabaseQuickKeyInput) supabaseQuickKeyInput.value = savedKey || '';
@@ -2855,15 +2782,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
         if (supabaseLastSyncEl) supabaseLastSyncEl.textContent = lastSync || '-';
         if (supabaseBackupCountEl) supabaseBackupCountEl.textContent = backupCount;
 
-        updateSupabaseQuickStatus();
+        await updateSupabaseQuickStatus();
     };
 
-    const updateSupabaseQuickStatus = () => {
+    const updateSupabaseQuickStatus = async () => {
         if (!supabaseQuickStatusEl) return;
 
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const autoEnabled = localStorage.getItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
+        const autoEnabled = await sxGetItem(SUPABASE_AUTO_BACKUP_KEY) === 'true';
 
         if (!url || !key) {
             supabaseQuickStatusEl.textContent = '尚未設定';
@@ -2972,18 +2899,18 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             supabaseQuickStatusEl.style.color = '#007AFF';
         }
 
-        localStorage.setItem(SUPABASE_URL_KEY, url);
-        localStorage.setItem(SUPABASE_KEY_KEY, key);
-        localStorage.setItem(SUPABASE_TABLE_KEY, 'sxiphone_backups');
+        await sxSetItem(SUPABASE_URL_KEY, url);
+        await sxSetItem(SUPABASE_KEY_KEY, key);
+        await sxSetItem(SUPABASE_TABLE_KEY, 'sxiphone_backups');
 
         const tableResult = await attemptCreateSupabaseTable(url, key, 'sxiphone_backups');
 
         if (tableResult.success) {
-            localStorage.setItem(SUPABASE_AUTO_BACKUP_KEY, 'true');
-            localStorage.setItem(SUPABASE_BACKUP_COUNT_KEY, '0');
+            await sxSetItem(SUPABASE_AUTO_BACKUP_KEY, 'true');
+            await sxSetItem(SUPABASE_BACKUP_COUNT_KEY, '0');
             
             if (supabaseAutoToggle) supabaseAutoToggle.checked = true;
-            updateSupabaseQuickStatus();
+            await updateSupabaseQuickStatus();
             
             if (supabaseQuickStatusEl) {
                 supabaseQuickStatusEl.textContent = '✅ 已啟用，每 10 則對話自動備份';
@@ -3018,8 +2945,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     const testSupabaseQuickConnection = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
 
         if (!url || !key) {
             if (supabaseQuickStatusEl) {
@@ -3040,7 +2967,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             if (supabaseQuickStatusEl) {
                 supabaseQuickStatusEl.textContent = '✅連線成功';
                 supabaseQuickStatusEl.style.color = '#34C759';
-                setTimeout(updateSupabaseQuickStatus, 2000);
+                setTimeout(async () => { await updateSupabaseQuickStatus(); }, 2000);
             }
         }
     };
@@ -3048,9 +2975,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     supabaseQuickEnableBtn?.addEventListener('click', enableSupabaseQuickBackup);
     supabaseQuickTestBtn?.addEventListener('click', testSupabaseQuickConnection);
 
-    supabaseAutoToggle?.addEventListener('change', () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+    supabaseAutoToggle?.addEventListener('change', async () => {
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
 
         if (!url || !key && supabaseAutoToggle.checked) {
             supabaseAutoToggle.checked = false;
@@ -3061,8 +2988,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             return;
         }
 
-        localStorage.setItem(SUPABASE_AUTO_BACKUP_KEY, supabaseAutoToggle.checked ? 'true' : 'false');
-        updateSupabaseQuickStatus();
+        await sxSetItem(SUPABASE_AUTO_BACKUP_KEY, supabaseAutoToggle.checked ? 'true' : 'false');
+        await updateSupabaseQuickStatus();
     });
 
     loadSupabaseQuickSettings();
@@ -3072,9 +2999,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     const supabaseMemorySyncStatusEl = document.getElementById('supabase-memory-sync-status');
 
     const pushMemoryToSupabase = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
+        const table = await sxGetItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
 
         if (!url || !key) {
             if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 請先設定 Supabase';
@@ -3085,7 +3012,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
 
         try {
             const memories = [];
-            const shortTermMemory = localStorage.getItem('sx_short_term_memory');
+            const shortTermMemory = await sxGetItem('sx_short_term_memory');
             if (shortTermMemory) {
                 const parsed = JSON.parse(shortTermMemory);
                 if (Array.isArray(parsed)) {
@@ -3113,7 +3040,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
             const payload = {
                 id: `memory_${Date.now()}`,
                 type: 'memory_sync',
-                user_id: localStorage.getItem('sx_user_name') || 'default',
+                user_id: await sxGetItem('sx_user_name') || 'default',
                 device: navigator.userAgent,
                 memories: memories,
                 exported_at: new Date().toISOString()
@@ -3138,7 +3065,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 throw new Error(`推送失敗 (${resp.status})`);
             }
 
-            localStorage.setItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
             if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `✅ 已推送 ${memories.length} 條記憶`;
             return true;
         } catch (e) {
@@ -3149,9 +3076,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     };
 
     const pullMemoryFromSupabase = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
-        const table = localStorage.getItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
+        const table = await sxGetItem(SUPABASE_TABLE_KEY) || 'sxiphone_memories';
 
         if (!url || !key) {
             if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = '❌ 請先設定 Supabase';
@@ -3189,20 +3116,14 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
 
             const shortTermMemories = memories.filter(m => !m.type || m.type !== 'long_term');
             if (shortTermMemories.length > 0) {
-                const existing = localStorage.getItem('sx_short_term_memory');
-                let existingMemories = [];
-                if (existing) {
-                    try {
-                        existingMemories = JSON.parse(existing);
-                    } catch {}
-                }
+                const existingMemories = await sxGetJSON('sx_short_term_memory') || [];
 
                 const existingIds = new Set(existingMemories.map(m => m.id));
                 const newMemories = shortTermMemories.filter(m => !existingIds.has(m.id));
                 const merged = [...existingMemories, ...newMemories];
                 merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-                
-                localStorage.setItem('sx_short_term_memory', JSON.stringify(merged.slice(-100)));
+
+                await sxSetJSON('sx_short_term_memory', merged.slice(-100));
                 mergedCount += newMemories.length;
             }
 
@@ -3214,7 +3135,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
                 }
             }
 
-            localStorage.setItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_supabase_memory_last_sync', new Date().toLocaleString());
             if (supabaseMemorySyncStatusEl) supabaseMemorySyncStatusEl.textContent = `✅ 已拉取並合併 ${mergedCount} 條記憶`;
 
             window.dispatchEvent(new CustomEvent('sxiphone-data-restored', {
@@ -3232,10 +3153,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups
     supabaseMemorySyncPushBtn?.addEventListener('click', pushMemoryToSupabase);
     supabaseMemorySyncPullBtn?.addEventListener('click', pullMemoryFromSupabase);
 
-    const lastMemorySync = localStorage.getItem('sx_supabase_memory_last_sync');
-    if (lastMemorySync && supabaseMemorySyncStatusEl) {
-        supabaseMemorySyncStatusEl.textContent = `上次同步: ${lastMemorySync}`;
-    }
+    (async () => {
+        const lastMemorySync = await sxGetItem('sx_supabase_memory_last_sync');
+        if (lastMemorySync && supabaseMemorySyncStatusEl) {
+            supabaseMemorySyncStatusEl.textContent = `上次同步: ${lastMemorySync}`;
+        }
+    })();
 
     // ==================== Supabase 增量備份函數 ====================
     const SUPABASE_TABLE_SQL = `
@@ -3255,17 +3178,17 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 `;
 
     const supabasePushBackup = async () => {
-        const url = localStorage.getItem(SUPABASE_URL_KEY);
-        const key = localStorage.getItem(SUPABASE_KEY_KEY);
+        const url = await sxGetItem(SUPABASE_URL_KEY);
+        const key = await sxGetItem(SUPABASE_KEY_KEY);
         if (!url || !key) {
             console.warn('[Supabase] 未設定 URL 或 Key');
             return false;
         }
-        const table = localStorage.getItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
-        
+        const table = await sxGetItem(BACKUP_TABLE_KEY) || 'sxiphone_backups';
+
         const allData = await collectAllStorageData();
         const dataHash = await generateDataHash(allData);
-        const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+        const lastHash = await sxGetItem('sx_backup_last_data_hash');
         
         if (dataHash === lastHash) {
             console.log('[Supabase] 資料無變動，跳過備份');
@@ -3279,7 +3202,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             device: navigator.userAgent,
             data: allData,
             data_hash: dataHash,
-            user_id: localStorage.getItem('sx_user_name') || 'default'
+            user_id: await sxGetItem('sx_user_name') || 'default'
         };
 
         // 先清除舊備份
@@ -3305,12 +3228,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         });
 
         if (resp.ok) {
-            localStorage.setItem('sx_backup_last_data_hash', dataHash);
-            localStorage.setItem('sx_backup_last_sync', new Date().toLocaleString());
-            localStorage.setItem('sx_supabase_last_sync', new Date().toLocaleString());
-            
-            const count = parseInt(localStorage.getItem('sx_supabase_backup_count') || '0') + 1;
-            localStorage.setItem('sx_supabase_backup_count', count.toString());
+            await sxSetItem('sx_backup_last_data_hash', dataHash);
+            await sxSetItem('sx_backup_last_sync', new Date().toLocaleString());
+            await sxSetItem('sx_supabase_last_sync', new Date().toLocaleString());
+
+            const count = parseInt(await sxGetItem('sx_supabase_backup_count') || '0') + 1;
+            await sxSetItem('sx_supabase_backup_count', count.toString());
             
             console.log('[Supabase] 增量備份成功');
             return true;
@@ -3335,11 +3258,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     const autoBackupNowBtn = document.getElementById('auto-backup-now');
     const autoBackupStatusEl = document.getElementById('auto-backup-status');
 
-    const loadAutoBackupSettings = () => {
-        const github = localStorage.getItem('sx_auto_backup_github') === 'true';
-        const supabase = localStorage.getItem('sx_auto_backup_supabase') === 'true';
-        const gdrive = localStorage.getItem('sx_auto_backup_gdrive') === 'true';
-        const local = localStorage.getItem('sx_auto_backup_local') === 'true';
+    const loadAutoBackupSettings = async () => {
+        const github = await sxGetItem('sx_auto_backup_github') === 'true';
+        const supabase = await sxGetItem('sx_auto_backup_supabase') === 'true';
+        const gdrive = await sxGetItem('sx_auto_backup_gdrive') === 'true';
+        const local = await sxGetItem('sx_auto_backup_local') === 'true';
 
         if (autoBackupGithubToggle) autoBackupGithubToggle.checked = github;
         if (autoBackupSupabaseToggle) autoBackupSupabaseToggle.checked = supabase;
@@ -3349,15 +3272,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         updateAutoBackupStatus();
     };
 
-    const updateAutoBackupStatus = () => {
+    const updateAutoBackupStatus = async () => {
         if (!autoBackupStatusEl) return;
 
         const targets = [];
-        
-        if (localStorage.getItem('sx_auto_backup_github') === 'true') targets.push('GitHub');
-        if (localStorage.getItem('sx_auto_backup_supabase') === 'true') targets.push('Supabase');
-        if (localStorage.getItem('sx_auto_backup_gdrive') === 'true') targets.push('Google Drive');
-        if (localStorage.getItem('sx_auto_backup_local') === 'true') targets.push('本地');
+
+        if (await sxGetItem('sx_auto_backup_github') === 'true') targets.push('GitHub');
+        if (await sxGetItem('sx_auto_backup_supabase') === 'true') targets.push('Supabase');
+        if (await sxGetItem('sx_auto_backup_gdrive') === 'true') targets.push('Google Drive');
+        if (await sxGetItem('sx_auto_backup_local') === 'true') targets.push('本地');
 
         if (targets.length === 0) {
             autoBackupStatusEl.textContent = '未選擇備份目標';
@@ -3366,17 +3289,19 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
     };
 
-    autoBackupSaveBtn?.addEventListener('click', () => {
-        localStorage.setItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
-        localStorage.setItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
-        localStorage.setItem('sx_auto_backup_gdrive', autoBackupGDriveToggle?.checked ? 'true' : 'false');
-        localStorage.setItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
+    autoBackupSaveBtn?.addEventListener('click', async () => {
+        (async () => {
+            await sxSetItem('sx_auto_backup_github', autoBackupGithubToggle?.checked ? 'true' : 'false');
+            await sxSetItem('sx_auto_backup_supabase', autoBackupSupabaseToggle?.checked ? 'true' : 'false');
+            await sxSetItem('sx_auto_backup_gdrive', autoBackupGDriveToggle?.checked ? 'true' : 'false');
+            await sxSetItem('sx_auto_backup_local', autoBackupLocalToggle?.checked ? 'true' : 'false');
 
-        updateAutoBackupStatus();
-        if (autoBackupStatusEl) {
-            autoBackupStatusEl.textContent = '✅ 設定已儲存';
-            setTimeout(updateAutoBackupStatus, 2000);
-        }
+            await updateAutoBackupStatus();
+            if (autoBackupStatusEl) {
+                autoBackupStatusEl.textContent = '✅ 設定已儲存';
+                setTimeout(updateAutoBackupStatus, 2000);
+            }
+        })();
     });
 
     autoBackupNowBtn?.addEventListener('click', async () => {
@@ -3384,7 +3309,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
         const results = { github: null, supabase: null, gdrive: null, local: null };
 
-        if (localStorage.getItem('sx_auto_backup_github') === 'true') {
+        if (await sxGetItem('sx_auto_backup_github') === 'true') {
             try {
                 results.github = await githubPushBackup(autoBackupStatusEl);
             } catch (e) {
@@ -3392,7 +3317,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             }
         }
 
-        if (localStorage.getItem('sx_auto_backup_supabase') === 'true') {
+        if (await sxGetItem('sx_auto_backup_supabase') === 'true') {
             try {
                 results.supabase = await supabasePushBackup();
             } catch (e) {
@@ -3400,7 +3325,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             }
         }
 
-        if (localStorage.getItem('sx_auto_backup_gdrive') === 'true') {
+        if (await sxGetItem('sx_auto_backup_gdrive') === 'true') {
             try {
                 results.gdrive = await pushGDriveBackup();
             } catch (e) {
@@ -3408,7 +3333,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             }
         }
 
-        if (localStorage.getItem('sx_auto_backup_local') === 'true') {
+        if (await sxGetItem('sx_auto_backup_local') === 'true') {
             try {
                 await quickBackupFull();
                 results.local = true;
@@ -3425,7 +3350,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
     });
 
-    loadAutoBackupSettings();
+    (async () => {
+        await loadAutoBackupSettings();
+    })();
 
     // ==================== Google Drive 備份 ====================
     const GDRIVE_CLIENT_ID_KEY = 'sx_gdrive_client_id';
@@ -3459,10 +3386,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         
         SCOPES: 'https://www.googleapis.com/auth/drive.file',
         
-        init() {
-            this.clientId = localStorage.getItem(GDRIVE_CLIENT_ID_KEY);
-            this.accessToken = localStorage.getItem(GDRIVE_ACCESS_TOKEN_KEY);
-            this.tokenExpiry = parseInt(localStorage.getItem(GDRIVE_TOKEN_EXPIRY_KEY) || '0');
+        async init() {
+            this.clientId = await sxGetItem(GDRIVE_CLIENT_ID_KEY);
+            this.accessToken = await sxGetItem(GDRIVE_ACCESS_TOKEN_KEY);
+            this.tokenExpiry = parseInt(await sxGetItem(GDRIVE_TOKEN_EXPIRY_KEY) || '0');
         },
         
         isTokenValid() {
@@ -3542,8 +3469,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                             const expiresIn = parseInt(tokenResponse.expires_in || '3600');
                             this.tokenExpiry = Date.now() + expiresIn * 1000;
                             
-                            localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
-                            localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                            (async () => {
+                                await sxSetItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
+                                await sxSetItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                            })();
                             
                             console.info('[GDrive] 授權成功，token 有效期:', expiresIn, '秒');
                             resolve(tokenResponse);
@@ -3588,15 +3517,15 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                         client_id: this.clientId,
                         scope: this.SCOPES,
                         prompt: '',  // 靜默模式（如果之前已授權過）
-                        callback: (resp) => {
+                        callback: async (resp) => {
                             if (resp.error) {
                                 resolve(false);
                                 return;
                             }
                             this.accessToken = resp.access_token;
                             this.tokenExpiry = Date.now() + parseInt(resp.expires_in || '3600') * 1000;
-                            localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
-                            localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                            await sxSetItem(GDRIVE_ACCESS_TOKEN_KEY, this.accessToken);
+                            await sxSetItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
                             resolve(true);
                         },
                         error_callback: () => resolve(false)
@@ -3608,8 +3537,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             }
         },
         
-        parseTokenFromUrl() {
-            // 保留向後相容：舊的 implicit flow 回調解析
+        async parseTokenFromUrl() {
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             
@@ -3620,8 +3548,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
                 this.accessToken = accessToken;
                 this.tokenExpiry = Date.now() + expiresIn * 1000;
                 
-                localStorage.setItem(GDRIVE_ACCESS_TOKEN_KEY, accessToken);
-                localStorage.setItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
+                await sxSetItem(GDRIVE_ACCESS_TOKEN_KEY, accessToken);
+                await sxSetItem(GDRIVE_TOKEN_EXPIRY_KEY, this.tokenExpiry.toString());
                 
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
@@ -3718,20 +3646,19 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             return resp.ok || resp.status === 404;
         },
         
-        disconnect() {
-            // 撤銷 token
+        async disconnect() {
             if (this.accessToken) {
                 try {
                     google?.accounts?.oauth2?.revoke?.(this.accessToken);
                 } catch (_) {}
             }
             
-            localStorage.removeItem(GDRIVE_ACCESS_TOKEN_KEY);
-            localStorage.removeItem(GDRIVE_TOKEN_EXPIRY_KEY);
-            localStorage.removeItem(GDRIVE_USER_EMAIL_KEY);
-            localStorage.removeItem(GDRIVE_FILE_ID_KEY);
-            localStorage.removeItem(GDRIVE_LAST_SYNC_KEY);
-            localStorage.removeItem(GDRIVE_FILE_NAME_KEY);
+            await sxRemoveItem(GDRIVE_ACCESS_TOKEN_KEY);
+            await sxRemoveItem(GDRIVE_TOKEN_EXPIRY_KEY);
+            await sxRemoveItem(GDRIVE_USER_EMAIL_KEY);
+            await sxRemoveItem(GDRIVE_FILE_ID_KEY);
+            await sxRemoveItem(GDRIVE_LAST_SYNC_KEY);
+            await sxRemoveItem(GDRIVE_FILE_NAME_KEY);
             
             this.accessToken = null;
             this.tokenExpiry = null;
@@ -3746,20 +3673,20 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
     };
 
-    const updateGDriveUI = () => {
-        GDriveService.init();
+    const updateGDriveUI = async () => {
+        await GDriveService.init();
         
         if (GDriveService.isConnected()) {
             if (gdriveNotConnectedEl) gdriveNotConnectedEl.classList.add('hidden');
             if (gdriveConnectedEl) gdriveConnectedEl.classList.remove('hidden');
             
-            const email = localStorage.getItem(GDRIVE_USER_EMAIL_KEY);
+            const email = await sxGetItem(GDRIVE_USER_EMAIL_KEY);
             if (gdriveUserEmailEl) gdriveUserEmailEl.textContent = email || '已連接';
             
-            const lastSync = localStorage.getItem(GDRIVE_LAST_SYNC_KEY);
+            const lastSync = await sxGetItem(GDRIVE_LAST_SYNC_KEY);
             if (gdriveLastSyncEl) gdriveLastSyncEl.textContent = lastSync || '-';
             
-            const fileName = localStorage.getItem(GDRIVE_FILE_NAME_KEY);
+            const fileName = await sxGetItem(GDRIVE_FILE_NAME_KEY);
             if (gdriveFileNameEl) gdriveFileNameEl.textContent = fileName || 'sxiphone_backup.json';
             
             setGDriveStatus('✅ Google Drive 已連接', '#34C759');
@@ -3776,15 +3703,14 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
         
         if (gdriveClientIdInput) {
-            gdriveClientIdInput.value = localStorage.getItem(GDRIVE_CLIENT_ID_KEY) || '';
+            gdriveClientIdInput.value = await sxGetItem(GDRIVE_CLIENT_ID_KEY) || '';
         }
     };
 
     const pushGDriveBackup = async () => {
-        GDriveService.init();
+        await GDriveService.init();
         
         if (!GDriveService.isTokenValid()) {
-            // 嘗試靜默刷新 token
             setGDriveStatus('Token 已過期，嘗試刷新...', '#FF9500');
             const refreshed = await GDriveService.ensureValidToken();
             if (!refreshed) {
@@ -3798,7 +3724,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         try {
             const allData = await collectAllStorageData();
             const dataHash = await generateDataHash(allData);
-            const lastHash = localStorage.getItem('sx_backup_last_data_hash');
+            const lastHash = await sxGetItem('sx_backup_last_data_hash');
             
             if (dataHash === lastHash) {
                 setGDriveStatus('資料無變動，跳過備份', '#34C759');
@@ -3826,13 +3752,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             // 建立新檔案
             const newFile = await GDriveService.createBackupFile(content);
             
-            localStorage.setItem(GDRIVE_FILE_ID_KEY, newFile.id);
-            localStorage.setItem(GDRIVE_FILE_NAME_KEY, newFile.name);
-            localStorage.setItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
-            localStorage.setItem('sx_backup_last_data_hash', dataHash);
+            await sxSetItem(GDRIVE_FILE_ID_KEY, newFile.id);
+            await sxSetItem(GDRIVE_FILE_NAME_KEY, newFile.name);
+            await sxSetItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
+            await sxSetItem('sx_backup_last_data_hash', dataHash);
             
             setGDriveStatus('✅ 備份完成', '#34C759');
-            updateGDriveUI();
+            await updateGDriveUI();
             
             return true;
         } catch (err) {
@@ -3843,7 +3769,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     };
 
     const pullGDriveBackup = async () => {
-        GDriveService.init();
+        await GDriveService.init();
         
         if (!GDriveService.isTokenValid()) {
             setGDriveStatus('Token 已過期，嘗試刷新...', '#FF9500');
@@ -3874,12 +3800,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             setGDriveStatus('正在還原資料...', '#007AFF');
             
             const count = await restoreAllStorageData(backupData.data);
-            localStorage.setItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
+            await sxSetItem(GDRIVE_LAST_SYNC_KEY, new Date().toLocaleString());
             
             setGDriveStatus('✅ 還原完成 (' + count + ' 筆資料)', '#34C759');
             alert('✅ 已成功還原 ' + count + ' 筆資料！\n\n建議重新整理頁面以確保所有資料正確載入。');
             
-            updateGDriveUI();
+            await updateGDriveUI();
             return true;
         } catch (err) {
             console.error('[GDrive] 還原錯誤:', err);
@@ -3889,35 +3815,36 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     };
 
     // 處理 OAuth 回傳的 token
-    if (GDriveService.parseTokenFromUrl()) {
-        // 成功取得 token，取得使用者資訊
-        GDriveService.getUserInfo().then(userInfo => {
-            localStorage.setItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
-            updateGDriveUI();
-        }).catch(err => {
-            console.warn('[GDrive] 取得使用者資訊失敗:', err);
-            updateGDriveUI();
-        });
-    }
+    (async () => {
+        if (await GDriveService.parseTokenFromUrl()) {
+            try {
+                const userInfo = await GDriveService.getUserInfo();
+                await sxSetItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
+                await updateGDriveUI();
+            } catch (err) {
+                console.warn('[GDrive] 取得使用者資訊失敗:', err);
+                await updateGDriveUI();
+            }
+        }
+    })();
 
-    gdriveSaveClientBtn?.addEventListener('click', () => {
+    gdriveSaveClientBtn?.addEventListener('click', async () => {
         const clientId = gdriveClientIdInput?.value.trim();
         if (!clientId) {
             setGDriveStatus('請輸入 Client ID', '#FF9500');
             return;
         }
-        // 基本格式驗證
         if (!clientId.endsWith('.apps.googleusercontent.com')) {
             setGDriveStatus('⚠️ Client ID 格式不正確，應以 .apps.googleusercontent.com 結尾', '#FF9500');
             return;
         }
-        localStorage.setItem(GDRIVE_CLIENT_ID_KEY, clientId);
+        await sxSetItem(GDRIVE_CLIENT_ID_KEY, clientId);
         GDriveService.clientId = clientId;
         setGDriveStatus('✅ Client ID 已儲存，請點「授權 Google Drive」', '#34C759');
     });
 
     gdriveAuthorizeBtn?.addEventListener('click', async () => {
-        GDriveService.init();
+        await GDriveService.init();
         
         if (!GDriveService.clientId) {
             setGDriveStatus('❌ 請先輸入並儲存 Client ID', '#FF453A');
@@ -3939,11 +3866,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             try {
                 const userInfo = await GDriveService.getUserInfo();
                 if (userInfo.email) {
-                    localStorage.setItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
+                    await sxSetItem(GDRIVE_USER_EMAIL_KEY, userInfo.email);
                 }
             } catch (_) {}
             
-            updateGDriveUI();
+            await updateGDriveUI();
         } catch (err) {
             const msg = err.message || String(err);
             
@@ -3976,7 +3903,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     gdriveBackupBtn?.addEventListener('click', pushGDriveBackup);
     gdriveRestoreBtn?.addEventListener('click', pullGDriveBackup);
 
-    gdriveDisconnectBtn?.addEventListener('click', () => {
+    gdriveDisconnectBtn?.addEventListener('click', async () => {
         if (!confirm('確定要中斷 Google Drive 連接？')) return;
         GDriveService.disconnect();
         updateGDriveUI();
@@ -4100,12 +4027,12 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
     const quickBackupMinimal = async () => {
         const minimalData = {
-            masks: JSON.parse(localStorage.getItem('sx_masks') || '[]'),
-            characters: JSON.parse(localStorage.getItem('sx_characters') || '[]'),
-            users: JSON.parse(localStorage.getItem('sx_users') || '[]'),
-            activeCharName: localStorage.getItem('sx_char_name'),
-            userName: localStorage.getItem('sx_user_name'),
-            apiConfigs: JSON.parse(localStorage.getItem('api_configs') || '[]')
+            masks: await sxGetJSON('sx_masks') || [],
+            characters: await sxGetJSON('sx_characters') || [],
+            users: await sxGetJSON('sx_users') || [],
+            activeCharName: await sxGetItem('sx_char_name'),
+            userName: await sxGetItem('sx_user_name'),
+            apiConfigs: await sxGetJSON('api_configs') || []
         };
 
         const payload = {
@@ -4137,7 +4064,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     quickBackupFullBtn?.addEventListener('click', quickBackupFull);
     quickBackupMinimalBtn?.addEventListener('click', quickBackupMinimal);
 
-    const applySelectedChar = (char) => {
+    const applySelectedChar = async (char) => {
         if (!char) {
             console.warn('[Settings] applySelectedChar: char is null');
             return;
@@ -4160,29 +4087,35 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         if (backgroundInput) backgroundInput.value = char.background || '';
         if (worldbookInput) worldbookInput.value = char.worldBook || char.worldbook || '';
         if (examplesInput) examplesInput.value = char.examples || '';
-        if (sleepStartInput) sleepStartInput.value = char.sleepStart || localStorage.getItem('sx_ai_sleep_start') || '23:00';
-        if (sleepEndInput) sleepEndInput.value = char.sleepEnd || localStorage.getItem('sx_ai_sleep_end') || '07:00';
+        if (sleepStartInput) sleepStartInput.value = char.sleepStart || await sxGetItem('sx_ai_sleep_start') || '23:00';
+        if (sleepEndInput) sleepEndInput.value = char.sleepEnd || await sxGetItem('sx_ai_sleep_end') || '07:00';
         if (memoryApiSelect) memoryApiSelect.value = char.memoryApi || '';
         if (typeof updateCharAvatarPreview === 'function') {
             updateCharAvatarPreview(char.avatar || '');
         }
         
+        await refreshBoundUserSelect();
+        const boundUserSelect = document.getElementById('char-bound-user-select');
+        if (boundUserSelect) {
+            boundUserSelect.value = char.boundUserId || '';
+        }
+        
         try {
-            localStorage.setItem('sx_char_name', char.name || '');
-            localStorage.setItem('sx_char_avatar', char.avatar || '');
-            localStorage.setItem('sx_char_personality', char.personality || '');
-            localStorage.setItem('sx_char_background', char.background || '');
-            localStorage.setItem('sx_char_examples', char.examples || '');
+            await sxSetItem('sx_char_name', char.name || '');
+            await sxSetItem('sx_char_avatar', char.avatar || '');
+            await sxSetItem('sx_char_personality', char.personality || '');
+            await sxSetItem('sx_char_background', char.background || '');
+            await sxSetItem('sx_char_examples', char.examples || '');
             
             const verify = {
-                name: localStorage.getItem('sx_char_name'),
-                personality: localStorage.getItem('sx_char_personality'),
-                background: localStorage.getItem('sx_char_background'),
-                examples: localStorage.getItem('sx_char_examples')
+                name: await sxGetItem('sx_char_name'),
+                personality: await sxGetItem('sx_char_personality'),
+                background: await sxGetItem('sx_char_background'),
+                examples: await sxGetItem('sx_char_examples')
             };
-            console.log('[Settings] 驗證 localStorage 寫入:', verify);
+            console.log('[Settings] 驗證儲存:', verify);
         } catch (e) {
-            console.error('[Settings] localStorage 寫入失敗:', e);
+            console.error('[Settings] 儲存失敗:', e);
         }
         
         window.parent?.postMessage({ 
@@ -4197,17 +4130,27 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }, '*');
     };
 
-    const refreshMemoryApiSelect = () => {
+    const refreshMemoryApiSelect = async () => {
         const select = document.getElementById('char-memory-api-select');
         if (!select) return;
-        const currentApis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+        const currentApis = await sxGetJSON('api_configs') || [];
         select.innerHTML = '<option value="">使用主要 API</option>' +
             currentApis.map((api, idx) => `<option value="${idx}">${api.name} (${api.model})</option>`).join('');
     };
 
     refreshMemoryApiSelect();
 
-    const applySelectedUser = (user) => {
+    const refreshBoundUserSelect = async () => {
+        const select = document.getElementById('char-bound-user-select');
+        if (!select) return;
+        const users = await loadUserList();
+        select.innerHTML = '<option value="">不綁定（使用預設用戶）</option>' +
+            users.map((user, idx) => `<option value="${user.id || idx}">${user.name || '未命名用戶'}</option>`).join('');
+    };
+
+    refreshBoundUserSelect();
+
+    const applySelectedUser = async (user) => {
         if (!user) {
             console.warn('[Settings] applySelectedUser: user is null');
             return;
@@ -4231,13 +4174,13 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         
         // 載入關係設定
         if (relationshipTypeSelect) {
-            relationshipTypeSelect.value = user.relationshipType || localStorage.getItem('sx_relationship_type') || 'friends';
+            relationshipTypeSelect.value = user.relationshipType || await sxGetItem('sx_relationship_type') || 'friends';
         }
         if (relationshipDurationInput) {
-            relationshipDurationInput.value = user.relationshipDuration || localStorage.getItem('sx_relationship_duration') || '';
+            relationshipDurationInput.value = user.relationshipDuration || await sxGetItem('sx_relationship_duration') || '';
         }
         if (relationshipNotesInput) {
-            relationshipNotesInput.value = user.relationshipNotes || localStorage.getItem('sx_relationship_notes') || '';
+            relationshipNotesInput.value = user.relationshipNotes || await sxGetItem('sx_relationship_notes') || '';
         }
         
         // 顯示/隱藏刪除按鈕
@@ -4249,16 +4192,16 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         try {
             // 只有在 user.name 有值時才覆蓋，避免清空或跳回 'User'
             if (user.name) {
-                localStorage.setItem('sx_user_name', user.name);
+                await sxSetItem('sx_user_name', user.name);
             }
             if (user.avatar) {
-                localStorage.setItem('sx_user_avatar', user.avatar);
+                await sxSetItem('sx_user_avatar', user.avatar);
             }
             if (user.personality) {
-                localStorage.setItem('sx_user_personality', user.personality);
+                await sxSetItem('sx_user_personality', user.personality);
             }
             if (user.background) {
-                localStorage.setItem('sx_user_background', user.background);
+                await sxSetItem('sx_user_background', user.background);
             }
             console.log('[Settings] 已更新用戶 localStorage');
             
@@ -4266,10 +4209,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             window.parent?.postMessage({ 
                 type: 'USER_SETTINGS_UPDATED', 
                 payload: { 
-                    name: user.name || localStorage.getItem('sx_user_name') || 'User', 
-                    avatar: user.avatar || localStorage.getItem('sx_user_avatar') || '', 
-                    personality: user.personality || localStorage.getItem('sx_user_personality') || '', 
-                    background: user.background || localStorage.getItem('sx_user_background') || '' 
+                    name: user.name || await sxGetItem('sx_user_name') || 'User', 
+                    avatar: user.avatar || await sxGetItem('sx_user_avatar') || '', 
+                    personality: user.personality || await sxGetItem('sx_user_personality') || '', 
+                    background: user.background || await sxGetItem('sx_user_background') || '' 
                 }
             }, '*');
             console.log('[Settings] 已發送 USER_SETTINGS_UPDATED 消息');
@@ -4323,10 +4266,10 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         });
     };
 
-    const renderUserList = () => {
+    const renderUserList = async () => {
         const listEl = document.getElementById('user-list');
         if (!listEl) return;
-        const users = loadUserList();
+        const users = await loadUserList();
         console.log('[Settings] renderUserList: 共', users.length, '個用戶');
         if (!users.length) {
             listEl.innerHTML = '<div class="empty-tip">尚未新增用戶</div>';
@@ -4336,22 +4279,22 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             <button class="ios-pill" type="button" data-user-index="${idx}">${user.name || '未命名用戶'}</button>
         `).join('');
         listEl.querySelectorAll('[data-user-index]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const index = Number(btn.dataset.userIndex);
-                const users = loadUserList();
+                const users = await loadUserList();
                 const selected = users[index];
                 console.log('[Settings] 點擊用戶按鈕，索引:', index, '用戶:', selected?.name);
                 if (selected) {
-                    applySelectedUser(selected);
+                    await applySelectedUser(selected);
                 }
             });
         });
     };
 
-    const renderNpcList = () => {
+    const renderNpcList = async () => {
         const listEl = document.getElementById('npc-list');
         if (!listEl) return;
-        const npcs = loadNpcList();
+        const npcs = await loadNpcList();
         if (!npcs.length) {
             listEl.innerHTML = '<div class="empty-tip">尚未新增 NPC</div>';
             return;
@@ -4360,9 +4303,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             <button class="ios-pill" type="button" data-npc-index="${idx}">${npc.name || '未命名 NPC'}</button>
         `).join('');
         listEl.querySelectorAll('[data-npc-index]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const index = Number(btn.dataset.npcIndex);
-                const selected = loadNpcList()[index];
+                const selected = (await loadNpcList())[index];
                 applySelectedNpc(selected);
             });
         });
@@ -4370,16 +4313,16 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
 
     const updateCharListUI = async () => {
         await renderCharList();
-        renderUserList();
-        renderNpcList();
+        await renderUserList();
+        await renderNpcList();
     };
 
-    const updateUserListUI = () => {
-        renderUserList();
+    const updateUserListUI = async () => {
+        await renderUserList();
     };
 
-    const updateNpcListUI = () => {
-        renderNpcList();
+    const updateNpcListUI = async () => {
+        await renderNpcList();
     };
 
     const charAddBtn = document.getElementById('char-add-btn');
@@ -4392,8 +4335,8 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     const npcSaveBtn = document.getElementById('npc-save-btn');
     const npcCancelBtn = document.getElementById('npc-cancel-btn');
 
-    charAddBtn?.addEventListener('click', () => {
-        applySelectedChar({ name: '', avatar: '', personality: '', background: '', worldBook: '', examples: '', sleepStart: '', sleepEnd: '', memoryApi: '' });
+    charAddBtn?.addEventListener('click', async () => {
+        applySelectedChar({ name: '', avatar: '', personality: '', background: '', worldBook: '', examples: '', sleepStart: '', sleepEnd: '', memoryApi: '', boundUserId: '' });
     });
 
     charSaveBtn?.addEventListener('click', async () => {
@@ -4406,8 +4349,9 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         const sleepStart = document.getElementById('char-sleep-start')?.value || '';
         const sleepEnd = document.getElementById('char-sleep-end')?.value || '';
         const memoryApi = document.getElementById('char-memory-api-select')?.value || '';
+        const boundUserId = document.getElementById('char-bound-user-select')?.value || '';
         
-        console.log('[Settings] 準備儲存角色:', { name, avatar: avatar?.slice(0, 30), personality: personality?.slice(0, 30), background: background?.slice(0, 30), examples: examples?.slice(0, 30) });
+        console.log('[Settings] 準備儲存角色:', { name, avatar: avatar?.slice(0, 30), personality: personality?.slice(0, 30), background: background?.slice(0, 30), examples: examples?.slice(0, 30), boundUserId });
         
         if (!name && !avatar) {
             alert('請輸入角色名稱或頭貼');
@@ -4416,7 +4360,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         
         const list = await loadCharList();
         const existingIdx = list.findIndex(item => item.name === name && name);
-        const payload = { name, avatar, personality, background, worldBook, examples, sleepStart, sleepEnd, memoryApi };
+        const payload = { name, avatar, personality, background, worldBook, examples, sleepStart, sleepEnd, memoryApi, boundUserId };
         
         if (existingIdx >= 0) {
             list[existingIdx] = payload;
@@ -4430,16 +4374,16 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         console.log('[Settings] 已儲存到 sx_characters，共', list.length, '個角色');
         
         try {
-            localStorage.setItem('sx_char_name', payload.name || '');
-            localStorage.setItem('sx_char_avatar', payload.avatar || '');
-            localStorage.setItem('sx_char_personality', payload.personality || '');
-            localStorage.setItem('sx_char_background', payload.background || '');
-            localStorage.setItem('sx_char_examples', payload.examples || '');
+            await sxSetItem('sx_char_name', payload.name || '');
+            await sxSetItem('sx_char_avatar', payload.avatar || '');
+            await sxSetItem('sx_char_personality', payload.personality || '');
+            await sxSetItem('sx_char_background', payload.background || '');
+            await sxSetItem('sx_char_examples', payload.examples || '');
             
-            const verifyName = localStorage.getItem('sx_char_name');
-            const verifyPers = localStorage.getItem('sx_char_personality');
-            const verifyBack = localStorage.getItem('sx_char_background');
-            const verifyExamples = localStorage.getItem('sx_char_examples');
+            const verifyName = await sxGetItem('sx_char_name');
+            const verifyPers = await sxGetItem('sx_char_personality');
+            const verifyBack = await sxGetItem('sx_char_background');
+            const verifyExamples = await sxGetItem('sx_char_examples');
             console.log('[Settings] 驗證獨立 key 儲存:', { verifyName, verifyPers: verifyPers?.slice(0, 30), verifyBack: verifyBack?.slice(0, 30), verifyExamples: verifyExamples?.slice(0, 30) });
         } catch (e) {
             console.error('[Settings] localStorage 寫入失敗:', e);
@@ -4448,19 +4392,19 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         }
         
         if (payload.sleepStart) {
-            localStorage.setItem('sx_ai_sleep_start', payload.sleepStart);
+            await sxSetItem('sx_ai_sleep_start', payload.sleepStart);
         }
         if (payload.sleepEnd) {
-            localStorage.setItem('sx_ai_sleep_end', payload.sleepEnd);
+            await sxSetItem('sx_ai_sleep_end', payload.sleepEnd);
         }
         
-        let currentMasks = JSON.parse(localStorage.getItem('sx_masks') || '[]');
+        let currentMasks = await sxGetJSON('sx_masks') || [];
         if (currentMasks.length === 0) {
             currentMasks.push({ name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples });
         } else {
             currentMasks[0] = { ...currentMasks[0], name: payload.name, avatar: payload.avatar, personality: payload.personality, background: payload.background, worldBook: payload.worldBook, examples: payload.examples };
         }
-        localStorage.setItem('sx_masks', JSON.stringify(currentMasks));
+        await sxSetJSON('sx_masks', currentMasks);
         masks = currentMasks;
         
         await updateCharListUI();
@@ -4477,11 +4421,11 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         alert('✅ 角色已儲存');
     });
 
-    charCancelBtn?.addEventListener('click', () => {
-        applySelectedChar({ name: '', avatar: '', personality: '', background: '', worldBook: '', examples: '', sleepStart: '', sleepEnd: '', memoryApi: '' });
+    charCancelBtn?.addEventListener('click', async () => {
+        applySelectedChar({ name: '', avatar: '', personality: '', background: '', worldBook: '', examples: '', sleepStart: '', sleepEnd: '', memoryApi: '', boundUserId: '' });
     });
 
-    userAddBtn?.addEventListener('click', () => {
+    userAddBtn?.addEventListener('click', async () => {
         applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
         // 隱藏刪除按鈕
         const deleteBtn = document.getElementById('user-delete-btn');
@@ -4494,7 +4438,6 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         const personality = document.getElementById('user-personality-input')?.value.trim() || '';
         const background = document.getElementById('user-background-input')?.value.trim() || '';
         
-        // 關係設定
         const relationshipType = document.getElementById('relationship-type-select')?.value || 'friends';
         const relationshipDuration = document.getElementById('relationship-duration-input')?.value.trim() || '';
         const relationshipNotes = document.getElementById('relationship-notes-input')?.value.trim() || '';
@@ -4503,7 +4446,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             alert('請輸入用戶名稱或頭貼');
             return;
         }
-        const list = loadUserList();
+        const list = await loadUserList();
         const existingIdx = list.findIndex(item => item.name === name && name);
         const payload = { 
             name, 
@@ -4516,34 +4459,31 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         };
         if (existingIdx >= 0) list[existingIdx] = payload;
         else list.unshift(payload);
-        saveUserList(list);
+        await saveUserList(list);
         
-        // 只有在 name 有值時才更新 localStorage，避免跳回 'User'
         if (payload.name) {
-            localStorage.setItem('sx_user_name', payload.name);
+            await sxSetItem('sx_user_name', payload.name);
         }
         if (payload.avatar) {
-            localStorage.setItem('sx_user_avatar', payload.avatar);
+            await sxSetItem('sx_user_avatar', payload.avatar);
         }
         if (payload.personality) {
-            localStorage.setItem('sx_user_personality', payload.personality);
+            await sxSetItem('sx_user_personality', payload.personality);
         }
         if (payload.background) {
-            localStorage.setItem('sx_user_background', payload.background);
+            await sxSetItem('sx_user_background', payload.background);
         }
         
-        // 保存關係設定到 localStorage
-        localStorage.setItem('sx_relationship_type', relationshipType);
+        await sxSetItem('sx_relationship_type', relationshipType);
         if (relationshipDuration) {
-            localStorage.setItem('sx_relationship_duration', relationshipDuration);
+            await sxSetItem('sx_relationship_duration', relationshipDuration);
         }
         if (relationshipNotes) {
-            localStorage.setItem('sx_relationship_notes', relationshipNotes);
+            await sxSetItem('sx_relationship_notes', relationshipNotes);
         }
         
-        updateCharListUI();
+        await updateCharListUI();
         
-        // 同步到 localforage (IndexedDB)
         await saveAll();
         
         window.parent?.postMessage({ 
@@ -4554,7 +4494,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         alert('✅ 用戶已儲存');
     });
 
-    userCancelBtn?.addEventListener('click', () => {
+    userCancelBtn?.addEventListener('click', async () => {
         applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
         // 隱藏刪除按鈕
         const deleteBtn = document.getElementById('user-delete-btn');
@@ -4571,7 +4511,7 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             return;
         }
         
-        const list = loadUserList();
+        const list = await loadUserList();
         if (list.length <= 1) {
             alert('至少需要保留一個用戶');
             return;
@@ -4581,35 +4521,30 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             return;
         }
         
-        // 從清單中移除
         const newList = list.filter(u => u.name !== name);
         await saveUserList(newList);
         
-        // 如果刪除的是當前用戶，切換到第一個用戶
-        const currentName = localStorage.getItem('sx_user_name');
+        const currentName = await sxGetItem('sx_user_name');
         if (currentName === name && newList.length > 0) {
             const newUser = newList[0];
-            localStorage.setItem('sx_user_name', newUser.name || '');
-            localStorage.setItem('sx_user_avatar', newUser.avatar || '');
-            localStorage.setItem('sx_user_personality', newUser.personality || '');
-            localStorage.setItem('sx_user_background', newUser.background || '');
+            await sxSetItem('sx_user_name', newUser.name || '');
+            await sxSetItem('sx_user_avatar', newUser.avatar || '');
+            await sxSetItem('sx_user_personality', newUser.personality || '');
+            await sxSetItem('sx_user_background', newUser.background || '');
         }
         
-        // 清空表單
         applySelectedUser({ name: '', avatar: '', personality: '', background: '' });
         
-        // 隱藏刪除按鈕
         userDeleteBtn.style.display = 'none';
         
-        // 更新 UI
-        updateCharListUI();
+        await updateCharListUI();
         
         await saveAll();
         
         alert('✅ 用戶已刪除');
     });
 
-    npcAddBtn?.addEventListener('click', () => {
+    npcAddBtn?.addEventListener('click', async () => {
         applySelectedNpc({ name: '', avatar: '', role: '', notes: '' });
     });
 
@@ -4622,18 +4557,18 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
             alert('請輸入 NPC 名稱或頭貼');
             return;
         }
-        const list = loadNpcList();
+        const list = await loadNpcList();
         const existingIdx = list.findIndex(item => item.name === name && name);
         const payload = { name, avatar, role, notes };
         if (existingIdx >= 0) list[existingIdx] = payload;
         else list.unshift(payload);
-        saveNpcList(list);
+        await saveNpcList(list);
         await saveAll();
-        updateCharListUI();
+        await updateCharListUI();
         alert('✅ NPC 已儲存');
     });
 
-    npcCancelBtn?.addEventListener('click', () => {
+    npcCancelBtn?.addEventListener('click', async () => {
         applySelectedNpc({ name: '', avatar: '', role: '', notes: '' });
     });
 
@@ -4671,11 +4606,14 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
     if (exportBtn) {
         exportBtn.onclick = async () => {
             const allStorageData = {};
+            const keys = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (!key) continue;
+                if (key) keys.push(key);
+            }
+            for (const key of keys) {
                 if (key.startsWith('sx_') || key.startsWith('api_') || key.startsWith('sxiphone')) {
-                    const value = localStorage.getItem(key);
+                    const value = await sxGetItem(key);
                     if (value && !isFunctionString(value)) {
                         allStorageData[key] = value;
                     }
@@ -4714,18 +4652,18 @@ CREATE POLICY "Allow all operations" ON sxiphone_backups FOR ALL USING (true) WI
         };
     }
 
-    loadBiliGeneratedTitles();
+    await loadBiliGeneratedTitles();
 
-    initVoiceSettings();
+    await initVoiceSettings();
 
     // 6. 執行返回處理器初始化
     initSettingsHandlers();
 });
 
-function loadBiliGeneratedTitles() {
+async function loadBiliGeneratedTitles() {
     const target = document.getElementById('biliGeneratedTitles');
     if (!target) return;
-    const raw = localStorage.getItem('sx_bili_generated_titles');
+    const raw = await sxGetItem('sx_bili_generated_titles');
     if (!raw) {
         target.value = '';
         return;
@@ -4741,27 +4679,27 @@ function loadBiliGeneratedTitles() {
     }
 }
 
-function clearBiliGeneratedTitles() {
-    localStorage.removeItem('sx_bili_generated_titles');
-    loadBiliGeneratedTitles();
+async function clearBiliGeneratedTitles() {
+    await sxRemoveItem('sx_bili_generated_titles');
+    await loadBiliGeneratedTitles();
 }
 /* =========================================================
    3. 返回鍵與設定關閉 (核心邏輯)
 ========================================================= */
 
-const saveSettingsData = () => {
+const saveSettingsData = async () => {
     try {
-        localStorage.setItem('sx_masks', JSON.stringify(masks));
-        localStorage.setItem('api_configs', JSON.stringify(apis));
-        localStorage.setItem('sx_active_api', activeApiIndex.toString());
-        console.log("設定數據已保存至 localStorage");
+        await sxSetJSON('sx_masks', masks);
+        await sxSetJSON('api_configs', apis);
+        await sxSetItem('sx_active_api', activeApiIndex.toString());
+        console.log("設定數據已保存至儲存系統");
     } catch (e) {
         console.error("保存設定數據失敗:", e);
     }
 };
 
 const saveToPersistentStorage = async () => {
-    saveSettingsData();
+    await saveSettingsData();
     if (typeof localforage !== 'undefined') {
         try {
             const existingData = await localforage.getItem('sx_app_persisted_data') || {};
@@ -4794,7 +4732,7 @@ window.addEventListener('beforeunload', async () => {
     await saveToPersistentStorage();
 });
 
-window.addEventListener('message', (event) => {
+window.addEventListener('message', async (event) => {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
     
@@ -4802,22 +4740,17 @@ window.addEventListener('message', (event) => {
         saveSettingsData();
     }
     
-    // 處理語言變更
     if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
         console.log('[Settings] 收到語言變更訊息:', data.lang);
-        localStorage.setItem('sxiphone_lang', data.lang);
-        // 更新語言選擇器
+        await sxSetItem('sxiphone_lang', data.lang);
         const langSelect = document.getElementById('langSelect');
         if (langSelect) {
             langSelect.value = data.lang;
         }
-        // 更新 html lang 屬性
         if (document.documentElement) {
             document.documentElement.lang = data.lang;
         }
-        // 套用語言到 UI
         applyLanguageToUI();
-        // 觸發語言更新回調
         if (typeof window.SxLanguage !== 'undefined' && typeof window.SxLanguage.triggerUpdate === 'function') {
             window.SxLanguage.triggerUpdate(data.lang);
         }
@@ -4906,34 +4839,30 @@ function deleteMask(i) {
 ========================================================= */
 async function initStorage() {
     try {
-        // 1) 主資料來源：新 key
         let savedApis = await localforage.getItem('api_configs_new');
         let savedIndex = await localforage.getItem('sx_active_api_new');
 
-        // 2) 輔助資料來源：舊整包 persisted
         const saved = await localforage.getItem('sx_app_persisted_data');
         if (saved) {
             masks = saved.masks || masks;
-            // 只有當 persisted 資料有值且 localStorage 沒有值時才覆蓋（避免覆蓋使用者已輸入的新值）
-            const existingName = localStorage.getItem('sx_user_name');
-            const existingAvatar = localStorage.getItem('sx_user_avatar');
-            const existingPersonality = localStorage.getItem('sx_user_personality');
-            const existingBackground = localStorage.getItem('sx_user_background');
+            const existingName = await sxGetItem('sx_user_name');
+            const existingAvatar = await sxGetItem('sx_user_avatar');
+            const existingPersonality = await sxGetItem('sx_user_personality');
+            const existingBackground = await sxGetItem('sx_user_background');
             
             if (saved.userName && saved.userName !== 'User' && (!existingName || existingName === 'User')) {
-                localStorage.setItem('sx_user_name', saved.userName);
+                await sxSetItem('sx_user_name', saved.userName);
             }
             if (saved.userAvatar && !existingAvatar) {
-                localStorage.setItem('sx_user_avatar', saved.userAvatar);
+                await sxSetItem('sx_user_avatar', saved.userAvatar);
             }
             if (saved.userPersonality && !existingPersonality) {
-                localStorage.setItem('sx_user_personality', saved.userPersonality);
+                await sxSetItem('sx_user_personality', saved.userPersonality);
             }
             if (saved.userBackground && !existingBackground) {
-                localStorage.setItem('sx_user_background', saved.userBackground);
+                await sxSetItem('sx_user_background', saved.userBackground);
             }
 
-            // 新 key 沒值時，沿用舊整包裡的 API 設定
             if (!Array.isArray(savedApis)) {
                 savedApis = Array.isArray(saved.apis) ? saved.apis : [];
             }
@@ -4941,44 +4870,39 @@ async function initStorage() {
                 savedIndex = Number(saved.activeApiIndex) || 0;
             }
         } else {
-            masks = JSON.parse(localStorage.getItem('sx_masks')) || masks;
+            masks = await sxGetJSON('sx_masks') || masks;
         }
 
-        // 3) 自動遷移：若新 key 仍無值，讀 localStorage 備份
         if (!Array.isArray(savedApis)) {
-            const oldApisRaw = localStorage.getItem('api_configs');
+            const oldApisRaw = await sxGetItem('api_configs');
             savedApis = oldApisRaw ? JSON.parse(oldApisRaw) : [];
             await localforage.setItem('api_configs_new', savedApis);
         }
         if (savedIndex === null || savedIndex === undefined) {
-            const oldIndexRaw = localStorage.getItem('sx_active_api');
+            const oldIndexRaw = await sxGetItem('sx_active_api');
             savedIndex = Number(oldIndexRaw) || 0;
             await localforage.setItem('sx_active_api_new', savedIndex);
         }
 
-        // 4) 回填全域與 localStorage
         apis = Array.isArray(savedApis) ? savedApis : [];
         activeApiIndex = Number(savedIndex) || 0;
-        localStorage.setItem('api_configs', JSON.stringify(apis));
-        localStorage.setItem('sx_active_api', activeApiIndex.toString());
+        await sxSetJSON('api_configs', apis);
+        await sxSetItem('sx_active_api', activeApiIndex.toString());
 
         console.log("資料加載成功:", apis.length, "個配置");
         renderApis();
     } catch (err) {
         console.error("儲存讀取錯誤:", err);
-        // 保底機制：如果出錯仍嘗試讀取 localStorage
-        apis = JSON.parse(localStorage.getItem('api_configs')) || [];
-        activeApiIndex = Number(localStorage.getItem('sx_active_api')) || 0;
+        apis = await sxGetJSON('api_configs') || [];
+        activeApiIndex = Number(await sxGetItem('sx_active_api')) || 0;
         renderApis();
     }
     try {
-        // 同時存儲到 localforage (主要) 和 localStorage (備份)
         await localforage.setItem('api_configs_new', apis);
         await localforage.setItem('sx_active_api_new', activeApiIndex);
         
-        // 保持 localStorage 同步，增加雙重保險
-        localStorage.setItem('api_configs', JSON.stringify(apis));
-        localStorage.setItem('sx_active_api', activeApiIndex);
+        await sxSetJSON('api_configs', apis);
+        await sxSetItem('sx_active_api', activeApiIndex);
     } catch (e) {
         console.error("儲存失敗", e);
     }
@@ -5106,11 +5030,9 @@ function renderApis() {
                     url, 
                     key, 
                     model: modelSelect.value || 'custom',
-                    type: type  // 新增 type 欄位標記 API 類型
+                    type: type
                 });
                 await saveAll();
-                localStorage.removeItem('sx_new_api_url');
-                localStorage.removeItem('sx_new_api_key');
                 urlInput.value = '';
                 keyInput.value = '';
                 modelSelect.innerHTML = '<option value="">請先拉取模型</option>';
@@ -5193,7 +5115,7 @@ function handleImport(e) {
                             skippedCount++;
                             continue;
                         }
-                        localStorage.setItem(key, strValue);
+                        await sxSetItem(key, strValue);
                         importedCount++;
                     } catch (e) {
                         console.warn('[Import] localStorage 寫入失敗:', key, e.message);
@@ -5250,13 +5172,13 @@ function handleImport(e) {
                     }
                     
                     const mergedData = data.persistedData;
-                    if (mergedData.userName) localStorage.setItem('sx_user_name', mergedData.userName);
-                    if (mergedData.userAvatar) localStorage.setItem('sx_user_avatar', mergedData.userAvatar);
-                    if (mergedData.userPersonality) localStorage.setItem('sx_user_personality', mergedData.userPersonality);
-                    if (mergedData.userBackground) localStorage.setItem('sx_user_background', mergedData.userBackground);
-                    if (mergedData.userLikes) localStorage.setItem('sx_user_likes', mergedData.userLikes);
-                    if (mergedData.userTaboos) localStorage.setItem('sx_user_taboos', mergedData.userTaboos);
-                    if (mergedData.userStatus) localStorage.setItem('sx_user_status', mergedData.userStatus);
+                    if (mergedData.userName) await sxSetItem('sx_user_name', mergedData.userName);
+                    if (mergedData.userAvatar) await sxSetItem('sx_user_avatar', mergedData.userAvatar);
+                    if (mergedData.userPersonality) await sxSetItem('sx_user_personality', mergedData.userPersonality);
+                    if (mergedData.userBackground) await sxSetItem('sx_user_background', mergedData.userBackground);
+                    if (mergedData.userLikes) await sxSetItem('sx_user_likes', mergedData.userLikes);
+                    if (mergedData.userTaboos) await sxSetItem('sx_user_taboos', mergedData.userTaboos);
+                    if (mergedData.userStatus) await sxSetItem('sx_user_status', mergedData.userStatus);
                     importedCount++;
                 } catch (pdErr) {
                     console.warn('[Import] persistedData restore failed:', pdErr);
@@ -5343,29 +5265,29 @@ function handleImport(e) {
 function saveEnv() { saveAll(); alert('✅ 設定已儲存！'); }
 function saveAppearance() { saveAll(); alert('✅ 視覺設定已套用！'); }
 
-function saveNovaApi() {
+async function saveNovaApi() {
     const url = document.getElementById('novaApiUrl')?.value.trim() || '';
     const key = document.getElementById('novaApiKey')?.value.trim() || '';
-    localStorage.setItem('sx_nova_api_url', url);
-    localStorage.setItem('sx_nova_api_key', key);
+    await sxSetItem('sx_nova_api_url', url);
+    await sxSetItem('sx_nova_api_key', key);
     alert('✅ NovaAI 設定已儲存');
 }
 
-window.clearChat = function () {
+window.clearChat = async function () {
     if (confirm('確定清空對話？')) {
         if (UserEnv.isIOS()) iosTempData.chat_history = [];
-        else localStorage.removeItem('sx_chat_history');
+        else await sxRemoveItem('sx_chat_history');
         alert('已清空');
     }
 };
 
-window.handleUserAvatar = function (input) {
+window.handleUserAvatar = async function (input) {
     const file = input.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = e => {
+        reader.onload = async e => {
             if (UserEnv.isIOS()) { if(!iosTempData) iosTempData={}; iosTempData.sx_user_avatar = e.target.result; }
-            else localStorage.setItem('sx_user_avatar', e.target.result);
+            else await sxSetItem('sx_user_avatar', e.target.result);
             alert('頭像已更新');
         };
         reader.readAsDataURL(file);
@@ -5409,9 +5331,9 @@ const getDefaultVoiceSettings = () => ({
     translateApiKey: ''
 });
 
-const loadVoiceSettings = () => {
+const loadVoiceSettings = async () => {
     try {
-        const raw = localStorage.getItem(VOICE_SETTINGS_KEY);
+        const raw = await sxGetItem(VOICE_SETTINGS_KEY);
         if (!raw) return getDefaultVoiceSettings();
         const parsed = JSON.parse(raw);
         return { ...getDefaultVoiceSettings(), ...parsed };
@@ -5420,15 +5342,15 @@ const loadVoiceSettings = () => {
     }
 };
 
-const saveVoiceSettings = (settings) => {
+const saveVoiceSettings = async (settings) => {
     const merged = { ...getDefaultVoiceSettings(), ...settings };
-    localStorage.setItem(VOICE_SETTINGS_KEY, JSON.stringify(merged));
+    await sxSetItem(VOICE_SETTINGS_KEY, JSON.stringify(merged));
     updateVoiceServiceStatus();
     return merged;
 };
 
-const updateVoiceServiceStatus = () => {
-    const settings = loadVoiceSettings();
+const updateVoiceServiceStatus = async () => {
+    const settings = await loadVoiceSettings();
     const sttReady = !!(settings.sttApiUrl && settings.sttApiKey);
     const ttsReady = !!(settings.ttsApiUrl && settings.ttsApiKey);
     const thirdPartyReady = !!(settings.voiceProvider && settings.thirdPartyVoiceUrl && settings.thirdPartyVoiceKey);
@@ -5513,7 +5435,7 @@ const testSttService = async () => {
     const statusEl = document.getElementById('stt-test-status');
     if (statusEl) statusEl.textContent = '正在錄音...';
 
-    const settings = loadVoiceSettings();
+    const settings = await loadVoiceSettings();
     if (!settings.sttApiUrl || !settings.sttApiKey) {
         if (statusEl) statusEl.textContent = '❌ 請先設定 STT API 網址與 Key';
         return;
@@ -5569,7 +5491,7 @@ const testTtsService = async () => {
     const statusEl = document.getElementById('tts-test-status');
     if (statusEl) statusEl.textContent = '正在合成語音...';
 
-    const settings = loadVoiceSettings();
+    const settings = await loadVoiceSettings();
     if (!settings.ttsApiUrl || !settings.ttsApiKey) {
         if (statusEl) statusEl.textContent = '❌ 請先設定 TTS API 網址與 Key';
         return;
@@ -5616,8 +5538,8 @@ const testTtsService = async () => {
     }
 };
 
-const initVoiceSettings = () => {
-    const settings = loadVoiceSettings();
+const initVoiceSettings = async () => {
+    const settings = await loadVoiceSettings();
 
     const fields = {
         'sttApiUrl': settings.sttApiUrl,
@@ -5662,7 +5584,7 @@ const initVoiceSettings = () => {
     const ttsSpeedEl = document.getElementById('ttsSpeed');
     const ttsSpeedOutput = document.getElementById('tts-speed-output');
     if (ttsSpeedEl && ttsSpeedOutput) {
-        ttsSpeedEl.addEventListener('input', () => {
+        ttsSpeedEl.addEventListener('input', async () => {
             ttsSpeedOutput.textContent = ttsSpeedEl.value;
         });
     }
@@ -5670,7 +5592,7 @@ const initVoiceSettings = () => {
     const thinkDelayEl = document.getElementById('voice-think-delay');
     const thinkDelayOutput = document.getElementById('voice-think-delay-output');
     if (thinkDelayEl && thinkDelayOutput) {
-        thinkDelayEl.addEventListener('input', () => {
+        thinkDelayEl.addEventListener('input', async () => {
             thinkDelayOutput.textContent = thinkDelayEl.value;
         });
     }
@@ -5687,21 +5609,21 @@ const initVoiceSettings = () => {
 
     const sttSaveBtn = document.getElementById('stt-save-btn');
     if (sttSaveBtn) {
-        sttSaveBtn.addEventListener('click', () => {
+        sttSaveBtn.addEventListener('click', async () => {
             const newSettings = {
                 sttApiUrl: document.getElementById('sttApiUrl')?.value.trim() || '',
                 sttApiKey: document.getElementById('sttApiKey')?.value.trim() || '',
                 sttModel: document.getElementById('sttModel')?.value.trim() || 'whisper-1',
                 sttLanguage: document.getElementById('sttLanguage')?.value.trim() || ''
             };
-            saveVoiceSettings(newSettings);
+            await saveVoiceSettings(newSettings);
             alert('✅ STT 設定已儲存');
         });
     }
 
     const ttsSaveBtn = document.getElementById('tts-save-btn');
     if (ttsSaveBtn) {
-        ttsSaveBtn.addEventListener('click', () => {
+        ttsSaveBtn.addEventListener('click', async () => {
             const newSettings = {
                 ttsApiUrl: document.getElementById('ttsApiUrl')?.value.trim() || '',
                 ttsApiKey: document.getElementById('ttsApiKey')?.value.trim() || '',
@@ -5709,37 +5631,37 @@ const initVoiceSettings = () => {
                 ttsVoice: document.getElementById('ttsVoice')?.value || 'alloy',
                 ttsSpeed: parseFloat(document.getElementById('ttsSpeed')?.value || '1.0')
             };
-            saveVoiceSettings(newSettings);
+            await saveVoiceSettings(newSettings);
             alert('✅ TTS 設定已儲存');
         });
     }
 
     const voiceGeneralSaveBtn = document.getElementById('voice-general-save-btn');
     if (voiceGeneralSaveBtn) {
-        voiceGeneralSaveBtn.addEventListener('click', () => {
+        voiceGeneralSaveBtn.addEventListener('click', async () => {
             const newSettings = {
                 voiceAutoTts: document.getElementById('voice-auto-tts')?.checked ?? true,
                 voiceThinkDelay: parseFloat(document.getElementById('voice-think-delay')?.value || '1.5')
             };
-            saveVoiceSettings(newSettings);
+            await saveVoiceSettings(newSettings);
             alert('✅ 通話設定已儲存');
         });
     }
 
     const useBuiltInToggle = document.getElementById('use-built-in-voice');
     if (useBuiltInToggle) {
-        const settings = loadVoiceSettings();
+        const settings = await loadVoiceSettings();
         useBuiltInToggle.checked = settings.useBuiltIn !== false;
         
-        useBuiltInToggle.addEventListener('change', () => {
-            saveVoiceSettings({ useBuiltIn: useBuiltInToggle.checked });
+        useBuiltInToggle.addEventListener('change', async () => {
+            await saveVoiceSettings({ useBuiltIn: useBuiltInToggle.checked });
         });
     }
 
     const builtinVoiceSelect = document.getElementById('builtin-voice-select');
     const refreshVoicesBtn = document.getElementById('refresh-voices-btn');
     
-    const loadVoices = () => {
+    const loadVoices = async () => {
         if (!window.speechSynthesis) return;
         
         const voices = window.speechSynthesis.getVoices();
@@ -5779,7 +5701,7 @@ const initVoiceSettings = () => {
                 builtinVoiceSelect.appendChild(optgroup);
             }
             
-            const settings = loadVoiceSettings();
+            const settings = await loadVoiceSettings();
             if (settings.builtInVoice) {
                 builtinVoiceSelect.value = settings.builtInVoice;
             }
@@ -5792,15 +5714,15 @@ const initVoiceSettings = () => {
     }
     
     if (refreshVoicesBtn) {
-        refreshVoicesBtn.addEventListener('click', () => {
+        refreshVoicesBtn.addEventListener('click', async () => {
             loadVoices();
             alert('語音列表已重新載入');
         });
     }
     
     if (builtinVoiceSelect) {
-        builtinVoiceSelect.addEventListener('change', () => {
-            saveVoiceSettings({ builtInVoice: builtinVoiceSelect.value });
+        builtinVoiceSelect.addEventListener('change', async () => {
+            await saveVoiceSettings({ builtInVoice: builtinVoiceSelect.value });
         });
     }
 
@@ -5810,17 +5732,17 @@ const initVoiceSettings = () => {
     if (useTransformersToggle) {
         useTransformersToggle.checked = settings.useTransformers || false;
         
-        useTransformersToggle.addEventListener('change', () => {
-            saveVoiceSettings({ useTransformers: useTransformersToggle.checked });
-            updateVoiceServiceStatus();
+        useTransformersToggle.addEventListener('change', async () => {
+            await saveVoiceSettings({ useTransformers: useTransformersToggle.checked });
+            await updateVoiceServiceStatus();
         });
     }
     
     if (transformersModelSelect) {
         transformersModelSelect.value = settings.transformersModel || 'Xenova/whisper-small';
         
-        transformersModelSelect.addEventListener('change', () => {
-            saveVoiceSettings({ transformersModel: transformersModelSelect.value });
+        transformersModelSelect.addEventListener('change', async () => {
+            await saveVoiceSettings({ transformersModel: transformersModelSelect.value });
         });
     }
 
@@ -5830,16 +5752,16 @@ const initVoiceSettings = () => {
     if (sttLanguageSelect) {
         sttLanguageSelect.value = settings.sttLanguage || 'zh-TW';
         
-        sttLanguageSelect.addEventListener('change', () => {
-            saveVoiceSettings({ sttLanguage: sttLanguageSelect.value });
+        sttLanguageSelect.addEventListener('change', async () => {
+            await saveVoiceSettings({ sttLanguage: sttLanguageSelect.value });
         });
     }
     
     if (ttsLanguageSelect) {
         ttsLanguageSelect.value = settings.ttsLanguage || 'zh-TW';
         
-        ttsLanguageSelect.addEventListener('change', () => {
-            saveVoiceSettings({ ttsLanguage: ttsLanguageSelect.value });
+        ttsLanguageSelect.addEventListener('change', async () => {
+            await saveVoiceSettings({ ttsLanguage: ttsLanguageSelect.value });
         });
     }
 
@@ -5850,24 +5772,24 @@ const initVoiceSettings = () => {
     if (enableTranslationToggle) {
         enableTranslationToggle.checked = settings.enableTranslation !== false;
         
-        enableTranslationToggle.addEventListener('change', () => {
-            saveVoiceSettings({ enableTranslation: enableTranslationToggle.checked });
+        enableTranslationToggle.addEventListener('change', async () => {
+            await saveVoiceSettings({ enableTranslation: enableTranslationToggle.checked });
         });
     }
     
     if (translateApiUrlInput) {
         translateApiUrlInput.value = settings.translateApiUrl || '';
         
-        translateApiUrlInput.addEventListener('change', () => {
-            saveVoiceSettings({ translateApiUrl: translateApiUrlInput.value.trim() });
+        translateApiUrlInput.addEventListener('change', async () => {
+            await saveVoiceSettings({ translateApiUrl: translateApiUrlInput.value.trim() });
         });
     }
     
     if (translateApiKeyInput) {
         translateApiKeyInput.value = settings.translateApiKey || '';
         
-        translateApiKeyInput.addEventListener('change', () => {
-            saveVoiceSettings({ translateApiKey: translateApiKeyInput.value.trim() });
+        translateApiKeyInput.addEventListener('change', async () => {
+            await saveVoiceSettings({ translateApiKey: translateApiKeyInput.value.trim() });
         });
     }
 
@@ -5947,7 +5869,7 @@ const initThirdPartyVoiceSettings = () => {
 
     const thirdPartySaveBtn = document.getElementById('third-party-save-btn');
     if (thirdPartySaveBtn) {
-        thirdPartySaveBtn.addEventListener('click', () => {
+        thirdPartySaveBtn.addEventListener('click', async () => {
             const newSettings = {
                 voiceProvider: document.getElementById('voiceProvider')?.value || '',
                 thirdPartyVoiceUrl: document.getElementById('thirdPartyVoiceUrl')?.value.trim() || '',
@@ -5961,7 +5883,7 @@ const initThirdPartyVoiceSettings = () => {
                 audioResponsePath: document.getElementById('audioResponsePath')?.value.trim() || 'data.audio',
                 customTtsBody: document.getElementById('customTtsBody')?.value.trim() || ''
             };
-            saveVoiceSettings(newSettings);
+            await saveVoiceSettings(newSettings);
             alert('✅ 第三方語音服務設定已儲存');
         });
     }
@@ -6125,8 +6047,8 @@ const getNestedValue = (obj, path) => {
     return result;
 };
 
-window.isVoiceCallReady = function() {
-    const settings = loadVoiceSettings();
+window.isVoiceCallReady = async function() {
+    const settings = await loadVoiceSettings();
     const basicReady = !!(settings.sttApiUrl && settings.sttApiKey && settings.ttsApiUrl && settings.ttsApiKey);
     const thirdPartyReady = !!(settings.voiceProvider && settings.thirdPartyVoiceUrl && settings.thirdPartyVoiceKey);
     return basicReady || thirdPartyReady;
@@ -6137,28 +6059,28 @@ window.getVoiceSettings = loadVoiceSettings;
 const MEMORY_TABLE_KEY = 'sx_memory_tables';
 const MEMORY_SETTINGS_KEY = 'sx_memory_table_settings';
 
-function getMemoryTables() {
+async function getMemoryTables() {
     try {
-        const raw = localStorage.getItem(MEMORY_TABLE_KEY);
+        const raw = await sxGetItem(MEMORY_TABLE_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
     return [];
 }
 
-function saveMemoryTables(tables) {
-    localStorage.setItem(MEMORY_TABLE_KEY, JSON.stringify(tables));
+async function saveMemoryTables(tables) {
+    await sxSetItem(MEMORY_TABLE_KEY, JSON.stringify(tables));
 }
 
-function getMemoryTableSettings() {
+async function getMemoryTableSettings() {
     try {
-        const raw = localStorage.getItem(MEMORY_SETTINGS_KEY);
+        const raw = await sxGetItem(MEMORY_SETTINGS_KEY);
         if (raw) return JSON.parse(raw);
     } catch {}
     return { autoGenerate: false, autoRounds: 20 };
 }
 
-function saveMemoryTableSettingsToStorage(settings) {
-    localStorage.setItem(MEMORY_SETTINGS_KEY, JSON.stringify(settings));
+async function saveMemoryTableSettingsToStorage(settings) {
+    await sxSetItem(MEMORY_SETTINGS_KEY, JSON.stringify(settings));
 }
 
 function sanitizeText(text) {
@@ -6229,7 +6151,10 @@ window.viewMemoryTableInSettings = function(index) {
     }
     
     const body = document.getElementById('memory-table-preview-body');
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    }
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     const date = new Date(table.createdAt).toLocaleString(localeCode);
     
@@ -6283,7 +6208,10 @@ window.deleteMemoryTableFromSettings = function(index) {
 };
 
 function exportMemoryTableToFormat(table, format) {
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    }
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     const date = new Date(table.createdAt).toLocaleString(localeCode);
     
@@ -6408,7 +6336,10 @@ function exportAllMemoryTables(format) {
         return;
     }
     
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+    let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    }
     const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
     
     if (format === 'json') {
@@ -6568,7 +6499,7 @@ function initMemoryTableSettings() {
     if (autoToggle) autoToggle.checked = settings.autoGenerate;
     if (autoRoundsInput) autoRoundsInput.value = settings.autoRounds;
     
-    saveBtn?.addEventListener('click', () => {
+    saveBtn?.addEventListener('click', async () => {
         const newSettings = {
             autoGenerate: autoToggle?.checked || false,
             autoRounds: parseInt(autoRoundsInput?.value) || 20
@@ -6593,7 +6524,7 @@ function initMemoryTableSettings() {
         e.target.value = '';
     });
     
-    document.getElementById('settings-memory-clear-btn')?.addEventListener('click', () => {
+    document.getElementById('settings-memory-clear-btn')?.addEventListener('click', async () => {
         if (!confirm('確定要清除所有記憶表格嗎？此操作無法復原！')) return;
         if (!confirm('再次確認：清除所有記憶表格？')) return;
         saveMemoryTables([]);
@@ -7524,7 +7455,7 @@ const ExternalChatImporter = {
 
 const AIClassifier = {
     async classifyMessages(messages, onProgress) {
-        const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+        const apis = await sxGetJSON('api_configs') || [];
         const config = apis[0];
         
         if (!config || !config.url) {
@@ -7619,7 +7550,7 @@ ${batchText}
         
         const sampleText = assistantMsgs.slice(0, 5).map(m => m.content.substring(0, 100)).join(' ');
         
-        const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+        const apis = await sxGetJSON('api_configs') || [];
         const config = apis[0];
         
         if (!config || !config.url) {
@@ -7658,7 +7589,7 @@ ${batchText}
     }
 };
 
-function renderImportPreview(messages, charName, importData = null) {
+async function renderImportPreview(messages, charName, importData = null) {
     const container = document.getElementById('import-preview-content');
     const stats = document.getElementById('import-preview-stats');
     
@@ -7716,8 +7647,8 @@ function renderImportPreview(messages, charName, importData = null) {
             if (userSelectArea && userTargetSelect) {
                 userSelectArea.classList.remove('hidden');
                 
-                const userList = loadUserList();
-                const currentUserName = localStorage.getItem('sx_user_name') || 'User';
+                const userList = await loadUserList();
+                const currentUserName = await sxGetItem('sx_user_name') || 'User';
                 
                 let optionsHtml = `<option value="new">新增為新用戶（${sanitizeText(importData.user.name || '未命名')}）</option>`;
                 optionsHtml += `<option value="current">覆蓋當前用戶（${sanitizeText(currentUserName)}）</option>`;
@@ -7808,7 +7739,7 @@ async function handleExternalImport(file) {
                 char: charData,
                 worldbook: worldbookData,
                 user: userData,
-                userName: userData?.name || localStorage.getItem('sx_user_name') || 'User',
+                userName: userData?.name || await sxGetItem('sx_user_name') || 'User',
                 source: file.name
             };
             
@@ -7877,9 +7808,9 @@ async function confirmImport() {
                 }));
             }
             
-            wbEntries.forEach((entry, index) => {
+            wbEntries.forEach(async (entry, index) => {
                 const wbKey = `sx_worldbook_keywords`;
-                const existing = JSON.parse(localStorage.getItem(wbKey) || '[]');
+                const existing = await sxGetJSON(wbKey) || [];
                 
                 const newEntry = {
                     title: entry.title || entry.name || entry.key || `匯入條目 ${index + 1}`,
@@ -7889,7 +7820,7 @@ async function confirmImport() {
                 };
                 
                 existing.push(newEntry);
-                localStorage.setItem(wbKey, JSON.stringify(existing));
+                await sxSetJSON(wbKey, existing);
             });
         } catch (err) {
             console.warn('世界書匯入失敗:', err);
@@ -7919,17 +7850,17 @@ async function confirmImport() {
             }
             await saveUserList(userList);
             
-            localStorage.setItem('sx_user_name', newUser.name);
-            localStorage.setItem('sx_user_avatar', newUser.avatar);
-            localStorage.setItem('sx_user_personality', newUser.personality || '');
-            localStorage.setItem('sx_user_background', newUser.background || '');
+            await sxSetItem('sx_user_name', newUser.name);
+            await sxSetItem('sx_user_avatar', newUser.avatar);
+            await sxSetItem('sx_user_personality', newUser.personality || '');
+            await sxSetItem('sx_user_background', newUser.background || '');
         } else if (userTarget === 'current') {
-            localStorage.setItem('sx_user_name', newUser.name);
-            localStorage.setItem('sx_user_avatar', newUser.avatar);
-            localStorage.setItem('sx_user_personality', newUser.personality || '');
-            localStorage.setItem('sx_user_background', newUser.background || '');
+            await sxSetItem('sx_user_name', newUser.name);
+            await sxSetItem('sx_user_avatar', newUser.avatar);
+            await sxSetItem('sx_user_personality', newUser.personality || '');
+            await sxSetItem('sx_user_background', newUser.background || '');
             
-            const currentName = localStorage.getItem('sx_user_name');
+            const currentName = await sxGetItem('sx_user_name');
             const existingIdx = userList.findIndex(u => u.name === currentName);
             if (existingIdx >= 0) {
                 userList[existingIdx] = { ...userList[existingIdx], ...newUser };
@@ -7943,10 +7874,10 @@ async function confirmImport() {
                 userList[idx] = { ...userList[idx], ...newUser };
                 await saveUserList(userList);
                 
-                localStorage.setItem('sx_user_name', userList[idx].name);
-                localStorage.setItem('sx_user_avatar', userList[idx].avatar);
-                localStorage.setItem('sx_user_personality', userList[idx].personality || '');
-                localStorage.setItem('sx_user_background', userList[idx].background || '');
+                await sxSetItem('sx_user_name', userList[idx].name);
+                await sxSetItem('sx_user_avatar', userList[idx].avatar);
+                await sxSetItem('sx_user_personality', userList[idx].personality || '');
+                await sxSetItem('sx_user_background', userList[idx].background || '');
             }
         }
     }
@@ -7993,7 +7924,7 @@ async function confirmImport() {
             role: msg.role,
             content: msg.content
         }));
-        localStorage.setItem('sx_chat_history', JSON.stringify(chatHistory));
+        await sxSetJSON('sx_chat_history', chatHistory);
     }
     
     renderMemoryTablesList();
@@ -8009,7 +7940,7 @@ async function confirmImport() {
     
     alert(summary);
     
-    const githubToken = localStorage.getItem('github_token');
+    const githubToken = await sxGetItem('github_token');
     if (githubToken) {
         setTimeout(() => {
             window.parent?.postMessage({ type: 'GITHUB_SYNC_PUSH' }, '*');
@@ -8046,7 +7977,7 @@ function initExternalImporter() {
     
     confirmBtn?.addEventListener('click', confirmImport);
     
-    cancelBtn?.addEventListener('click', () => {
+    cancelBtn?.addEventListener('click', async () => {
         document.getElementById('import-preview-area')?.classList.add('hidden');
         pendingImportData = null;
     });
@@ -8058,7 +7989,7 @@ function initExternalImporter() {
     });
 }
 
-function initKeepaliveSettings() {
+async function initKeepaliveSettings() {
     const enabledToggle = document.getElementById('keepalive-enabled');
     const intervalRange = document.getElementById('keepalive-interval');
     const intervalOutput = document.getElementById('keepalive-interval-value');
@@ -8074,13 +8005,13 @@ function initKeepaliveSettings() {
     const lastGreetingText = document.getElementById('keepalive-last-greeting');
     const pendingCountText = document.getElementById('keepalive-pending-count');
 
-    const loadKeepaliveSettings = () => {
-        const enabled = localStorage.getItem('sx_keepalive_enabled') === '1';
-        const interval = Number(localStorage.getItem('sx_keepalive_interval')) || 5 * 60 * 1000;
-        const greetingEnabled = localStorage.getItem('sx_keepalive_greeting_enabled') !== '0';
-        const greetingInterval = Number(localStorage.getItem('sx_keepalive_greeting_interval')) || 30 * 60 * 1000;
-        const contextMode = localStorage.getItem('sx_keepalive_context_mode') || 'smart';
-        const customPrompt = localStorage.getItem('sx_keepalive_custom_prompt') || '';
+    const loadKeepaliveSettings = async () => {
+        const enabled = await sxGetItem('sx_keepalive_enabled') === '1';
+        const interval = Number(await sxGetItem('sx_keepalive_interval')) || 5 * 60 * 1000;
+        const greetingEnabled = await sxGetItem('sx_keepalive_greeting_enabled') !== '0';
+        const greetingInterval = Number(await sxGetItem('sx_keepalive_greeting_interval')) || 30 * 60 * 1000;
+        const contextMode = await sxGetItem('sx_keepalive_context_mode') || 'smart';
+        const customPrompt = await sxGetItem('sx_keepalive_custom_prompt') || '';
 
         if (enabledToggle) enabledToggle.checked = enabled;
         if (intervalRange) intervalRange.value = Math.round(interval / 60000);
@@ -8092,20 +8023,20 @@ function initKeepaliveSettings() {
         if (customPromptInput) customPromptInput.value = customPrompt;
     };
 
-    const updateKeepaliveStatus = () => {
-        const enabled = localStorage.getItem('sx_keepalive_enabled') === '1';
-        const lastPing = Number(localStorage.getItem('sx_keepalive_last_ping')) || 0;
-        const lastGreeting = Number(localStorage.getItem('sx_keepalive_last_greeting')) || 0;
+    const updateKeepaliveStatus = async () => {
+        const enabled = await sxGetItem('sx_keepalive_enabled') === '1';
+        const lastPing = Number(await sxGetItem('sx_keepalive_last_ping')) || 0;
+        const lastGreeting = Number(await sxGetItem('sx_keepalive_last_greeting')) || 0;
         
         let queueCount = 0;
         try {
-            const queueRaw = localStorage.getItem('sx_keepalive_queue');
+            const queueRaw = await sxGetItem('sx_keepalive_queue');
             const queue = queueRaw ? JSON.parse(queueRaw) : [];
             queueCount = Array.isArray(queue) ? queue.length : 0;
         } catch {}
 
         if (statusText) {
-            const apiConfigs = localStorage.getItem('api_configs');
+            const apiConfigs = await sxGetItem('api_configs');
             const hasApi = apiConfigs && JSON.parse(apiConfigs).length > 0;
             
             if (!hasApi) {
@@ -8123,7 +8054,10 @@ function initKeepaliveSettings() {
         if (lastPingText) {
             if (lastPing > 0) {
                 const date = new Date(lastPing);
-                const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+                let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    }
                 const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
                 lastPingText.textContent = `上次 Ping：${date.toLocaleTimeString(localeCode)}`;
             } else {
@@ -8134,7 +8068,10 @@ function initKeepaliveSettings() {
         if (lastGreetingText) {
             if (lastGreeting > 0) {
                 const date = new Date(lastGreeting);
-                const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+                let lang = 'zh-Hant';
+    if (typeof sxStorage !== 'undefined' && sxStorage._cache) {
+        lang = sxStorage._cache.get('sxiphone_lang') || 'zh-Hant';
+    }
                 const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
                 lastGreetingText.textContent = `上次問候：${date.toLocaleTimeString(localeCode)}`;
             } else {
@@ -8147,7 +8084,7 @@ function initKeepaliveSettings() {
         }
     };
 
-    const saveKeepaliveSettings = () => {
+    const saveKeepaliveSettings = async () => {
         const enabled = enabledToggle?.checked || false;
         const interval = (Number(intervalRange?.value) || 5) * 60 * 1000;
         const greetingEnabled = greetingEnabledToggle?.checked !== false;
@@ -8157,14 +8094,14 @@ function initKeepaliveSettings() {
         const pushEnabled = document.getElementById('background-push-enabled')?.checked || false;
         const notificationType = document.getElementById('notification-type')?.value || 'auto';
 
-        localStorage.setItem('sx_keepalive_enabled', enabled ? '1' : '0');
-        localStorage.setItem('sx_keepalive_interval', String(interval));
-        localStorage.setItem('sx_keepalive_greeting_enabled', greetingEnabled ? '1' : '0');
-        localStorage.setItem('sx_keepalive_greeting_interval', String(greetingInterval));
-        localStorage.setItem('sx_keepalive_context_mode', contextMode);
-        localStorage.setItem('sx_keepalive_custom_prompt', customPrompt);
-        localStorage.setItem('sx_background_push_enabled', pushEnabled ? '1' : '0');
-        localStorage.setItem('sx_notification_type', notificationType);
+        await sxSetItem('sx_keepalive_enabled', enabled ? '1' : '0');
+        await sxSetItem('sx_keepalive_interval', String(interval));
+        await sxSetItem('sx_keepalive_greeting_enabled', greetingEnabled ? '1' : '0');
+        await sxSetItem('sx_keepalive_greeting_interval', String(greetingInterval));
+        await sxSetItem('sx_keepalive_context_mode', contextMode);
+        await sxSetItem('sx_keepalive_custom_prompt', customPrompt);
+        await sxSetItem('sx_background_push_enabled', pushEnabled ? '1' : '0');
+        await sxSetItem('sx_notification_type', notificationType);
 
         if (window.parent && window.parent !== window) {
             window.parent.postMessage({
@@ -8182,7 +8119,7 @@ function initKeepaliveSettings() {
             }, '*');
         }
 
-        updateKeepaliveStatus();
+        await updateKeepaliveStatus();
         alert('✅ 背景連線設定已儲存');
     };
 
@@ -8201,13 +8138,13 @@ function initKeepaliveSettings() {
     };
 
     if (intervalRange && intervalOutput) {
-        intervalRange.addEventListener('input', () => {
+        intervalRange.addEventListener('input', async () => {
             intervalOutput.textContent = intervalRange.value;
         });
     }
 
     if (greetingIntervalRange && greetingIntervalOutput) {
-        greetingIntervalRange.addEventListener('input', () => {
+        greetingIntervalRange.addEventListener('input', async () => {
             greetingIntervalOutput.textContent = greetingIntervalRange.value;
         });
     }
@@ -8220,20 +8157,20 @@ function initKeepaliveSettings() {
         triggerBtn.addEventListener('click', triggerGreeting);
     }
 
-    loadKeepaliveSettings();
-    updateKeepaliveStatus();
+    await loadKeepaliveSettings();
+    await updateKeepaliveStatus();
 
     setInterval(updateKeepaliveStatus, 5000);
 
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
         const data = event.data;
         if (data?.type === 'KEEPALIVE_STATUS') {
-            updateKeepaliveStatus();
+            await updateKeepaliveStatus();
         }
     });
 }
 
-function initChatNotificationSettings() {
+async function initChatNotificationSettings() {
     const enabledToggle = document.getElementById('chat-notification-enabled');
     const idleRange = document.getElementById('chat-notification-idle');
     const idleOutput = document.getElementById('chat-notification-idle-value');
@@ -8247,9 +8184,9 @@ function initChatNotificationSettings() {
     const styleSelect = document.getElementById('chat-notification-style');
     const testBtn = document.getElementById('test-chat-notification-btn');
 
-    const loadSettings = () => {
+    const loadSettings = async () => {
         try {
-            const raw = localStorage.getItem('sx_chat_notification_config');
+            const raw = await sxGetItem('sx_chat_notification_config');
             const config = raw ? JSON.parse(raw) : {};
             
             if (enabledToggle) enabledToggle.checked = config.enabled !== false;
@@ -8268,7 +8205,7 @@ function initChatNotificationSettings() {
         }
     };
 
-    const saveSettings = () => {
+    const saveSettings = async () => {
         const config = {
             enabled: enabledToggle?.checked !== false,
             idleMinutes: Number(idleRange?.value) || 30,
@@ -8279,7 +8216,7 @@ function initChatNotificationSettings() {
             notificationStyle: styleSelect?.value || 'contextual'
         };
 
-        localStorage.setItem('sx_chat_notification_config', JSON.stringify(config));
+        await sxSetItem('sx_chat_notification_config', JSON.stringify(config));
 
         const engine = window.ChatNotificationEngine || window.parent?.ChatNotificationEngine;
         if (engine) {
@@ -8297,25 +8234,25 @@ function initChatNotificationSettings() {
     };
 
     if (idleRange && idleOutput) {
-        idleRange.addEventListener('input', () => {
+        idleRange.addEventListener('input', async () => {
             idleOutput.textContent = idleRange.value;
         });
     }
 
     if (maxRange && maxOutput) {
-        maxRange.addEventListener('input', () => {
+        maxRange.addEventListener('input', async () => {
             maxOutput.textContent = maxRange.value;
         });
     }
 
     if (quietStartRange && quietStartOutput) {
-        quietStartRange.addEventListener('input', () => {
+        quietStartRange.addEventListener('input', async () => {
             quietStartOutput.textContent = `${String(quietStartRange.value).padStart(2, '0')}:00`;
         });
     }
 
     if (quietEndRange && quietEndOutput) {
-        quietEndRange.addEventListener('input', () => {
+        quietEndRange.addEventListener('input', async () => {
             quietEndOutput.textContent = `${String(quietEndRange.value).padStart(2, '0')}:00`;
         });
     }
@@ -8358,7 +8295,7 @@ function initChatNotificationSettings() {
         });
     }
 
-    loadSettings();
+    await loadSettings();
     
     const floatingEnabledToggle = document.getElementById('floating-messenger-enabled');
     const floatingScreenshareToggle = document.getElementById('floating-messenger-screenshare');
@@ -8370,16 +8307,16 @@ function initChatNotificationSettings() {
     const floatingPersonalityToggle = document.getElementById('floating-messenger-personality-based');
     const floatingSaveBtn = document.getElementById('floating-messenger-save-btn');
     
-    const loadCharacterList = () => {
+    const loadCharacterList = async () => {
         if (!floatingCharSelect) return;
         
-        const charactersRaw = localStorage.getItem('sx_characters');
-        const masksRaw = localStorage.getItem('sx_masks');
+        const charactersRaw = await sxGetItem('sx_characters');
+        const masksRaw = await sxGetItem('sx_masks');
         let characters = [];
         
         try {
             if (charactersRaw) {
-                characters = [...characters, ...JSON.parse(charactersRaw)];
+                characters = JSON.parse(charactersRaw);
             }
             if (masksRaw) {
                 characters = [...characters, ...JSON.parse(masksRaw)];
@@ -8388,7 +8325,7 @@ function initChatNotificationSettings() {
             console.warn('載入角色列表失敗:', e);
         }
         
-        const currentCharName = localStorage.getItem('sx_char_name');
+        const currentCharName = await sxGetItem('sx_char_name');
         
         if (characters.length === 0) {
             floatingCharSelect.innerHTML = '<option value="">目前沒有角色</option>';
@@ -8404,9 +8341,9 @@ function initChatNotificationSettings() {
         floatingCharSelect.innerHTML += '<option value="__current__">使用當前聊天角色</option>';
     };
     
-    const loadFloatingSettings = () => {
+    const loadFloatingSettings = async () => {
         try {
-            const raw = localStorage.getItem('sx_floating_messenger_config');
+            const raw = await sxGetItem('sx_floating_messenger_config');
             const config = raw ? JSON.parse(raw) : {};
             
             if (floatingEnabledToggle) floatingEnabledToggle.checked = config.enabled === true;
@@ -8422,7 +8359,7 @@ function initChatNotificationSettings() {
         }
     };
     
-    const saveFloatingSettings = () => {
+    const saveFloatingSettings = async () => {
         const config = {
             enabled: floatingEnabledToggle?.checked || false,
             screenshare: floatingScreenshareToggle?.checked || false,
@@ -8432,7 +8369,7 @@ function initChatNotificationSettings() {
             personalityBased: floatingPersonalityToggle?.checked !== false
         };
         
-        localStorage.setItem('sx_floating_messenger_config', JSON.stringify(config));
+        await sxSetItem('sx_floating_messenger_config', JSON.stringify(config));
         
         if (config.enabled && window.parent && window.parent !== window) {
             window.parent.postMessage({ type: 'OPEN_FLOATING_MESSENGER' }, '*');
@@ -8585,7 +8522,7 @@ function initChatNotificationSettings() {
     }
     
     if (floatingTestBtn) {
-        floatingTestBtn.addEventListener('click', () => {
+        floatingTestBtn.addEventListener('click', async () => {
             if (window.parent && window.parent !== window) {
                 window.parent.postMessage({ type: 'TOGGLE_FLOATING_MESSENGER' }, '*');
             } else if (window.FloatingMessenger) {
@@ -8594,8 +8531,8 @@ function initChatNotificationSettings() {
         });
     }
     
-    loadCharacterList();
-    loadFloatingSettings();
+    await loadCharacterList();
+    await loadFloatingSettings();
     updateFloatingPlatformInfo();
 }
 
@@ -8609,10 +8546,10 @@ const BackgroundPushManager = {
         notificationSupported: false
     },
 
-    init() {
+    async init() {
         this.detectDevice();
         this.checkSupport();
-        this.loadSettings();
+        await this.loadSettings();
         this.updateUI();
         this.bindEvents();
     },
@@ -8658,14 +8595,14 @@ const BackgroundPushManager = {
         }
     },
 
-    loadSettings() {
-        this.state.enabled = localStorage.getItem('sx_background_push_enabled') === '1';
-        this.state.notificationType = localStorage.getItem('sx_notification_type') || 'auto';
+    loadSettings: async function() {
+        this.state.enabled = await sxGetItem('sx_background_push_enabled') === '1';
+        this.state.notificationType = await sxGetItem('sx_notification_type') || 'auto';
     },
 
-    saveSettings() {
-        localStorage.setItem('sx_background_push_enabled', this.state.enabled ? '1' : '0');
-        localStorage.setItem('sx_notification_type', this.state.notificationType);
+    saveSettings: async function() {
+        await sxSetItem('sx_background_push_enabled', this.state.enabled ? '1' : '0');
+        await sxSetItem('sx_notification_type', this.state.notificationType);
     },
 
     async requestPermission() {
@@ -8901,9 +8838,9 @@ const getDefaultEnvSettings = () => ({
     cachedWeather: null
 });
 
-const loadEnvAwarenessSettings = () => {
+const loadEnvAwarenessSettings = async () => {
     try {
-        const raw = localStorage.getItem(ENV_AWARENESS_KEY);
+        const raw = await sxGetItem(ENV_AWARENESS_KEY);
         if (!raw) return getDefaultEnvSettings();
         const parsed = JSON.parse(raw);
         return { ...getDefaultEnvSettings(), ...parsed };
@@ -8912,9 +8849,9 @@ const loadEnvAwarenessSettings = () => {
     }
 };
 
-const saveEnvAwarenessSettings = (settings) => {
+const saveEnvAwarenessSettings = async (settings) => {
     const merged = { ...getDefaultEnvSettings(), ...settings };
-    localStorage.setItem(ENV_AWARENESS_KEY, JSON.stringify(merged));
+    await sxSetItem(ENV_AWARENESS_KEY, JSON.stringify(merged));
     return merged;
 };
 
@@ -8922,8 +8859,8 @@ const EnvAwarenessManager = {
     settings: null,
     weatherCache: null,
     
-    init() {
-        this.settings = loadEnvAwarenessSettings();
+    async init() {
+        this.settings = await loadEnvAwarenessSettings();
         this.bindEvents();
         this.updateUI();
         this.refreshEnvStatus();
@@ -9154,7 +9091,7 @@ const EnvAwarenessManager = {
         }
     },
     
-    saveSettings() {
+    async saveSettings() {
         const settings = {
             enabled: document.getElementById('env-awareness-enabled')?.checked || false,
             locationDisplay: document.getElementById('env-location-display')?.value?.trim() || '',
@@ -9174,14 +9111,13 @@ const EnvAwarenessManager = {
             injectPosition: document.getElementById('env-inject-position')?.value || 'system'
         };
         
-        this.settings = saveEnvAwarenessSettings(settings);
+        this.settings = await saveEnvAwarenessSettings(settings);
         
-        // 同步到獨立的 localStorage key，供其他應用快速存取
-        localStorage.setItem('sx_env_awareness_enabled', settings.enabled ? 'true' : 'false');
-        localStorage.setItem('sx_env_location_display', settings.locationDisplay);
-        localStorage.setItem('sx_env_location_city', settings.locationCity);
-        localStorage.setItem('sx_env_location_country', settings.locationCountry);
-        localStorage.setItem('sx_env_weather_provider', settings.weatherProvider);
+        await sxSetItem('sx_env_awareness_enabled', settings.enabled ? 'true' : 'false');
+        await sxSetItem('sx_env_location_display', settings.locationDisplay);
+        await sxSetItem('sx_env_location_city', settings.locationCity);
+        await sxSetItem('sx_env_location_country', settings.locationCountry);
+        await sxSetItem('sx_env_weather_provider', settings.weatherProvider);
         
         // 通知父視窗設定已更新
         window.parent?.postMessage({
@@ -9493,7 +9429,7 @@ setInterval(() => {
     EnvAwarenessManager.updateWeatherCache();
 }, 30 * 60 * 1000);
 
-function initEncryptedCardImport() {
+async function initEncryptedCardImport() {
     const cardApiUrlInput = document.getElementById('card-api-url');
     const cardApiTestBtn = document.getElementById('card-api-test-btn');
     const cardApiSaveBtn = document.getElementById('card-api-save-btn');
@@ -9512,19 +9448,19 @@ function initEncryptedCardImport() {
         deviceIdDisplay.textContent = CharacterCardCrypto.getDeviceId();
     }
     
-    const savedApiUrl = localStorage.getItem('sx_card_api_url') || '';
+    const savedApiUrl = await sxGetItem('sx_card_api_url') || '';
     if (cardApiUrlInput) {
         cardApiUrlInput.value = savedApiUrl;
     }
     
     if (cardApiSaveBtn) {
-        cardApiSaveBtn.addEventListener('click', () => {
+        cardApiSaveBtn.addEventListener('click', async () => {
             const url = cardApiUrlInput?.value.trim() || '';
             if (url) {
-                localStorage.setItem('sx_card_api_url', url);
+                await sxSetItem('sx_card_api_url', url);
                 if (cardApiStatus) cardApiStatus.textContent = '✅ API 網址已儲存';
             } else {
-                localStorage.removeItem('sx_card_api_url');
+                await sxRemoveItem('sx_card_api_url');
                 if (cardApiStatus) cardApiStatus.textContent = '已清除 API 網址';
             }
         });
@@ -9576,7 +9512,7 @@ function initEncryptedCardImport() {
                 const parsedCode = CharacterCardCrypto.parseEncryptedCode(code);
                 if (encryptedCardStatus) encryptedCardStatus.textContent = '申請一次性金鑰中...';
                 
-                const apiUrl = localStorage.getItem('sx_card_api_url') || '';
+                const apiUrl = await sxGetItem('sx_card_api_url') || '';
                 if (!apiUrl) {
                     if (encryptedCardStatus) encryptedCardStatus.textContent = '❌ 請先設定後端 API 網址';
                     return;
@@ -9646,7 +9582,7 @@ function initEncryptedCardImport() {
                 const savedChar = await CharacterCardCrypto.saveCharacterToLocalStorage(currentCardData);
                 
                 if (currentUsageId) {
-                    const apiUrl = localStorage.getItem('sx_card_api_url') || '';
+                const apiUrl = await sxGetItem('sx_card_api_url') || '';
                     try {
                         await CharacterCardCrypto.confirmImport(currentUsageId, apiUrl);
                     } catch (e) {
@@ -9674,16 +9610,16 @@ function initEncryptedCardImport() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
+document.addEventListener('DOMContentLoaded', async () => {
+    setTimeout(async () => {
         initMemoryTableSettings();
         initExternalImporter();
-        initKeepaliveSettings();
-        initChatNotificationSettings();
-        BackgroundPushManager.init();
-        EnvAwarenessManager.init();
+        await initKeepaliveSettings();
+        await initChatNotificationSettings();
+        await BackgroundPushManager.init();
+        await EnvAwarenessManager.init();
         FullscreenManager.init();
-        initEncryptedCardImport();
+        await initEncryptedCardImport();
     }, 100);
 });
 

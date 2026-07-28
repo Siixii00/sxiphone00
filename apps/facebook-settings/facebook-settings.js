@@ -18,8 +18,8 @@ const FB_SPONSORED_KEY = 'sx_fb_sponsored';
 
 const state = {
   profile: {
-    userName: localStorage.getItem('sx_user_name') || '你',
-    avatar: localStorage.getItem('sx_user_avatar') || ''
+    userName: '你',
+    avatar: ''
   },
   accountProfiles: {},
   friends: [],
@@ -42,8 +42,8 @@ const state = {
   charViewName: window.charViewName || ''
 };
 
-function loadJSON(key, fallback) {
-  const raw = localStorage.getItem(key);
+async function loadJSON(key, fallback) {
+  const raw = await sxGetItem(key);
   if (!raw) return fallback;
   try {
     return JSON.parse(raw);
@@ -57,29 +57,29 @@ const escapeHTML = (str = '') => String(str)
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;');
 
-function getCharacterList() {
+async function getCharacterList() {
   return loadJSON(CHAR_LIST_KEY, []);
 }
 
-function getNpcList() {
+async function getNpcList() {
   return loadJSON(NPC_LIST_KEY, []);
 }
 
-function getUserData() {
+async function getUserData() {
   return {
-    name: localStorage.getItem('sx_user_name') || 'User',
-    personality: localStorage.getItem('sx_user_personality') || '',
-    background: localStorage.getItem('sx_user_background') || '',
-    avatar: localStorage.getItem('sx_user_avatar') || ''
+    name: await sxGetItem('sx_user_name') || 'User',
+    personality: await sxGetItem('sx_user_personality') || '',
+    background: await sxGetItem('sx_user_background') || '',
+    avatar: await sxGetItem('sx_user_avatar') || ''
   };
 }
 
-function getCommunityTone() {
-  return localStorage.getItem(FB_COMMUNITY_TONE_KEY) || 'neutral';
+async function getCommunityTone() {
+  return await sxGetItem(FB_COMMUNITY_TONE_KEY) || 'neutral';
 }
 
-function getCommunityFlags() {
-  const raw = localStorage.getItem(FB_COMMUNITY_FLAGS_KEY);
+async function getCommunityFlags() {
+  const raw = await sxGetItem(FB_COMMUNITY_FLAGS_KEY);
   if (!raw) {
     return { criticism: true, sarcasm: true, arguments: false, trolling: false };
   }
@@ -90,49 +90,51 @@ function getCommunityFlags() {
   }
 }
 
-function getNpcPersonality() {
-  return localStorage.getItem(FB_NPC_PERSONALITY_KEY) || '';
+async function getNpcPersonality() {
+  return await sxGetItem(FB_NPC_PERSONALITY_KEY) || '';
 }
 
-function getHaterProfiles() {
-  return localStorage.getItem(FB_HATER_PROFILES_KEY) || '';
+async function getHaterProfiles() {
+  return await sxGetItem(FB_HATER_PROFILES_KEY) || '';
 }
 
-function isHatersEnabled() {
-  return localStorage.getItem(FB_ENABLE_HATERS_KEY) === 'true';
+async function isHatersEnabled() {
+  return await sxGetItem(FB_ENABLE_HATERS_KEY) === 'true';
 }
 
-function saveFacebookData() {
+async function saveFacebookData() {
   try {
-    localStorage.setItem(FB_FRIENDS_KEY, JSON.stringify(state.friends));
-    localStorage.setItem(FB_NPC_FRIENDS_KEY, JSON.stringify(state.npcFriends));
-    localStorage.setItem(FB_POST_SETTINGS_KEY, JSON.stringify(state.postSettings));
-    localStorage.setItem(FB_COMMUNITY_TONE_KEY, state.communitySettings.tone);
-    localStorage.setItem(FB_COMMUNITY_FLAGS_KEY, JSON.stringify(state.communitySettings.flags));
-    localStorage.setItem(FB_NPC_PERSONALITY_KEY, state.communitySettings.npcPersonality);
-    localStorage.setItem(FB_HATER_PROFILES_KEY, state.communitySettings.haterProfiles);
-    localStorage.setItem(FB_ENABLE_HATERS_KEY, String(state.communitySettings.enableHaters));
+    await sxSetJSON(FB_FRIENDS_KEY, state.friends);
+    await sxSetJSON(FB_NPC_FRIENDS_KEY, state.npcFriends);
+    await sxSetJSON(FB_POST_SETTINGS_KEY, state.postSettings);
+    await sxSetItem(FB_COMMUNITY_TONE_KEY, state.communitySettings.tone);
+    await sxSetJSON(FB_COMMUNITY_FLAGS_KEY, state.communitySettings.flags);
+    await sxSetItem(FB_NPC_PERSONALITY_KEY, state.communitySettings.npcPersonality);
+    await sxSetItem(FB_HATER_PROFILES_KEY, state.communitySettings.haterProfiles);
+    await sxSetItem(FB_ENABLE_HATERS_KEY, String(state.communitySettings.enableHaters));
   } catch (e) {
     console.error('保存 Facebook 數據失敗:', e);
   }
 }
 
-function loadSettings() {
-  state.friends = loadJSON(FB_FRIENDS_KEY, []);
-  state.npcFriends = loadJSON(FB_NPC_FRIENDS_KEY, []);
-  state.postSettings = { ...state.postSettings, ...loadJSON(FB_POST_SETTINGS_KEY, {}) };
-  state.communitySettings.tone = getCommunityTone();
-  state.communitySettings.flags = getCommunityFlags();
-  state.communitySettings.npcPersonality = getNpcPersonality();
-  state.communitySettings.haterProfiles = getHaterProfiles();
-  state.communitySettings.enableHaters = isHatersEnabled();
+async function loadSettings() {
+  state.profile.userName = await sxGetItem('sx_user_name') || '你';
+  state.profile.avatar = await sxGetItem('sx_user_avatar') || '';
+  state.friends = await loadJSON(FB_FRIENDS_KEY, []);
+  state.npcFriends = await loadJSON(FB_NPC_FRIENDS_KEY, []);
+  state.postSettings = { ...state.postSettings, ...await loadJSON(FB_POST_SETTINGS_KEY, {}) };
+  state.communitySettings.tone = await getCommunityTone();
+  state.communitySettings.flags = await getCommunityFlags();
+  state.communitySettings.npcPersonality = await getNpcPersonality();
+  state.communitySettings.haterProfiles = await getHaterProfiles();
+  state.communitySettings.enableHaters = await isHatersEnabled();
   
   state.accountProfiles = {
-    user: loadJSON(FB_USER_PROFILES_KEY, {}),
-    char: loadJSON(FB_CHAR_PROFILES_KEY, {})
+    user: await loadJSON(FB_USER_PROFILES_KEY, {}),
+    char: await loadJSON(FB_CHAR_PROFILES_KEY, {})
   };
   
-  state.sponsored = loadJSON(FB_SPONSORED_KEY, []);
+  state.sponsored = await loadJSON(FB_SPONSORED_KEY, []);
   
   if (state.isCharView && state.charViewName) {
     state.currentAccount = 'user';
@@ -146,17 +148,17 @@ function getAccountProfile(accountValue) {
   return state.accountProfiles.char[accountValue] || {};
 }
 
-function saveAccountProfile(accountValue, profile) {
+async function saveAccountProfile(accountValue, profile) {
   if (accountValue === 'user') {
     state.accountProfiles.user = profile;
-    localStorage.setItem(FB_USER_PROFILES_KEY, JSON.stringify(profile));
+    await sxSetJSON(FB_USER_PROFILES_KEY, profile);
   } else {
     state.accountProfiles.char[accountValue] = profile;
-    localStorage.setItem(FB_CHAR_PROFILES_KEY, JSON.stringify(state.accountProfiles.char));
+    await sxSetJSON(FB_CHAR_PROFILES_KEY, state.accountProfiles.char);
   }
 }
 
-function loadProfileEditForm() {
+async function loadProfileEditForm() {
   const accountValue = state.currentAccount;
   const profile = getAccountProfile(accountValue);
   
@@ -171,11 +173,11 @@ function loadProfileEditForm() {
   const editEducation = document.getElementById('edit-education');
   
   if (accountValue === 'user') {
-    const user = getUserData();
+    const user = await getUserData();
     editName.value = profile.name || user.name || '';
     editAvatar.value = profile.avatar || user.avatar || '';
   } else {
-    const charList = getCharacterList();
+    const charList = await getCharacterList();
     const charData = charList.find(c => c.name === accountValue);
     editName.value = profile.name || (charData ? charData.name : '') || '';
     editAvatar.value = profile.avatar || (charData ? charData.avatar : '') || '';
@@ -212,7 +214,7 @@ function bindProfileEditEvents() {
   });
   
   const saveProfileBtn = document.getElementById('save-profile-btn');
-  saveProfileBtn?.addEventListener('click', () => {
+  saveProfileBtn?.addEventListener('click', async () => {
     const accountValue = state.currentAccount;
     const profile = {
       name: document.getElementById('edit-name')?.value?.trim() || '',
@@ -226,34 +228,34 @@ function bindProfileEditEvents() {
       education: document.getElementById('edit-education')?.value?.trim() || ''
     };
     
-    saveAccountProfile(accountValue, profile);
+    await saveAccountProfile(accountValue, profile);
     
     if (accountValue === 'user') {
-      localStorage.setItem('sx_user_name', profile.name || '你');
-      if (profile.avatar) localStorage.setItem('sx_user_avatar', profile.avatar);
+      await sxSetItem('sx_user_name', profile.name || '你');
+      if (profile.avatar) await sxSetItem('sx_user_avatar', profile.avatar);
     }
     
-    updateProfileDisplay();
-    updateAccountSelector();
+    await updateProfileDisplay();
+    await updateAccountSelector();
     
     saveProfileBtn.textContent = '已儲存';
     setTimeout(() => { saveProfileBtn.textContent = '儲存個人資料'; }, 1200);
   });
 }
 
-function updateProfileDisplay() {
+async function updateProfileDisplay() {
   const accountValue = state.currentAccount;
   const profile = getAccountProfile(accountValue);
   let displayName = profile.name;
   let avatar = profile.avatar;
   
   if (!displayName || !avatar) {
-    const user = getUserData();
+    const user = await getUserData();
     if (accountValue === 'user') {
       displayName = displayName || user.name || '你';
       avatar = avatar || user.avatar || '';
     } else {
-      const charList = getCharacterList();
+      const charList = await getCharacterList();
       const charData = charList.find(c => c.name === accountValue);
       displayName = displayName || (charData ? charData.name : accountValue);
       avatar = avatar || (charData ? charData.avatar : '') || '';
@@ -277,11 +279,11 @@ function updateProfileDisplay() {
   }
 }
 
-function updateAccountSelector() {
+async function updateAccountSelector() {
   const accountSelect = document.getElementById('account-select');
   if (!accountSelect) return;
   
-  const user = getUserData();
+  const user = await getUserData();
   const userProfile = getAccountProfile('user');
   const userName = userProfile.name || user.name || '你';
   const options = [`<option value="user">${escapeHTML(userName)}</option>`];
@@ -300,18 +302,18 @@ function updateAccountSelector() {
     state.currentAccount = 'user';
   }
   
-  accountSelect.addEventListener('change', () => {
+  accountSelect.addEventListener('change', async () => {
     state.currentAccount = accountSelect.value;
-    updateProfileDisplay();
-    loadProfileEditForm();
+    await updateProfileDisplay();
+    await loadProfileEditForm();
   });
 }
 
-function renderCharFriendsList() {
+async function renderCharFriendsList() {
   const container = document.getElementById('char-friends-list');
   if (!container) return;
 
-  const charList = getCharacterList();
+  const charList = await getCharacterList();
   if (charList.length === 0) {
     container.innerHTML = '<div class="muted-text">尚未建立角色，請先到設定建立</div>';
     return;
@@ -331,7 +333,7 @@ function renderCharFriendsList() {
   }).join('');
 
   container.querySelectorAll('.char-friend-check').forEach(check => {
-    check.addEventListener('change', () => {
+    check.addEventListener('change', async () => {
       const charName = check.dataset.charName;
       if (check.checked) {
         if (!state.friends.includes(charName)) {
@@ -340,17 +342,21 @@ function renderCharFriendsList() {
       } else {
         state.friends = state.friends.filter(n => n !== charName);
       }
-      saveFacebookData();
+      await saveFacebookData();
+      await updateAccountSelector();
+    });
+  });
+}
       updateAccountSelector();
     });
   });
 }
 
-function renderNpcFriendsList() {
+async function renderNpcFriendsList() {
   const container = document.getElementById('npc-friends-list');
   if (!container) return;
 
-  const npcList = getNpcList();
+  const npcList = await getNpcList();
   if (npcList.length === 0) {
     container.innerHTML = '<div class="muted-text">尚未建立 NPC，請先到設定建立</div>';
     return;
@@ -370,7 +376,7 @@ function renderNpcFriendsList() {
   }).join('');
 
   container.querySelectorAll('.npc-friend-check').forEach(check => {
-    check.addEventListener('change', () => {
+    check.addEventListener('change', async () => {
       const npcName = check.dataset.npcName;
       if (check.checked) {
         if (!state.npcFriends.includes(npcName)) {
@@ -379,25 +385,25 @@ function renderNpcFriendsList() {
       } else {
         state.npcFriends = state.npcFriends.filter(n => n !== npcName);
       }
-      saveFacebookData();
+      await saveFacebookData();
     });
   });
 }
 
-function getWorldbookIndex() {
+async function getWorldbookIndex() {
   return loadJSON(WORLD_BOOK_INDEX_KEY, []);
 }
 
-function getWorldbookMounts() {
+async function getWorldbookMounts() {
   return loadJSON(WORLD_BOOK_MOUNTS_KEY, []);
 }
 
-function renderWorldbookMountList() {
+async function renderWorldbookMountList() {
   const container = document.getElementById('wb-mount-list');
   if (!container) return;
 
-  const index = getWorldbookIndex();
-  const mounts = getWorldbookMounts();
+  const index = await getWorldbookIndex();
+  const mounts = await getWorldbookMounts();
   const mountMap = new Map(mounts.map(item => [item.name, item]));
   const items = index.length ? index : [{ title: '通用常識庫' }];
 
@@ -422,7 +428,7 @@ function renderWorldbookMountList() {
   }).join('');
 }
 
-function saveWorldbookMounts() {
+async function saveWorldbookMounts() {
   const container = document.getElementById('wb-mount-list');
   if (!container) return;
 
@@ -440,8 +446,8 @@ function saveWorldbookMounts() {
     });
   });
 
-  localStorage.setItem(WORLD_BOOK_MOUNTS_KEY, JSON.stringify(mounts));
-  localStorage.setItem(FB_WB_MOUNTS_KEY, JSON.stringify(mounts));
+  await sxSetJSON(WORLD_BOOK_MOUNTS_KEY, mounts);
+  await sxSetJSON(FB_WB_MOUNTS_KEY, mounts);
   
   const saveBtn = document.getElementById('wb-save');
   if (saveBtn) {
@@ -457,25 +463,25 @@ function loadPostSettings() {
 
   if (generateUserPosts) {
     generateUserPosts.checked = state.postSettings.generateUserPosts !== false;
-    generateUserPosts.addEventListener('change', () => {
+    generateUserPosts.addEventListener('change', async () => {
       state.postSettings.generateUserPosts = generateUserPosts.checked;
-      saveFacebookData();
+      await saveFacebookData();
     });
   }
 
   if (generateFriendPosts) {
     generateFriendPosts.checked = state.postSettings.generateFriendPosts !== false;
-    generateFriendPosts.addEventListener('change', () => {
+    generateFriendPosts.addEventListener('change', async () => {
       state.postSettings.generateFriendPosts = generateFriendPosts.checked;
-      saveFacebookData();
+      await saveFacebookData();
     });
   }
 
   if (generateNpcPosts) {
     generateNpcPosts.checked = state.postSettings.generateNpcPosts === true;
-    generateNpcPosts.addEventListener('change', () => {
+    generateNpcPosts.addEventListener('change', async () => {
       state.postSettings.generateNpcPosts = generateNpcPosts.checked;
-      saveFacebookData();
+      await saveFacebookData();
     });
   }
 }
@@ -484,9 +490,9 @@ function loadCommunitySettings() {
   const communityToneSelect = document.getElementById('community-tone');
   if (communityToneSelect) {
     communityToneSelect.value = state.communitySettings.tone;
-    communityToneSelect.addEventListener('change', () => {
+    communityToneSelect.addEventListener('change', async () => {
       state.communitySettings.tone = communityToneSelect.value;
-      saveFacebookData();
+      await saveFacebookData();
     });
   }
 
@@ -500,14 +506,14 @@ function loadCommunitySettings() {
   if (argumentsCheck) argumentsCheck.checked = state.communitySettings.flags.arguments;
   if (trollingCheck) trollingCheck.checked = state.communitySettings.flags.trolling;
 
-  const saveCommunityFlags = () => {
+  const saveCommunityFlags = async () => {
     state.communitySettings.flags = {
       criticism: criticismCheck?.checked || false,
       sarcasm: sarcasmCheck?.checked || false,
       arguments: argumentsCheck?.checked || false,
       trolling: trollingCheck?.checked || false
     };
-    saveFacebookData();
+    await saveFacebookData();
   };
 
   criticismCheck?.addEventListener('change', saveCommunityFlags);
@@ -533,44 +539,44 @@ function loadCommunitySettings() {
     if (haterSettingsPanel) {
       haterSettingsPanel.classList.toggle('hidden', !enableHatersToggle.checked);
     }
-    enableHatersToggle.addEventListener('change', () => {
+    enableHatersToggle.addEventListener('change', async () => {
       state.communitySettings.enableHaters = enableHatersToggle.checked;
       if (haterSettingsPanel) {
         haterSettingsPanel.classList.toggle('hidden', !enableHatersToggle.checked);
       }
-      saveFacebookData();
+      await saveFacebookData();
     });
   }
 
   const communitySaveBtn = document.getElementById('community-save');
-  communitySaveBtn?.addEventListener('click', () => {
+  communitySaveBtn?.addEventListener('click', async () => {
     if (npcPersonalityInput) {
       state.communitySettings.npcPersonality = npcPersonalityInput.value.trim();
     }
     if (haterProfilesInput) {
       state.communitySettings.haterProfiles = haterProfilesInput.value.trim();
     }
-    saveFacebookData();
+    await saveFacebookData();
     communitySaveBtn.textContent = '已儲存';
     setTimeout(() => { communitySaveBtn.textContent = '儲存社群設定'; }, 1200);
   });
 }
 
-function getActiveApiConfig() {
-  const configs = loadJSON('api_configs', []);
+async function getActiveApiConfig() {
+  const configs = await loadJSON('api_configs', []);
   const list = Array.isArray(configs) ? configs : [];
-  const activeIndex = Number(localStorage.getItem('sx_active_api') || 0);
+  const activeIndex = Number(await sxGetItem('sx_active_api') || 0);
   return list[activeIndex] || list[0] || null;
 }
 
-function getChatHistoryContext() {
-  const raw = localStorage.getItem('sx_chat_history');
+async function getChatHistoryContext() {
+  const raw = await sxGetItem('sx_chat_history');
   if (!raw) return '無聊天記錄';
   try {
     const history = JSON.parse(raw);
     const recent = history.slice(-15);
     if (recent.length === 0) return '無聊天記錄';
-    const userName = localStorage.getItem('sx_user_name') || 'User';
+    const userName = await sxGetItem('sx_user_name') || 'User';
     return recent.map(msg => {
       const role = msg.role === 'user' ? userName : '角色';
       return `${role}: ${msg.content.slice(0, 100)}`;
@@ -580,13 +586,13 @@ function getChatHistoryContext() {
   }
 }
 
-function getWorldbookContext() {
+async function getWorldbookContext() {
   const categories = ['cot', 'style', 'global', 'keywords', 'backend'];
   const entries = [];
-  categories.forEach(cat => {
+  for (const cat of categories) {
     const key = `sx_worldbook_${cat}`;
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
+    const raw = await sxGetItem(key);
+    if (!raw) continue;
     try {
       const list = JSON.parse(raw);
       if (Array.isArray(list)) {
@@ -597,7 +603,7 @@ function getWorldbookContext() {
         });
       }
     } catch (e) {}
-  });
+  }
   return entries.length > 0 ? entries.join('\n') : '無世界書設定';
 }
 
@@ -641,7 +647,7 @@ function getCommunityContext() {
 }
 
 async function generateAIPosts() {
-  const apiConfig = getActiveApiConfig();
+  const apiConfig = await getActiveApiConfig();
   if (!apiConfig?.url) {
     alert('尚未設定 API，請先到設定頁面配置');
     return;
@@ -654,9 +660,9 @@ async function generateAIPosts() {
   }
 
   try {
-    const user = getUserData();
-    const worldbooks = getWorldbookContext();
-    const chatHistory = getChatHistoryContext();
+    const user = await getUserData();
+    const worldbooks = await getWorldbookContext();
+    const chatHistory = await getChatHistoryContext();
     const communityContext = getCommunityContext();
 
     const authors = [];
@@ -683,7 +689,7 @@ async function generateAIPosts() {
       ? apiConfig.url
       : `${apiConfig.url.replace(/\/$/, '')}/chat/completions`;
 
-    const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+    const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
     const systemPrompt = `你是一位專業的社群媒體內容創作者，擅長根據角色設定創作符合人物性格的 Facebook 貼文。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
 輸出格式為 JSON: {"posts":[{"author":"","text":"","visibility":"public|friends","like":0,"comment":0,"share":0}]}
@@ -744,7 +750,7 @@ ${communityContext}
     const posts = Array.isArray(parsed?.posts) ? parsed.posts : [];
     
     const FB_GENERATED_POSTS_KEY = 'sx_fb_generated_posts';
-    const generatedPosts = loadJSON(FB_GENERATED_POSTS_KEY, []);
+    const generatedPosts = await loadJSON(FB_GENERATED_POSTS_KEY, []);
 
     posts.forEach(p => {
       if (p.text) {
@@ -766,7 +772,7 @@ ${communityContext}
       }
     });
 
-    localStorage.setItem(FB_GENERATED_POSTS_KEY, JSON.stringify(generatedPosts.slice(0, 100)));
+    await sxSetJSON(FB_GENERATED_POSTS_KEY, generatedPosts.slice(0, 100));
     alert(`已生成 ${posts.length} 則貼文`);
   } catch (err) {
     alert(`生成失敗: ${err.message}`);
@@ -780,10 +786,10 @@ ${communityContext}
 
 function bindEvents() {
   const accountSelect = document.getElementById('account-select');
-  accountSelect?.addEventListener('change', () => {
+  accountSelect?.addEventListener('change', async () => {
     state.currentAccount = accountSelect.value;
-    updateProfileDisplay();
-    loadProfileEditForm();
+    await updateProfileDisplay();
+    await loadProfileEditForm();
   });
 
   bindProfileEditEvents();
@@ -793,20 +799,20 @@ function bindEvents() {
   const aiGenerateBtn = document.getElementById('ai-generate-btn');
 
   wbSaveBtn?.addEventListener('click', saveWorldbookMounts);
-  wbRefreshBtn?.addEventListener('click', () => {
+  wbRefreshBtn?.addEventListener('click', async () => {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'REQUEST_WORLD_BOOK_SYNC' }, '*');
     }
-    renderWorldbookMountList();
+    await renderWorldbookMountList();
   });
   aiGenerateBtn?.addEventListener('click', generateAIPosts);
 
-  window.addEventListener('message', (event) => {
+  window.addEventListener('message', async (event) => {
     const data = event.data;
     if (!data || typeof data !== 'object') return;
     
     if (data.type === 'WORLD_BOOK_SYNC_READY') {
-      renderWorldbookMountList();
+      await renderWorldbookMountList();
     }
   });
 
@@ -869,23 +875,25 @@ function bindSponsoredEvents() {
     renderSponsoredList();
   });
 
-  saveBtn?.addEventListener('click', () => {
-    localStorage.setItem(FB_SPONSORED_KEY, JSON.stringify(state.sponsored));
+  saveBtn?.addEventListener('click', async () => {
+    await sxSetJSON(FB_SPONSORED_KEY, state.sponsored);
     saveBtn.textContent = '已儲存';
     setTimeout(() => { saveBtn.textContent = '儲存贊助內容'; }, 1200);
   });
 }
 
-loadSettings();
-updateProfileDisplay();
-updateAccountSelector();
-loadProfileEditForm();
-renderCharFriendsList();
-renderNpcFriendsList();
-renderWorldbookMountList();
-loadPostSettings();
-loadCommunitySettings();
-renderSponsoredList();
-bindEvents();
-bindSponsoredEvents();
-console.log('Loaded app: facebook-settings');
+(async () => {
+  await loadSettings();
+  await updateProfileDisplay();
+  await updateAccountSelector();
+  await loadProfileEditForm();
+  await renderCharFriendsList();
+  await renderNpcFriendsList();
+  await renderWorldbookMountList();
+  loadPostSettings();
+  loadCommunitySettings();
+  renderSponsoredList();
+  bindEvents();
+  bindSponsoredEvents();
+  console.log('Loaded app: facebook-settings');
+})();

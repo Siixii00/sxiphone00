@@ -158,8 +158,8 @@
     },
     'clock-alarm': {
       name: '鬧鐘', cat: 'clock', sizes: ['2x1','2x2'], preview: 'lib-preview-mini',
-      render(w) {
-        const saved = localStorage.getItem('sx_alarm_next');
+      async render(w) {
+        const saved = await sxGetItem('sx_alarm_next');
         let next = saved || '08:00'; let label = '下一個鬧鐘';
         if (saved) {
           const diff = Math.max(0, new Date(saved).getTime() - Date.now());
@@ -692,10 +692,10 @@
   /* ==================== DESKTOP APP LAYOUT ==================== */
   
   // 載入應用程式佈局
-  function loadAppLayout() {
+  async function loadAppLayout() {
     try {
-      const raw = localStorage.getItem(APP_LAYOUT_KEY);
-      if (raw) return JSON.parse(raw);
+      const data = await sxGetJSON(APP_LAYOUT_KEY);
+      if (data) return data;
     } catch {}
     // 預設佈局：按 ALL_APPS 順序排列
     return ALL_APPS.map((app, idx) => ({
@@ -706,29 +706,29 @@
   }
   
   // 儲存應用程式佈局
-  function saveAppLayout() {
-    localStorage.setItem(APP_LAYOUT_KEY, JSON.stringify(state.appLayout));
+  async function saveAppLayout() {
+    await sxSetJSON(APP_LAYOUT_KEY, state.appLayout);
     syncToHome();
   }
   
   // 載入隱藏的應用程式
-  function loadHiddenApps() {
+  async function loadHiddenApps() {
     try {
-      const raw = localStorage.getItem(HIDDEN_APPS_KEY);
-      if (raw) state.hiddenApps = JSON.parse(raw);
+      const data = await sxGetJSON(HIDDEN_APPS_KEY);
+      if (data) state.hiddenApps = data;
     } catch {}
   }
   
   // 儲存隱藏的應用程式
-  function saveHiddenApps() {
-    localStorage.setItem(HIDDEN_APPS_KEY, JSON.stringify(state.hiddenApps));
+  async function saveHiddenApps() {
+    await sxSetJSON(HIDDEN_APPS_KEY, state.hiddenApps);
     syncToHome();
   }
   
   // 載入每頁數量設定
-  function loadPageSize() {
+  async function loadPageSize() {
     try {
-      const raw = localStorage.getItem(PAGE_SIZE_KEY);
+      const raw = await sxGetItem(PAGE_SIZE_KEY);
       if (raw) state.pageSize = parseInt(raw) || 8;
     } catch {}
   }
@@ -911,7 +911,7 @@
     }
   }
   
-  function handleAppDrop(e) {
+  async function handleAppDrop(e) {
     e.preventDefault();
     if (!draggedAppElement || !state.isEditing) return;
     
@@ -936,7 +936,7 @@
       draggedItem.position = targetPos;
       targetItem.page = draggedPage;
       targetItem.position = draggedPos;
-      saveAppLayout();
+      await saveAppLayout();
       renderDesktopPreview();
       showToast('已移動');
     }
@@ -950,7 +950,7 @@
     e.target.closest('.desktop-empty-slot')?.classList.add('drag-over');
   }
   
-  function handleSlotDrop(e) {
+  async function handleSlotDrop(e) {
     e.preventDefault();
     if (!draggedAppElement || !state.isEditing) return;
     
@@ -966,7 +966,7 @@
     if (item) {
       item.page = newPage;
       item.position = newPos;
-      saveAppLayout();
+      await saveAppLayout();
       renderDesktopPreview();
       showToast('已移動');
     }
@@ -975,13 +975,44 @@
   }
   
   // 隱藏應用程式
-  function hideAppFromDesktop(appId) {
+  async function hideAppFromDesktop(appId) {
     if (!state.hiddenApps.includes(appId)) {
       state.hiddenApps.push(appId);
-      saveHiddenApps();
+      await saveHiddenApps();
       renderDesktopPreview();
       showToast('已隱藏');
     }
+  }
+  
+  async function showAppOnDesktop(appId) {
+    const idx = state.hiddenApps.indexOf(appId);
+    if (idx > -1) {
+      state.hiddenApps.splice(idx, 1);
+      await saveHiddenApps();
+      renderDesktopPreview();
+      renderAppPickerGrid();
+      showToast('已顯示');
+    }
+  }
+  
+  async function addAppToPosition(appId, page, position) {
+    const existing = state.appLayout.find(item => item.appId === appId);
+    if (existing) {
+      existing.page = page;
+      existing.position = position;
+    } else {
+      state.appLayout.push({ appId, page, position });
+    }
+    
+    const hiddenIdx = state.hiddenApps.indexOf(appId);
+    if (hiddenIdx > -1) {
+      state.hiddenApps.splice(hiddenIdx, 1);
+      await saveHiddenApps();
+    }
+    
+    await saveAppLayout();
+    renderDesktopPreview();
+  }
   }
   
   // 顯示應用程式
@@ -1120,11 +1151,10 @@
   }
 
   /* ==================== DATA FETCHERS (real data) ==================== */
-  function getWeatherData() {
+  async function getWeatherData() {
     try {
-      const raw = localStorage.getItem('sx_weather_cache');
-      if (raw) {
-        const d = JSON.parse(raw);
+      const d = await sxGetJSON('sx_weather_cache');
+      if (d) {
         const hours = [];
         for (let i = 0; i < 8; i++) {
           const t = new Date(); t.setHours(t.getHours() + i);
@@ -1182,10 +1212,10 @@
     return { emoji: emojis[Math.floor(Math.random()*8)], dateStr: `${day}` };
   }
 
-  function getTodayEvents() {
+  async function getTodayEvents() {
     try {
-      const raw = localStorage.getItem('sx_today_events');
-      if (raw) return JSON.parse(raw);
+      const data = await sxGetJSON('sx_today_events');
+      if (data) return data;
     } catch {}
     return [
       { time: '09:00', title: '團隊會議' },
@@ -1214,27 +1244,21 @@
     return { value: val, label, color, station: '台北市', pct };
   }
 
-  function getAlbumPhoto() {
+  async function getAlbumPhoto() {
     try {
-      const raw = localStorage.getItem('sx_album_uploaded_images');
-      if (raw) {
-        const imgs = JSON.parse(raw);
-        if (Array.isArray(imgs) && imgs.length) {
-          const img = imgs[Math.floor(Math.random() * imgs.length)];
-          return typeof img === 'string' ? img : img.url;
-        }
+      const imgs = await sxGetJSON('sx_album_uploaded_images');
+      if (Array.isArray(imgs) && imgs.length) {
+        const img = imgs[Math.floor(Math.random() * imgs.length)];
+        return typeof img === 'string' ? img : img.url;
       }
     } catch {}
     return '';
   }
 
-  function getAlbumPhotos(count) {
+  async function getAlbumPhotos(count) {
     try {
-      const raw = localStorage.getItem('sx_album_uploaded_images');
-      if (raw) {
-        const imgs = JSON.parse(raw);
-        if (Array.isArray(imgs)) return imgs.slice(0, count).map(i => typeof i === 'string' ? i : i.url).filter(Boolean);
-      }
+      const imgs = await sxGetJSON('sx_album_uploaded_images');
+      if (Array.isArray(imgs)) return imgs.slice(0, count).map(i => typeof i === 'string' ? i : i.url).filter(Boolean);
     } catch {}
     return [];
   }
@@ -1243,17 +1267,17 @@
     return { title: '正在播放', artist: 'Music App', artwork: '♪' };
   }
 
-  function getWidgetNote() {
+  async function getWidgetNote() {
     try {
-      const raw = localStorage.getItem('sx_widget_note');
+      const raw = await sxGetItem('sx_widget_note');
       return raw || '點擊編輯筆記內容...';
     } catch { return '點擊編輯筆記內容...'; }
   }
 
-  function getTodoItems() {
+  async function getTodoItems() {
     try {
-      const raw = localStorage.getItem('sx_todo_items');
-      if (raw) return JSON.parse(raw);
+      const data = await sxGetJSON('sx_todo_items');
+      if (data) return data;
     } catch {}
     return [
       { text: '回覆郵件', done: true },
@@ -1263,46 +1287,37 @@
     ];
   }
 
-  function getCountdown() {
+  async function getCountdown() {
     try {
-      const raw = localStorage.getItem('sx_countdown_events');
-      if (raw) {
-        const evs = JSON.parse(raw);
-        if (evs.length) {
-          const ev = evs[0];
-          const diff = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
-          return { name: ev.name, days: Math.abs(diff), label: diff >= 0 ? '天後' : '天前' };
-        }
+      const evs = await sxGetJSON('sx_countdown_events');
+      if (evs && evs.length) {
+        const ev = evs[0];
+        const diff = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
+        return { name: ev.name, days: Math.abs(diff), label: diff >= 0 ? '天後' : '天前' };
       }
     } catch {}
     return { name: '新年', days: Math.floor((new Date(new Date().getFullYear()+1,0,1) - new Date()) / 86400000), label: '天後' };
   }
 
-  function getTimerState() {
+  async function getTimerState() {
     try {
-      const raw = localStorage.getItem('sx_timer_state');
-      if (raw) {
-        const d = JSON.parse(raw);
-        if (d.running && d.endTime) {
-          const rem = Math.max(0, d.endTime - Date.now());
-          const m = Math.floor(rem / 60000); const s = Math.floor((rem % 60000) / 1000);
-          return { display: `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, label: '倒數中' };
-        }
+      const d = await sxGetJSON('sx_timer_state');
+      if (d && d.running && d.endTime) {
+        const rem = Math.max(0, d.endTime - Date.now());
+        const m = Math.floor(rem / 60000); const s = Math.floor((rem % 60000) / 1000);
+        return { display: `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, label: '倒數中' };
       }
     } catch {}
     return { display: '25:00', label: '計時器' };
   }
 
-  function getStopwatchState() {
+  async function getStopwatchState() {
     try {
-      const raw = localStorage.getItem('sx_stopwatch');
-      if (raw) {
-        const d = JSON.parse(raw);
-        if (d.running && d.start) {
-          const elapsed = Date.now() - d.start;
-          const m = Math.floor(elapsed / 60000); const s = Math.floor((elapsed % 60000) / 1000);
-          return { display: `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` };
-        }
+      const d = await sxGetJSON('sx_stopwatch');
+      if (d && d.running && d.start) {
+        const elapsed = Date.now() - d.start;
+        const m = Math.floor(elapsed / 60000); const s = Math.floor((elapsed % 60000) / 1000);
+        return { display: `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` };
       }
     } catch {}
     return { display: '00:00' };
@@ -1328,10 +1343,10 @@
 
   function getQRData() { return 'sxiphone.app'; }
 
-  function getHabits() {
+  async function getHabits() {
     try {
-      const raw = localStorage.getItem('sx_habit_tracker');
-      if (raw) return JSON.parse(raw);
+      const data = await sxGetJSON('sx_habit_tracker');
+      if (data) return data;
     } catch {}
     return [
       { name: '喝水', done: true, streak: 12 },
@@ -1341,10 +1356,10 @@
     ];
   }
 
-  function getProgressData() {
+  async function getProgressData() {
     try {
-      const raw = localStorage.getItem('sx_progress_data');
-      if (raw) return JSON.parse(raw);
+      const data = await sxGetJSON('sx_progress_data');
+      if (data) return data;
     } catch {}
     return { label: '專案進度', pct: 68 };
   }
@@ -1353,16 +1368,16 @@
   const $ = id => document.getElementById(id);
 
   /* ==================== STORAGE ==================== */
-  function saveWidgets() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.widgets));
+  async function saveWidgets() {
+    await sxSetJSON(STORAGE_KEY, state.widgets);
     syncToHome();
   }
 
-  function loadWidgets() {
+  async function loadWidgets() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        state.widgets = JSON.parse(raw).map((w, index) => ({ 
+      const data = await sxGetJSON(STORAGE_KEY);
+      if (data) {
+        state.widgets = data.map((w, index) => ({ 
           ...w, 
           opacity: w.opacity ?? 80, 
           radius: w.radius ?? 20, 
@@ -2148,9 +2163,9 @@
   }
 
   /* ==================== iOS Safari / Android Chrome 儲存保護 ==================== */
-  const saveWidgetData = () => {
+  const saveWidgetData = async () => {
     try {
-      localStorage.setItem('sx_home_widget_layout', JSON.stringify(state.widgets));
+      await sxSetJSON('sx_home_widget_layout', state.widgets);
     } catch (e) {
       console.warn('[widget] 保存數據失敗:', e);
     }
@@ -2165,13 +2180,13 @@
   });
 
   /* ==================== INIT ==================== */
-  function init() {
+  async function init() {
     // 載入桌面設定
-    loadPageSize();
-    loadHiddenApps();
-    state.appLayout = loadAppLayout();
+    await loadPageSize();
+    await loadHiddenApps();
+    state.appLayout = await loadAppLayout();
     
-    loadWidgets();
+    await loadWidgets();
     buildCategoryButtons();
     buildLibraryGrid();
     buildColorSwatches();
@@ -2352,34 +2367,29 @@
   }
 
   /* ==================== 桌面設定 ==================== */
-  function initDesktopSettings() {
+  async function initDesktopSettings() {
     const pageSizeSelect = $('pageSizeSelect');
     const shortcutsGrid = $('shortcutsGrid');
     
     if (!pageSizeSelect || !shortcutsGrid) return;
     
-    // 載入當前設定
-    const savedPageSize = localStorage.getItem('sx_home_page_size') || '8';
+    const savedPageSize = await sxGetItem('sx_home_page_size') || '8';
     pageSizeSelect.value = savedPageSize;
     
-    // 載入快捷方式列表
-    loadShortcutsList();
+    await loadShortcutsList();
     
-    // 事件綁定：每頁圖標數量
-    pageSizeSelect.addEventListener('change', (e) => {
-      localStorage.setItem('sx_home_page_size', e.target.value);
+    pageSizeSelect.addEventListener('change', async (e) => {
+      await sxSetItem('sx_home_page_size', e.target.value);
       showToast('已儲存，重新整理首頁後生效');
     });
   }
   
-  function loadShortcutsList() {
+  async function loadShortcutsList() {
     const shortcutsGrid = $('shortcutsGrid');
     if (!shortcutsGrid) return;
     
-    // 從 localStorage 讀取隱藏的應用程式
-    const hiddenApps = getHiddenApps();
+    const hiddenApps = await getHiddenApps();
     
-    // 應用程式列表
     const apps = [
       { id: 'chat', label: '聊天' },
       { id: 'settings', label: '設定' },
@@ -2431,20 +2441,19 @@
       </div>`;
     }).join('');
     
-    // 事件綁定
     shortcutsGrid.querySelectorAll('.shortcut-toggle').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const item = e.target.closest('.shortcut-item');
         const appId = item.dataset.appId;
-        const hiddenApps = getHiddenApps();
+        const hiddenApps = await getHiddenApps();
         const isHidden = hiddenApps.includes(appId);
         
         if (isHidden) {
-          showApp(appId);
+          await showApp(appId);
           item.classList.remove('hidden');
           btn.textContent = '隱藏';
         } else {
-          hideApp(appId);
+          await hideApp(appId);
           item.classList.add('hidden');
           btn.textContent = '顯示';
         }
@@ -2454,27 +2463,27 @@
     });
   }
   
-  function getHiddenApps() {
+  async function getHiddenApps() {
     try {
-      const raw = localStorage.getItem('sx_hidden_apps');
-      return raw ? JSON.parse(raw) : [];
+      const data = await sxGetJSON('sx_hidden_apps');
+      return data || [];
     } catch { return []; }
   }
   
-  function hideApp(appId) {
-    const hidden = getHiddenApps();
+  async function hideApp(appId) {
+    const hidden = await getHiddenApps();
     if (!hidden.includes(appId)) {
       hidden.push(appId);
-      localStorage.setItem('sx_hidden_apps', JSON.stringify(hidden));
+      await sxSetJSON('sx_hidden_apps', hidden);
     }
   }
   
-  function showApp(appId) {
-    const hidden = getHiddenApps();
+  async function showApp(appId) {
+    const hidden = await getHiddenApps();
     const idx = hidden.indexOf(appId);
     if (idx > -1) {
       hidden.splice(idx, 1);
-      localStorage.setItem('sx_hidden_apps', JSON.stringify(hidden));
+      await sxSetJSON('sx_hidden_apps', hidden);
     }
   }
 

@@ -1,27 +1,27 @@
-(() => {
+(async () => {
     const MODE_KEY = 'sx_theme_mode';
     const ACCENT_KEY = 'sx_theme_accent';
     const CUSTOM_ICON_KEY = 'sx_custom_icons';
     const THEME_IMAGE_KEY = 'sx_theme_image';
     const PATTERN_WALLPAPER_KEY = 'sx_pattern_wallpaper';
 
-    const saveAppearanceData = () => {
+    const saveAppearanceData = async () => {
         try {
-            const mode = localStorage.getItem(MODE_KEY) || 'dark';
-            const accent = localStorage.getItem(ACCENT_KEY) || '#5B8DEF';
-            console.log("外觀數據已保存至 localStorage");
+            const mode = await sxGetItem(MODE_KEY) || 'dark';
+            const accent = await sxGetItem(ACCENT_KEY) || '#5B8DEF';
+            console.log("外觀數據已保存");
         } catch (e) {
             console.error("保存外觀數據失敗:", e);
         }
     };
 
     const saveToPersistentStorage = async () => {
-        saveAppearanceData();
+        await saveAppearanceData();
         if (typeof localforage !== 'undefined') {
             try {
                 const existingData = await localforage.getItem('sx_app_persisted_data') || {};
-                const mode = localStorage.getItem(MODE_KEY) || 'dark';
-                const accent = localStorage.getItem(ACCENT_KEY) || '#5B8DEF';
+                const mode = await sxGetItem(MODE_KEY) || 'dark';
+                const accent = await sxGetItem(ACCENT_KEY) || '#5B8DEF';
                 await localforage.setItem('sx_app_persisted_data', {
                     ...existingData,
                     sx_theme_mode: mode,
@@ -35,64 +35,68 @@
     };
 
     window.addEventListener('pagehide', () => {
-        saveAppearanceData();
+        (async () => {
+            await saveAppearanceData();
+        })();
     });
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            saveAppearanceData();
+            (async () => {
+                await saveAppearanceData();
+            })();
         }
     });
 
     window.addEventListener('message', (event) => {
         if (event.data?.type === 'APP_WILL_CLOSE') {
-            saveAppearanceData();
+            (async () => {
+                await saveAppearanceData();
+            })();
         }
     });
 
     const modeInputs = () => Array.from(document.querySelectorAll('input[name="mode"]'));
 
-    const loadState = () => ({
-        mode: localStorage.getItem(MODE_KEY) || 'dark',
-        accent: localStorage.getItem(ACCENT_KEY) || '#5B8DEF'
+    const loadState = async () => ({
+        mode: await sxGetItem(MODE_KEY) || 'dark',
+        accent: await sxGetItem(ACCENT_KEY) || '#5B8DEF'
     });
 
-    const applyMode = (mode) => {
+    const applyMode = async (mode) => {
         const effective = mode === 'custom-light' ? 'light' : mode === 'custom-dark' ? 'dark' : mode;
         document.documentElement.dataset.theme = effective;
         document.body?.classList.toggle('theme-light', effective === 'light');
-        localStorage.setItem(MODE_KEY, mode);
+        await sxSetItem(MODE_KEY, mode);
         window.parent?.postMessage({ type: 'THEME_MODE_CHANGED', mode: mode }, '*');
         
-        // 同步到雲端
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
         
         if (mode.startsWith('custom-')) {
-            saveCustomAppearancePreset(effective);
+            await saveCustomAppearancePreset(effective);
         }
     };
 
-    const saveCustomAppearancePreset = (mode) => {
-        const accent = localStorage.getItem(ACCENT_KEY) || '#5B8DEF';
-        const textColor = localStorage.getItem('sx_theme_text_color') || (mode === 'light' ? '#000000' : '#ffffff');
-        const appBgColor = localStorage.getItem('sx_theme_app_bg_color') || (mode === 'light' ? '#f2f2f7' : '#1c1c1e');
+    const saveCustomAppearancePreset = async (mode) => {
+        const accent = await sxGetItem(ACCENT_KEY) || '#5B8DEF';
+        const textColor = await sxGetItem('sx_theme_text_color') || (mode === 'light' ? '#000000' : '#ffffff');
+        const appBgColor = await sxGetItem('sx_theme_app_bg_color') || (mode === 'light' ? '#f2f2f7' : '#1c1c1e');
         
         const config = { accent, textColor, appBgColor };
-        localStorage.setItem(`sx_custom_appearance_${mode}`, JSON.stringify(config));
+        await sxSetJSON(`sx_custom_appearance_${mode}`, config);
     };
 
-    const applyAccent = (accent) => {
+    const applyAccent = async (accent) => {
         document.documentElement.style.setProperty('--sx-accent', accent);
-        localStorage.setItem(ACCENT_KEY, accent);
+        await sxSetItem(ACCENT_KEY, accent);
         window.parent?.postMessage({ type: 'THEME_ACCENT_CHANGED', accent }, '*');
         
-        // 同步到雲端
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
         
-        const currentMode = localStorage.getItem(MODE_KEY) || 'dark';
+        const currentMode = await sxGetItem(MODE_KEY) || 'dark';
         if (currentMode.startsWith('custom-')) {
             const effective = currentMode === 'custom-light' ? 'light' : 'dark';
-            saveCustomAppearancePreset(effective);
+            await saveCustomAppearancePreset(effective);
         }
     };
 
@@ -261,14 +265,13 @@
         }
     };
 
-    const applyImageTheme = ({ accent, brightness, dataUrl }) => {
-        applyAccent(accent);
+    const applyImageTheme = async ({ accent, brightness, dataUrl }) => {
+        await applyAccent(accent);
         const mode = brightness > 0.55 ? 'light' : 'dark';
-        applyMode(mode);
-        localStorage.setItem(THEME_IMAGE_KEY, dataUrl || '');
+        await applyMode(mode);
+        await sxSetItem(THEME_IMAGE_KEY, dataUrl || '');
         window.parent?.postMessage({ type: 'THEME_IMAGE_UPDATED', accent, mode, dataUrl }, '*');
         
-        // 同步到雲端
         window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
     };
 
@@ -345,30 +348,30 @@
         return { css, mode, accent, text, iconBorder, appBg: bg };
     };
 
-    const saveCustomIcon = (appId, url) => {
-        const raw = localStorage.getItem(CUSTOM_ICON_KEY);
-        let map = {};
-        try { map = raw ? JSON.parse(raw) : {}; } catch { map = {}; }
+    const saveCustomIcon = async (appId, url) => {
+        let map = await sxGetJSON(CUSTOM_ICON_KEY) || {};
         map[appId] = url;
-        localStorage.setItem(CUSTOM_ICON_KEY, JSON.stringify(map));
+        await sxSetJSON(CUSTOM_ICON_KEY, map);
         window.parent?.postMessage({ type: 'SET_CUSTOM_ICON', appId, url }, '*');
     };
 
-    const clearCustomIcon = (appId) => {
-        const raw = localStorage.getItem(CUSTOM_ICON_KEY);
-        let map = {};
-        try { map = raw ? JSON.parse(raw) : {}; } catch { map = {}; }
+    const clearCustomIcon = async (appId) => {
+        let map = await sxGetJSON(CUSTOM_ICON_KEY) || {};
         delete map[appId];
-        localStorage.setItem(CUSTOM_ICON_KEY, JSON.stringify(map));
+        await sxSetJSON(CUSTOM_ICON_KEY, map);
         window.parent?.postMessage({ type: 'CLEAR_CUSTOM_ICON', appId }, '*');
     };
 
-    const init = () => {
-        const state = loadState();
+    const init = async () => {
+        const state = await loadState();
 
         modeInputs().forEach(input => {
             input.checked = input.value === state.mode;
-            input.onchange = () => applyMode(input.value);
+            input.onchange = () => {
+                (async () => {
+                    await applyMode(input.value);
+                })();
+            };
         });
 
         const accentCanvas = document.getElementById('accent-canvas');
@@ -413,21 +416,23 @@
                 btn.className = `accent-chip${color === activeHex ? ' active' : ''}`;
                 btn.style.setProperty('--chip-color', color);
                 btn.addEventListener('click', () => {
-                    applyAccent(color);
-                    renderPalette(colors, color);
+                    (async () => {
+                        await applyAccent(color);
+                        renderPalette(colors, color);
+                    })();
                 });
                 paletteWrap.appendChild(btn);
             });
         };
 
-        const applyFromHSV = () => {
+        const applyFromHSV = async () => {
             const hex = rgbToHex(hsvToRgb(hue, sat, val));
             if (hexInput) hexInput.value = hex.replace('#', '');
-            applyAccent(hex);
+            await applyAccent(hex);
             renderPalette(generatePalette(hex), hex);
         };
 
-        const setFromHex = (hex) => {
+        const setFromHex = async (hex) => {
             const rgb = hexToRgb(hex);
             if (!rgb) return;
             const next = rgbToHsv(rgb.r, rgb.g, rgb.b);
@@ -437,7 +442,7 @@
             updateCanvasHue();
             updateThumb();
             updateHueThumb();
-            applyAccent(hex);
+            await applyAccent(hex);
             renderPalette(generatePalette(hex), hex);
         };
 
@@ -482,8 +487,8 @@
             renderPalette(generatePalette(current), current);
         });
 
-        applyMode(state.mode);
-        setFromHex(state.accent);
+        await applyMode(state.mode);
+        await setFromHex(state.accent);
 
         const saveBtn = document.getElementById('save-icon-btn');
         const clearBtn = document.getElementById('clear-icon-btn');
@@ -526,19 +531,22 @@
         let patternWallpaperDataUrl = '';
 
         saveBtn?.addEventListener('click', () => {
-            const appId = idInput.value.trim();
-            const url = urlInput.value.trim();
-            if (!appId || !url) return;
-            saveCustomIcon(appId, url);
+            (async () => {
+                const appId = idInput.value.trim();
+                const url = urlInput.value.trim();
+                if (!appId || !url) return;
+                await saveCustomIcon(appId, url);
+            })();
         });
 
         clearBtn?.addEventListener('click', () => {
-            const appId = idInput.value.trim();
-            if (!appId) return;
-            clearCustomIcon(appId);
+            (async () => {
+                const appId = idInput.value.trim();
+                if (!appId) return;
+                await clearCustomIcon(appId);
+            })();
         });
 
-        // === 自訂捷徑圖標管理 ===
         const shortcutIconManager = {
             uploadInput: document.getElementById('shortcut-icon-upload-input'),
             urlInput: document.getElementById('shortcut-icon-url-input'),
@@ -574,34 +582,21 @@
             passkey: 'Passkey', theater: '劇場', arcade: '街機廳'
         };
 
-        // URL 驗證函數 - 防止 XSS
         const isValidIconUrl = (url) => {
             if (!url || typeof url !== 'string') return false;
-            // 只允許 http/https URL 或 data:image URL
             return /^https?:\/\//i.test(url) || /^data:image\//i.test(url);
         };
 
-        // 安全地轉義 URL 中的特殊字符
         const escapeUrlForStyle = (url) => {
-            // 移除可能危險的字符
             return url.replace(/['"()<>]/g, '');
         };
 
-        const renderShortcutGallery = () => {
+        const renderShortcutGallery = async () => {
             const grid = shortcutIconManager.galleryGrid;
             if (!grid) return;
             
-            let map = {};
-            try {
-                const raw = localStorage.getItem(CUSTOM_ICON_KEY);
-                if (raw) {
-                    map = JSON.parse(raw);
-                    if (typeof map !== 'object' || Array.isArray(map)) map = {};
-                }
-            } catch (e) {
-                console.warn('[ShortcutGallery] 讀取 localStorage 失敗:', e);
-                map = {};
-            }
+            let map = await sxGetJSON(CUSTOM_ICON_KEY) || {};
+            if (typeof map !== 'object' || Array.isArray(map)) map = {};
             
             const entries = Object.entries(map);
             if (entries.length === 0) {
@@ -632,8 +627,10 @@
                 deleteBtn.title = '刪除';
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    clearCustomIcon(appId);
-                    renderShortcutGallery();
+                    (async () => {
+                        await clearCustomIcon(appId);
+                        await renderShortcutGallery();
+                    })();
                 });
                 
                 item.appendChild(img);
@@ -646,11 +643,9 @@
         const setShortcutPreview = (previewEl, url, isDataUrl = false) => {
             if (!previewEl) return;
             
-            // 清空預覽區域
             previewEl.innerHTML = '';
             
             if (url && isValidIconUrl(url)) {
-                // 使用 DOM 操作而非 innerHTML 來防止 XSS
                 const img = document.createElement('img');
                 img.src = url;
                 img.alt = '圖標預覽';
@@ -669,7 +664,6 @@
             }
         };
 
-        // Tab 切換
         shortcutIconManager.tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const targetTab = tab.dataset.tab;
@@ -679,12 +673,10 @@
             });
         });
 
-        // 上傳圖片處理
         shortcutIconManager.uploadInput?.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             
-            // 檢查檔案大小 (最大 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 alert('圖片大小不能超過 2MB');
                 return;
@@ -700,33 +692,32 @@
             }
         });
 
-        // 上傳模式 - 套用按鈕
         shortcutIconManager.saveUploadBtn?.addEventListener('click', () => {
-            const appId = shortcutIconManager.appIdUpload?.value;
-            const url = shortcutIconManager.currentUploadDataUrl;
-            
-            if (!appId) {
-                alert('請選擇應用程式');
-                return;
-            }
-            if (!url) {
-                alert('請先選擇圖片');
-                return;
-            }
-            
-            saveCustomIcon(appId, url);
-            renderShortcutGallery();
-            alert(`已為「${APP_LABELS[appId] || appId}」設定自訂圖標`);
+            (async () => {
+                const appId = shortcutIconManager.appIdUpload?.value;
+                const url = shortcutIconManager.currentUploadDataUrl;
+                
+                if (!appId) {
+                    alert('請選擇應用程式');
+                    return;
+                }
+                if (!url) {
+                    alert('請先選擇圖片');
+                    return;
+                }
+                
+                await saveCustomIcon(appId, url);
+                await renderShortcutGallery();
+                alert(`已為「${APP_LABELS[appId] || appId}」設定自訂圖標`);
+            })();
         });
 
-        // 上傳模式 - 清除按鈕
         shortcutIconManager.clearUploadBtn?.addEventListener('click', () => {
             shortcutIconManager.currentUploadDataUrl = '';
             if (shortcutIconManager.uploadInput) shortcutIconManager.uploadInput.value = '';
             setShortcutPreview(shortcutIconManager.previewUpload, '', true);
         });
 
-        // URL 模式 - 預覽按鈕
         shortcutIconManager.previewUrlBtn?.addEventListener('click', () => {
             const url = shortcutIconManager.urlInput?.value.trim();
             if (!url) {
@@ -734,7 +725,6 @@
                 return;
             }
             
-            // 測試圖片是否可載入
             const testImg = new Image();
             testImg.onload = () => {
                 shortcutIconManager.currentUrlData = url;
@@ -746,45 +736,44 @@
             testImg.src = url;
         });
 
-        // URL 模式 - 套用按鈕
         shortcutIconManager.saveUrlBtn?.addEventListener('click', () => {
-            const appId = shortcutIconManager.appIdUrl?.value;
-            const url = shortcutIconManager.currentUrlData || shortcutIconManager.urlInput?.value.trim();
-            
-            if (!appId) {
-                alert('請選擇應用程式');
-                return;
-            }
-            if (!url) {
-                alert('請輸入圖標 URL');
-                return;
-            }
-            
-            saveCustomIcon(appId, url);
-            renderShortcutGallery();
-            alert(`已為「${APP_LABELS[appId] || appId}」設定自訂圖標`);
+            (async () => {
+                const appId = shortcutIconManager.appIdUrl?.value;
+                const url = shortcutIconManager.currentUrlData || shortcutIconManager.urlInput?.value.trim();
+                
+                if (!appId) {
+                    alert('請選擇應用程式');
+                    return;
+                }
+                if (!url) {
+                    alert('請輸入圖標 URL');
+                    return;
+                }
+                
+                await saveCustomIcon(appId, url);
+                await renderShortcutGallery();
+                alert(`已為「${APP_LABELS[appId] || appId}」設定自訂圖標`);
+            })();
         });
 
-        // URL 模式 - 清除按鈕
         shortcutIconManager.clearUrlBtn?.addEventListener('click', () => {
             shortcutIconManager.currentUrlData = '';
             if (shortcutIconManager.urlInput) shortcutIconManager.urlInput.value = '';
             setShortcutPreview(shortcutIconManager.previewUrl, '', false);
         });
 
-        // 全部清除按鈕
         shortcutIconManager.clearAllBtn?.addEventListener('click', () => {
-            if (!confirm('確定要清除所有自訂圖標嗎？')) return;
-            
-            localStorage.removeItem(CUSTOM_ICON_KEY);
-            renderShortcutGallery();
-            window.parent?.postMessage({ type: 'CLEAR_ALL_CUSTOM_ICONS' }, '*');
+            (async () => {
+                if (!confirm('確定要清除所有自訂圖標嗎？')) return;
+                
+                await sxRemoveItem(CUSTOM_ICON_KEY);
+                await renderShortcutGallery();
+                window.parent?.postMessage({ type: 'CLEAR_ALL_CUSTOM_ICONS' }, '*');
+            })();
         });
 
-        // 初始化圖標庫
-        renderShortcutGallery();
+        await renderShortcutGallery();
 
-        // === PWA 桌面圖標管理 ===
         const PWA_MANIFEST_KEY = 'sx_pwa_manifest_config';
         const PWA_ICON_KEY = 'sx_pwa_custom_icon';
 
@@ -807,9 +796,8 @@
             newIconData: null
         };
 
-        // 檢查是否有 GitHub 雲端備份連接
-        const checkCloudBackupStatus = () => {
-            const githubToken = localStorage.getItem('sx_github_token');
+        const checkCloudBackupStatus = async () => {
+            const githubToken = await sxGetItem('sx_github_token');
             if (!githubToken && pwaIconManager.cloudStatus) {
                 pwaIconManager.cloudStatus.innerHTML = `
                     <span class="material-symbols-rounded">cloud_off</span>
@@ -821,18 +809,16 @@
             }
         };
 
-        // 載入已儲存的 PWA 設定
-        const loadPWAConfig = () => {
+        const loadPWAConfig = async () => {
             try {
-                const raw = localStorage.getItem(PWA_MANIFEST_KEY);
-                if (raw) {
-                    const config = JSON.parse(raw);
+                const config = await sxGetJSON(PWA_MANIFEST_KEY);
+                if (config) {
                     if (pwaIconManager.appName) pwaIconManager.appName.value = config.name || 'sxiphone';
                     if (pwaIconManager.bgColor) pwaIconManager.bgColor.value = config.background_color || '#0b0c12';
                     if (pwaIconManager.themeColor) pwaIconManager.themeColor.value = config.theme_color || '#0b0c12';
                 }
                 
-                const iconRaw = localStorage.getItem(PWA_ICON_KEY);
+                const iconRaw = await sxGetItem(PWA_ICON_KEY);
                 if (iconRaw && pwaIconManager.currentIcon) {
                     const img = document.createElement('img');
                     img.src = iconRaw;
@@ -841,7 +827,6 @@
                     pwaIconManager.currentIcon.appendChild(img);
                     pwaIconManager.currentIconData = iconRaw;
                 } else if (pwaIconManager.currentIcon) {
-                    // 使用預設圖標
                     const img = document.createElement('img');
                     img.src = 'apps/screenshots/current.png';
                     img.alt = '目前圖標';
@@ -852,10 +837,9 @@
                 console.warn('[PWA] 載入設定失敗:', e);
             }
             
-            checkCloudBackupStatus();
+            await checkCloudBackupStatus();
         };
 
-        // Tab 切換
         pwaIconManager.tabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 const targetTab = tab.dataset.tab;
@@ -865,12 +849,10 @@
             });
         });
 
-        // 上傳圖片處理
         pwaIconManager.uploadInput?.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             
-            // 檢查檔案大小 (最大 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 alert('圖片大小不能超過 5MB');
                 return;
@@ -889,12 +871,10 @@
             }
         });
 
-        // URL 輸入預覽
         pwaIconManager.urlInput?.addEventListener('change', () => {
             const url = pwaIconManager.urlInput.value.trim();
             if (!url) return;
             
-            // 驗證 URL
             if (!isValidIconUrl(url)) {
                 alert('請輸入有效的圖片 URL（http:// 或 https:// 開頭）');
                 return;
@@ -913,98 +893,89 @@
             testImg.src = url;
         });
 
-        // 套用 PWA 設定
         pwaIconManager.applyBtn?.addEventListener('click', () => {
-            const iconData = pwaIconManager.newIconData || pwaIconManager.currentIconData;
-            
-            if (!iconData) {
-                alert('請先上傳或輸入圖標');
-                return;
-            }
-            
-            const config = {
-                name: pwaIconManager.appName?.value || 'sxiphone',
-                short_name: pwaIconManager.appName?.value || 'sxiphone',
-                background_color: pwaIconManager.bgColor?.value || '#0b0c12',
-                theme_color: pwaIconManager.themeColor?.value || '#0b0c12',
-                updated_at: new Date().toISOString()
-            };
-            
-            // 儲存設定
-            localStorage.setItem(PWA_MANIFEST_KEY, JSON.stringify(config));
-            localStorage.setItem(PWA_ICON_KEY, iconData);
-            
-            // 通知父視窗更新 manifest
-            window.parent?.postMessage({
-                type: 'PWA_MANIFEST_UPDATE',
-                config,
-                iconData
-            }, '*');
-            
-            // 更新當前圖標顯示
-            if (pwaIconManager.currentIcon) {
-                const img = document.createElement('img');
-                img.src = iconData;
-                img.alt = '目前圖標';
-                pwaIconManager.currentIcon.innerHTML = '';
-                pwaIconManager.currentIcon.appendChild(img);
-            }
-            pwaIconManager.currentIconData = iconData;
-            
-            // 顯示詳細提示
-            if (pwaIconManager.installHint) {
-                pwaIconManager.installHint.hidden = false;
-                // 滾動到提示區域
-                pwaIconManager.installHint.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-            
-            // 檢查是否有雲端備份
-            const githubToken = localStorage.getItem('sx_github_token');
-            if (!githubToken) {
-                alert('設定已儲存！\n\n⚠️ 您尚未連接 GitHub 雲端備份。\n\niOS 用戶注意：移除 PWA 會清除本機資料，強烈建議先到「設定」連接 GitHub 備份。');
-            } else {
-                // 觸發同步到雲端
-                window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
-            }
+            (async () => {
+                const iconData = pwaIconManager.newIconData || pwaIconManager.currentIconData;
+                
+                if (!iconData) {
+                    alert('請先上傳或輸入圖標');
+                    return;
+                }
+                
+                const config = {
+                    name: pwaIconManager.appName?.value || 'sxiphone',
+                    short_name: pwaIconManager.appName?.value || 'sxiphone',
+                    background_color: pwaIconManager.bgColor?.value || '#0b0c12',
+                    theme_color: pwaIconManager.themeColor?.value || '#0b0c12',
+                    updated_at: new Date().toISOString()
+                };
+                
+                await sxSetJSON(PWA_MANIFEST_KEY, config);
+                await sxSetItem(PWA_ICON_KEY, iconData);
+                
+                window.parent?.postMessage({
+                    type: 'PWA_MANIFEST_UPDATE',
+                    config,
+                    iconData
+                }, '*');
+                
+                if (pwaIconManager.currentIcon) {
+                    const img = document.createElement('img');
+                    img.src = iconData;
+                    img.alt = '目前圖標';
+                    pwaIconManager.currentIcon.innerHTML = '';
+                    pwaIconManager.currentIcon.appendChild(img);
+                }
+                pwaIconManager.currentIconData = iconData;
+                
+                if (pwaIconManager.installHint) {
+                    pwaIconManager.installHint.hidden = false;
+                    pwaIconManager.installHint.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                
+                const githubToken = await sxGetItem('sx_github_token');
+                if (!githubToken) {
+                    alert('設定已儲存！\n\n⚠️ 您尚未連接 GitHub 雲端備份。\n\niOS 用戶注意：移除 PWA 會清除本機資料，強烈建議先到「設定」連接 GitHub 備份。');
+                } else {
+                    window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
+                }
+            })();
         });
 
-        // 重置 PWA 設定
         pwaIconManager.resetBtn?.addEventListener('click', () => {
-            if (!confirm('確定要恢復預設的 PWA 圖標設定嗎？')) return;
-            
-            localStorage.removeItem(PWA_MANIFEST_KEY);
-            localStorage.removeItem(PWA_ICON_KEY);
-            
-            // 重置表單
-            if (pwaIconManager.appName) pwaIconManager.appName.value = 'sxiphone';
-            if (pwaIconManager.bgColor) pwaIconManager.bgColor.value = '#0b0c12';
-            if (pwaIconManager.themeColor) pwaIconManager.themeColor.value = '#0b0c12';
-            
-            // 重置圖標顯示
-            if (pwaIconManager.currentIcon) {
-                const img = document.createElement('img');
-                img.src = 'apps/screenshots/current.png';
-                img.alt = '目前圖標';
-                pwaIconManager.currentIcon.innerHTML = '';
-                pwaIconManager.currentIcon.appendChild(img);
-            }
-            if (pwaIconManager.newIcon) {
-                pwaIconManager.newIcon.innerHTML = '<span class="hint">新圖標</span>';
-            }
-            
-            pwaIconManager.currentIconData = null;
-            pwaIconManager.newIconData = null;
-            
-            if (pwaIconManager.installHint) {
-                pwaIconManager.installHint.hidden = true;
-            }
-            
-            // 通知父視窗
-            window.parent?.postMessage({ type: 'PWA_MANIFEST_RESET' }, '*');
+            (async () => {
+                if (!confirm('確定要恢復預設的 PWA 圖標設定嗎？')) return;
+                
+                await sxRemoveItem(PWA_MANIFEST_KEY);
+                await sxRemoveItem(PWA_ICON_KEY);
+                
+                if (pwaIconManager.appName) pwaIconManager.appName.value = 'sxiphone';
+                if (pwaIconManager.bgColor) pwaIconManager.bgColor.value = '#0b0c12';
+                if (pwaIconManager.themeColor) pwaIconManager.themeColor.value = '#0b0c12';
+                
+                if (pwaIconManager.currentIcon) {
+                    const img = document.createElement('img');
+                    img.src = 'apps/screenshots/current.png';
+                    img.alt = '目前圖標';
+                    pwaIconManager.currentIcon.innerHTML = '';
+                    pwaIconManager.currentIcon.appendChild(img);
+                }
+                if (pwaIconManager.newIcon) {
+                    pwaIconManager.newIcon.innerHTML = '<span class="hint">新圖標</span>';
+                }
+                
+                pwaIconManager.currentIconData = null;
+                pwaIconManager.newIconData = null;
+                
+                if (pwaIconManager.installHint) {
+                    pwaIconManager.installHint.hidden = true;
+                }
+                
+                window.parent?.postMessage({ type: 'PWA_MANIFEST_RESET' }, '*');
+            })();
         });
 
-        // 初始化 PWA 設定
-        loadPWAConfig();
+        await loadPWAConfig();
 
         const setPreview = (url) => {
             if (!preview) return;
@@ -1023,16 +994,20 @@
         });
 
         applyImageBtn?.addEventListener('click', () => {
-            if (!lastPalette) return;
-            applyImageTheme({ ...lastPalette, dataUrl: lastImageDataUrl });
+            (async () => {
+                if (!lastPalette) return;
+                await applyImageTheme({ ...lastPalette, dataUrl: lastImageDataUrl });
+            })();
         });
 
         resetImageBtn?.addEventListener('click', () => {
-            lastPalette = null;
-            lastImageDataUrl = '';
-            paletteRow.hidden = true;
-            setPreview('');
-            localStorage.removeItem(THEME_IMAGE_KEY);
+            (async () => {
+                lastPalette = null;
+                lastImageDataUrl = '';
+                paletteRow.hidden = true;
+                setPreview('');
+                await sxRemoveItem(THEME_IMAGE_KEY);
+            })();
         });
 
         const setAiPreview = (url) => {
@@ -1079,55 +1054,63 @@
         });
 
         aiPreviewBtn?.addEventListener('click', () => {
-            if (!aiPalette) return;
-            const forced = getModeToggle(aiImageModeToggle);
-            const generated = buildCssThemeFromPalette(aiPalette, forced);
-            applyMode(generated.mode);
-            applyAccent(aiPalette.accent);
+            (async () => {
+                if (!aiPalette) return;
+                const forced = getModeToggle(aiImageModeToggle);
+                const generated = buildCssThemeFromPalette(aiPalette, forced);
+                await applyMode(generated.mode);
+                await applyAccent(aiPalette.accent);
+            })();
         });
 
         aiApplyBtn?.addEventListener('click', () => {
-            if (!aiPalette) return;
-            const forced = getModeToggle(aiImageModeToggle);
-            const generated = buildCssThemeFromPalette(aiPalette, forced);
-            localStorage.setItem('sx_theme_text_color', generated.text);
-            localStorage.setItem('sx_theme_icon_border_color', generated.iconBorder);
-            localStorage.setItem('sx_theme_app_bg_color', generated.appBg);
-            applyMode(generated.mode);
-            applyAccent(aiPalette.accent);
-            window.parent?.postMessage({
-                type: 'THEME_IMAGE_UPDATED',
-                accent: aiPalette.accent,
-                mode: generated.mode,
-                dataUrl: aiImageDataUrl
-            }, '*');
-            window.parent?.postMessage({ type: 'THEME_TEXT_COLOR_CHANGED', color: generated.text }, '*');
-            window.parent?.postMessage({ type: 'THEME_ICON_BORDER_COLOR_CHANGED', color: generated.iconBorder }, '*');
-            window.parent?.postMessage({ type: 'THEME_APP_BG_CHANGED', color: generated.appBg, alpha: 30 }, '*');
+            (async () => {
+                if (!aiPalette) return;
+                const forced = getModeToggle(aiImageModeToggle);
+                const generated = buildCssThemeFromPalette(aiPalette, forced);
+                await sxSetItem('sx_theme_text_color', generated.text);
+                await sxSetItem('sx_theme_icon_border_color', generated.iconBorder);
+                await sxSetItem('sx_theme_app_bg_color', generated.appBg);
+                await applyMode(generated.mode);
+                await applyAccent(aiPalette.accent);
+                window.parent?.postMessage({
+                    type: 'THEME_IMAGE_UPDATED',
+                    accent: aiPalette.accent,
+                    mode: generated.mode,
+                    dataUrl: aiImageDataUrl
+                }, '*');
+                window.parent?.postMessage({ type: 'THEME_TEXT_COLOR_CHANGED', color: generated.text }, '*');
+                window.parent?.postMessage({ type: 'THEME_ICON_BORDER_COLOR_CHANGED', color: generated.iconBorder }, '*');
+                window.parent?.postMessage({ type: 'THEME_APP_BG_CHANGED', color: generated.appBg, alpha: 30 }, '*');
+            })();
         });
 
         aiTextPreviewBtn?.addEventListener('click', () => {
-            const prompt = aiTextPrompt?.value.trim() || '';
-            const forced = getModeToggle(aiTextModeToggle);
-            const generated = buildThemeFromPrompt(prompt, forced);
-            if (aiTextCssOutput) aiTextCssOutput.value = generated.css;
-            applyMode(generated.mode);
-            applyAccent(generated.accent);
+            (async () => {
+                const prompt = aiTextPrompt?.value.trim() || '';
+                const forced = getModeToggle(aiTextModeToggle);
+                const generated = buildThemeFromPrompt(prompt, forced);
+                if (aiTextCssOutput) aiTextCssOutput.value = generated.css;
+                await applyMode(generated.mode);
+                await applyAccent(generated.accent);
+            })();
         });
 
         aiTextApplyBtn?.addEventListener('click', () => {
-            const prompt = aiTextPrompt?.value.trim() || '';
-            const forced = getModeToggle(aiTextModeToggle);
-            const generated = buildThemeFromPrompt(prompt, forced);
-            if (aiTextCssOutput) aiTextCssOutput.value = generated.css;
-            localStorage.setItem('sx_theme_text_color', generated.text);
-            localStorage.setItem('sx_theme_icon_border_color', generated.iconBorder);
-            localStorage.setItem('sx_theme_app_bg_color', generated.appBg);
-            applyMode(generated.mode);
-            applyAccent(generated.accent);
-            window.parent?.postMessage({ type: 'THEME_TEXT_COLOR_CHANGED', color: generated.text }, '*');
-            window.parent?.postMessage({ type: 'THEME_ICON_BORDER_COLOR_CHANGED', color: generated.iconBorder }, '*');
-            window.parent?.postMessage({ type: 'THEME_APP_BG_CHANGED', color: generated.appBg, alpha: 30 }, '*');
+            (async () => {
+                const prompt = aiTextPrompt?.value.trim() || '';
+                const forced = getModeToggle(aiTextModeToggle);
+                const generated = buildThemeFromPrompt(prompt, forced);
+                if (aiTextCssOutput) aiTextCssOutput.value = generated.css;
+                await sxSetItem('sx_theme_text_color', generated.text);
+                await sxSetItem('sx_theme_icon_border_color', generated.iconBorder);
+                await sxSetItem('sx_theme_app_bg_color', generated.appBg);
+                await applyMode(generated.mode);
+                await applyAccent(generated.accent);
+                window.parent?.postMessage({ type: 'THEME_TEXT_COLOR_CHANGED', color: generated.text }, '*');
+                window.parent?.postMessage({ type: 'THEME_ICON_BORDER_COLOR_CHANGED', color: generated.iconBorder }, '*');
+                window.parent?.postMessage({ type: 'THEME_APP_BG_CHANGED', color: generated.appBg, alpha: 30 }, '*');
+            })();
         });
 
         const setPatternPreview = (url) => {
@@ -1198,14 +1181,13 @@
         patternApplyBtn?.addEventListener('click', async () => {
             if (!patternImageDataUrl) return;
             const wallpaper = patternWallpaperDataUrl || await regeneratePattern();
-            localStorage.setItem(PATTERN_WALLPAPER_KEY, wallpaper);
+            await sxSetItem(PATTERN_WALLPAPER_KEY, wallpaper);
             window.parent?.postMessage({ type: 'updateWallpaper', url: wallpaper }, '*');
-            // 同步到雲端
             window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
         });
 
         setPatternAngle('-45');
-        const savedPattern = localStorage.getItem(PATTERN_WALLPAPER_KEY);
+        const savedPattern = await sxGetItem(PATTERN_WALLPAPER_KEY);
         if (savedPattern) {
             patternWallpaperDataUrl = savedPattern;
             setPatternPreview(savedPattern);
@@ -1262,29 +1244,26 @@
             appBgSaturate: 200
         });
 
-        const loadCustomTheme = () => {
+        const loadCustomTheme = async () => {
             const base = defaultCustomTheme();
             try {
-                const raw = localStorage.getItem(CUSTOM_THEME_KEY);
-                if (!raw) return base;
-                const parsed = JSON.parse(raw);
+                const parsed = await sxGetJSON(CUSTOM_THEME_KEY);
+                if (!parsed) return base;
                 return { ...base, ...parsed };
             } catch {
                 return base;
             }
         };
 
-        const saveCustomTheme = (config) => {
-            localStorage.setItem(CUSTOM_THEME_KEY, JSON.stringify(config));
+        const saveCustomTheme = async (config) => {
+            await sxSetJSON(CUSTOM_THEME_KEY, config);
             window.parent?.postMessage({ type: 'CUSTOM_THEME_UPDATED', config }, '*');
-            // 同步到雲端
             window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
             console.log('[Appearance] 自訂主題已儲存並同步:', config);
         };
 
         const applyCustomThemeToParent = (config) => {
             window.parent?.postMessage({ type: 'CUSTOM_THEME_APPLY', config }, '*');
-            // 通知所有應用程式更新主題
             window.parent?.postMessage({ type: 'APPEARANCE_THEME_CHANGED', config }, '*');
         };
 
@@ -1299,8 +1278,8 @@
             }
         };
 
-        const setupCustomThemeInputs = () => {
-            const config = loadCustomTheme();
+        const setupCustomThemeInputs = async () => {
+            const config = await loadCustomTheme();
 
             const textPrimary = document.getElementById('global-text-primary');
             const textSecondary = document.getElementById('global-text-secondary');
@@ -1316,13 +1295,15 @@
             const resetTextColorBtn = document.getElementById('reset-text-color-btn');
 
             applyTextColorBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.textPrimary = textPrimary?.value || '#ffffff';
-                newConfig.textSecondary = textSecondary?.value || '#9ca3af';
-                newConfig.textHeading = textHeading?.value || '#ffffff';
-                newConfig.textLink = textLink?.value || '#5B8DEF';
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.textPrimary = textPrimary?.value || '#ffffff';
+                    newConfig.textSecondary = textSecondary?.value || '#9ca3af';
+                    newConfig.textHeading = textHeading?.value || '#ffffff';
+                    newConfig.textLink = textLink?.value || '#5B8DEF';
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetTextColorBtn?.addEventListener('click', () => {
@@ -1354,14 +1335,16 @@
             const resetBorderBtn = document.getElementById('reset-border-btn');
 
             applyBorderBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.borderWidth = Number(borderWidth?.value || 1);
-                newConfig.borderColor = borderColor?.value || '#ffffff';
-                newConfig.cardBorderWidth = Number(cardBorderWidth?.value || 1);
-                newConfig.cardRadius = Number(cardRadius?.value || 18);
-                newConfig.elementGap = Number(elementGap?.value || 12);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.borderWidth = Number(borderWidth?.value || 1);
+                    newConfig.borderColor = borderColor?.value || '#ffffff';
+                    newConfig.cardBorderWidth = Number(cardBorderWidth?.value || 1);
+                    newConfig.cardRadius = Number(cardRadius?.value || 18);
+                    newConfig.elementGap = Number(elementGap?.value || 12);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetBorderBtn?.addEventListener('click', () => {
@@ -1402,16 +1385,18 @@
             const resetPositionBtn = document.getElementById('reset-position-btn');
 
             applyPositionBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.hideTopbar = hideTopbar?.checked || false;
-                newConfig.hideTopbarHome = hideTopbarHome?.checked || false;
-                newConfig.statusbarPosition = statusbarPosition?.value || 'top';
-                newConfig.statusbarPadding = Number(statusbarPadding?.value || 15);
-                newConfig.homePaddingTop = Number(homePaddingTop?.value || 70);
-                newConfig.homePaddingBottom = Number(homePaddingBottom?.value || 34);
-                newConfig.iconGap = Number(iconGap?.value || 18);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.hideTopbar = hideTopbar?.checked || false;
+                    newConfig.hideTopbarHome = hideTopbarHome?.checked || false;
+                    newConfig.statusbarPosition = statusbarPosition?.value || 'top';
+                    newConfig.statusbarPadding = Number(statusbarPadding?.value || 15);
+                    newConfig.homePaddingTop = Number(homePaddingTop?.value || 70);
+                    newConfig.homePaddingBottom = Number(homePaddingBottom?.value || 34);
+                    newConfig.iconGap = Number(iconGap?.value || 18);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetPositionBtn?.addEventListener('click', () => {
@@ -1451,14 +1436,16 @@
             const resetFontSizeBtn = document.getElementById('reset-font-size-btn');
 
             applyFontSizeBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.fontSize = Number(fontSize?.value || 14);
-                newConfig.headingSize = Number(headingSize?.value || 22);
-                newConfig.appLabelSize = Number(appLabelSize?.value || 12);
-                newConfig.timeSize = Number(timeSize?.value || 80);
-                newConfig.dateSize = Number(dateSize?.value || 16);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.fontSize = Number(fontSize?.value || 14);
+                    newConfig.headingSize = Number(headingSize?.value || 22);
+                    newConfig.appLabelSize = Number(appLabelSize?.value || 12);
+                    newConfig.timeSize = Number(timeSize?.value || 80);
+                    newConfig.dateSize = Number(dateSize?.value || 16);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetFontSizeBtn?.addEventListener('click', () => {
@@ -1498,15 +1485,17 @@
             const resetPhoneStyleBtn = document.getElementById('reset-phone-style-btn');
 
             applyPhoneStyleBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                const selectedStyle = document.querySelector('input[name="phone-style"]:checked');
-                newConfig.phoneStyle = selectedStyle?.value || 'iphone-14';
-                newConfig.phoneBorderWidth = Number(phoneBorderWidth?.value || 12);
-                newConfig.phoneBorderColor = phoneBorderColor?.value || '#333333';
-                newConfig.phoneBorderRadius = Number(phoneBorderRadius?.value || 55);
-                newConfig.phoneWidthRatio = Number(phoneWidthRatio?.value || 46);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    const selectedStyle = document.querySelector('input[name="phone-style"]:checked');
+                    newConfig.phoneStyle = selectedStyle?.value || 'iphone-14';
+                    newConfig.phoneBorderWidth = Number(phoneBorderWidth?.value || 12);
+                    newConfig.phoneBorderColor = phoneBorderColor?.value || '#333333';
+                    newConfig.phoneBorderRadius = Number(phoneBorderRadius?.value || 55);
+                    newConfig.phoneWidthRatio = Number(phoneWidthRatio?.value || 46);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetPhoneStyleBtn?.addEventListener('click', () => {
@@ -1542,14 +1531,16 @@
             const resetBatteryBtn = document.getElementById('reset-battery-btn');
 
             applyBatteryBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.batteryShowPercent = !!batteryShowPercent?.checked;
-                newConfig.batteryIconStyle = batteryIconStyle?.value || 'full';
-                newConfig.batteryLevel = Number(batteryLevel?.value || 100);
-                newConfig.batteryLowWarning = Number(batteryLowWarning?.value || 20);
-                newConfig.batteryLowColor = batteryLowColor?.value || '#FF3B30';
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.batteryShowPercent = !!batteryShowPercent?.checked;
+                    newConfig.batteryIconStyle = batteryIconStyle?.value || 'full';
+                    newConfig.batteryLevel = Number(batteryLevel?.value || 100);
+                    newConfig.batteryLowWarning = Number(batteryLowWarning?.value || 20);
+                    newConfig.batteryLowColor = batteryLowColor?.value || '#FF3B30';
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetBatteryBtn?.addEventListener('click', () => {
@@ -1581,15 +1572,17 @@
             const resetFontBtn = document.getElementById('reset-font-btn');
 
             applyFontBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.fontPrimary = fontPrimary?.value || "'SF Pro Display', sans-serif";
-                newConfig.fontLockTime = fontLockTime?.value || "'SF Pro Display', sans-serif";
-                newConfig.fontChat = fontChat?.value || "'SF Pro Display', sans-serif";
-                newConfig.fontAppTitle = fontAppTitle?.value || "'SF Pro Display', sans-serif";
-                newConfig.fontCustomUrl = fontCustomUrl?.value || '';
-                newConfig.fontCustomName = fontCustomName?.value || '';
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.fontPrimary = fontPrimary?.value || "'SF Pro Display', sans-serif";
+                    newConfig.fontLockTime = fontLockTime?.value || "'SF Pro Display', sans-serif";
+                    newConfig.fontChat = fontChat?.value || "'SF Pro Display', sans-serif";
+                    newConfig.fontAppTitle = fontAppTitle?.value || "'SF Pro Display', sans-serif";
+                    newConfig.fontCustomUrl = fontCustomUrl?.value || '';
+                    newConfig.fontCustomName = fontCustomName?.value || '';
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetFontBtn?.addEventListener('click', () => {
@@ -1623,14 +1616,16 @@
             const resetIconStyleBtn = document.getElementById('reset-icon-style-btn');
 
             applyIconStyleBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.iconSize = Number(iconSize?.value || 62);
-                newConfig.iconRadius = Number(iconRadius?.value || 20);
-                newConfig.iconInnerSize = Number(iconInnerSize?.value || 28);
-                newConfig.iconOpacity = Number(iconOpacity?.value || 100);
-                newConfig.iconShadow = Number(iconShadow?.value || 28);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.iconSize = Number(iconSize?.value || 62);
+                    newConfig.iconRadius = Number(iconRadius?.value || 20);
+                    newConfig.iconInnerSize = Number(iconInnerSize?.value || 28);
+                    newConfig.iconOpacity = Number(iconOpacity?.value || 100);
+                    newConfig.iconShadow = Number(iconShadow?.value || 28);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetIconStyleBtn?.addEventListener('click', () => {
@@ -1664,13 +1659,15 @@
             const resetBackgroundBtn = document.getElementById('reset-background-btn');
 
             applyBackgroundBtn?.addEventListener('click', () => {
-                const newConfig = loadCustomTheme();
-                newConfig.appBgColor = appBgColor?.value || '#1c1c1e';
-                newConfig.appBgOpacity = Number(appBgOpacity?.value || 30);
-                newConfig.appBgBlur = Number(appBgBlur?.value || 20);
-                newConfig.appBgSaturate = Number(appBgSaturate?.value || 200);
-                saveCustomTheme(newConfig);
-                applyCustomThemeToParent(newConfig);
+                (async () => {
+                    const newConfig = await loadCustomTheme();
+                    newConfig.appBgColor = appBgColor?.value || '#1c1c1e';
+                    newConfig.appBgOpacity = Number(appBgOpacity?.value || 30);
+                    newConfig.appBgBlur = Number(appBgBlur?.value || 20);
+                    newConfig.appBgSaturate = Number(appBgSaturate?.value || 200);
+                    await saveCustomTheme(newConfig);
+                    applyCustomThemeToParent(newConfig);
+                })();
             });
 
             resetBackgroundBtn?.addEventListener('click', () => {
@@ -1685,42 +1682,44 @@
             });
 
 
-
-        setupCustomThemeInputs();
+        await setupCustomThemeInputs();
 
         const backBtn = document.getElementById('back-btn');
         if (backBtn) {
             backBtn.onclick = () => window.parent?.postMessage({ type: 'closeApp' }, '*');
         }
 
-        // 自訂外觀設定編輯按鈕
         const editCustomLightBtn = document.getElementById('edit-custom-light-btn');
         const editCustomDarkBtn = document.getElementById('edit-custom-dark-btn');
 
         if (editCustomLightBtn) {
             editCustomLightBtn.addEventListener('click', () => {
-                localStorage.setItem('sx_theme_mode', 'custom-light');
-                modeInputs().forEach(input => {
-                    input.checked = input.value === 'custom-light';
-                });
-                applyMode('custom-light');
-                showAppearanceSettingsInline('light');
+                (async () => {
+                    await sxSetItem('sx_theme_mode', 'custom-light');
+                    modeInputs().forEach(input => {
+                        input.checked = input.value === 'custom-light';
+                    });
+                    await applyMode('custom-light');
+                    await showAppearanceSettingsInline('light');
+                })();
             });
         }
 
         if (editCustomDarkBtn) {
             editCustomDarkBtn.addEventListener('click', () => {
-                localStorage.setItem('sx_theme_mode', 'custom-dark');
-                modeInputs().forEach(input => {
-                    input.checked = input.value === 'custom-dark';
-                });
-                applyMode('custom-dark');
-                showAppearanceSettingsInline('dark');
+                (async () => {
+                    await sxSetItem('sx_theme_mode', 'custom-dark');
+                    modeInputs().forEach(input => {
+                        input.checked = input.value === 'custom-dark';
+                    });
+                    await applyMode('custom-dark');
+                    await showAppearanceSettingsInline('dark');
+                })();
             });
         }
     };
 
-    const showAppearanceSettingsInline = (themeType) => {
+    const showAppearanceSettingsInline = async (themeType) => {
         const existingPanel = document.getElementById('inline-appearance-panel');
         if (existingPanel) {
             existingPanel.remove();
@@ -1728,7 +1727,7 @@
         }
 
         const settings = themeType === 'light' 
-            ? (JSON.parse(localStorage.getItem('sx_app_interface_custom_light') || 'null') || {
+            ? (await sxGetJSON('sx_app_interface_custom_light') || {
                 bgColor: '#f2f2f7',
                 cardBgColor: '#ffffff',
                 textColor: '#1c1c1e',
@@ -1749,7 +1748,7 @@
                 animationSpeed: 'normal',
                 customCss: ''
             })
-            : (JSON.parse(localStorage.getItem('sx_app_interface_custom_dark') || 'null') || {
+            : (await sxGetJSON('sx_app_interface_custom_dark') || {
                 bgColor: '#0b0c12',
                 cardBgColor: '#12131b',
                 textColor: '#e5e7eb',
@@ -1932,35 +1931,37 @@
         const applyBtn = document.getElementById('inline-apply-btn');
         if (applyBtn) {
             applyBtn.addEventListener('click', () => {
-                const newSettings = {
-                    bgColor: document.getElementById('inline-bg-color')?.value || settings.bgColor,
-                    cardBgColor: document.getElementById('inline-card-bg-color')?.value || settings.cardBgColor,
-                    textColor: document.getElementById('inline-text-color')?.value || settings.textColor,
-                    mutedColor: document.getElementById('inline-muted-color')?.value || settings.mutedColor,
-                    borderColor: document.getElementById('inline-border-color')?.value || settings.borderColor,
-                    accentColor: document.getElementById('inline-accent-color')?.value || settings.accentColor,
-                    fontFamily: document.getElementById('inline-font-family')?.value || settings.fontFamily,
-                    fontSize: Number(document.getElementById('inline-font-size')?.value || settings.fontSize),
-                    headingSize: Number(document.getElementById('inline-heading-size')?.value || settings.headingSize),
-                    lineHeight: Number(document.getElementById('inline-line-height')?.value || settings.lineHeight),
-                    cardRadius: Number(document.getElementById('inline-card-radius')?.value || settings.cardRadius),
-                    cardPadding: Number(document.getElementById('inline-card-padding')?.value || settings.cardPadding),
-                    sectionGap: Number(document.getElementById('inline-section-gap')?.value || settings.sectionGap),
-                    btnRadius: Number(document.getElementById('inline-btn-radius')?.value || settings.btnRadius),
-                    inputRadius: Number(document.getElementById('inline-input-radius')?.value || settings.inputRadius),
-                    shadow: Number(document.getElementById('inline-shadow')?.value || settings.shadow),
-                    blur: Number(document.getElementById('inline-blur')?.value || settings.blur),
-                    animationSpeed: document.getElementById('inline-animation-speed')?.value || settings.animationSpeed,
-                    customCss: document.getElementById('inline-custom-css')?.value || ''
-                };
+                (async () => {
+                    const newSettings = {
+                        bgColor: document.getElementById('inline-bg-color')?.value || settings.bgColor,
+                        cardBgColor: document.getElementById('inline-card-bg-color')?.value || settings.cardBgColor,
+                        textColor: document.getElementById('inline-text-color')?.value || settings.textColor,
+                        mutedColor: document.getElementById('inline-muted-color')?.value || settings.mutedColor,
+                        borderColor: document.getElementById('inline-border-color')?.value || settings.borderColor,
+                        accentColor: document.getElementById('inline-accent-color')?.value || settings.accentColor,
+                        fontFamily: document.getElementById('inline-font-family')?.value || settings.fontFamily,
+                        fontSize: Number(document.getElementById('inline-font-size')?.value || settings.fontSize),
+                        headingSize: Number(document.getElementById('inline-heading-size')?.value || settings.headingSize),
+                        lineHeight: Number(document.getElementById('inline-line-height')?.value || settings.lineHeight),
+                        cardRadius: Number(document.getElementById('inline-card-radius')?.value || settings.cardRadius),
+                        cardPadding: Number(document.getElementById('inline-card-padding')?.value || settings.cardPadding),
+                        sectionGap: Number(document.getElementById('inline-section-gap')?.value || settings.sectionGap),
+                        btnRadius: Number(document.getElementById('inline-btn-radius')?.value || settings.btnRadius),
+                        inputRadius: Number(document.getElementById('inline-input-radius')?.value || settings.inputRadius),
+                        shadow: Number(document.getElementById('inline-shadow')?.value || settings.shadow),
+                        blur: Number(document.getElementById('inline-blur')?.value || settings.blur),
+                        animationSpeed: document.getElementById('inline-animation-speed')?.value || settings.animationSpeed,
+                        customCss: document.getElementById('inline-custom-css')?.value || ''
+                    };
 
-                const key = themeType === 'light' ? 'sx_app_interface_custom_light' : 'sx_app_interface_custom_dark';
-                localStorage.setItem(key, JSON.stringify(newSettings));
-                
-                window.parent?.postMessage({ type: 'CUSTOM_THEME_UPDATED', mode: `custom-${themeType}`, settings: newSettings }, '*');
-                window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
+                    const key = themeType === 'light' ? 'sx_app_interface_custom_light' : 'sx_app_interface_custom_dark';
+                    await sxSetJSON(key, newSettings);
+                    
+                    window.parent?.postMessage({ type: 'CUSTOM_THEME_UPDATED', mode: `custom-${themeType}`, settings: newSettings }, '*');
+                    window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
 
-                panel.remove();
+                    panel.remove();
+                })();
             });
         }
 
@@ -2045,48 +2046,51 @@
         const saveBtn = document.getElementById('inline-save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
-                const newSettings = {
-                    bgColor: document.getElementById('inline-bg-color')?.value || settings.bgColor,
-                    cardBgColor: document.getElementById('inline-card-bg-color')?.value || settings.cardBgColor,
-                    textColor: document.getElementById('inline-text-color')?.value || settings.textColor,
-                    mutedColor: document.getElementById('inline-muted-color')?.value || settings.mutedColor,
-                    borderColor: document.getElementById('inline-border-color')?.value || settings.borderColor,
-                    accentColor: document.getElementById('inline-accent-color')?.value || settings.accentColor,
-                    fontFamily: document.getElementById('inline-font-family')?.value || settings.fontFamily,
-                    fontSize: Number(document.getElementById('inline-font-size')?.value || settings.fontSize),
-                    headingSize: Number(document.getElementById('inline-heading-size')?.value || settings.headingSize),
-                    lineHeight: Number(document.getElementById('inline-line-height')?.value || settings.lineHeight),
-                    cardRadius: Number(document.getElementById('inline-card-radius')?.value || settings.cardRadius),
-                    cardPadding: Number(document.getElementById('inline-card-padding')?.value || settings.cardPadding),
-                    sectionGap: Number(document.getElementById('inline-section-gap')?.value || settings.sectionGap),
-                    btnRadius: Number(document.getElementById('inline-btn-radius')?.value || settings.btnRadius),
-                    inputRadius: Number(document.getElementById('inline-input-radius')?.value || settings.inputRadius),
-                    shadow: Number(document.getElementById('inline-shadow')?.value || settings.shadow),
-                    blur: Number(document.getElementById('inline-blur')?.value || settings.blur),
-                    animationSpeed: document.getElementById('inline-animation-speed')?.value || settings.animationSpeed,
-                    customCss: document.getElementById('inline-custom-css')?.value || ''
-                };
+                (async () => {
+                    const newSettings = {
+                        bgColor: document.getElementById('inline-bg-color')?.value || settings.bgColor,
+                        cardBgColor: document.getElementById('inline-card-bg-color')?.value || settings.cardBgColor,
+                        textColor: document.getElementById('inline-text-color')?.value || settings.textColor,
+                        mutedColor: document.getElementById('inline-muted-color')?.value || settings.mutedColor,
+                        borderColor: document.getElementById('inline-border-color')?.value || settings.borderColor,
+                        accentColor: document.getElementById('inline-accent-color')?.value || settings.accentColor,
+                        fontFamily: document.getElementById('inline-font-family')?.value || settings.fontFamily,
+                        fontSize: Number(document.getElementById('inline-font-size')?.value || settings.fontSize),
+                        headingSize: Number(document.getElementById('inline-heading-size')?.value || settings.headingSize),
+                        lineHeight: Number(document.getElementById('inline-line-height')?.value || settings.lineHeight),
+                        cardRadius: Number(document.getElementById('inline-card-radius')?.value || settings.cardRadius),
+                        cardPadding: Number(document.getElementById('inline-card-padding')?.value || settings.cardPadding),
+                        sectionGap: Number(document.getElementById('inline-section-gap')?.value || settings.sectionGap),
+                        btnRadius: Number(document.getElementById('inline-btn-radius')?.value || settings.btnRadius),
+                        inputRadius: Number(document.getElementById('inline-input-radius')?.value || settings.inputRadius),
+                        shadow: Number(document.getElementById('inline-shadow')?.value || settings.shadow),
+                        blur: Number(document.getElementById('inline-blur')?.value || settings.blur),
+                        animationSpeed: document.getElementById('inline-animation-speed')?.value || settings.animationSpeed,
+                        customCss: document.getElementById('inline-custom-css')?.value || ''
+                    };
 
-                const key = themeType === 'light' ? 'sx_app_interface_custom_light' : 'sx_app_interface_custom_dark';
-                localStorage.setItem(key, JSON.stringify(newSettings));
-                localStorage.setItem('sx_global_appearance_saved', JSON.stringify(newSettings));
-                
-                window.parent?.postMessage({ type: 'GLOBAL_APPEARANCE_SAVED', mode: `custom-${themeType}`, settings: newSettings }, '*');
-                window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
+                    const key = themeType === 'light' ? 'sx_app_interface_custom_light' : 'sx_app_interface_custom_dark';
+                    await sxSetJSON(key, newSettings);
+                    await sxSetJSON('sx_global_appearance_saved', newSettings);
+                    
+                    window.parent?.postMessage({ type: 'GLOBAL_APPEARANCE_SAVED', mode: `custom-${themeType}`, settings: newSettings }, '*');
+                    window.parent?.postMessage({ type: 'TRIGGER_GITHUB_SYNC' }, '*');
 
-                const toast = document.createElement('div');
-                toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#34C759;color:#fff;padding:12px 24px;border-radius:20px;font-size:14px;z-index:10000;';
-                toast.textContent = '外觀設定已儲存';
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2000);
+                    const toast = document.createElement('div');
+                    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#34C759;color:#fff;padding:12px 24px;border-radius:20px;font-size:14px;z-index:10000;';
+                    toast.textContent = '外觀設定已儲存';
+                    document.body.appendChild(toast);
+                    setTimeout(() => toast.remove(), 2000);
+                })();
             });
         }
     };
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => {
+        init();
+    });
 })();
 
-// 監聽資料還原事件
 window.addEventListener('sxiphone-data-restored', (event) => {
     console.log('[Appearance] 收到資料還原通知，刷新 UI...');
     setTimeout(() => {

@@ -1,31 +1,15 @@
 (function(global) {
     'use strict';
 
-    // ─── 自動載入 sxStorage + localStorage-mirror（如果尚未載入）───────────
-    // 讓所有 iframe app 也能透過 localStorage.getItem 讀到 IndexedDB 資料
-    (function _ensureStorageMirror() {
-        if (global.__localStorageMirror?.isReady) return; // 已在父頁載入
-        if (typeof sxStorage !== 'undefined' && sxStorage !== null) {
-            // sxStorage 存在但 mirror 未載入 → 手動建立 mirror
-            if (!global.__localStorageMirror) {
-                _injectMirror();
-            }
-            return;
-        }
-        // sxStorage 未載入 → 動態注入 script
-        const basePath = _resolveScriptBasePath();
-        if (!basePath) return;
-        _loadScript(basePath + 'sx-storage.js', () => {
-            _loadScript(basePath + 'localStorage-mirror.js', () => {
-                if (global.__localStorageMirror && !global.__localStorageMirror.isReady) {
-                    global.__localStorageMirror.markSxReady();
-                }
-            });
-        });
-    })();
+    function _loadScriptSync(src) {
+        if (document.querySelector(`script[src="${src}"]`)) return;
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        (document.head || document.documentElement).appendChild(s);
+    }
 
     function _resolveScriptBasePath() {
-        // 找到 shared-settings.js 的路徑，推算出 scripts/ 目錄
         try {
             const scripts = document.querySelectorAll('script[src*="shared-settings"]');
             if (scripts.length > 0) {
@@ -33,61 +17,21 @@
                 const idx = src.lastIndexOf('/');
                 return idx >= 0 ? src.slice(0, idx + 1) : '';
             }
-            // fallback: 嘗試相對路徑
             return '../scripts/';
         } catch (_) {
             return '../scripts/';
         }
     }
 
-    function _loadScript(src, onload) {
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = onload || null;
-        s.onerror = () => console.warn('[shared-settings] 無法載入:', src);
-        (document.head || document.documentElement).appendChild(s);
-    }
-
-    function _injectMirror() {
-        // 精簡版 mirror：攔截 localStorage 讀寫 → sxStorage
-        if (global.__localStorageMirror) return;
-        const _nGet = localStorage.getItem.bind(localStorage);
-        const _nSet = localStorage.setItem.bind(localStorage);
-        const _nRem = localStorage.removeItem.bind(localStorage);
-        const NATIVE_MAX = 8192; // 8KB
-
-        localStorage.getItem = function(key) {
-            // 優先從 sxStorage 快取
-            if (typeof sxStorage !== 'undefined' && sxStorage?._getCache) {
-                try {
-                    const cached = sxStorage._getCache(key);
-                    if (cached !== undefined && cached !== null) return cached;
-                } catch(_) {}
-            }
-            // fallback: native localStorage
-            return _nGet(key);
-        };
-        localStorage.setItem = function(key, value) {
-            const str = typeof value === 'string' ? value : String(value);
-            // 寫入 IndexedDB
-            if (typeof sxStorage !== 'undefined' && sxStorage?.setItem) {
-                sxStorage.setItem(key, str).catch(() => {});
-            }
-            // 小型資料同步寫入 native（作為 iframe 同步讀取 fallback）
-            if (str.length <= NATIVE_MAX) {
-                try { _nSet(key, str); } catch(_) {}
-            }
-        };
-        localStorage.removeItem = function(key) {
-            if (typeof sxStorage !== 'undefined' && sxStorage?.removeItem) {
-                sxStorage.removeItem(key).catch(() => {});
-            }
-            try { _nRem(key); } catch(_) {}
-        };
-
-        global.__localStorageMirror = { isReady: true, isBootstrapDone: true, queuedWrites: 0, markSxReady() {} };
-        console.info('[shared-settings] 精簡版 localStorage mirror 已啟用');
-    }
+    (function _ensureDeps() {
+        const basePath = _resolveScriptBasePath();
+        if (typeof sxStorage === 'undefined' && typeof SXStorage === 'undefined') {
+            _loadScriptSync(basePath + 'sx-storage.js');
+        }
+        if (typeof sxSetItem === 'undefined') {
+            _loadScriptSync(basePath + 'sx-helper.js');
+        }
+    })();
 
     const safeJsonParse = (raw, fallback) => {
         if (!raw) return fallback;
@@ -102,6 +46,7 @@
         _initialized: false,
         _useIndexedDBFirst: true,
         _migrationComplete: false,
+        _cache: new Map(),
         
         priorityKeys: [
             'sx_characters', 'sx_users', 'sx_npcs',
@@ -115,108 +60,33 @@
         async init() {
             if (this._initialized) return;
             this._initialized = true;
-            
-            if (typeof localforage === 'undefined') {
-                console.warn('[SxStorage] localforage 未載入，使用 localStorage 模式');
-                this._useIndexedDBFirst = false;
-                return;
-            }
-            
-            await this._checkMigrationStatus();
-            console.log('[SxStorage] 初始化完成，優先使用 IndexedDB');
-        },
-        
-        async _checkMigrationStatus() {
-            const status = localStorage.getItem('sx_storage_migration_status');
-            if (status === 'complete') {
-                this._migrationComplete = true;
-                return;
-            }
-            
-            await this._migrateAllPriorityKeys();
-        },
-        
-        async _migrateAllPriorityKeys() {
-            if (typeof localforage === 'undefined') return;
-            
-            let migratedCount = 0;
-            let freedBytes = 0;
-            
-            for (const key of this.priorityKeys) {
-                const value = localStorage.getItem(key);
-                if (!value) continue;
-                
-                try {
-                    await localforage.setItem(key, value);
-                    localStorage.removeItem(key);
-                    localStorage.setItem(`${key}_in_idb`, 'true');
-                    
-                    const size = (key.length + value.length) * 2;
-                    freedBytes += size;
-                    migratedCount++;
-                } catch (e) {
-                    console.error(`[SxStorage] 遷移 ${key} 失敗:`, e);
-                }
-            }
-            
-            if (migratedCount > 0) {
-                localStorage.setItem('sx_storage_migration_status', 'complete');
-                this._migrationComplete = true;
-                console.log(`[SxStorage] 遷移完成: ${migratedCount} 項, 釋放 ${(freedBytes / 1024).toFixed(1)} KB`);
-            }
+            console.log('[SxStorage] 初始化完成，使用 sx-helper.js');
         },
         
         async setItem(key, value) {
-            await this.init();
-            
-            const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-            
-            if (this._useIndexedDBFirst && typeof localforage !== 'undefined') {
-                try {
-                    await localforage.setItem(key, serialized);
-                    localStorage.setItem(`${key}_in_idb`, 'true');
-                    
-                    localStorage.removeItem(key);
-                    return true;
-                } catch (e) {
-                    console.warn(`[SxStorage] IndexedDB 寫入失敗，回退 localStorage:`, e);
+            if (typeof sxSetItem === 'function') {
+                const result = await sxSetItem(key, value);
+                if (result) {
+                    this._cache.set(key, typeof value === 'string' ? value : JSON.stringify(value));
                 }
+                return result;
             }
-            
-            try {
-                localStorage.setItem(key, serialized);
-                return true;
-            } catch (e) {
-                console.error(`[SxStorage] localStorage 寫入失敗:`, e);
-                return false;
-            }
+            console.error('[SxStorage] sxSetItem 不可用');
+            return false;
         },
         
         async getItem(key) {
-            await this.init();
+            const cached = this._cache.get(key);
+            if (cached !== undefined) return cached;
             
-            const inIdb = localStorage.getItem(`${key}_in_idb`) === 'true';
-            
-            if (inIdb && typeof localforage !== 'undefined') {
-                try {
-                    const value = await localforage.getItem(key);
-                    if (value !== null) return value;
-                } catch (e) {
-                    console.warn(`[SxStorage] IndexedDB讀取失敗:`, e);
+            if (typeof sxGetItem === 'function') {
+                const value = await sxGetItem(key);
+                if (value !== null) {
+                    this._cache.set(key, value);
                 }
+                return value;
             }
-            
-            const lsValue = localStorage.getItem(key);
-            if (lsValue !== null) return lsValue;
-            
-            if (typeof localforage !== 'undefined') {
-                try {
-                    return await localforage.getItem(key);
-                } catch (e) {
-                    return null;
-                }
-            }
-            
+            console.error('[SxStorage] sxGetItem 不可用');
             return null;
         },
         
@@ -226,47 +96,49 @@
         },
         
         async removeItem(key) {
-            localStorage.removeItem(key);
-            localStorage.removeItem(`${key}_in_idb`);
-            
-            if (typeof localforage !== 'undefined') {
-                try {
-                    await localforage.removeItem(key);
-                } catch (e) {}
+            this._cache.delete(key);
+            if (typeof sxRemoveItem === 'function') {
+                return await sxRemoveItem(key);
             }
+            console.error('[SxStorage] sxRemoveItem 不可用');
+            return false;
+        },
+
+        _getCache(key) {
+            return this._cache.get(key);
+        },
+
+        _setCache(key, value) {
+            this._cache.set(key, value);
         },
         
         async getStorageUsage() {
-            let lsUsed = 0;
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key) {
-                    const value = localStorage.getItem(key);
-                    if (value) {
-                        lsUsed += (key.length + value.length) * 2;
-                    }
-                }
+            let total = 0;
+            for (const [key, value] of this._cache.entries()) {
+                total += (key.length + (value?.length || 0)) * 2;
             }
             
-            let idbUsed = 0;
-            if (typeof localforage !== 'undefined') {
+            if (typeof sxStorage !== 'undefined' && sxStorage.getStorageEstimate) {
                 try {
-                    await localforage.iterate((value, key) => {
-                        const size = typeof value === 'string' 
-                            ? (key.length + value.length) * 2
-                            : (key.length + JSON.stringify(value).length) * 2;
-                        idbUsed += size;
-                    });
+                    const estimate = await sxStorage.getStorageEstimate();
+                    return {
+                        cache: total,
+                        indexedDB: estimate.usage || 0,
+                        total: total + (estimate.usage || 0),
+                        cacheKB: (total / 1024).toFixed(1),
+                        indexedDBKB: ((estimate.usage || 0) / 1024).toFixed(1),
+                        totalKB: ((total + (estimate.usage || 0)) / 1024).toFixed(1)
+                    };
                 } catch (e) {}
             }
             
             return {
-                localStorage: lsUsed,
-                indexedDB: idbUsed,
-                total: lsUsed + idbUsed,
-                localStorageKB: (lsUsed / 1024).toFixed(1),
-                indexedDBKB: (idbUsed / 1024).toFixed(1),
-                totalKB: ((lsUsed + idbUsed) / 1024).toFixed(1)
+                cache: total,
+                indexedDB: 0,
+                total: total,
+                cacheKB: (total / 1024).toFixed(1),
+                indexedDBKB: '0',
+                totalKB: (total / 1024).toFixed(1)
             };
         },
         
@@ -411,7 +283,7 @@
             
             console.log(`[SxStorage] 壓縮向量化完成: 壓縮 ${stats.compressed}, 刪除 ${stats.deleted}, 向量化 ${stats.vectorized}, 節省 ${(stats.savedBytes / 1024).toFixed(1)} KB`);
             
-            localStorage.setItem('sx_last_compress_cleanup', now.toString());
+            await this.setItem('sx_last_compress_cleanup', now.toString());
             
             return stats;
         },
@@ -605,9 +477,7 @@
     
     global.SxStorage = SxStorage;
 
-    // --- 語言處理模組 ---
     const LanguageModule = {
-        // 語言別名對應
         aliasMap: {
             'zh-TW': 'zh-Hant',
             'zh-HK': 'zh-Hant',
@@ -616,29 +486,30 @@
             'zh-SG': 'zh-Hans'
         },
 
-        // 獲取當前語言
-        getCurrentLang() {
-            const rawLang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+        async getCurrentLangAsync() {
+            const rawLang = await SxStorage.getItem('sxiphone_lang') || 'zh-Hant';
             return this.normalizeLang(rawLang);
         },
 
-        // 標準化語言代碼
+        getCurrentLang() {
+            const cached = SxStorage._getCache('sxiphone_lang');
+            const rawLang = cached || localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+            return this.normalizeLang(rawLang);
+        },
+
         normalizeLang(rawLang) {
             const normalized = this.aliasMap[rawLang] || rawLang;
             return normalized;
         },
 
-        // UI 更新回調註冊表
         _updateCallbacks: [],
 
-        // 註冊 UI 更新回調
         onUpdate(callback) {
             if (typeof callback === 'function') {
                 this._updateCallbacks.push(callback);
             }
         },
 
-        // 移除 UI 更新回調
         offUpdate(callback) {
             const idx = this._updateCallbacks.indexOf(callback);
             if (idx > -1) {
@@ -646,7 +517,6 @@
             }
         },
 
-        // 觸發所有 UI 更新回調
         triggerUpdate(lang) {
             const currentLang = lang || this.getCurrentLang();
             this._updateCallbacks.forEach(callback => {
@@ -658,27 +528,21 @@
             });
         },
 
-        // 初始化語言監聽器
         initListener() {
-            // 監聽來自父視窗的語言變更訊息
             window.addEventListener('message', (event) => {
                 const data = event.data;
                 if (!data || typeof data !== 'object') return;
 
                 if (data.type === 'LANGUAGE_CHANGED' && data.lang) {
                     console.log('[LanguageModule] 收到語言變更訊息:', data.lang);
-                    // 更新 localStorage
-                    localStorage.setItem('sxiphone_lang', data.lang);
-                    // 更新 html lang 屬性
+                    SxStorage.setItem('sxiphone_lang', data.lang);
                     if (document.documentElement) {
                         document.documentElement.lang = this.normalizeLang(data.lang);
                     }
-                    // 觸發 UI 更新
                     this.triggerUpdate(this.normalizeLang(data.lang));
                 }
             });
 
-            // 頁面載入時也觸發一次（確保初始狀態正確）
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
                     this.triggerUpdate();
@@ -689,14 +553,13 @@
         }
     };
 
-    // --- 外觀主題模組 ---
     const AppearanceModule = {
-        // 外觀更新回調註冊表
         _updateCallbacks: [],
+        _configCache: null,
         
-        // 獲取當前外觀設定
-        getAppearanceConfig() {
-            return safeJsonParse(localStorage.getItem('sx_custom_theme_config'), {
+        async getAppearanceConfigAsync() {
+            const raw = await SxStorage.getItem('sx_custom_theme_config');
+            return safeJsonParse(raw, {
                 textPrimary: '#ffffff',
                 textSecondary: '#9ca3af',
                 textHeading: '#ffffff',
@@ -715,39 +578,88 @@
             });
         },
         
-        // 獲取主題模式
+        getAppearanceConfig() {
+            if (this._configCache) return this._configCache;
+            const cached = SxStorage._getCache('sx_custom_theme_config');
+            const raw = cached || localStorage.getItem('sx_custom_theme_config');
+            return safeJsonParse(raw, {
+                textPrimary: '#ffffff',
+                textSecondary: '#9ca3af',
+                textHeading: '#ffffff',
+                textLink: '#5B8DEF',
+                borderWidth: 1,
+                borderColor: '#ffffff',
+                cardBorderWidth: 1,
+                cardRadius: 18,
+                elementGap: 12,
+                fontSize: 14,
+                headingSize: 22,
+                iconSize: 62,
+                iconRadius: 20,
+                appBgColor: '#1c1c1e',
+                appBgOpacity: 30
+            });
+        },
+        
+        async getThemeModeAsync() {
+            return await SxStorage.getItem('sx_theme_mode') || 'dark';
+        },
+        
         getThemeMode() {
-            return localStorage.getItem('sx_theme_mode') || 'dark';
+            const cached = SxStorage._getCache('sx_theme_mode');
+            return cached || localStorage.getItem('sx_theme_mode') || 'dark';
         },
         
-        // 獲取主題強調色
+        async getThemeAccentAsync() {
+            return await SxStorage.getItem('sx_theme_accent') || '#5B8DEF';
+        },
+        
         getThemeAccent() {
-            return localStorage.getItem('sx_theme_accent') || '#5B8DEF';
+            const cached = SxStorage._getCache('sx_theme_accent');
+            return cached || localStorage.getItem('sx_theme_accent') || '#5B8DEF';
         },
         
-        // 獲取文字顏色
+        async getTextColorAsync() {
+            const mode = await this.getThemeModeAsync();
+            return await SxStorage.getItem('sx_theme_text_color') || 
+                   (mode === 'light' ? '#000000' : '#ffffff');
+        },
+        
         getTextColor() {
+            const cached = SxStorage._getCache('sx_theme_text_color');
+            if (cached) return cached;
             return localStorage.getItem('sx_theme_text_color') || 
                    (this.getThemeMode() === 'light' ? '#000000' : '#ffffff');
         },
         
-        // 獲取應用背景設定
-        getAppBgConfig() {
+        async getAppBgConfigAsync() {
+            const color = await SxStorage.getItem('sx_theme_app_bg_color') || '#1c1c1e';
+            const opacityRaw = await SxStorage.getItem('sx_theme_app_bg_alpha') || '30';
+            const blurRaw = await SxStorage.getItem('sx_theme_app_bg_blur') || '20';
             return {
-                color: localStorage.getItem('sx_theme_app_bg_color') || '#1c1c1e',
-                opacity: parseInt(localStorage.getItem('sx_theme_app_bg_alpha') || '30'),
-                blur: parseInt(localStorage.getItem('sx_theme_app_bg_blur') || '20')
+                color,
+                opacity: parseInt(opacityRaw),
+                blur: parseInt(blurRaw)
             };
         },
         
-        // 註冊外觀更新回調
+        getAppBgConfig() {
+            const colorCache = SxStorage._getCache('sx_theme_app_bg_color');
+            const alphaCache = SxStorage._getCache('sx_theme_app_bg_alpha');
+            const blurCache = SxStorage._getCache('sx_theme_app_bg_blur');
+            return {
+                color: colorCache || localStorage.getItem('sx_theme_app_bg_color') || '#1c1c1e',
+                opacity: parseInt(alphaCache || localStorage.getItem('sx_theme_app_bg_alpha') || '30'),
+                blur: parseInt(blurCache || localStorage.getItem('sx_theme_app_bg_blur') || '20')
+            };
+        },
+        
         onUpdate(callback) {
             if (typeof callback === 'function') {
                 this._updateCallbacks.push(callback);
             }
         },
         
-        // 移除外觀更新回調
         offUpdate(callback) {
             const idx = this._updateCallbacks.indexOf(callback);
             if (idx > -1) {
@@ -755,9 +667,9 @@
             }
         },
         
-        // 觸發所有外觀更新回調
         triggerUpdate(config) {
             const currentConfig = config || this.getAppearanceConfig();
+            this._configCache = currentConfig;
             this._updateCallbacks.forEach(callback => {
                 try {
                     callback(currentConfig);
@@ -767,12 +679,10 @@
             });
         },
         
-        // 應用外觀設定到當前頁面
         applyToPage(config) {
             const cfg = config || this.getAppearanceConfig();
             const root = document.documentElement;
             
-            // 設定 CSS 變數
             if (cfg.textPrimary) root.style.setProperty('--sx-text', cfg.textPrimary);
             if (cfg.textSecondary) root.style.setProperty('--sx-text-secondary', cfg.textSecondary);
             if (cfg.textLink) root.style.setProperty('--sx-accent', cfg.textLink);
@@ -782,21 +692,17 @@
             if (cfg.iconRadius) root.style.setProperty('--sx-icon-radius', cfg.iconRadius + 'px');
             if (cfg.iconSize) root.style.setProperty('--sx-icon-size', cfg.iconSize + 'px');
             
-            // 應用主題模式
             const mode = this.getThemeMode();
             const effectiveMode = mode === 'custom-light' ? 'light' : mode === 'custom-dark' ? 'dark' : mode;
             root.dataset.theme = effectiveMode;
             document.body?.classList.toggle('theme-light', effectiveMode === 'light');
             
-            // 應用強調色
             const accent = this.getThemeAccent();
             root.style.setProperty('--sx-accent', accent);
             
-            // 應用文字顏色
             const textColor = this.getTextColor();
             root.style.setProperty('--sx-text-color', textColor);
             
-            // 動態注入樣式
             const styleId = 'sx-appearance-override';
             let styleEl = document.getElementById(styleId);
             if (!styleEl) {
@@ -834,9 +740,7 @@
             console.log('[AppearanceModule] 外觀已應用到頁面');
         },
         
-        // 初始化外觀監聽器
         initListener() {
-            // 監聽來自父視窗的外觀變更訊息
             window.addEventListener('message', (event) => {
                 const data = event.data;
                 if (!data || typeof data !== 'object') return;
@@ -849,31 +753,30 @@
                 
                 if (data.type === 'THEME_MODE_CHANGED' && data.mode) {
                     console.log('[AppearanceModule] 收到主題模式變更:', data.mode);
-                    localStorage.setItem('sx_theme_mode', data.mode);
+                    SxStorage.setItem('sx_theme_mode', data.mode);
                     this.applyToPage();
                 }
                 
                 if (data.type === 'THEME_ACCENT_CHANGED' && data.accent) {
                     console.log('[AppearanceModule] 收到強調色變更:', data.accent);
-                    localStorage.setItem('sx_theme_accent', data.accent);
+                    SxStorage.setItem('sx_theme_accent', data.accent);
                     this.applyToPage();
                 }
                 
                 if (data.type === 'THEME_TEXT_COLOR_CHANGED' && data.color) {
                     console.log('[AppearanceModule] 收到文字顏色變更:', data.color);
-                    localStorage.setItem('sx_theme_text_color', data.color);
+                    SxStorage.setItem('sx_theme_text_color', data.color);
                     this.applyToPage();
                 }
                 
                 if (data.type === 'THEME_APP_BG_CHANGED' && data.color) {
                     console.log('[AppearanceModule] 收到應用背景變更:', data.color);
-                    localStorage.setItem('sx_theme_app_bg_color', data.color);
-                    if (data.alpha) localStorage.setItem('sx_theme_app_bg_alpha', data.alpha);
+                    SxStorage.setItem('sx_theme_app_bg_color', data.color);
+                    if (data.alpha) SxStorage.setItem('sx_theme_app_bg_alpha', data.alpha);
                     this.applyToPage();
                 }
             });
             
-            // 頁面載入時應用當前外觀設定
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
                     this.applyToPage();
@@ -886,7 +789,6 @@
         }
     };
 
-    // --- 瀏覽器檢測 ---
     const detectBrowser = () => {
         const ua = navigator.userAgent;
         return {
@@ -906,13 +808,10 @@
         };
     };
 
-    // --- 跨瀏覽器儲存保護模組 ---
     const StorageProtection = {
         browser: detectBrowser(),
 
-        // 請求持久化儲存權限
         async requestPersistence() {
-            // Storage API 支援檢測
             if (navigator.storage && navigator.storage.persist) {
                 try {
                     const isPersisted = await navigator.storage.persist();
@@ -923,44 +822,32 @@
                     return false;
                 }
             }
-            // 對於不支援 Storage API 的瀏覽器，使用其他方法
             console.log('[StorageProtection] Storage API 不支援，使用備用方法');
             return false;
         },
 
-        // 保存數據的包裝函數，確保立即寫入
-        save(key, value) {
+        async save(key, value) {
             try {
                 const serialized = typeof value === 'object' ? JSON.stringify(value) : value;
                 
-                // 主要儲存
-                localStorage.setItem(key, serialized);
+                await SxStorage.setItem(key, serialized);
                 
-                // 針對某些瀏覽器的額外保險：嘗試 sessionStorage 作為備份
                 try {
                     sessionStorage.setItem(key + '_backup', serialized);
-                } catch (e) {
-                    // sessionStorage 可能不可用
-                }
+                } catch (e) {}
 
-                // 強制觸發 storage 事件
                 try {
                     window.dispatchEvent(new StorageEvent('storage', { key, newValue: serialized }));
-                } catch (e) {
-                    // 某些瀏覽器可能不支援 StorageEvent 建構子
-                }
+                } catch (e) {}
 
-                // 針對 Via/X瀏覽器 的特殊處理：強制寫入
                 if (this.browser.isVia || this.browser.isXBrowser) {
-                    // 重複寫入以確保
-                    localStorage.setItem(key, serialized);
+                    await SxStorage.setItem(key, serialized);
                 }
 
                 return true;
             } catch (e) {
                 console.error('[StorageProtection] 保存失敗:', key, e);
                 
-                // 嘗試使用 sessionStorage 作為備份
                 try {
                     sessionStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
                     return true;
@@ -971,18 +858,15 @@
             }
         },
 
-        // 讀取數據（支援備份恢復）
-        load(key, fallback = null) {
+        async load(key, fallback = null) {
             try {
-                const value = localStorage.getItem(key);
+                const value = await SxStorage.getItem(key);
                 if (value !== null) return JSON.parse(value);
                 
-                // 嘗試從備份恢復
                 const backup = sessionStorage.getItem(key + '_backup');
                 if (backup !== null) {
                     const parsed = JSON.parse(backup);
-                    // 恢復到 localStorage
-                    localStorage.setItem(key, backup);
+                    await SxStorage.setItem(key, backup);
                     return parsed;
                 }
             } catch (e) {
@@ -991,19 +875,16 @@
             return fallback;
         },
 
-        // 初始化應用程式的儲存保護
         initAppProtection(saveCallback) {
             const browser = this.browser;
             
             console.log('[StorageProtection] 瀏覽器檢測:', browser);
 
-            // pagehide - iOS Safari 最可靠
             window.addEventListener('pagehide', (event) => {
                 console.log('[StorageProtection] pagehide 觸發，保存數據...');
                 if (saveCallback) saveCallback();
             });
 
-            // visibilitychange - 頁面隱藏時保存
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
                     console.log('[StorageProtection] visibilitychange(hidden) 觸發，保存數據...');
@@ -1011,17 +892,14 @@
                 }
             });
 
-            // beforeunload - 大多數瀏覽器支援
             window.addEventListener('beforeunload', () => {
                 if (saveCallback) saveCallback();
             });
 
-            // unload - 舊瀏覽器備用（某些瀏覽器可能只支援這個）
             window.addEventListener('unload', () => {
                 if (saveCallback) saveCallback();
             });
 
-            // freeze - Android Chrome 凍結事件
             if ('onfreeze' in document) {
                 document.addEventListener('freeze', () => {
                     console.log('[StorageProtection] freeze 觸發，保存數據...');
@@ -1029,14 +907,12 @@
                 });
             }
 
-            // resume - 從凍結恢復時
             if ('onresume' in document) {
                 document.addEventListener('resume', () => {
                     console.log('[StorageProtection] resume 觸發');
                 });
             }
 
-            // 監聽來自父視窗的關閉通知
             window.addEventListener('message', (event) => {
                 if (event.data?.type === 'APP_WILL_CLOSE') {
                     console.log('[StorageProtection] APP_WILL_CLOSE 觸發，保存數據...');
@@ -1044,40 +920,60 @@
                 }
             });
 
-            // 針對 Via 瀏覽器的特殊處理
             if (browser.isVia) {
                 console.log('[StorageProtection] Via 瀏覽器特殊處理已啟用');
-                // 定期保存（每 5 秒）
                 setInterval(() => {
                     if (saveCallback) saveCallback();
                 }, 5000);
             }
 
-            // 針對 X瀏覽器 的特殊處理
             if (browser.isXBrowser) {
                 console.log('[StorageProtection] X瀏覽器特殊處理已啟用');
-                // 定期保存（每 5 秒）
                 setInterval(() => {
                     if (saveCallback) saveCallback();
                 }, 5000);
             }
 
-            // 請求持久化
             this.requestPersistence();
         }
     };
 
     const SettingsReader = {
-        getApiConfigs() {
-            return safeJsonParse(localStorage.getItem('api_configs'), []);
+        async getApiConfigsAsync() {
+            return await SxStorage.getJson('api_configs', []);
         },
 
-        getActiveApiIndex() {
-            const idx = localStorage.getItem('sx_active_api');
+        getApiConfigs() {
+            const cached = SxStorage._getCache('api_configs');
+            return safeJsonParse(cached || localStorage.getItem('api_configs'), []);
+        },
+
+        async getActiveApiIndexAsync() {
+            const idx = await SxStorage.getItem('sx_active_api');
             if (idx === null) return 0;
             const parsed = parseInt(idx, 10);
             if (isNaN(parsed)) return 0;
             return parsed;
+        },
+
+        getActiveApiIndex() {
+            const cached = SxStorage._getCache('sx_active_api');
+            const idx = cached || localStorage.getItem('sx_active_api');
+            if (idx === null) return 0;
+            const parsed = parseInt(idx, 10);
+            if (isNaN(parsed)) return 0;
+            return parsed;
+        },
+
+        async getActiveApiAsync() {
+            const configs = await this.getApiConfigsAsync();
+            if (!configs || configs.length === 0) return null;
+            const idx = await this.getActiveApiIndexAsync();
+            if (idx < 0 || idx >= configs.length) {
+                console.warn('[SettingsReader] API 索引超出範圍，使用第一個 API');
+                return configs[0];
+            }
+            return configs[idx];
         },
 
         getActiveApi() {
@@ -1089,6 +985,18 @@
                 return configs[0];
             }
             return configs[idx];
+        },
+
+        async getActiveApiWithFallbackAsync() {
+            const configs = await this.getApiConfigsAsync();
+            if (!configs || configs.length === 0) {
+                console.warn('[SettingsReader] 沒有可用的 API 配置');
+                return null;
+            }
+            const idx = await this.getActiveApiIndexAsync();
+            const api = configs[idx] || configs[0];
+            console.log(`[SettingsReader] 使用 API #${idx}: ${api?.name || '未命名'} (${api?.url?.slice(0, 30)}...)`);
+            return api;
         },
 
         getActiveApiWithFallback() {
@@ -1103,16 +1011,42 @@
             return api;
         },
 
+        async getCharactersAsync() {
+            return await SxStorage.getJson('sx_characters', []);
+        },
+
         getCharacters() {
-            return safeJsonParse(localStorage.getItem('sx_characters'), []);
+            const cached = SxStorage._getCache('sx_characters');
+            return safeJsonParse(cached || localStorage.getItem('sx_characters'), []);
+        },
+
+        async getUsersAsync() {
+            return await SxStorage.getJson('sx_users', []);
         },
 
         getUsers() {
-            return safeJsonParse(localStorage.getItem('sx_users'), []);
+            const cached = SxStorage._getCache('sx_users');
+            return safeJsonParse(cached || localStorage.getItem('sx_users'), []);
+        },
+
+        async getNpcsAsync() {
+            return await SxStorage.getJson('sx_npcs', []);
         },
 
         getNpcs() {
-            return safeJsonParse(localStorage.getItem('sx_npcs'), []);
+            const cached = SxStorage._getCache('sx_npcs');
+            return safeJsonParse(cached || localStorage.getItem('sx_npcs'), []);
+        },
+
+        async getAllPersonasAsync() {
+            const chars = await this.getCharactersAsync();
+            const users = await this.getUsersAsync();
+            const npcs = await this.getNpcsAsync();
+            return [
+                ...chars.map(c => ({ ...c, type: 'character' })),
+                ...users.map(u => ({ ...u, type: 'user' })),
+                ...npcs.map(n => ({ ...n, type: 'npc' }))
+            ];
         },
 
         getAllPersonas() {
@@ -1126,41 +1060,94 @@
             ];
         },
 
+        async getWorldbookIndexAsync() {
+            return await SxStorage.getJson('sx_worldbook_index', []);
+        },
+
         getWorldbookIndex() {
-            return safeJsonParse(localStorage.getItem('sx_worldbook_index'), []);
+            const cached = SxStorage._getCache('sx_worldbook_index');
+            return safeJsonParse(cached || localStorage.getItem('sx_worldbook_index'), []);
+        },
+
+        async getWorldbookMountsAsync() {
+            return await SxStorage.getJson('sx_worldbook_mounts', []);
         },
 
         getWorldbookMounts() {
-            return safeJsonParse(localStorage.getItem('sx_worldbook_mounts'), []);
+            const cached = SxStorage._getCache('sx_worldbook_mounts');
+            return safeJsonParse(cached || localStorage.getItem('sx_worldbook_mounts'), []);
+        },
+
+        async getWorldbookPartsAsync() {
+            const [cot, style, global, keywords, backend, theater] = await Promise.all([
+                SxStorage.getJson('sx_worldbook_cot', []),
+                SxStorage.getJson('sx_worldbook_style', []),
+                SxStorage.getJson('sx_worldbook_global', []),
+                SxStorage.getJson('sx_worldbook_keywords', []),
+                SxStorage.getJson('sx_worldbook_backend', []),
+                SxStorage.getJson('sx_worldbook_theater', [])
+            ]);
+            return { cot, style, global, keywords, backend, theater };
         },
 
         getWorldbookParts() {
             return {
-                cot: safeJsonParse(localStorage.getItem('sx_worldbook_cot'), []),
-                style: safeJsonParse(localStorage.getItem('sx_worldbook_style'), []),
-                global: safeJsonParse(localStorage.getItem('sx_worldbook_global'), []),
-                keywords: safeJsonParse(localStorage.getItem('sx_worldbook_keywords'), []),
-                backend: safeJsonParse(localStorage.getItem('sx_worldbook_backend'), []),
-                theater: safeJsonParse(localStorage.getItem('sx_worldbook_theater'), [])
+                cot: safeJsonParse(SxStorage._getCache('sx_worldbook_cot') || localStorage.getItem('sx_worldbook_cot'), []),
+                style: safeJsonParse(SxStorage._getCache('sx_worldbook_style') || localStorage.getItem('sx_worldbook_style'), []),
+                global: safeJsonParse(SxStorage._getCache('sx_worldbook_global') || localStorage.getItem('sx_worldbook_global'), []),
+                keywords: safeJsonParse(SxStorage._getCache('sx_worldbook_keywords') || localStorage.getItem('sx_worldbook_keywords'), []),
+                backend: safeJsonParse(SxStorage._getCache('sx_worldbook_backend') || localStorage.getItem('sx_worldbook_backend'), []),
+                theater: safeJsonParse(SxStorage._getCache('sx_worldbook_theater') || localStorage.getItem('sx_worldbook_theater'), [])
+            };
+        },
+
+        async getCurrentUserAsync() {
+            const [name, avatar, personality, background] = await Promise.all([
+                SxStorage.getItem('sx_user_name'),
+                SxStorage.getItem('sx_user_avatar'),
+                SxStorage.getItem('sx_user_personality'),
+                SxStorage.getItem('sx_user_background')
+            ]);
+            return {
+                name: name || '',
+                avatar: avatar || '',
+                personality: personality || '',
+                background: background || ''
             };
         },
 
         getCurrentUser() {
             return {
-                name: localStorage.getItem('sx_user_name') || '',
-                avatar: localStorage.getItem('sx_user_avatar') || '',
-                personality: localStorage.getItem('sx_user_personality') || '',
-                background: localStorage.getItem('sx_user_background') || ''
+                name: SxStorage._getCache('sx_user_name') || localStorage.getItem('sx_user_name') || '',
+                avatar: SxStorage._getCache('sx_user_avatar') || localStorage.getItem('sx_user_avatar') || '',
+                personality: SxStorage._getCache('sx_user_personality') || localStorage.getItem('sx_user_personality') || '',
+                background: SxStorage._getCache('sx_user_background') || localStorage.getItem('sx_user_background') || ''
             };
         },
 
+        async getMasksAsync() {
+            return await SxStorage.getJson('sx_masks', []);
+        },
+
         getMasks() {
-            return safeJsonParse(localStorage.getItem('sx_masks'), []);
+            const cached = SxStorage._getCache('sx_masks');
+            return safeJsonParse(cached || localStorage.getItem('sx_masks'), []);
+        },
+
+        async getActiveMaskAsync() {
+            const masks = await this.getMasksAsync();
+            return masks[0] || null;
         },
 
         getActiveMask() {
             const masks = this.getMasks();
             return masks[0] || null;
+        },
+
+        async getCharByNameAsync(name) {
+            if (!name) return null;
+            const chars = await this.getCharactersAsync();
+            return chars.find(c => c.name === name) || null;
         },
 
         getCharByName(name) {
@@ -1169,10 +1156,22 @@
             return chars.find(c => c.name === name) || null;
         },
 
+        async getUserByNameAsync(name) {
+            if (!name) return null;
+            const users = await this.getUsersAsync();
+            return users.find(u => u.name === name) || null;
+        },
+
         getUserByName(name) {
             if (!name) return null;
             const users = this.getUsers();
             return users.find(u => u.name === name) || null;
+        },
+
+        async getNpcByNameAsync(name) {
+            if (!name) return null;
+            const npcs = await this.getNpcsAsync();
+            return npcs.find(n => n.name === name) || null;
         },
 
         getNpcByName(name) {
@@ -1181,20 +1180,80 @@
             return npcs.find(n => n.name === name) || null;
         },
 
+        async getPersonaByNameAsync(name) {
+            return await this.getCharByNameAsync(name) || 
+                   await this.getUserByNameAsync(name) || 
+                   await this.getNpcByNameAsync(name) || null;
+        },
+
         getPersonaByName(name) {
             return this.getCharByName(name) || 
                    this.getUserByName(name) || 
                    this.getNpcByName(name) || null;
         },
 
+        async getActiveCharAsync() {
+            const charName = await SxStorage.getItem('sx_char_name') || '';
+            if (charName) {
+                const found = await this.getCharByNameAsync(charName);
+                if (found) return found;
+            }
+            const chars = await this.getCharactersAsync();
+            return chars[0] || null;
+        },
+
         getActiveChar() {
-            const charName = localStorage.getItem('sx_char_name') || '';
+            const charName = SxStorage._getCache('sx_char_name') || localStorage.getItem('sx_char_name') || '';
             if (charName) {
                 const found = this.getCharByName(charName);
                 if (found) return found;
             }
             const chars = this.getCharacters();
             return chars[0] || null;
+        },
+
+        async getSettingsSnapshotAsync() {
+            const [apis, activeApiIndex, characters, users, npcs, worldbook, worldbookIndex, worldbookMounts, currentUser, masks] = await Promise.all([
+                this.getApiConfigsAsync(),
+                this.getActiveApiIndexAsync(),
+                this.getCharactersAsync(),
+                this.getUsersAsync(),
+                this.getNpcsAsync(),
+                this.getWorldbookPartsAsync(),
+                this.getWorldbookIndexAsync(),
+                this.getWorldbookMountsAsync(),
+                this.getCurrentUserAsync(),
+                this.getMasksAsync()
+            ]);
+            
+            const [activeApi, activeApiWithFallback, activeMask, activeChar] = await Promise.all([
+                this.getActiveApiAsync(),
+                this.getActiveApiWithFallbackAsync(),
+                this.getActiveMaskAsync(),
+                this.getActiveCharAsync()
+            ]);
+            
+            return {
+                apis,
+                activeApiIndex,
+                activeApi,
+                activeApiWithFallback,
+                characters,
+                users,
+                npcs,
+                personas: [
+                    ...characters.map(c => ({ ...c, type: 'character' })),
+                    ...users.map(u => ({ ...u, type: 'user' })),
+                    ...npcs.map(n => ({ ...n, type: 'npc' }))
+                ],
+                worldbook,
+                worldbookIndex,
+                worldbookMounts,
+                currentUser,
+                masks,
+                activeMask,
+                activeChar
+            };
         },
 
         getSettingsSnapshot() {
@@ -1222,29 +1281,33 @@
         return SettingsReader.getActiveApiWithFallback();
     };
 
+    const getActiveApiConfigAsync = async () => {
+        return await SettingsReader.getActiveApiWithFallbackAsync();
+    };
+
     global.SxSettings = SettingsReader;
     global.getSxSettings = () => SettingsReader.getSettingsSnapshot();
+    global.getSxSettingsAsync = () => SettingsReader.getSettingsSnapshotAsync();
     global.getActiveApiConfig = getActiveApiConfig;
+    global.getActiveApiConfigAsync = getActiveApiConfigAsync;
     global.SettingsReader = SettingsReader;
     global.StorageProtection = StorageProtection;
     
-    // 暴露語言處理模組
     global.SxLanguage = LanguageModule;
     global.getCurrentLang = () => LanguageModule.getCurrentLang();
+    global.getCurrentLangAsync = () => LanguageModule.getCurrentLangAsync();
     global.onLanguageChange = (callback) => LanguageModule.onUpdate(callback);
     global.offLanguageChange = (callback) => LanguageModule.offUpdate(callback);
     
-    // 暴露外觀處理模組
     global.SxAppearance = AppearanceModule;
     global.getAppearanceConfig = () => AppearanceModule.getAppearanceConfig();
+    global.getAppearanceConfigAsync = () => AppearanceModule.getAppearanceConfigAsync();
     global.onAppearanceChange = (callback) => AppearanceModule.onUpdate(callback);
     global.offAppearanceChange = (callback) => AppearanceModule.offUpdate(callback);
     global.applyAppearance = (config) => AppearanceModule.applyToPage(config);
 
-    // 自動初始化語言監聯器
     LanguageModule.initListener();
     
-    // 自動初始化外觀監聯器
     AppearanceModule.initListener();
 
 })(typeof window !== 'undefined' ? window : globalThis);

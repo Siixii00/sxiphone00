@@ -216,18 +216,12 @@ function renderBoard() {
   });
 }
 
-function loadScoreMap() {
-  const raw = localStorage.getItem(LEVEL_SCORE_KEY);
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw) || {};
-  } catch {
-    return {};
-  }
+async function loadScoreMap() {
+  return await sxGetJSON(LEVEL_SCORE_KEY) || {};
 }
 
-function saveScoreMap(map) {
-  localStorage.setItem(LEVEL_SCORE_KEY, JSON.stringify(map));
+async function saveScoreMap(map) {
+  await sxSetJSON(LEVEL_SCORE_KEY, map);
 }
 
 function calcStars(scoreValue, targetValue) {
@@ -237,9 +231,9 @@ function calcStars(scoreValue, targetValue) {
   return 0;
 }
 
-function buildWorlds() {
+async function buildWorlds() {
   if (!worldsGrid) return;
-  const scoreMap = loadScoreMap();
+  const scoreMap = await loadScoreMap();
   const levelsPerWorld = Math.ceil(LEVEL_COUNT / WORLDS.length);
   worldsGrid.innerHTML = WORLDS.map((world, idx) => {
     const startLevel = idx * levelsPerWorld + 1;
@@ -310,20 +304,13 @@ function updateStatus() {
   levelStatus.innerHTML = `${statusText}${goalsText ? '<br>收集目標：' + goalsText : ''}`;
 }
 
-function loadLevels() {
-  const raw = localStorage.getItem(LEVEL_STORAGE_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length >= LEVEL_COUNT) return parsed;
-    } catch {
-      return null;
-    }
-  }
+async function loadLevels() {
+  const parsed = await sxGetJSON(LEVEL_STORAGE_KEY);
+  if (parsed && Array.isArray(parsed) && parsed.length >= LEVEL_COUNT) return parsed;
   return null;
 }
 
-function generateLevels() {
+async function generateLevels() {
   const levels = [];
   for (let i = 1; i <= LEVEL_COUNT; i += 1) {
     const tier = i <= 30 ? 'easy' : i <= 70 ? 'normal' : 'hard';
@@ -335,11 +322,15 @@ function generateLevels() {
       target: config.target + i * 5
     });
   }
-  localStorage.setItem(LEVEL_STORAGE_KEY, JSON.stringify(levels));
+  await sxSetJSON(LEVEL_STORAGE_KEY, levels);
   return levels;
 }
 
-const levelData = loadLevels() || generateLevels();
+let levelData = null;
+
+async function initLevelData() {
+  levelData = await loadLevels() || await generateLevels();
+}
 
 function populateLevelSelect() {
   if (!levelSelect) return;
@@ -369,7 +360,7 @@ function generateLevelGoals(level) {
   return goals;
 }
 
-function setupLevel(level) {
+async function setupLevel(level) {
   const data = levelData.find(item => item.level === level) || levelData[0];
   const difficulty = difficultySelect?.value || data.difficulty;
   const config = difficultyConfig[difficulty];
@@ -389,7 +380,7 @@ function setupLevel(level) {
   updateStatus();
   updatePowerUpUI();
   renderBoard();
-  localStorage.setItem(LAST_LEVEL_KEY, String(currentLevel));
+  await sxSetItem(LAST_LEVEL_KEY, String(currentLevel));
 }
 
 function getMatches(tempBoard = board) {
@@ -524,7 +515,7 @@ function collapseBoard(config) {
   }
 }
 
-function resolveMatches(config, swapIndex = null) {
+async function resolveMatches(config, swapIndex = null) {
   let { indices: matches, matchInfo } = getMatches();
   
   while (matches.length > 0) {
@@ -590,17 +581,17 @@ function resolveMatches(config, swapIndex = null) {
   }
   
   if (score >= target) {
-    const scoreMap = loadScoreMap();
+    const scoreMap = await loadScoreMap();
     const prevBest = scoreMap[currentLevel]?.score || 0;
     if (score > prevBest) {
       scoreMap[currentLevel] = { score, target };
-      saveScoreMap(scoreMap);
+      await saveScoreMap(scoreMap);
       buildWorlds();
     }
     
     if (currentLevel >= charProgress) {
       charProgress = Math.min(LEVEL_COUNT, currentLevel + 1);
-      localStorage.setItem(CHAR_PROGRESS_KEY, String(charProgress));
+      await sxSetItem(CHAR_PROGRESS_KEY, String(charProgress));
       updateCharProgressUI();
     }
     
@@ -632,7 +623,7 @@ function areAdjacent(a, b) {
   return rowDiff + colDiff === 1;
 }
 
-function handleTileClick(index) {
+async function handleTileClick(index) {
   if (isAnimating || moves <= 0) return;
   if (!board[index].fruit) return;
   
@@ -672,7 +663,7 @@ function handleTileClick(index) {
   isAnimating = true;
   moves -= 1;
   combo = 0;
-  resolveMatches(config, selectedIndex);
+  await resolveMatches(config, selectedIndex);
   selectedIndex = null;
   isAnimating = false;
   updateStatus();
@@ -689,10 +680,10 @@ function handleTileClick(index) {
   }
 }
 
-function startLevel(level) {
+async function startLevel(level) {
   if (levelSelect) levelSelect.value = String(level);
   toggleGameView(true);
-  setupLevel(level);
+  await setupLevel(level);
   
   if (charCompanionEnabled) {
     showCharComment({ event: 'start', level });
@@ -777,7 +768,7 @@ function usePowerUp(type) {
   }
 }
 
-generateBtn?.addEventListener('click', () => {
+generateBtn?.addEventListener('click', async () => {
   const difficulty = genDifficultySelect?.value || 'normal';
   const config = difficultyConfig[difficulty] || difficultyConfig.normal;
   const count = Math.max(1, Math.min(30, Number(genCountInput?.value || 1)));
@@ -800,7 +791,7 @@ generateBtn?.addEventListener('click', () => {
       existing.target = config.target + levelNumber * 5;
     }
   }
-  localStorage.setItem(LEVEL_STORAGE_KEY, JSON.stringify(levelData));
+  await sxSetJSON(LEVEL_STORAGE_KEY, levelData);
 
   if (targetWorld) {
     targetWorld.theme = themeMap[theme].theme;
@@ -814,26 +805,34 @@ generateBtn?.addEventListener('click', () => {
   board = createBoard(config);
   updateStatus();
   renderBoard();
-  buildWorlds();
+  await buildWorlds();
   toggleGameView(true);
 });
 
 restartBtn?.addEventListener('click', () => {
-  setupLevel(currentLevel);
+  (async () => {
+    await setupLevel(currentLevel);
+  })();
 });
 
 difficultySelect?.addEventListener('change', () => {
-  setupLevel(currentLevel);
+  (async () => {
+    await setupLevel(currentLevel);
+  })();
 });
 
 levelSelect?.addEventListener('change', () => {
-  const level = Number(levelSelect.value || 1);
-  setupLevel(level);
+  (async () => {
+    const level = Number(levelSelect.value || 1);
+    await setupLevel(level);
+  })();
 });
 
 enterLatestBtn?.addEventListener('click', () => {
-  const last = Number(localStorage.getItem(LAST_LEVEL_KEY) || '1');
-  startLevel(last);
+  (async () => {
+    const last = Number(await sxGetItem(LAST_LEVEL_KEY) || '1');
+    startLevel(last);
+  })();
 });
 
 function loadSxSettings() {
@@ -863,12 +862,11 @@ function updatePowerUpUI() {
   if (bombBtn) bombBtn.disabled = powerUps.bomb <= 0;
 }
 
-const getApiConfig = () => {
-  const raw = localStorage.getItem('api_configs');
-  if (!raw) return null;
+const getApiConfig = async () => {
+  const configs = await sxGetJSON('api_configs');
+  if (!configs) return null;
   try {
-    const configs = JSON.parse(raw);
-    const activeIndexStr = localStorage.getItem('sx_active_api');
+    const activeIndexStr = await sxGetItem('sx_active_api');
     const activeIndex = activeIndexStr !== null ? parseInt(activeIndexStr, 10) : 0;
     const validIndex = (!isNaN(activeIndex) && activeIndex >= 0 && activeIndex < configs.length) ? activeIndex : 0;
     return configs[validIndex] || configs[0] || null;
@@ -877,13 +875,12 @@ const getApiConfig = () => {
   }
 };
 
-const getCharData = () => {
-  const charName = localStorage.getItem('sx_char_name');
+const getCharData = async () => {
+  const charName = await sxGetItem('sx_char_name');
   if (!charName) return null;
-  const raw = localStorage.getItem('sx_characters');
-  if (!raw) return { name: charName, personality: '', background: '' };
+  const list = await sxGetJSON('sx_characters');
+  if (!list) return { name: charName, personality: '', background: '' };
   try {
-    const list = JSON.parse(raw);
     const found = list.find(c => c.name === charName);
     return found || { name: charName, personality: '', background: '' };
   } catch {
@@ -892,18 +889,18 @@ const getCharData = () => {
 };
 
 const generateCharComment = async (context) => {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   if (!config || !config.url) {
     return generateFallbackComment(context);
   }
 
   const apiType = config.type || 'openai';
-  const char = getCharData();
+  const char = await getCharData();
   const charName = char?.name || '角色';
   const charPersonality = char?.personality || '';
   const charBackground = char?.background || '';
 
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
 
   const systemPrompt = `你是一個正在陪玩家玩消消樂遊戲的角色，請根據角色性格生成一句簡短的評論或鼓勵。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -1020,8 +1017,8 @@ const generateCharComment = async (context) => {
   }
 };
 
-const generateFallbackComment = (context) => {
-  const char = getCharData();
+const generateFallbackComment = async (context) => {
+  const char = await getCharData();
   const charName = char?.name || '角色';
   const personality = (char?.personality || '').toLowerCase();
   
@@ -1143,7 +1140,7 @@ const updateCharProgressUI = () => {
   if (charLevelNum) charLevelNum.textContent = charProgress;
 };
 
-const initCharCompanion = () => {
+const initCharCompanion = async () => {
   const panel = document.getElementById('char-companion-panel');
   const settingsPanel = document.getElementById('char-settings-panel');
   const toggleBtn = document.getElementById('char-toggle-btn');
@@ -1153,9 +1150,9 @@ const initCharCompanion = () => {
   const charSelect = document.getElementById('char-select');
   const charAvatarEl = document.getElementById('char-avatar');
   
-  charCompanionEnabled = localStorage.getItem(CHAR_COMPANION_KEY) !== 'false';
-  charCommentFrequency = localStorage.getItem(COMMENT_FREQUENCY_KEY) || 'normal';
-  charProgress = parseInt(localStorage.getItem(CHAR_PROGRESS_KEY)) || 1;
+  charCompanionEnabled = await sxGetItem(CHAR_COMPANION_KEY) !== 'false';
+  charCommentFrequency = await sxGetItem(COMMENT_FREQUENCY_KEY) || 'normal';
+  charProgress = parseInt(await sxGetItem(CHAR_PROGRESS_KEY)) || 1;
   
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (frequencySelect) frequencySelect.value = charCommentFrequency;
@@ -1169,17 +1166,16 @@ const initCharCompanion = () => {
   });
   
   // 載入角色列表
-  const loadCharList = () => {
-    const raw = localStorage.getItem('sx_characters') || '[]';
+  const loadCharList = async () => {
+    const list = await sxGetJSON('sx_characters') || [];
     try {
-      const list = JSON.parse(raw);
       if (!Array.isArray(list) || list.length === 0) {
         if (charSelect) charSelect.innerHTML = '<option value="">尚未建立角色</option>';
         panel?.classList.add('hidden');
         return;
       }
       
-      const currentCharName = localStorage.getItem('sx_char_name') || '';
+      const currentCharName = await sxGetItem('sx_char_name') || '';
       if (charSelect) {
         charSelect.innerHTML = list.map((char, index) => 
           `<option value="${index}" ${char.name === currentCharName ? 'selected' : ''}>${char.name}</option>`
@@ -1187,15 +1183,15 @@ const initCharCompanion = () => {
       }
       
       // 更新當前角色資料
-      updateCharDisplay();
+      await updateCharDisplay();
     } catch (e) {
       if (charSelect) charSelect.innerHTML = '<option value="">載入失敗</option>';
     }
   };
   
   // 更新角色顯示
-  const updateCharDisplay = () => {
-    const char = getCharData();
+  const updateCharDisplay = async () => {
+    const char = await getCharData();
     charData = char;
     
     const charNameEl = document.getElementById('char-name');
@@ -1227,37 +1223,37 @@ const initCharCompanion = () => {
   
   // 角色選擇變更
   charSelect?.addEventListener('change', () => {
-    const index = parseInt(charSelect.value);
-    const raw = localStorage.getItem('sx_characters') || '[]';
-    try {
-      const list = JSON.parse(raw);
-      if (list[index]) {
-        localStorage.setItem('sx_char_name', list[index].name);
-        updateCharDisplay();
-        // 生成新的評論
-        if (charCompanionEnabled) {
-          showCharComment({ event: 'start', level: currentLevel });
+    (async () => {
+      const index = parseInt(charSelect.value);
+      const list = await sxGetJSON('sx_characters') || [];
+      try {
+        if (list[index]) {
+          await sxSetItem('sx_char_name', list[index].name);
+          await updateCharDisplay();
+          // 生成新的評論
+          if (charCompanionEnabled) {
+            showCharComment({ event: 'start', level: currentLevel });
+          }
         }
+      } catch (e) {
+        console.error('[match-3] 切換角色失敗:', e);
       }
-    } catch (e) {
-      console.error('[match-3] 切換角色失敗:', e);
-    }
+    })();
   });
   
-  loadCharList();
+  await loadCharList();
   
   if (!charCompanionEnabled) {
     panel?.classList.add('hidden');
   }
   
   // 載入上次保存的位置
-  const savedPosition = localStorage.getItem(CHAR_PANEL_POSITION_KEY);
+  const savedPosition = await sxGetJSON(CHAR_PANEL_POSITION_KEY);
   if (savedPosition && panel) {
     try {
-      const pos = JSON.parse(savedPosition);
-      if (pos.left !== undefined && pos.top !== undefined) {
-        panel.style.left = pos.left;
-        panel.style.top = pos.top;
+      if (savedPosition.left !== undefined && savedPosition.top !== undefined) {
+        panel.style.left = savedPosition.left;
+        panel.style.top = savedPosition.top;
         panel.style.right = 'auto';
         panel.style.bottom = 'auto';
       }
@@ -1331,10 +1327,12 @@ const initCharCompanion = () => {
     panel.classList.remove('dragging');
     
     // 保存位置
-    localStorage.setItem(CHAR_PANEL_POSITION_KEY, JSON.stringify({
-      left: panel.style.left,
-      top: panel.style.top
-    }));
+    (async () => {
+      await sxSetJSON(CHAR_PANEL_POSITION_KEY, {
+        left: panel.style.left,
+        top: panel.style.top
+      });
+    })();
   };
   
   // 綁定拖曳事件
@@ -1357,14 +1355,18 @@ const initCharCompanion = () => {
   });
   
   companionToggle?.addEventListener('change', () => {
-    charCompanionEnabled = companionToggle.checked;
-    localStorage.setItem(CHAR_COMPANION_KEY, charCompanionEnabled ? 'true' : 'false');
-    panel?.classList.toggle('hidden', !charCompanionEnabled);
+    (async () => {
+      charCompanionEnabled = companionToggle.checked;
+      await sxSetItem(CHAR_COMPANION_KEY, charCompanionEnabled ? 'true' : 'false');
+      panel?.classList.toggle('hidden', !charCompanionEnabled);
+    })();
   });
   
   frequencySelect?.addEventListener('change', () => {
-    charCommentFrequency = frequencySelect.value;
-    localStorage.setItem(COMMENT_FREQUENCY_KEY, charCommentFrequency);
+    (async () => {
+      charCommentFrequency = frequencySelect.value;
+      await sxSetItem(COMMENT_FREQUENCY_KEY, charCommentFrequency);
+    })();
   });
   
   if (charCompanionEnabled && charData?.name) {
@@ -1376,9 +1378,12 @@ document.getElementById('shuffle-btn')?.addEventListener('click', () => usePower
 document.getElementById('hint-btn')?.addEventListener('click', () => usePowerUp('hint'));
 document.getElementById('bomb-btn')?.addEventListener('click', () => usePowerUp('bomb'));
 
-loadSxSettings();
-populateLevelSelect();
-buildWorlds();
-toggleGameView(false);
-updatePowerUpUI();
-initCharCompanion();
+(async () => {
+  loadSxSettings();
+  await initLevelData();
+  populateLevelSelect();
+  await buildWorlds();
+  toggleGameView(false);
+  updatePowerUpUI();
+  await initCharCompanion();
+})();

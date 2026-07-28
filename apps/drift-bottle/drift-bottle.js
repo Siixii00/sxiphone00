@@ -1723,10 +1723,10 @@ function buildZiweiZenithPayload({ dateText, timeText, gender, calendarType, isL
   };
 }
 
-function getActiveApiConfig() {
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+async function getActiveApiConfig() {
+  const apis = await sxGetJSON('api_configs') || [];
   if (!Array.isArray(apis) || !apis.length) return null;
-  const activeIndex = Number.parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+  const activeIndex = Number.parseInt(await sxGetItem('sx_active_api') || '0', 10);
   const safeIndex = Number.isFinite(activeIndex) && activeIndex >= 0 ? activeIndex : 0;
   return apis[safeIndex] || apis[0] || null;
 }
@@ -1741,7 +1741,7 @@ async function analyzeZiweiByImage({ imageUrl, profileText = '', externalNote = 
   if (!ziweiAnalysisNote || !ziweiAnalysisResult) return false;
   if (!imageUrl) return false;
 
-  const config = getActiveApiConfig();
+  const config = await getActiveApiConfig();
   if (!config?.url) {
     ziweiAnalysisNote.textContent = '圖片辨識分析失敗：未設定可用 API。';
     ziweiAnalysisResult.textContent = '請先到設定中配置可用的 AI API（支援圖像辨識）。';
@@ -2159,7 +2159,7 @@ function pickBySeed(list, seed) {
 }
 
 async function generateSimpleReading(methodKey, question) {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   
   if (!config?.url) {
     const seed = computeSeed(`${methodKey}|${question}|${new Date().toDateString()}`);
@@ -2176,7 +2176,7 @@ async function generateSimpleReading(methodKey, question) {
     tarot: '塔羅占卜'
   };
   
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
   const methodName = methodLabels[methodKey] || '占卜';
   
   const systemPrompt = `你是專業的${methodName}占卜師，請根據使用者的問題給出詳細且有建設性的占卜解讀。
@@ -2619,9 +2619,9 @@ function updateMeihuaInputVisibility() {
   meihuaManualMovingWrap?.classList.toggle('is-hidden', movingMode !== 'manual');
 }
 
-function initTarotGame() {
+async function initTarotGame() {
   const deckTypeSelect = document.getElementById('tarot-deck-type');
-  const savedDeckType = localStorage.getItem('tarot-deck-type') || 'rws';
+  const savedDeckType = await sxGetItem('tarot-deck-type') || 'rws';
   const deckType = deckTypeSelect?.value || savedDeckType;
   
   if (deckTypeSelect && deckTypeSelect.value !== deckType) {
@@ -2630,12 +2630,10 @@ function initTarotGame() {
   
   const deck = generateFullDeck(deckType);
   
-  // 讀取洗牌速度設定
-  const savedShuffleSpeed = localStorage.getItem('tarot-shuffle-speed') || 'normal';
+  const savedShuffleSpeed = await sxGetItem('tarot-shuffle-speed') || 'normal';
   const animationSpeedSelect = document.getElementById('animation-speed');
   const shuffleSpeed = animationSpeedSelect?.value || savedShuffleSpeed;
   
-  // 同步設定選項
   if (animationSpeedSelect && animationSpeedSelect.value !== shuffleSpeed) {
     animationSpeedSelect.value = shuffleSpeed;
   }
@@ -2651,9 +2649,9 @@ function initTarotGame() {
     cutPosition: null,
     spreadCards: [],
     selectedCards: [],
-    cardBack: localStorage.getItem('tarot-card-back') || 'default',
-    customCardBack: localStorage.getItem('tarot-custom-back') || null,
-    showReversed: localStorage.getItem('tarot-show-reversed') !== 'false',
+    cardBack: await sxGetItem('tarot-card-back') || 'default',
+    customCardBack: await sxGetItem('tarot-custom-back') || null,
+    showReversed: await sxGetItem('tarot-show-reversed') !== 'false',
     shuffleSpeed: shuffleSpeed
   };
   
@@ -3265,7 +3263,7 @@ async function generateTarotReading() {
     return `【${position}】${card.name}（${orientation}）：關鍵字 ${card.keywords.join('、')}`;
   }).join('\n');
   
-  const config_api = getActiveApiConfig();
+  const config_api = await getActiveApiConfig();
   
   if (!config_api?.url) {
     readingContent.innerHTML = generateLocalReading(question, cardDescriptions, config, deckConfig);
@@ -3427,7 +3425,7 @@ function bindEvents() {
       imageUrl: ziweiResultImageInput.value.trim(),
       note: ziweiResultNoteInput.value.trim()
     };
-    localStorage.setItem('drift-bottle:ziwei-external', JSON.stringify(payload));
+    await sxSetJSON('drift-bottle:ziwei-external', payload);
     if (ziweiPreviewImage && payload.imageUrl) {
       ziweiPreviewImage.src = payload.imageUrl;
       ziweiPreviewImage.classList.toggle('is-hidden', false);
@@ -3444,24 +3442,19 @@ function bindEvents() {
     });
   }
 
-  function loadZiweiExternalRecord() {
-    const raw = localStorage.getItem('drift-bottle:ziwei-external');
-    if (!raw) return;
-    try {
-      const payload = JSON.parse(raw);
-      if (ziweiResultImageInput) ziweiResultImageInput.value = payload.imageUrl || '';
-      if (ziweiResultNoteInput) ziweiResultNoteInput.value = payload.note || '';
-      if (ziweiPreviewImage) {
-        ziweiPreviewImage.src = payload.imageUrl || '';
-        ziweiPreviewImage.classList.toggle('is-hidden', !payload.imageUrl);
-      }
-      if (ziweiPreviewNote) ziweiPreviewNote.textContent = payload.note || '（未填寫摘要）';
-      ziweiExternalPreview?.classList.toggle('is-hidden', !payload.imageUrl && !payload.note);
-      if (ziweiAnalysisNote) ziweiAnalysisNote.textContent = '尚未分析';
-      if (ziweiAnalysisResult) ziweiAnalysisResult.textContent = '';
-    } catch (error) {
-      console.warn('Failed to load ziwei external record', error);
+  async function loadZiweiExternalRecord() {
+    const payload = await sxGetJSON('drift-bottle:ziwei-external');
+    if (!payload) return;
+    if (ziweiResultImageInput) ziweiResultImageInput.value = payload.imageUrl || '';
+    if (ziweiResultNoteInput) ziweiResultNoteInput.value = payload.note || '';
+    if (ziweiPreviewImage) {
+      ziweiPreviewImage.src = payload.imageUrl || '';
+      ziweiPreviewImage.classList.toggle('is-hidden', !payload.imageUrl);
     }
+    if (ziweiPreviewNote) ziweiPreviewNote.textContent = payload.note || '（未填寫摘要）';
+    ziweiExternalPreview?.classList.toggle('is-hidden', !payload.imageUrl && !payload.note);
+    if (ziweiAnalysisNote) ziweiAnalysisNote.textContent = '尚未分析';
+    if (ziweiAnalysisResult) ziweiAnalysisResult.textContent = '';
   }
 
   function openAudioPage() {
@@ -3542,7 +3535,7 @@ function bindEvents() {
     });
   });
 
-  function saveEastProfile() {
+  async function saveEastProfile() {
     if (!eastBirthDateInput || !eastBirthTimeInput || !eastBirthGenderSelect || !eastCalendarTypeSelect || !eastLunarLeapSelect) return;
     const payload = {
       birthDate: eastBirthDateInput.value,
@@ -3551,26 +3544,21 @@ function bindEvents() {
       isLeap: eastLunarLeapSelect.value,
       gender: eastBirthGenderSelect.value
     };
-    localStorage.setItem('drift-bottle:east-profile', JSON.stringify(payload));
+    await sxSetJSON('drift-bottle:east-profile', payload);
     if (eastLunarNote) eastLunarNote.textContent = '已儲存出生資訊。';
   }
 
-  function loadEastProfile() {
-    const raw = localStorage.getItem('drift-bottle:east-profile');
-    if (!raw) return;
-    try {
-      const payload = JSON.parse(raw);
-      if (eastBirthDateInput) eastBirthDateInput.value = payload.birthDate || '';
-      if (eastBirthTimeInput) eastBirthTimeInput.value = payload.birthTime || '';
-      if (eastCalendarTypeSelect) eastCalendarTypeSelect.value = payload.calendarType || 'solar';
-      if (eastLunarLeapSelect) eastLunarLeapSelect.value = payload.isLeap || 'false';
-      if (eastBirthGenderSelect) eastBirthGenderSelect.value = payload.gender || 'F';
-    } catch (error) {
-      console.warn('Failed to load east profile', error);
-    }
+  async function loadEastProfile() {
+    const payload = await sxGetJSON('drift-bottle:east-profile');
+    if (!payload) return;
+    if (eastBirthDateInput) eastBirthDateInput.value = payload.birthDate || '';
+    if (eastBirthTimeInput) eastBirthTimeInput.value = payload.birthTime || '';
+    if (eastCalendarTypeSelect) eastCalendarTypeSelect.value = payload.calendarType || 'solar';
+    if (eastLunarLeapSelect) eastLunarLeapSelect.value = payload.isLeap || 'false';
+    if (eastBirthGenderSelect) eastBirthGenderSelect.value = payload.gender || 'F';
   }
 
-  eastSaveProfileBtn?.addEventListener('click', saveEastProfile);
+  eastSaveProfileBtn?.addEventListener('click', async () => { await saveEastProfile(); });
   ziweiSaveExternalBtn?.addEventListener('click', saveZiweiExternalRecord);
   ziweiBuildChartBtn?.addEventListener('click', buildZiweiChartImage);
   ziweiDownloadChartBtn?.addEventListener('click', downloadZiweiChartImage);
@@ -3608,21 +3596,21 @@ function bindEvents() {
   });
   
   const tarotDeckTypeSelect = document.getElementById('tarot-deck-type');
-  tarotDeckTypeSelect?.addEventListener('change', () => {
+  tarotDeckTypeSelect?.addEventListener('change', async () => {
     tarotGameState.deckType = tarotDeckTypeSelect.value;
-    localStorage.setItem('tarot-deck-type', tarotDeckTypeSelect.value);
+    await sxSetItem('tarot-deck-type', tarotDeckTypeSelect.value);
   });
   
-  const savedDeckType = localStorage.getItem('tarot-deck-type');
+  const savedDeckType = await sxGetItem('tarot-deck-type');
   if (savedDeckType && tarotDeckTypeSelect) {
     tarotDeckTypeSelect.value = savedDeckType;
   }
   
   const cardBackOptions = document.querySelectorAll('input[name="card-back"]');
   cardBackOptions.forEach(option => {
-    option.addEventListener('change', () => {
+    option.addEventListener('change', async () => {
       tarotGameState.cardBack = option.value;
-      localStorage.setItem('tarot-card-back', option.value);
+      await sxSetItem('tarot-card-back', option.value);
     });
   });
   
@@ -3636,14 +3624,14 @@ function bindEvents() {
     customCardBackInput?.click();
   });
   
-  customCardBackInput?.addEventListener('change', (e) => {
+  customCardBackInput?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       tarotGameState.customCardBack = reader.result;
-      localStorage.setItem('tarot-custom-back', reader.result);
+      await sxSetItem('tarot-custom-back', reader.result);
       
       if (customBackImg) customBackImg.src = reader.result;
       if (customBackPreview) customBackPreview.classList.remove('hidden');
@@ -3651,38 +3639,37 @@ function bindEvents() {
     reader.readAsDataURL(file);
   });
   
-  removeCustomBackBtn?.addEventListener('click', () => {
+  removeCustomBackBtn?.addEventListener('click', async () => {
     tarotGameState.customCardBack = null;
-    localStorage.removeItem('tarot-custom-back');
+    await sxRemoveItem('tarot-custom-back');
     if (customBackPreview) customBackPreview.classList.add('hidden');
   });
   
   const showReversedSelect = document.getElementById('show-reversed');
-  showReversedSelect?.addEventListener('change', () => {
+  showReversedSelect?.addEventListener('change', async () => {
     tarotGameState.showReversed = showReversedSelect.value === 'yes';
-    localStorage.setItem('tarot-show-reversed', showReversedSelect.value);
+    await sxSetItem('tarot-show-reversed', showReversedSelect.value);
   });
   
   const animationSpeedSelect = document.getElementById('animation-speed');
-  animationSpeedSelect?.addEventListener('change', () => {
+  animationSpeedSelect?.addEventListener('change', async () => {
     tarotGameState.shuffleSpeed = animationSpeedSelect.value;
-    localStorage.setItem('tarot-shuffle-speed', animationSpeedSelect.value);
+    await sxSetItem('tarot-shuffle-speed', animationSpeedSelect.value);
   });
   
-  // 同步載入已保存的動畫速度設定
-  const savedShuffleSpeed = localStorage.getItem('tarot-shuffle-speed');
+  const savedShuffleSpeed = await sxGetItem('tarot-shuffle-speed');
   if (savedShuffleSpeed && animationSpeedSelect) {
     animationSpeedSelect.value = savedShuffleSpeed;
     tarotGameState.shuffleSpeed = savedShuffleSpeed;
   }
   
-  const savedCardBack = localStorage.getItem('tarot-card-back');
+  const savedCardBack = await sxGetItem('tarot-card-back');
   if (savedCardBack) {
     const savedOption = document.querySelector(`input[name="card-back"][value="${savedCardBack}"]`);
     if (savedOption) savedOption.checked = true;
   }
   
-  const savedCustomBack = localStorage.getItem('tarot-custom-back');
+  const savedCustomBack = await sxGetItem('tarot-custom-back');
   if (savedCustomBack && customBackImg && customBackPreview) {
     customBackImg.src = savedCustomBack;
     customBackPreview.classList.remove('hidden');
@@ -3715,8 +3702,8 @@ function bindEvents() {
   updateBirthCardVisibility();
   updateMeihuaInputVisibility();
   seedFlowAlmanacDefaults();
-  loadEastProfile();
-  loadZiweiExternalRecord();
+  (async () => { await loadEastProfile(); })();
+  (async () => { await loadZiweiExternalRecord(); })();
   renderZiweiBoard();
 
   document.addEventListener('pointerdown', () => {
@@ -3745,33 +3732,29 @@ let fortuneMemoryEnabled = true;
 let selectedCharData = null;
 let lastCommentTime = 0;
 
-renderMethods();
-showHome();
-bindEvents();
-playIntroAnimation();
-startOceanSound();
-initCharCompanion();
-console.log('Loaded app: drift-bottle');
+(async () => {
+  renderMethods();
+  showHome();
+  bindEvents();
+  playIntroAnimation();
+  startOceanSound();
+  await initCharCompanion();
+  console.log('Loaded app: drift-bottle');
+})();
 
-function getCharacters() {
-  const raw = localStorage.getItem('sx_characters');
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) || [];
-  } catch {
-    return [];
-  }
+async function getCharacters() {
+  return await sxGetJSON('sx_characters') || [];
 }
 
-function getApiConfig() {
-  const apis = JSON.parse(localStorage.getItem('api_configs') || '[]');
+async function getApiConfig() {
+  const apis = await sxGetJSON('api_configs') || [];
   if (!Array.isArray(apis) || !apis.length) return null;
-  const activeIndex = Number.parseInt(localStorage.getItem('sx_active_api') || '0', 10);
+  const activeIndex = Number.parseInt(await sxGetItem('sx_active_api') || '0', 10);
   return apis[activeIndex] || apis[0] || null;
 }
 
 async function generateCharComment(context) {
-  const config = getApiConfig();
+  const config = await getApiConfig();
   const char = selectedCharData;
   
   if (!char) {
@@ -3782,7 +3765,7 @@ async function generateCharComment(context) {
     return generateFallbackComment(context);
   }
   
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-TW';
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-TW';
   
   const systemPrompt = `你是一個正在陪使用者進行占卜的角色，請根據角色性格生成一句簡短的評論或感想。
 請使用 ${window.getAIReadableLangName?.(lang) || '繁體中文'} 撰寫。
@@ -3914,11 +3897,11 @@ function showCharComment(context) {
   });
 }
 
-function saveFortuneToMemory(fortuneData) {
+async function saveFortuneToMemory(fortuneData) {
   if (!fortuneMemoryEnabled) return;
   
-  const memories = JSON.parse(localStorage.getItem(FORTUNE_MEMORY_KEY) || '[]');
-  const lang = localStorage.getItem('sxiphone_lang') || 'zh-Hant';
+  const memories = await sxGetJSON(FORTUNE_MEMORY_KEY) || [];
+  const lang = await sxGetItem('sxiphone_lang') || 'zh-Hant';
   const localeCode = window.getLocaleStringLang?.(lang) || 'zh-TW';
   const entry = {
     id: `fortune_${Date.now()}`,
@@ -3931,7 +3914,7 @@ function saveFortuneToMemory(fortuneData) {
   memories.unshift(entry);
   if (memories.length > 50) memories.pop();
   
-  localStorage.setItem(FORTUNE_MEMORY_KEY, JSON.stringify(memories));
+  await sxSetJSON(FORTUNE_MEMORY_KEY, memories);
   
   window.parent?.postMessage({
     type: 'FORTUNE_MEMORY_UPDATED',
@@ -3939,8 +3922,8 @@ function saveFortuneToMemory(fortuneData) {
   }, '*');
 }
 
-function getFortuneMemories() {
-  return JSON.parse(localStorage.getItem(FORTUNE_MEMORY_KEY) || '[]');
+async function getFortuneMemories() {
+  return await sxGetJSON(FORTUNE_MEMORY_KEY) || [];
 }
 
 function updateCharPanelUI() {
@@ -3959,11 +3942,11 @@ function updateCharPanelUI() {
   }
 }
 
-function renderCharList() {
+async function renderCharList() {
   const charListEl = document.getElementById('char-list');
   if (!charListEl) return;
   
-  const characters = getCharacters();
+  const characters = await getCharacters();
   
   if (characters.length === 0) {
     charListEl.innerHTML = '<div class="no-chars" style="text-align:center;color:var(--fortune-muted);padding:20px;">尚未建立角色<br>請先到設定新增角色</div>';
@@ -3981,13 +3964,13 @@ function renderCharList() {
   `).join('');
   
   charListEl.querySelectorAll('.char-item').forEach(item => {
-    item.addEventListener('click', () => {
+    item.addEventListener('click', async () => {
       const charName = item.dataset.charName;
       const char = characters.find(c => c.name === charName);
       if (char) {
         selectedCharData = char;
-        localStorage.setItem(SELECTED_CHAR_KEY, JSON.stringify(char));
-        renderCharList();
+        await sxSetJSON(SELECTED_CHAR_KEY, char);
+        await renderCharList();
         updateCharPanelUI();
         showCharComment({ event: 'start', type: '占卜' });
       }
@@ -3995,7 +3978,7 @@ function renderCharList() {
   });
 }
 
-function initCharCompanion() {
+async function initCharCompanion() {
   const panel = document.getElementById('char-companion-panel');
   const selectBtn = document.getElementById('char-select-btn');
   const modal = document.getElementById('char-select-modal');
@@ -4003,27 +3986,23 @@ function initCharCompanion() {
   const companionToggle = document.getElementById('char-companion-toggle');
   const memoryToggle = document.getElementById('fortune-memory-toggle');
   
-  charCompanionEnabled = localStorage.getItem(CHAR_COMPANION_ENABLED_KEY) !== 'false';
-  fortuneMemoryEnabled = localStorage.getItem(FORTUNE_MEMORY_ENABLED_KEY) !== 'false';
+  charCompanionEnabled = await sxGetItem(CHAR_COMPANION_ENABLED_KEY) !== 'false';
+  fortuneMemoryEnabled = await sxGetItem(FORTUNE_MEMORY_ENABLED_KEY) !== 'false';
   
   if (companionToggle) companionToggle.checked = charCompanionEnabled;
   if (memoryToggle) memoryToggle.checked = fortuneMemoryEnabled;
   
-  const savedChar = localStorage.getItem(SELECTED_CHAR_KEY);
+  const savedChar = await sxGetJSON(SELECTED_CHAR_KEY);
   if (savedChar) {
-    try {
-      selectedCharData = JSON.parse(savedChar);
-    } catch {
-      selectedCharData = null;
-    }
+    selectedCharData = savedChar;
   }
   
   updateCharPanelUI();
-  renderCharList();
+  await renderCharList();
   
-  selectBtn?.addEventListener('click', () => {
+  selectBtn?.addEventListener('click', async () => {
     modal?.classList.remove('hidden');
-    renderCharList();
+    await renderCharList();
   });
   
   closeBtn?.addEventListener('click', () => {
@@ -4036,9 +4015,9 @@ function initCharCompanion() {
     }
   });
   
-  companionToggle?.addEventListener('change', () => {
+  companionToggle?.addEventListener('change', async () => {
     charCompanionEnabled = companionToggle.checked;
-    localStorage.setItem(CHAR_COMPANION_ENABLED_KEY, charCompanionEnabled ? 'true' : 'false');
+    await sxSetItem(CHAR_COMPANION_ENABLED_KEY, charCompanionEnabled ? 'true' : 'false');
     if (!charCompanionEnabled) {
       panel?.classList.add('hidden');
     } else {
@@ -4046,9 +4025,9 @@ function initCharCompanion() {
     }
   });
   
-  memoryToggle?.addEventListener('change', () => {
+  memoryToggle?.addEventListener('change', async () => {
     fortuneMemoryEnabled = memoryToggle.checked;
-    localStorage.setItem(FORTUNE_MEMORY_ENABLED_KEY, fortuneMemoryEnabled ? 'true' : 'false');
+    await sxSetItem(FORTUNE_MEMORY_ENABLED_KEY, fortuneMemoryEnabled ? 'true' : 'false');
   });
 }
 
